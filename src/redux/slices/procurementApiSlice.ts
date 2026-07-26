@@ -10,6 +10,7 @@ export interface SupplierApi {
   address: string;
   category?: string;
   outletId?: string;
+  outlet?: { id: string; name: string };
   createdAt?: string;
 }
 
@@ -29,6 +30,8 @@ export interface PurchaseOrderApi {
   status: "DRAFT" | "SENT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CLOSED";
   totalAmountPaise: number;
   outletId?: string;
+  outlet?: { id: string; name: string };
+  supplier?: { id: string; name: string };
   createdAt?: string;
   actualSupplier?: SupplierApi;
   items: PurchaseOrderItemApi[];

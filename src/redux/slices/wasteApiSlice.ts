@@ -9,6 +9,7 @@ export interface WasteLogApi {
   reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR";
   loggedById: string;
   outletId?: string;
+  outlet?: { id: string; name: string };
   createdAt: string;
   item?: InventoryItemApi | null;
 }

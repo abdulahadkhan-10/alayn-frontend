@@ -26,6 +26,9 @@ import {
   Plus,
   X,
   PieChart,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 
@@ -36,7 +39,6 @@ export default function WasteManagementPage() {
   React.useEffect(() => {
     setMounted(true);
   }, []);
-
 
   // RTK Queries
   const {
@@ -60,6 +62,8 @@ export default function WasteManagementPage() {
     ? wasteLogsData
     : (wasteLogsData?.data || []);
 
+  const isAllOutlets = activeBranch?.id === "all";
+
   // Form Mutation State
   const [logWaste, { isLoading: isSubmitting }] = useLogWasteMutation();
 
@@ -69,15 +73,20 @@ export default function WasteManagementPage() {
 
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // Search, Filter & Sort State
+  // Search, Filter, Pagination & Sort State
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"createdAt" | "costAtLoggingPaise" | "quantity">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterReason, setFilterReason] = useState<string>("ALL");
+  const [wasteOutletFilter, setWasteOutletFilter] = useState<string>("ALL");
+  const [wastePage, setWastePage] = useState(1);
+  const [wastePageSize, setWastePageSize] = useState(10);
 
   const selectedItem = items.find((i) => i.id === selectedItemId);
+  const numQty = Number(quantity) || 0;
   const calculatedCostRupees =
-    selectedItem && quantity ? (Number(quantity) * (selectedItem.unitCostPaise / 100)).toFixed(2) : "0.00";
+    selectedItem && numQty ? (numQty * (selectedItem.unitCostPaise / 100)).toFixed(2) : "0.00";
+  const remainingStock = selectedItem ? selectedItem.currentStock - numQty : 0;
 
   const isPageLoading = branchLoading || isLoadingLogs || isLoadingSummary;
 
@@ -92,7 +101,6 @@ export default function WasteManagementPage() {
 
     if (!selectedItemId) return setFeedback({ type: "error", msg: "Please select an ingredient item." });
 
-    const numQty = Number(quantity);
     if (!Number.isFinite(numQty) || numQty <= 0) {
       return setFeedback({ type: "error", msg: "Please enter a valid numeric waste quantity greater than 0." });
     }
@@ -107,7 +115,7 @@ export default function WasteManagementPage() {
     try {
       await logWaste({
         itemId: selectedItemId,
-        quantity: Number(quantity),
+        quantity: numQty,
         reason,
       }).unwrap();
 
@@ -117,13 +125,31 @@ export default function WasteManagementPage() {
       refetchLogs();
       refetchSummary();
     } catch (err: any) {
-      setFeedback({ type: "error", msg: err?.data?.message || err?.message || "Failed to log wastage." });
+      setFeedback({ type: "error", msg: err?.data?.message || err?.message || "Failed to record wastage." });
     }
   };
+
+  const availableOutlets = useMemo(() => {
+    const map = new Map<string, string>();
+    logs.forEach((l) => {
+      if (l.outlet) map.set(l.outlet.id, l.outlet.name);
+      else if (l.item?.outlet) map.set(l.item.outlet.id, l.item.outlet.name);
+    });
+    items.forEach((i) => {
+      if (i.outlet) map.set(i.outlet.id, i.outlet.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [logs, items]);
 
   // Filtered & Processed Logs
   const processedLogs = useMemo(() => {
     let result = [...logs];
+
+    if (isAllOutlets && wasteOutletFilter !== "ALL") {
+      result = result.filter(
+        (l) => l.outlet?.id === wasteOutletFilter || l.outletId === wasteOutletFilter || l.item?.outlet?.id === wasteOutletFilter
+      );
+    }
 
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
@@ -152,7 +178,7 @@ export default function WasteManagementPage() {
     });
 
     return result;
-  }, [logs, searchTerm, filterReason, sortField, sortOrder]);
+  }, [logs, isAllOutlets, wasteOutletFilter, searchTerm, filterReason, sortField, sortOrder]);
 
   // Find top wasted ingredient by total cost
   const topWastedIngredient = useMemo(() => {
@@ -188,7 +214,7 @@ export default function WasteManagementPage() {
   const handleExportCSV = () => {
     if (processedLogs.length === 0) return alert("No logs available to export.");
 
-    const headers = ["Logged Date", "Item Name", "SKU", "Category", "Quantity", "Unit", "Cost (INR)", "Reason"];
+    const headers = ["Logged Date", "Item Name", "Item Code", "Category", "Quantity", "Unit", "Loss Value (INR)", "Reason"];
     const rows = processedLogs.map((log) => [
       new Date(log.createdAt).toLocaleString("en-IN"),
       `"${log.item?.name || 'Item'}"`,
@@ -214,20 +240,20 @@ export default function WasteManagementPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col min-h-full gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-12">
+      <div className="flex flex-col min-h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-12">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 tracking-tight">
-                Waste Management
+                Spoilage & Waste Tracker
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-0.5 text-xs font-bold text-red-700">
                 <Trash2 className="h-3 w-3" /> {activeBranch?.name || "Branch"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-              Audit ingredient spoilage, track monthly financial loss, and log stock waste
+              Track spoiled items, kitchen loss, and register stock waste
             </p>
           </div>
 
@@ -292,7 +318,7 @@ export default function WasteManagementPage() {
             <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Highest Loss Ingredient</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">Most Wasted Item</p>
                   <div className="rounded-xl bg-amber-50 p-2 text-amber-600 border border-amber-100">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
@@ -338,7 +364,7 @@ export default function WasteManagementPage() {
                   {[
                     { r: "SPOILAGE", label: "Spoiled / Expired" },
                     { r: "OVER_PREP", label: "Over-Prepared" },
-                    { r: "ERROR", label: "Kitchen Error" },
+                    { r: "ERROR", label: "Kitchen Spillage" },
                     { r: "RETURN", label: "Customer Return" },
                   ].map((item) => {
                     const group = wasteSummary?.byReason?.find((b) => b.reason === item.r);
@@ -348,7 +374,10 @@ export default function WasteManagementPage() {
                       <button
                         key={item.r}
                         type="button"
-                        onClick={() => setFilterReason(isSelected ? "ALL" : item.r)}
+                        onClick={() => {
+                          setFilterReason(isSelected ? "ALL" : item.r);
+                          setWastePage(1);
+                        }}
                         className={`rounded-xl border p-2.5 transition-all text-left group ${
                           isSelected
                             ? "border-[#D3232A] bg-red-50/70 text-red-900 shadow-2xs font-semibold"
@@ -400,8 +429,8 @@ export default function WasteManagementPage() {
                 <Plus className="h-4.5 w-4.5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-zinc-900">Log New Wastage</h2>
-                <p className="text-xs text-zinc-500">Record ingredient loss directly</p>
+                <h2 className="text-base font-bold text-zinc-900">Record Wasted Item</h2>
+                <p className="text-xs text-zinc-500">Log stock loss and update inventory</p>
               </div>
             </div>
 
@@ -423,7 +452,7 @@ export default function WasteManagementPage() {
                     <option value="">-- Choose ingredient from inventory --</option>
                     {items.map((i) => (
                       <option key={i.id} value={i.id}>
-                        {i.name} ({i.unit}) — Available: {i.currentStock}
+                        {i.name} ({i.unit}){isAllOutlets || i.outlet ? ` — [${i.outlet?.name || 'Branch'}]` : ''} — Available: {i.currentStock}
                       </option>
                     ))}
                   </select>
@@ -440,9 +469,9 @@ export default function WasteManagementPage() {
                   onChange={(e) => setReason(e.target.value as any)}
                   className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none bg-white font-medium"
                 >
-                  <option value="SPOILAGE">Spoilage / Expiration</option>
-                  <option value="OVER_PREP">Over Preparation</option>
-                  <option value="ERROR">Kitchen Error / Spillage</option>
+                  <option value="SPOILAGE">Spoiled / Expired</option>
+                  <option value="OVER_PREP">Over-Prepared</option>
+                  <option value="ERROR">Kitchen Spillage / Error</option>
                   <option value="RETURN">Customer Return</option>
                 </select>
               </div>
@@ -459,21 +488,41 @@ export default function WasteManagementPage() {
                   placeholder="Enter quantity amount..."
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none"
+                  className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none font-semibold"
                 />
               </div>
 
-              {selectedItem && quantity && (
-                <div className="rounded-xl bg-red-50/70 border border-red-200/80 p-3.5 text-xs flex justify-between items-center text-red-950">
-                  <span>Calculated Loss:</span>
-                  <strong className="text-red-700 text-sm font-extrabold">₹{calculatedCostRupees}</strong>
+              {/* Form Live Stock Balance Impact Card */}
+              {selectedItem && numQty > 0 && (
+                <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Calculated Loss:</span>
+                    <strong className="text-red-700 text-sm font-extrabold">₹{calculatedCostRupees}</strong>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
+                    <div className="bg-white/80 p-1.5 rounded-lg border border-red-100">
+                      <span className="block text-[10px] text-zinc-500 font-semibold">CURRENT</span>
+                      <strong className="text-xs text-zinc-800">{selectedItem.currentStock} {selectedItem.unit}</strong>
+                    </div>
+                    <div className="bg-white/80 p-1.5 rounded-lg border border-red-100">
+                      <span className="block text-[10px] text-zinc-500 font-semibold">REMAINING</span>
+                      <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
+                        {remainingStock} {selectedItem.unit}
+                      </strong>
+                    </div>
+                  </div>
+                  {remainingStock < selectedItem.reorderThreshold && (
+                    <p className="text-[11px] text-red-600 font-bold flex items-center gap-1 pt-0.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min reorder level ({selectedItem.reorderThreshold} {selectedItem.unit})!
+                    </p>
+                  )}
                 </div>
               )}
 
               <button
                 id="submit-waste-btn"
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !selectedItemId || numQty <= 0}
                 className="w-full rounded-xl bg-[#D3232A] py-3 text-xs sm:text-sm font-bold text-white hover:bg-[#b01e23] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs mt-2"
               >
                 {isSubmitting ? (
@@ -495,24 +544,47 @@ export default function WasteManagementPage() {
                 <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Filter waste logs by ingredient or SKU..."
+                  placeholder="Filter waste logs by item name or code..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setWastePage(1);
+                  }}
                   className="w-full rounded-xl border border-zinc-300 pl-9 pr-3.5 py-1.5 text-xs focus:border-[#D3232A] focus:outline-none bg-white"
                 />
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {isAllOutlets && availableOutlets.length > 0 && (
+                  <select
+                    value={wasteOutletFilter}
+                    onChange={(e) => {
+                      setWasteOutletFilter(e.target.value);
+                      setWastePage(1);
+                    }}
+                    className="rounded-xl border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 focus:outline-none"
+                  >
+                    <option value="ALL">All Outlets</option>
+                    {availableOutlets.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <Filter className="h-3.5 w-3.5 text-zinc-400" />
                 <select
                   value={filterReason}
-                  onChange={(e) => setFilterReason(e.target.value)}
+                  onChange={(e) => {
+                    setFilterReason(e.target.value);
+                    setWastePage(1);
+                  }}
                   className="rounded-xl border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 focus:outline-none"
                 >
                   <option value="ALL">All Reasons ({logs.length})</option>
-                  <option value="SPOILAGE">Spoilage</option>
-                  <option value="OVER_PREP">Over Prep</option>
-                  <option value="ERROR">Kitchen Error</option>
+                  <option value="SPOILAGE">Spoiled / Expired</option>
+                  <option value="OVER_PREP">Over-Prepared</option>
+                  <option value="ERROR">Kitchen Spillage</option>
                   <option value="RETURN">Customer Return</option>
                 </select>
               </div>
@@ -528,87 +600,133 @@ export default function WasteManagementPage() {
               <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-2">
                 <Package className="h-10 w-10 text-zinc-300 stroke-[1.5]" />
                 <p className="text-sm font-semibold text-zinc-600">No waste logs match your search</p>
-                <p className="text-xs text-zinc-400">Log new waste using the form on the left</p>
+                <p className="text-xs text-zinc-400">Record new waste using the form on the left</p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-zinc-50/90 text-left text-[11px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                      <th
-                        className="px-4 py-3 cursor-pointer select-none hover:text-zinc-900"
-                        onClick={() => toggleSort("createdAt")}
-                      >
-                        <div className="flex items-center gap-1">
-                          Logged Date <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3">Ingredient & SKU</th>
-                      <th
-                        className="px-4 py-3 text-center cursor-pointer select-none hover:text-zinc-900"
-                        onClick={() => toggleSort("quantity")}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          Quantity <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </th>
-                      <th
-                        className="px-4 py-3 text-right cursor-pointer select-none hover:text-zinc-900"
-                        onClick={() => toggleSort("costAtLoggingPaise")}
-                      >
-                        <div className="flex items-center justify-end gap-1">
-                          Loss Value (₹) <ArrowUpDown className="h-3 w-3" />
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-center">Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {processedLogs.map((log) => {
-                      const reasonColors: Record<string, string> = {
-                        SPOILAGE: "bg-red-50 text-red-700 border-red-200",
-                        OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
-                        ERROR: "bg-orange-50 text-orange-700 border-orange-200",
-                        RETURN: "bg-blue-50 text-blue-700 border-blue-200",
-                      };
+            ) : (() => {
+              const totalWastePages = Math.ceil(processedLogs.length / wastePageSize);
+              const safeWastePage = Math.min(wastePage, totalWastePages || 1);
+              const startWasteIdx = (safeWastePage - 1) * wastePageSize;
+              const paginatedLogs = processedLogs.slice(startWasteIdx, startWasteIdx + wastePageSize);
 
-                      return (
-                        <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
-                          <td className="px-4 py-3 text-xs text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
-                            {mounted ? new Date(log.createdAt).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }) : ""}
-                          </td>
-
-                          <td className="px-4 py-3">
-                            <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
-                            <p className="text-[10px] text-zinc-400 font-mono">{log.item?.sku || "SKU-N/A"}</p>
-                          </td>
-                          <td className="px-4 py-3 text-center text-zinc-800 font-bold text-xs whitespace-nowrap">
-                            {log.quantity} <span className="text-zinc-400 font-normal text-[11px]">{log.item?.unit || ""}</span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-extrabold text-red-600 text-xs tabular-nums whitespace-nowrap">
-                            ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-center whitespace-nowrap">
-                            <span
-                              className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
-                                reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"
-                              }`}
-                            >
-                              {log.reason.replace("_", " ")}
-                            </span>
-                          </td>
+              return (
+                <div className="flex flex-col">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-zinc-50/90 text-left text-[11px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
+                          <th
+                            className="px-4 py-3 cursor-pointer select-none hover:text-zinc-900"
+                            onClick={() => toggleSort("createdAt")}
+                          >
+                            <div className="flex items-center gap-1">
+                              Logged Date <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </th>
+                          <th className="px-4 py-3">Item & Code</th>
+                          {(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet)) && (
+                            <th className="px-4 py-3">Outlet</th>
+                          )}
+                          <th
+                            className="px-4 py-3 text-center cursor-pointer select-none hover:text-zinc-900"
+                            onClick={() => toggleSort("quantity")}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              Quantity <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </th>
+                          <th
+                            className="px-4 py-3 text-right cursor-pointer select-none hover:text-zinc-900"
+                            onClick={() => toggleSort("costAtLoggingPaise")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Loss Value (₹) <ArrowUpDown className="h-3 w-3" />
+                            </div>
+                          </th>
+                          <th className="px-4 py-3 text-center">Reason</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {paginatedLogs.map((log) => {
+                          const reasonColors: Record<string, string> = {
+                            SPOILAGE: "bg-red-50 text-red-700 border-red-200",
+                            OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
+                            ERROR: "bg-orange-50 text-orange-700 border-orange-200",
+                            RETURN: "bg-blue-50 text-blue-700 border-blue-200",
+                          };
+
+                          return (
+                            <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
+                              <td className="px-4 py-3 text-xs text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
+                                {mounted ? new Date(log.createdAt).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }) : ""}
+                              </td>
+
+                              <td className="px-4 py-3">
+                                <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
+                                <p className="text-[10px] text-zinc-400 font-mono">Code: {log.item?.sku || "N/A"}</p>
+                              </td>
+                              {(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet)) && (
+                                <td className="px-4 py-3">
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                                    <Building2 className="h-3 w-3 shrink-0" />
+                                    {log.outlet?.name || log.item?.outlet?.name || "Branch"}
+                                  </span>
+                                </td>
+                              )}
+                              <td className="px-4 py-3 text-center text-zinc-800 font-bold text-xs whitespace-nowrap">
+                                {log.quantity} <span className="text-zinc-400 font-normal text-[11px]">{log.item?.unit || ""}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-extrabold text-red-600 text-xs tabular-nums whitespace-nowrap">
+                                ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-center whitespace-nowrap">
+                                <span
+                                  className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
+                                    reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"
+                                  }`}
+                                >
+                                  {log.reason.replace("_", " ")}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Bar */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-zinc-50/80 border-t border-zinc-200 text-xs text-zinc-600">
+                    <div>
+                      Showing <strong>{startWasteIdx + 1}</strong> to <strong>{Math.min(startWasteIdx + wastePageSize, processedLogs.length)}</strong> of <strong>{processedLogs.length}</strong> Waste Logs
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setWastePage((p) => Math.max(1, p - 1))}
+                        disabled={safeWastePage === 1}
+                        className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="px-2 font-medium">
+                        Page {safeWastePage} of {totalWastePages}
+                      </span>
+                      <button
+                        onClick={() => setWastePage((p) => Math.min(totalWastePages, p + 1))}
+                        disabled={safeWastePage >= totalWastePages}
+                        className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

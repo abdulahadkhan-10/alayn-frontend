@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Sliders, Truck, Trash2, ChevronRight } from "lucide-react";
+import { Package, Sliders, Truck, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -11,22 +11,21 @@ const tabs = [
     name: "Stock Items",
     href: "/inventory",
     icon: Package,
-    desc: "Live Inventory & SKUs",
+    desc: "Live stock counts & values",
   },
   {
     name: "Adjust Stock",
     href: "/inventory/adjust",
     icon: Sliders,
-    desc: "Record Usage / Count Audit",
+    desc: "Update counts & fix differences",
   },
   {
-    name: "Order Stock & Suppliers",
+    name: "Orders & Suppliers",
     href: "/inventory/procurement",
     icon: Truck,
-    desc: "Order stock & manage suppliers",
+    desc: "Place restock orders & vendors",
   },
 ];
-
 
 export default function InventoryNavTabs() {
   const pathname = usePathname();
@@ -52,17 +51,17 @@ export default function InventoryNavTabs() {
               <div className="flex items-center gap-2.5">
                 <div
                   className={cn(
-                    "rounded-lg p-1.5 transition-colors",
+                    "rounded-lg p-1.5 transition-colors shrink-0",
                     isActive ? "bg-white/20 text-white" : "bg-white text-zinc-500 shadow-2xs group-hover:text-zinc-800"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold leading-tight">{tab.name}</p>
+                <div className="truncate">
+                  <p className="text-xs sm:text-sm font-bold leading-tight truncate">{tab.name}</p>
                   <p
                     className={cn(
-                      "text-[10px] leading-tight mt-0.5",
+                      "text-[10px] leading-tight mt-0.5 truncate",
                       isActive ? "text-white/80" : "text-zinc-400 group-hover:text-zinc-500"
                     )}
                   >
@@ -72,7 +71,7 @@ export default function InventoryNavTabs() {
               </div>
               <ChevronRight
                 className={cn(
-                  "h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5",
+                  "h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5 shrink-0 hidden md:block",
                   isActive ? "text-white" : "text-zinc-400"
                 )}
               />

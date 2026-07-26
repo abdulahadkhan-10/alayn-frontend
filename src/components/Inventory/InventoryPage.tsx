@@ -16,8 +16,8 @@ import {
   Zap,
   Truck,
   Trash2,
+  Filter,
 } from "lucide-react";
-
 
 import Skeleton from "react-loading-skeleton";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -34,8 +34,6 @@ import InventoryItemTable from "./InventoryItemTable";
 import AddItemModal       from "./AddItemModal";
 import AdjustStockModal   from "./AdjustStockModal";
 import SmartPOModal       from "./SmartPOModal";
-
-
 
 export default function InventoryPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
@@ -54,6 +52,7 @@ export default function InventoryPage() {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "LOW_STOCK" | "HEALTHY">("ALL");
 
   const [showAdd, setShowAdd] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<any | null>(null);
@@ -75,21 +74,25 @@ export default function InventoryPage() {
 
   // Filtered items
   const filteredItems = useMemo(() => {
-    const q = search.toLowerCase();
-    return items.filter(
-      (item) =>
-        (item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q)) &&
-        (categoryFilter === "All" || item.category === categoryFilter)
-    );
-  }, [items, search, categoryFilter]);
+    const q = search.toLowerCase().trim();
+    return items.filter((item) => {
+      const matchesSearch = !q || item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q);
+      const matchesCategory = categoryFilter === "All" || item.category === categoryFilter;
+      const isLow = (item.currentStock || 0) <= item.reorderThreshold;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "LOW_STOCK" && isLow) ||
+        (statusFilter === "HEALTHY" && !isLow);
+
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [items, search, categoryFilter, statusFilter]);
 
   const totalValue = items.reduce(
     (s, i) => s + (i.currentStock || 0) * (i.unitCostPaise / 100),
     0
   );
   const lowStockCount = lowStockItems.length;
-  const expiringBatchesCount = alertsData?.expiringBatches?.length || 0;
-
   const isPageLoading = branchLoading || isLoadingItems;
 
   return (
@@ -97,15 +100,14 @@ export default function InventoryPage() {
       <div className="flex flex-col min-h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-8">
         <InventoryNavTabs />
 
-
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-zinc-900">
-              Smart Inventory — <span className="text-[#D3232A]">{activeBranch?.name || "Branch"}</span>
+              Stock Items — <span className="text-[#D3232A]">{activeBranch?.name || "Branch"}</span>
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Live database tracking of stock counts, categories, and reorder levels
+              Track stock levels, min reorder alerts, and total inventory value
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -115,7 +117,7 @@ export default function InventoryPage() {
                 onClick={() => setShowSmartPO(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-[#D3232A] px-3.5 py-2 text-xs sm:text-sm font-bold text-white hover:opacity-95 transition-opacity shadow-sm"
               >
-                <Zap className="h-4 w-4 fill-current" /> 1-Click Smart PO ({lowStockItems.length})
+                <Zap className="h-4 w-4 fill-current" /> Quick Restock Order ({lowStockItems.length} Low)
               </button>
             )}
             <button
@@ -131,32 +133,28 @@ export default function InventoryPage() {
               onClick={() => setShowAdd(true)}
               className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-3.5 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-[#b01e23] transition-colors shadow-xs"
             >
-              <Plus className="h-4 w-4" /> Add Item
+              <Plus className="h-4 w-4" /> Add New Item
             </button>
           </div>
-
-
         </div>
 
-
-        {/* Low Stock Smart PO Prompt Banner */}
+        {/* Low Stock Alert Status Banner */}
         {lowStockCount > 0 && (
-          <div className="rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs sm:text-sm text-red-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs sm:text-sm text-red-900 flex items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
               <div>
-                <strong>{lowStockCount} Low Stock Item(s) Detected:</strong> Quantities are at or below reorder threshold.
+                <strong>{lowStockCount} Low Stock Item(s) Need Restocking:</strong> Current quantities are at or below minimum reorder levels.
               </div>
             </div>
             <button
-              onClick={() => setShowSmartPO(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#D3232A] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#b01e23] transition-colors shrink-0 shadow-2xs"
+              onClick={() => setStatusFilter("LOW_STOCK")}
+              className="text-xs text-red-700 font-bold underline hover:text-red-900 whitespace-nowrap"
             >
-              <Zap className="h-3.5 w-3.5 fill-current" /> Auto-Generate Purchase Order
+              View Low Stock Only
             </button>
           </div>
         )}
-
 
         {/* Responsive KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -183,9 +181,9 @@ export default function InventoryPage() {
               <InventoryStatCard
                 icon={<Package className="h-5 w-5" />}
                 iconCls="bg-red-50 text-[#D3232A]"
-                label="Total SKUs"
+                label="Total Stock Items"
                 value={String(items.length)}
-                sub={`${filteredItems.length} matching filters`}
+                sub={`${filteredItems.length} matching active filters`}
               />
               <InventoryStatCard
                 icon={<AlertTriangle className="h-5 w-5" />}
@@ -193,19 +191,18 @@ export default function InventoryPage() {
                 label="Low Stock Alert"
                 value={String(lowStockCount)}
                 pulse={lowStockCount > 0}
-                sub={lowStockCount > 0 ? "Items below reorder level" : "All stock levels OK"}
+                sub={lowStockCount > 0 ? "Items below min reorder level" : "All stock levels healthy"}
               />
               <InventoryStatCard
                 icon={<IndianRupee className="h-5 w-5" />}
                 iconCls="bg-blue-50 text-blue-600"
-                label="Live Stock Value"
+                label="Total Inventory Value"
                 value={`₹${totalValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`}
-                sub="calculated at cost price"
+                sub="Calculated at unit cost price"
               />
             </>
           )}
         </div>
-
 
         {/* Responsive Filter Row */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 sm:px-4 sm:py-3 shadow-xs">
@@ -214,22 +211,53 @@ export default function InventoryPage() {
             <input
               id="inventory-search"
               type="text"
-              placeholder="Search ingredient by name or SKU…"
+              placeholder="Search item name or code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-zinc-300 pl-9 pr-3 py-1.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ALL")}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  statusFilter === "ALL" ? "bg-white text-zinc-900 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("LOW_STOCK")}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  statusFilter === "LOW_STOCK" ? "bg-red-600 text-white shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Low Stock ({lowStockCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("HEALTHY")}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  statusFilter === "HEALTHY" ? "bg-emerald-600 text-white shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Healthy
+              </button>
+            </div>
+
             <select
               id="inventory-category-filter"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full sm:w-44 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none"
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none bg-white font-medium"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {c === "All" ? "All Categories" : c}
                 </option>
               ))}
             </select>
@@ -238,6 +266,7 @@ export default function InventoryPage() {
               onClick={() => {
                 setSearch("");
                 setCategoryFilter("All");
+                setStatusFilter("ALL");
               }}
               title="Clear filters"
               className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-zinc-500 hover:bg-zinc-100 transition-colors"
@@ -250,14 +279,11 @@ export default function InventoryPage() {
         {/* Stock Items Table */}
         <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-hidden h-fit mb-6">
           {isPageLoading ? (
-
-
             <div className="p-4 space-y-3">
               <Skeleton height={24} width="30%" className="mb-4" />
               <Skeleton count={6} height={42} borderRadius={8} className="mb-2" />
             </div>
           ) : isItemsError ? (
-
             <div className="flex flex-col items-center justify-center gap-2 h-64">
               <AlertTriangle className="h-7 w-7 text-amber-500" />
               <p className="text-sm font-medium text-zinc-700">Could not connect to backend server</p>
@@ -271,13 +297,13 @@ export default function InventoryPage() {
           ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 h-64 text-zinc-400">
               <Package className="h-9 w-9 text-zinc-300" />
-              <p className="text-sm font-medium text-zinc-600">No inventory items found</p>
-              <p className="text-xs text-zinc-400">Add a new item to start tracking live stock.</p>
+              <p className="text-sm font-medium text-zinc-600">No stock items match your search</p>
+              <p className="text-xs text-zinc-400">Try adjusting search keywords or filters.</p>
               <button
                 onClick={() => setShowAdd(true)}
                 className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#D3232A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#b01e23]"
               >
-                <Plus className="h-3.5 w-3.5" /> Add First Item
+                <Plus className="h-3.5 w-3.5" /> Add New Item
               </button>
             </div>
           ) : (
@@ -285,7 +311,9 @@ export default function InventoryPage() {
               <InventoryItemTable
                 items={filteredItems as any}
                 onAdjust={setAdjustTarget}
+                onOrder={() => setShowSmartPO(true)}
                 canManage={true}
+                isAllOutlets={activeBranch?.id === "all"}
               />
             </div>
           )}
@@ -322,12 +350,13 @@ export default function InventoryPage() {
         </Overlay>
       )}
 
-      {/* 1-Click Smart PO Generator Modal */}
+      {/* Quick Restock Order Modal */}
       {showSmartPO && activeBranch && (
         <Overlay onClose={() => setShowSmartPO(false)}>
           <SmartPOModal
             outletId={activeBranch.id}
             lowStockItems={lowStockItems}
+            allItems={items}
             onClose={() => setShowSmartPO(false)}
             onSuccess={() => {
               setShowSmartPO(false);
@@ -339,7 +368,6 @@ export default function InventoryPage() {
     </DashboardLayout>
   );
 }
-
 
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (

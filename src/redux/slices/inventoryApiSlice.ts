@@ -10,6 +10,7 @@ export interface InventoryItemApi {
   unitCostPaise: number;
   currentStock: number;
   outletId?: string;
+  outlet?: { id: string; name: string };
   createdAt?: string;
 }
 

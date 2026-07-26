@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
 import { useBranch } from "@/lib/BranchContext";
@@ -28,11 +28,16 @@ import {
   Zap,
   Trash2,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  IndianRupee,
+  Phone,
+  Mail,
+  RotateCcw,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
-
-
 
 export default function ProcurementPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
@@ -52,18 +57,83 @@ export default function ProcurementPage() {
   // Modals state
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [showSmartPOModal, setShowSmartPOModal] = useState(false);
+  const [prefilledSupplierId, setPrefilledSupplierId] = useState<string | null>(null);
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderApi | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
 
-  // Supplier Search & Category Filter states
+  // Search, Status Filter, Category & Outlet Filter states
+  const [poSearchQuery, setPoSearchQuery] = useState("");
+  const [poStatusFilter, setPoStatusFilter] = useState("ALL");
   const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
   const [selectedSupplierCategoryFilter, setSelectedSupplierCategoryFilter] = useState("ALL");
+  const [procurementOutletFilter, setProcurementOutletFilter] = useState("ALL");
 
-  const lowStockItems = React.useMemo(() => {
+  // Pagination states
+  const [poPage, setPoPage] = useState(1);
+  const [poPageSize, setPoPageSize] = useState(10);
+  const [supPage, setSupPage] = useState(1);
+  const [supPageSize, setSupPageSize] = useState(6);
+
+  const isAllOutlets = activeBranch?.id === "all";
+
+  const lowStockItems = useMemo(() => {
     return items.filter((i) => (i.currentStock || 0) <= i.reorderThreshold);
   }, [items]);
 
-  const filteredSuppliers = React.useMemo(() => {
+  const availableOutlets = useMemo(() => {
+    const map = new Map<string, string>();
+    suppliers.forEach((s) => {
+      if (s.outlet) map.set(s.outlet.id, s.outlet.name);
+    });
+    purchaseOrders.forEach((po) => {
+      if (po.supplier) map.set(po.supplier.id, po.supplier.name);
+      if (po.outlet) map.set(po.outlet.id, po.outlet.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [suppliers, purchaseOrders]);
+
+  // Calculated PO Metrics
+  const activePOCount = useMemo(() => {
+    return purchaseOrders.filter((po) => po.status === "SENT" || po.status === "PARTIALLY_RECEIVED").length;
+  }, [purchaseOrders]);
+
+  const totalSpendRupees = useMemo(() => {
+    const totalPaise = purchaseOrders.reduce((acc, po) => acc + (po.totalAmountPaise || 0), 0);
+    return (totalPaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  }, [purchaseOrders]);
+
+  // Filtered Purchase Orders
+  const finalFilteredPOs = useMemo(() => {
+    let result = [...purchaseOrders];
+
+    if (isAllOutlets && procurementOutletFilter !== "ALL") {
+      result = result.filter(
+        (po) =>
+          po.supplier?.id === procurementOutletFilter ||
+          po.outletId === procurementOutletFilter ||
+          po.outlet?.id === procurementOutletFilter
+      );
+    }
+
+    if (poSearchQuery.trim()) {
+      const q = poSearchQuery.toLowerCase().trim();
+      result = result.filter(
+        (po) =>
+          po.id.toLowerCase().includes(q) ||
+          po.actualSupplier?.name.toLowerCase().includes(q) ||
+          po.supplier?.name.toLowerCase().includes(q)
+      );
+    }
+
+    if (poStatusFilter !== "ALL") {
+      result = result.filter((po) => po.status === poStatusFilter);
+    }
+
+    return result;
+  }, [purchaseOrders, isAllOutlets, procurementOutletFilter, poSearchQuery, poStatusFilter]);
+
+  // Filtered Suppliers
+  const filteredSuppliers = useMemo(() => {
     return suppliers.filter((s) => {
       const q = supplierSearchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -77,14 +147,18 @@ export default function ProcurementPage() {
         selectedSupplierCategoryFilter === "ALL" ||
         (s.category && s.category.toLowerCase().trim() === selectedSupplierCategoryFilter.toLowerCase().trim());
 
-      return matchesSearch && matchesCategory;
+      const matchesOutlet =
+        !isAllOutlets ||
+        procurementOutletFilter === "ALL" ||
+        s.outlet?.id === procurementOutletFilter ||
+        s.outletId === procurementOutletFilter;
+
+      return matchesSearch && matchesCategory && matchesOutlet;
     });
-  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter]);
+  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, isAllOutlets, procurementOutletFilter]);
 
   // Form states
   const [supplierForm, setSupplierForm] = useState({ name: "", contactPerson: "", phone: "", email: "", address: "", category: "Dairy" });
-
-  // Receiving Form state
   const [receiveItemInputs, setReceiveItemInputs] = useState<{ [itemId: string]: { receivedQuantity: number; batchNumber: string; expiryDate: string } }>({});
 
   const handleCreateSupplier = async (e: React.FormEvent) => {
@@ -148,7 +222,6 @@ export default function ProcurementPage() {
 
     if (itemsPayload.length === 0) return alert("Enter quantity greater than 0 for at least one item to receive.");
 
-
     try {
       await receivePOItem({ id: receivingPO.id, items: itemsPayload }).unwrap();
       setReceivingPO(null);
@@ -158,25 +231,45 @@ export default function ProcurementPage() {
     }
   };
 
-
-
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className="flex flex-col h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-12">
         <InventoryNavTabs />
 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-zinc-900">
-              Stock Orders & Suppliers — <span className="text-[#D3232A]">{activeBranch?.name || "Branch"}</span>
+              Orders & Suppliers — <span className="text-[#D3232A]">{activeBranch?.name || "Branch"}</span>
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Order stock from suppliers, track incoming stock, and manage vendor details
+              Place restock orders with vendors, track shipments, and manage supplier details
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            {isAllOutlets && availableOutlets.length > 0 && (
+              <div className="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 px-3 rounded-xl shadow-xs">
+                <Filter className="h-4 w-4 text-zinc-400" />
+                <span className="text-xs font-semibold text-zinc-700">Outlet:</span>
+                <select
+                  value={procurementOutletFilter}
+                  onChange={(e) => {
+                    setProcurementOutletFilter(e.target.value);
+                    setPoPage(1);
+                    setSupPage(1);
+                  }}
+                  className="text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none"
+                >
+                  <option value="ALL">All Outlets</option>
+                  {availableOutlets.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               id="add-supplier-btn"
               onClick={() => setShowAddSupplierModal(true)}
@@ -186,13 +279,51 @@ export default function ProcurementPage() {
             </button>
             <button
               id="smart-po-procurement-btn"
-              onClick={() => setShowSmartPOModal(true)}
+              onClick={() => {
+                setPrefilledSupplierId(null);
+                setShowSmartPOModal(true);
+              }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 via-[#D3232A] to-red-600 px-4 py-2 text-xs font-bold text-white hover:opacity-95 transition-opacity shadow-xs"
             >
               <Zap className="h-3.5 w-3.5 fill-current" /> Quick Restock Order {lowStockItems.length > 0 ? `(${lowStockItems.length} Low)` : ''}
             </button>
           </div>
+        </div>
 
+        {/* Top Executive KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Active Restock Orders</span>
+              <h2 className="text-2xl font-extrabold text-zinc-900 mt-1">{activePOCount}</h2>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Orders currently in transit or partial</p>
+            </div>
+            <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600 border border-blue-100">
+              <Truck className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Restock Spend</span>
+              <h2 className="text-2xl font-extrabold text-zinc-900 mt-1">₹{totalSpendRupees}</h2>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Cumulative vendor order value</p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600 border border-emerald-100">
+              <IndianRupee className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Registered Vendors</span>
+              <h2 className="text-2xl font-extrabold text-zinc-900 mt-1">{suppliers.length}</h2>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Active supplier contact directory</p>
+            </div>
+            <div className="rounded-xl bg-red-50 p-2.5 text-[#D3232A] border border-red-100">
+              <Building2 className="h-5 w-5" />
+            </div>
+          </div>
         </div>
 
         {/* Sub-Tabs */}
@@ -203,7 +334,7 @@ export default function ProcurementPage() {
               activeTab === "POS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            Stock Orders ({purchaseOrders.length})
+            Restock Orders ({finalFilteredPOs.length})
           </button>
           <button
             onClick={() => setActiveTab("SUPPLIERS")}
@@ -211,97 +342,198 @@ export default function ProcurementPage() {
               activeTab === "SUPPLIERS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
             }`}
           >
-            Suppliers ({suppliers.length})
+            Suppliers ({filteredSuppliers.length})
           </button>
         </div>
 
         {/* TAB 1: PURCHASE ORDERS */}
         {activeTab === "POS" && (
-          <div className="rounded-xl border border-zinc-200 bg-white shadow-xs overflow-x-auto">
-            {(isLoadingPOs || branchLoading) ? (
-
-              <div className="p-4 space-y-3">
-                <Skeleton height={24} width="25%" className="mb-4" />
-                <Skeleton count={5} height={42} borderRadius={8} className="mb-2" />
+          <div className="space-y-3">
+            {/* Search & Status Filter Row for Orders */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search by order # or supplier name..."
+                  value={poSearchQuery}
+                  onChange={(e) => {
+                    setPoSearchQuery(e.target.value);
+                    setPoPage(1);
+                  }}
+                  className="w-full rounded-lg border border-zinc-300 pl-9 pr-3 py-1.5 text-xs text-zinc-800 focus:border-[#D3232A] focus:outline-none"
+                />
               </div>
-            ) : purchaseOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-zinc-400 gap-2">
-                <Truck className="h-8 w-8 text-zinc-300" />
-                <p className="text-sm font-medium text-zinc-600">No Stock Orders placed yet</p>
-                <button
-                  onClick={() => setShowSmartPOModal(true)}
-                  className="text-xs text-[#D3232A] font-semibold underline hover:text-[#b01e23] flex items-center gap-1"
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={poStatusFilter}
+                  onChange={(e) => {
+                    setPoStatusFilter(e.target.value);
+                    setPoPage(1);
+                  }}
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 focus:outline-none"
                 >
-                  <Zap className="h-3 w-3" /> Create Restock Order
+                  <option value="ALL">All Statuses ({purchaseOrders.length})</option>
+                  <option value="SENT">Placed</option>
+                  <option value="PARTIALLY_RECEIVED">Partial</option>
+                  <option value="RECEIVED">Completed</option>
+                  <option value="DRAFT">Draft</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    setPoSearchQuery("");
+                    setPoStatusFilter("ALL");
+                    setPoPage(1);
+                  }}
+                  title="Clear filters"
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-zinc-500 hover:bg-zinc-100 transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4" />
                 </button>
               </div>
-            ) : (
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-zinc-50 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                    <th className="px-5 py-3">PO Reference</th>
-                    <th className="px-5 py-3">Supplier</th>
-                    <th className="px-5 py-3 text-center">Items Count</th>
-                    <th className="px-5 py-3 text-right">Total Amount</th>
-                    <th className="px-5 py-3 text-center">Status</th>
-                    <th className="px-5 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {purchaseOrders.map((po) => {
-                    const statusColors: Record<string, string> = {
-                      DRAFT: "bg-zinc-100 text-zinc-700 border-zinc-300",
-                      SENT: "bg-blue-50 text-blue-700 border-blue-200",
-                      PARTIALLY_RECEIVED: "bg-amber-50 text-amber-700 border-amber-200",
-                      RECEIVED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-                      CLOSED: "bg-zinc-100 text-zinc-500 border-zinc-200",
-                    };
-                    const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
+            </div>
 
-                    return (
-                      <tr key={po.id} className="border-b border-zinc-100 hover:bg-zinc-50/70 transition-colors">
-                        <td className="px-5 py-3 font-mono font-semibold text-zinc-800 text-xs">
-                          #{po.id.slice(0, 8).toUpperCase()}
-                        </td>
-                        <td className="px-5 py-3 font-medium text-zinc-900">
-                          {po.actualSupplier?.name || "Supplier"}
-                        </td>
-                        <td className="px-5 py-3 text-center text-zinc-600">{po.items?.length || 0}</td>
-                        <td className="px-5 py-3 text-right font-semibold text-zinc-900 tabular-nums">
-                          ₹{(po.totalAmountPaise / 100).toFixed(2)}
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
-                              statusColors[po.status] || "bg-zinc-100 text-zinc-600"
-                            }`}
-                          >
-                            {po.status === "RECEIVED" ? (
-                              <CheckCircle2 className="h-3 w-3" />
-                            ) : po.status === "PARTIALLY_RECEIVED" ? (
-                              <Clock className="h-3 w-3" />
-                            ) : null}
-                            {po.status}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          {isReceivable ? (
-                            <button
-                              onClick={() => handleOpenReceive(po)}
-                              className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
-                            >
-                              <PackageCheck className="h-3.5 w-3.5" /> Receive Items
-                            </button>
-                          ) : (
-                            <span className="text-xs text-zinc-400 font-medium">Completed</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+            {/* Orders Table Container */}
+            <div className="rounded-xl border border-zinc-200 bg-white shadow-xs overflow-hidden">
+              {(isLoadingPOs || branchLoading) ? (
+                <div className="p-4 space-y-3">
+                  <Skeleton height={24} width="25%" className="mb-4" />
+                  <Skeleton count={5} height={42} borderRadius={8} className="mb-2" />
+                </div>
+              ) : finalFilteredPOs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 text-zinc-400 gap-1.5 p-6 text-center">
+                  <Truck className="h-8 w-8 text-zinc-300" />
+                  <p className="text-sm font-semibold text-zinc-700">No restock orders match your search</p>
+                  <p className="text-xs text-zinc-400">Click &ldquo;Quick Restock Order&rdquo; above to generate your first order.</p>
+                </div>
+              ) : (() => {
+                const totalPoPages = Math.ceil(finalFilteredPOs.length / poPageSize);
+                const safePoPage = Math.min(poPage, totalPoPages || 1);
+                const startPoIdx = (safePoPage - 1) * poPageSize;
+                const paginatedPOs = finalFilteredPOs.slice(startPoIdx, startPoIdx + poPageSize);
+
+                return (
+                  <div className="flex flex-col">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-zinc-50 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
+                            <th className="px-5 py-3">Order #</th>
+                            <th className="px-5 py-3">Supplier</th>
+                            {(isAllOutlets || finalFilteredPOs.some((po) => po.supplier)) && (
+                              <th className="px-5 py-3">Outlet</th>
+                            )}
+                            <th className="px-5 py-3 text-center">Items</th>
+                            <th className="px-5 py-3 text-right">Total Cost</th>
+                            <th className="px-5 py-3 text-center">Status</th>
+                            <th className="px-5 py-3 text-center">Date Placed</th>
+                            <th className="px-5 py-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedPOs.map((po) => {
+                            const statusConfig: Record<string, { label: string; cls: string }> = {
+                              DRAFT: { label: "Draft", cls: "bg-zinc-100 text-zinc-700 border-zinc-300" },
+                              SENT: { label: "Placed", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+                              PARTIALLY_RECEIVED: { label: "Partial", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                              RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                              CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+                            };
+                            const statusInfo = statusConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
+                            const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
+
+                            return (
+                              <tr key={po.id} className="border-b border-zinc-100 hover:bg-zinc-50/70 transition-colors">
+                                <td className="px-5 py-3 font-mono font-bold text-zinc-800 text-xs">
+                                  #{po.id.slice(0, 8).toUpperCase()}
+                                </td>
+                                <td className="px-5 py-3 font-bold text-zinc-900">
+                                  {po.actualSupplier?.name || "Supplier"}
+                                </td>
+                                {(isAllOutlets || finalFilteredPOs.some((p) => p.supplier || p.outlet)) && (
+                                  <td className="px-5 py-3">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+                                      <Building2 className="h-3 w-3 shrink-0" />
+                                      {po.supplier?.name || po.outlet?.name || "Branch"}
+                                    </span>
+                                  </td>
+                                )}
+                                <td className="px-5 py-3 text-center text-zinc-600 font-semibold">{po.items?.length || 0}</td>
+                                <td className="px-5 py-3 text-right font-bold text-zinc-900 tabular-nums">
+                                  ₹{(po.totalAmountPaise / 100).toFixed(2)}
+                                </td>
+                                <td className="px-5 py-3 text-center">
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusInfo.cls}`}
+                                  >
+                                    {po.status === "RECEIVED" ? (
+                                      <CheckCircle2 className="h-3 w-3" />
+                                    ) : po.status === "PARTIALLY_RECEIVED" ? (
+                                      <Clock className="h-3 w-3" />
+                                    ) : null}
+                                    {statusInfo.label}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-3 text-center text-xs text-zinc-500 whitespace-nowrap">
+                                  {po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }) : "N/A"}
+                                </td>
+                                <td className="px-5 py-3 text-right">
+                                  {isReceivable ? (
+                                    <button
+                                      onClick={() => handleOpenReceive(po)}
+                                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
+                                    >
+                                      <PackageCheck className="h-3.5 w-3.5" /> Receive Items
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-emerald-700 font-bold flex items-center justify-end gap-1">
+                                      <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* PO Pagination Bar */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 bg-zinc-50/80 border-t border-zinc-200 text-xs text-zinc-600">
+                      <div>
+                        Showing <strong>{startPoIdx + 1}</strong> to <strong>{Math.min(startPoIdx + poPageSize, finalFilteredPOs.length)}</strong> of <strong>{finalFilteredPOs.length}</strong> Orders
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setPoPage((p) => Math.max(1, p - 1))}
+                          disabled={safePoPage === 1}
+                          className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <span className="px-2 font-medium">
+                          Page {safePoPage} of {totalPoPages}
+                        </span>
+                        <button
+                          onClick={() => setPoPage((p) => Math.min(totalPoPages, p + 1))}
+                          disabled={safePoPage >= totalPoPages}
+                          className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         )}
 
@@ -310,14 +542,16 @@ export default function ProcurementPage() {
           <div className="space-y-4">
             {/* Search & Category Filter Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-zinc-200 shadow-2xs">
-              {/* Search Box */}
               <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search suppliers by name, contact, phone..."
                   value={supplierSearchQuery}
-                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSupplierSearchQuery(e.target.value);
+                    setSupPage(1);
+                  }}
                   className="w-full rounded-lg border border-zinc-200 pl-9 pr-3 py-1.5 text-xs text-zinc-800 focus:border-[#D3232A] focus:outline-none"
                 />
               </div>
@@ -338,7 +572,10 @@ export default function ProcurementPage() {
                 ].map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setSelectedSupplierCategoryFilter(cat)}
+                    onClick={() => {
+                      setSelectedSupplierCategoryFilter(cat);
+                      setSupPage(1);
+                    }}
                     className={`rounded-full px-3 py-1 text-[11px] font-bold tracking-wide transition-all whitespace-nowrap ${
                       selectedSupplierCategoryFilter.toLowerCase() === cat.toLowerCase()
                         ? "bg-[#D3232A] text-white shadow-2xs"
@@ -352,78 +589,140 @@ export default function ProcurementPage() {
             </div>
 
             {/* Grid of Suppliers */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(isLoadingSuppliers || branchLoading) ? (
-
-                Array.from({ length: 6 }).map((_, i) => (
+            {(isLoadingSuppliers || branchLoading) ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs">
                     <Skeleton height={20} width="60%" className="mb-2" />
                     <Skeleton height={14} width="40%" className="mb-3" />
                     <Skeleton count={3} height={12} className="mb-1" />
                   </div>
-                ))
-              ) : filteredSuppliers.length === 0 ? (
+                ))}
+              </div>
+            ) : filteredSuppliers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 text-zinc-400 gap-2 bg-white rounded-xl border border-zinc-200 p-6 text-center">
+                <Building2 className="h-8 w-8 text-zinc-300" />
+                <p className="text-sm font-semibold text-zinc-600">
+                  {suppliers.length === 0
+                    ? "No suppliers registered yet"
+                    : "No suppliers match your search filter"}
+                </p>
+                {suppliers.length === 0 ? (
+                  <button
+                    onClick={() => setShowAddSupplierModal(true)}
+                    className="text-xs text-[#D3232A] font-semibold underline hover:text-[#b01e23]"
+                  >
+                    Add your first supplier contact
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSupplierSearchQuery("");
+                      setSelectedSupplierCategoryFilter("ALL");
+                      setSupPage(1);
+                    }}
+                    className="text-xs text-[#D3232A] font-semibold underline"
+                  >
+                    Clear search filters
+                  </button>
+                )}
+              </div>
+            ) : (() => {
+              const totalSupPages = Math.ceil(filteredSuppliers.length / supPageSize);
+              const safeSupPage = Math.min(supPage, totalSupPages || 1);
+              const startSupIdx = (safeSupPage - 1) * supPageSize;
+              const paginatedSuppliers = filteredSuppliers.slice(startSupIdx, startSupIdx + supPageSize);
 
-                <div className="col-span-full flex flex-col items-center justify-center h-48 text-zinc-400 gap-2 bg-white rounded-xl border border-zinc-200 p-6">
-                  <Building2 className="h-8 w-8 text-zinc-300" />
-                  <p className="text-sm font-medium text-zinc-600">
-                    {suppliers.length === 0
-                      ? "No suppliers registered yet"
-                      : "No suppliers match your search filter"}
-                  </p>
-                  {suppliers.length === 0 ? (
-                    <button
-                      onClick={() => setShowAddSupplierModal(true)}
-                      className="text-xs text-[#D3232A] font-semibold underline hover:text-[#b01e23]"
-                    >
-                      Add your first supplier contact
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setSupplierSearchQuery("");
-                        setSelectedSupplierCategoryFilter("ALL");
-                      }}
-                      className="text-xs text-[#D3232A] font-semibold underline"
-                    >
-                      Clear search filters
-                    </button>
-                  )}
-                </div>
-              ) : (
-                filteredSuppliers.map((s) => (
-                  <div key={s.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 transition-colors">
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {paginatedSuppliers.map((s) => (
+                      <div key={s.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 transition-all group">
                         <div>
-                          <h3 className="font-bold text-zinc-900 text-base flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-[#D3232A]" /> {s.name}
-                          </h3>
-                          <p className="text-xs font-medium text-zinc-500 mt-0.5">Contact: {s.contactPerson}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-bold text-zinc-900 text-base flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-[#D3232A]" /> {s.name}
+                              </h3>
+                              <p className="text-xs font-semibold text-zinc-500 mt-0.5">Contact: {s.contactPerson}</p>
+                              {(isAllOutlets || s.outlet) && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 mt-1.5">
+                                  <Building2 className="h-3 w-3" /> {s.outlet?.name || "Branch"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="inline-flex items-center rounded-full bg-red-50 text-[#D3232A] border border-red-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide shrink-0">
+                                {s.category || "General"}
+                              </span>
+                              <button
+                                onClick={() => setDeletingSupplier(s)}
+                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                                title="Delete Supplier"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-3 space-y-1.5 text-xs text-zinc-600 border-t border-zinc-100 pt-3">
+                            <p className="flex items-center gap-1.5">
+                              <Phone className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                              <a href={`tel:${s.phone}`} className="hover:text-[#D3232A] font-semibold">{s.phone}</a>
+                            </p>
+                            <p className="flex items-center gap-1.5 truncate">
+                              <Mail className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                              <a href={`mailto:${s.email}`} className="hover:text-[#D3232A] font-semibold truncate">{s.email}</a>
+                            </p>
+                            <p className="text-zinc-500 text-[11px] pt-0.5 truncate">
+                              <strong>Address:</strong> {s.address}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center rounded-full bg-red-50 text-[#D3232A] border border-red-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide shrink-0">
-                            {s.category || "General"}
-                          </span>
+
+                        {/* Quick Order Button per Supplier */}
+                        <div className="mt-4 pt-3 border-t border-zinc-100">
                           <button
-                            onClick={() => setDeletingSupplier(s)}
-                            className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
-                            title="Delete Supplier"
+                            onClick={() => {
+                              setPrefilledSupplierId(s.id);
+                              setShowSmartPOModal(true);
+                            }}
+                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-bold text-white hover:bg-[#D3232A] transition-colors shadow-2xs"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Zap className="h-3.5 w-3.5 text-amber-400 fill-current" /> Order from {s.name.split(" ")[0]}
                           </button>
                         </div>
                       </div>
-                      <div className="mt-3 space-y-1 text-xs text-zinc-600 border-t border-zinc-100 pt-2.5">
-                        <p><strong>Phone:</strong> {s.phone}</p>
-                        <p><strong>Email:</strong> {s.email}</p>
-                        <p className="truncate"><strong>Address:</strong> {s.address}</p>
-                      </div>
+                    ))}
+                  </div>
+
+                  {/* Supplier Pagination Bar */}
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-xl border border-zinc-200 text-xs text-zinc-600">
+                    <div>
+                      Showing <strong>{startSupIdx + 1}</strong> to <strong>{Math.min(startSupIdx + supPageSize, filteredSuppliers.length)}</strong> of <strong>{filteredSuppliers.length}</strong> Suppliers
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSupPage((p) => Math.max(1, p - 1))}
+                        disabled={safeSupPage === 1}
+                        className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="px-2 font-medium">
+                        Page {safeSupPage} of {totalSupPages}
+                      </span>
+                      <button
+                        onClick={() => setSupPage((p) => Math.min(totalSupPages, p + 1))}
+                        disabled={safeSupPage >= totalSupPages}
+                        className="rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -437,15 +736,16 @@ export default function ProcurementPage() {
               >
                 <X className="h-5 w-5" />
               </button>
-              <h2 className="text-lg font-bold text-zinc-900 mb-4">Add New Supplier</h2>
+              <h2 className="text-base font-bold text-zinc-900 mb-1">Add Supplier Contact</h2>
+              <p className="text-xs text-zinc-500 mb-4">Register a vendor to send stock orders to</p>
 
               <form onSubmit={handleCreateSupplier} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Company Name</label>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Supplier / Business Name</label>
                   <input
                     required
                     type="text"
-                    placeholder="e.g. Fresh Dairy Suppliers Ltd"
+                    placeholder="e.g. Amul Dairy Pvt Ltd"
                     value={supplierForm.name}
                     onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
@@ -540,7 +840,7 @@ export default function ProcurementPage() {
                 <X className="h-5 w-5" />
               </button>
               <h2 className="text-lg font-bold text-zinc-900 mb-1">
-                Receive Stock — PO #{receivingPO.id.slice(0, 8).toUpperCase()}
+                Receive Stock — Order #{receivingPO.id.slice(0, 8).toUpperCase()}
               </h2>
               <p className="text-xs text-zinc-500 mb-4">
                 Record incoming stock batch details and expiry dates
@@ -571,7 +871,7 @@ export default function ProcurementPage() {
                                 [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
                               })
                             }
-                            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs bg-white focus:outline-none"
+                            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
                           />
                         </div>
                         <div>
@@ -624,11 +924,15 @@ export default function ProcurementPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
             <SmartPOModal
               outletId={activeBranch.id}
-              lowStockItems={lowStockItems}
+              lowStockItems={prefilledSupplierId ? items : lowStockItems}
               allItems={items}
-              onClose={() => setShowSmartPOModal(false)}
+              onClose={() => {
+                setShowSmartPOModal(false);
+                setPrefilledSupplierId(null);
+              }}
               onSuccess={() => {
                 setShowSmartPOModal(false);
+                setPrefilledSupplierId(null);
                 refetchPOs();
               }}
             />
@@ -651,42 +955,28 @@ export default function ProcurementPage() {
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-zinc-900">Delete Supplier</h2>
-                  <p className="text-xs text-zinc-500">Confirm permanent vendor removal</p>
+                  <h3 className="font-bold text-zinc-900 text-base">Delete Supplier</h3>
+                  <p className="text-xs text-zinc-500">Confirm removing vendor contact</p>
                 </div>
               </div>
 
-              <div className="space-y-3 py-2">
-                <p className="text-sm text-zinc-700">
-                  Are you sure you want to delete supplier <strong>"{deletingSupplier.name}"</strong>?
-                </p>
+              <p className="text-xs text-zinc-600 mb-5 leading-relaxed">
+                Are you sure you want to delete supplier <strong>{deletingSupplier.name}</strong>? This action cannot be undone.
+              </p>
 
-                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800">
-                  <strong>Notice:</strong> Removing this supplier will remove their contact profile from active vendors. Existing purchase orders and historical stock logs will be preserved.
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 mt-5 pt-3 border-t border-zinc-100">
+              <div className="flex items-center justify-end gap-2">
                 <button
-                  type="button"
                   onClick={() => setDeletingSupplier(null)}
-                  className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleDeleteSupplierConfirm}
                   disabled={isDeletingSupplier}
-                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 transition-colors disabled:opacity-50 shadow-xs"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  {isDeletingSupplier ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Trash2 className="h-3.5 w-3.5" /> Delete Supplier
-                    </>
-                  )}
+                  {isDeletingSupplier ? "Deleting…" : "Delete Supplier"}
                 </button>
               </div>
             </div>
@@ -696,5 +986,3 @@ export default function ProcurementPage() {
     </DashboardLayout>
   );
 }
-
-

@@ -143,7 +143,27 @@ export default function SmartPOModal({
       )
     );
   };
+
   const [selectedAddItem, setSelectedAddItem] = useState<string>("");
+  const [showAllCustomItems, setShowAllCustomItems] = useState(false);
+
+  const selectedMasterSupplier = useMemo(() => {
+    return suppliers.find((s) => s.id === masterSupplierId);
+  }, [suppliers, masterSupplierId]);
+
+  const customItemsPool = useMemo(() => {
+    const pool = allItems.length > 0 ? allItems : lowStockItems;
+    if (showAllCustomItems || !selectedMasterSupplier?.category) {
+      return pool;
+    }
+    const supCat = selectedMasterSupplier.category.toLowerCase().trim();
+    const matched = pool.filter((i) => {
+      if (!i.category) return false;
+      const itemCat = i.category.toLowerCase().trim();
+      return itemCat === supCat || itemCat.includes(supCat) || supCat.includes(itemCat);
+    });
+    return matched.length > 0 ? matched : pool;
+  }, [allItems, lowStockItems, selectedMasterSupplier, showAllCustomItems]);
 
   const handleAddItemToOrder = (itemId: string) => {
     if (!itemId) return;
@@ -336,10 +356,26 @@ export default function SmartPOModal({
 
           {/* Card 2: Add Custom Item Requirement */}
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 flex flex-col justify-between gap-1.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800">
-              <Package className="h-4 w-4 text-zinc-600" />
-              <span>Add Custom Item Requirement</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-800">
+                <Package className="h-4 w-4 text-zinc-600" />
+                <span>Add Custom Item Requirement</span>
+              </div>
+              {selectedMasterSupplier?.category && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllCustomItems(!showAllCustomItems)}
+                  className="text-[10px] font-semibold text-[#D3232A] hover:underline"
+                >
+                  {showAllCustomItems ? "Filter by Category" : "Show All Categories"}
+                </button>
+              )}
             </div>
+            {selectedMasterSupplier?.category && !showAllCustomItems && (
+              <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                ✓ Filtered for {selectedMasterSupplier.name} ({selectedMasterSupplier.category})
+              </p>
+            )}
             <div className="flex items-center gap-2">
               <select
                 value={selectedAddItem}
@@ -347,7 +383,7 @@ export default function SmartPOModal({
                 className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-medium focus:border-[#D3232A] focus:outline-none"
               >
                 <option value="">-- Choose Item to Order --</option>
-                {(allItems.length > 0 ? allItems : lowStockItems).map((i) => (
+                {customItemsPool.map((i) => (
                   <option key={i.id} value={i.id}>
                     {i.name} ({i.category || "General"}) — Stock: {i.currentStock} {i.unit}
                   </option>
