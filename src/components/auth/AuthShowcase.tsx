@@ -23,13 +23,12 @@ export default function AuthShowcase() {
         <div className="mb-12 relative">
           <div className="absolute -left-8 top-4 w-px h-24 bg-gradient-to-b from-[#C41E2A]/70 to-transparent hidden lg:block" />
           <h2 className="font-serif text-5xl lg:text-[5.5rem] font-medium tracking-tight text-white/90 leading-[1.05] mb-10 drop-shadow-sm">
-            The art of<br/>
-            <span className="italic text-white/40">hospitality,</span><br/>
-            perfected.
+            The AI Operating System for<br/>
+            <span className="italic text-white/40">hospitality</span><br/>
           </h2>
           <div className="h-px w-16 bg-white/20 mb-8" />
           <p className="text-white/40 font-light text-lg tracking-wide max-w-md leading-relaxed">
-            Elevate every guest experience with an operating system crafted for culinary excellence.
+          Unify operations, empower every team and transform every guest experience through one intelligent platform
           </p>
         </div>
       </div>

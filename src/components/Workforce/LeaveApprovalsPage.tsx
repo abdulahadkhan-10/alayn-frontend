@@ -78,18 +78,50 @@ export default function LeaveApprovalsPage() {
     reason: "",
   });
 
-  const filteredLeaves = leaves.filter(
+  const currentEmployee = React.useMemo(() => {
+    return employees.find(
+      (e: any) => e.userId === user?.id || (user?.email && e.email === user?.email)
+    );
+  }, [employees, user]);
+
+  React.useEffect(() => {
+    if (showCreateModal && currentEmployee) {
+      setLeaveForm((prev) => ({ ...prev, employeeId: currentEmployee.id }));
+    }
+  }, [showCreateModal, currentEmployee]);
+
+  const userLeaves = React.useMemo(() => {
+    if (!isManagerOrOwner) {
+      return leaves.filter((l: any) => {
+        if (!currentEmployee && !user) return false;
+        return (
+          l.employeeId === currentEmployee?.id ||
+          l.employee?.id === currentEmployee?.id ||
+          l.employee?.userId === user?.id ||
+          (user?.email && l.employee?.email === user?.email)
+        );
+      });
+    }
+    return leaves;
+  }, [leaves, isManagerOrOwner, currentEmployee, user]);
+
+  const filteredLeaves = userLeaves.filter(
     (l: any) => statusFilter === "ALL" || l.status === statusFilter
   );
 
-  const pendingCount = leaves.filter((l: any) => l.status === "REQUESTED").length;
-  const approvedCount = leaves.filter((l: any) => l.status === "APPROVED").length;
-  const rejectedCount = leaves.filter((l: any) => l.status === "REJECTED").length;
+  const pendingCount = userLeaves.filter((l: any) => l.status === "REQUESTED").length;
+  const approvedCount = userLeaves.filter((l: any) => l.status === "APPROVED").length;
+  const rejectedCount = userLeaves.filter((l: any) => l.status === "REJECTED").length;
 
   const handleCreateLeaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createLeaveRequest(leaveForm).unwrap();
+      const targetEmpId = leaveForm.employeeId || currentEmployee?.id;
+      if (!targetEmpId) {
+        setFeedbackMsg("Could not find your employee profile. Please contact support.");
+        return;
+      }
+      await createLeaveRequest({ ...leaveForm, employeeId: targetEmpId }).unwrap();
       setFeedbackMsg("Leave request submitted successfully!");
       setShowCreateModal(false);
       setLeaveForm({
@@ -127,13 +159,15 @@ export default function LeaveApprovalsPage() {
                 : "Submit time-off requests and track the approval status of your applications."}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#b01e23] transition-colors cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            {isManagerOrOwner ? "Request Leave" : "Apply for Leave"}
-          </button>
+          {!isManagerOrOwner && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#b01e23] transition-colors cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Apply for Leave
+            </button>
+          )}
         </div>
 
         {/* Navigation Tabs */}
@@ -327,21 +361,37 @@ export default function LeaveApprovalsPage() {
               <form onSubmit={handleCreateLeaveSubmit} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Employee
+                    {!isManagerOrOwner ? "Applicant Employee" : "Select Employee"}
                   </label>
-                  <select
-                    required
-                    value={leaveForm.employeeId}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                  >
-                    <option value="">-- Select Employee --</option>
-                    {employees.map((e: any) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
+                  {!isManagerOrOwner ? (
+                    <input
+                      type="text"
+                      readOnly
+                      disabled
+                      value={
+                        currentEmployee
+                          ? `${currentEmployee.name} (${currentEmployee.role})`
+                          : user?.name
+                          ? `${user.name} (${user.role})`
+                          : "Logged-in Employee"
+                      }
+                      className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-700 font-medium rounded-lg text-sm cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={leaveForm.employeeId}
+                      onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    >
+                      <option value="">-- Select Employee --</option>
+                      {employees.map((e: any) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name} {e.role ? `(${e.role})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

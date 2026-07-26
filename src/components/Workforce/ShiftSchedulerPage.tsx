@@ -110,9 +110,13 @@ export default function ShiftSchedulerPage() {
     endTime: "17:00",
   });
 
-  const [assignForm, setAssignForm] = useState({
+  const [assignForm, setAssignForm] = useState<{
+    shiftId: string;
+    employeeIds: string[];
+    date: string;
+  }>({
     shiftId: "",
-    employeeId: "",
+    employeeIds: [],
     date: new Date().toISOString().split("T")[0],
   });
 
@@ -250,10 +254,15 @@ export default function ShiftSchedulerPage() {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignForm.shiftId || !assignForm.employeeId) return;
+    if (!assignForm.shiftId || assignForm.employeeIds.length === 0) return;
     try {
-      await assignShift(assignForm).unwrap();
-      setFeedbackMsg("Shift assigned to employee successfully!");
+      await assignShift({
+        shiftId: assignForm.shiftId,
+        employeeIds: assignForm.employeeIds,
+        date: assignForm.date,
+      }).unwrap();
+      const count = assignForm.employeeIds.length;
+      setFeedbackMsg(`Successfully assigned ${count} staff member${count === 1 ? '' : 's'}!`);
       setShowAssignModal(false);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to assign shift (Check for overlap)");
@@ -292,19 +301,19 @@ export default function ShiftSchedulerPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowHolidayModal(true)}
+            <a
+              href="/settings"
               className="inline-flex items-center gap-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 px-3.5 py-2 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-sm cursor-pointer"
             >
               <Palmtree className="h-4 w-4 text-amber-600" />
-              Outlet Holidays
-            </button>
+              Outlet Holidays (Settings)
+            </a>
             <button
               onClick={() => openRosterModalForEmployee()}
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 px-3.5 py-2 text-xs font-semibold hover:bg-indigo-100 transition-colors shadow-sm cursor-pointer"
             >
               <CalendarDays className="h-4 w-4 text-indigo-600" />
-              Weekly Roster
+              🔄 Set Recurring Roster
             </button>
             <button
               onClick={() => setShowCreateShiftModal(true)}
@@ -312,13 +321,6 @@ export default function ShiftSchedulerPage() {
             >
               <Plus className="h-4 w-4" />
               New Shift Slot
-            </button>
-            <button
-              onClick={() => setShowAssignModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors shadow-sm cursor-pointer"
-            >
-              <UserCheck className="h-4 w-4" />
-              Assign Shift
             </button>
           </div>
         </div>
@@ -354,6 +356,11 @@ export default function ShiftSchedulerPage() {
               >
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <div>
+                    {shift.outlet?.name && (
+                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D3232A] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mb-1.5">
+                        <span>📍 {shift.outlet.name}</span>
+                      </div>
+                    )}
                     <h3 className="font-semibold text-gray-900 text-lg">{shift.name}</h3>
                     <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                       <Clock className="h-3.5 w-3.5" />
@@ -400,14 +407,15 @@ export default function ShiftSchedulerPage() {
                 <button
                   onClick={() => {
                     setAssignForm({
-                      ...assignForm,
                       shiftId: shift.id,
+                      employeeIds: [],
+                      date: new Date().toISOString().split("T")[0],
                     });
                     setShowAssignModal(true);
                   }}
-                  className="w-full py-2 text-xs font-medium text-center text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="w-full py-2 text-xs font-semibold text-center text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 cursor-pointer"
                 >
-                  + Add Employee to {shift.name}
+                  + Assign Staff for Date
                 </button>
               </div>
             ))
@@ -556,20 +564,23 @@ export default function ShiftSchedulerPage() {
           </div>
         )}
 
-        {/* Modal 2: Assign Shift */}
+        {/* Modal 2: Assign Shift (Supports Bulk / Select All) */}
         {showAssignModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-bold text-gray-900">Assign Employee Shift</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Assign Staff for Specific Date</h3>
+                  <p className="text-xs text-gray-500">Assign single or multiple employees to a shift for a selected date.</p>
+                </div>
                 <button onClick={() => setShowAssignModal(false)}>
-                  <X className="h-5 w-5 text-gray-400" />
+                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-pointer" />
                 </button>
               </div>
               <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Shift
+                    Select Shift Slot
                   </label>
                   <select
                     required
@@ -585,24 +596,89 @@ export default function ShiftSchedulerPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Bulk Employee Selector */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Employee
-                  </label>
-                  <select
-                    required
-                    value={assignForm.employeeId}
-                    onChange={(e) => setAssignForm({ ...assignForm, employeeId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                  >
-                    <option value="">-- Select Staff Member --</option>
-                    {employees.map((e: any) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name} ({e.role})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Select Staff Members ({assignForm.employeeIds.length} / {employees.length} selected)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (assignForm.employeeIds.length === employees.length) {
+                          setAssignForm({ ...assignForm, employeeIds: [] });
+                        } else {
+                          setAssignForm({ ...assignForm, employeeIds: employees.map((e: any) => e.id) });
+                        }
+                      }}
+                      className="text-xs font-bold text-[#D3232A] hover:underline cursor-pointer"
+                    >
+                      {assignForm.employeeIds.length === employees.length ? "Deselect All" : "⚡ Select All Staff"}
+                    </button>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50">
+                    {employees.length === 0 ? (
+                      <p className="text-xs text-gray-400 p-2 text-center">No employees found.</p>
+                    ) : (
+                      employees.map((e: any) => {
+                        const isChecked = assignForm.employeeIds.includes(e.id);
+                        
+                        // Check if employee already has an assigned shift on selected date
+                        let existingAssignment: any = null;
+                        (shifts || []).forEach((s: any) => {
+                          (s.assignments || []).forEach((a: any) => {
+                            const aDate = new Date(a.date).toISOString().split("T")[0];
+                            if (a.employeeId === e.id && aDate === assignForm.date) {
+                              existingAssignment = {
+                                shiftName: s.name,
+                                startTime: s.startTime,
+                                endTime: s.endTime,
+                              };
+                            }
+                          });
+                        });
+
+                        return (
+                          <label
+                            key={e.id}
+                            className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
+                              isChecked
+                                ? "bg-red-50 border-red-200 text-gray-900 font-semibold"
+                                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(evt) => {
+                                  if (evt.target.checked) {
+                                    setAssignForm({ ...assignForm, employeeIds: [...assignForm.employeeIds, e.id] });
+                                  } else {
+                                    setAssignForm({ ...assignForm, employeeIds: assignForm.employeeIds.filter((id) => id !== e.id) });
+                                  }
+                                }}
+                                className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
+                              />
+                              <div>
+                                <span className="text-xs font-medium">{e.name}</span>
+                                {existingAssignment && (
+                                  <div className="text-[10px] text-amber-700 font-medium">
+                                    ⚠️ Already assigned: {existingAssignment.shiftName} ({existingAssignment.startTime} - {existingAssignment.endTime})
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-[11px] text-gray-400 uppercase tracking-wider">{e.role}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Date
@@ -615,20 +691,23 @@ export default function ShiftSchedulerPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isAssigning}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50"
+                    disabled={isAssigning || assignForm.employeeIds.length === 0 || !assignForm.shiftId}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
                   >
-                    {isAssigning ? "Assigning..." : "Assign Shift"}
+                    {isAssigning
+                      ? "Assigning..."
+                      : `Assign ${assignForm.employeeIds.length} Staff Member${assignForm.employeeIds.length === 1 ? "" : "s"}`}
                   </button>
                 </div>
               </form>

@@ -80,11 +80,14 @@ const DEMO_EMPLOYEES = [
   },
 ];
 
+import { useGetShiftsQuery } from "@/redux/slices/shiftApiSlice";
+
 export default function WorkforcePage() {
   const { activeBranch } = useBranch();
   const outletId = activeBranch?.id === "all" ? undefined : activeBranch?.id;
   const { data: apiData, isLoading } = useGetEmployeesQuery(outletId ? { outletId } : undefined);
   const { data: outletsData } = useGetOutletsQuery();
+  const { data: shiftsData } = useGetShiftsQuery(outletId ? { outletId } : undefined);
   const [createEmployee, { isLoading: isCreating }] = useCreateEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
   const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();
@@ -94,161 +97,71 @@ export default function WorkforcePage() {
   const outlets: any[] = Array.isArray(outletsData)
     ? outletsData
     : (outletsData as any)?.data || [];
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-
-  // Modal states
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [editEmployeeItem, setEditEmployeeItem] = useState<any>(null);
-  const [docUploadItem, setDocUploadItem] = useState<any>(null);
-
-  // Bulk upload states
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [bulkResult, setBulkResult] = useState<any>(null);
-
-  // Form states
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    role: "STAFF",
-    joiningDate: new Date().toISOString().split("T")[0],
-    status: "ACTIVE",
-    outletIds: [] as string[],
-  });
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-
-  const handleDownloadTemplate = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      "Name,Email,Password,Phone,Role,JoiningDate\n" +
-      "Rahul Verma,rahul.verma@alayn.com,Password123!,9876543210,MANAGER,2024-01-15\n" +
-      "Priya Patel,priya.patel@alayn.com,Password123!,9812345678,STAFF,2024-03-01\n" +
-      "Amit Kumar,amit.kumar@alayn.com,Password123!,9711122233,KITCHEN,2024-02-10\n";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "alayn_employee_bulk_template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleBulkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!bulkFile) return;
-    setBulkResult(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", bulkFile);
-      const res = await bulkUpload(fd).unwrap();
-      const resData = res?.data || res;
-      setBulkResult(resData);
-      setFeedbackMsg(
-        `Bulk registration completed! ${resData.successCount} employee(s) registered successfully.`
-      );
-      if (!resData.errors || resData.errors.length === 0) {
-        setShowBulkModal(false);
-        setBulkFile(null);
-      }
-    } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to process bulk upload file");
-    }
-  };
-
-  const handleOpenAddModal = () => {
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      phone: "",
-      role: "STAFF",
-      joiningDate: new Date().toISOString().split("T")[0],
-      status: "ACTIVE",
-      outletIds: outlets.length > 0 ? [outlets[0].id] : [],
-    });
-    setShowAddModal(true);
-  };
-
-  const filteredEmployees = employees.filter((emp: any) => {
-    const matchesSearch =
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.phone.includes(searchTerm) ||
-      (emp.email && emp.email.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = roleFilter === "ALL" || emp.role === roleFilter;
-    const matchesStatus = statusFilter === "ALL" || emp.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const activeCount = employees.filter((e: any) => e.status === "ACTIVE").length;
-  const inactiveCount = employees.filter((e: any) => e.status === "INACTIVE").length;
-  const docsCount = employees.reduce(
-    (acc: number, e: any) => acc + (e.documents?.length || 0),
-    0
-  );
-
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await createEmployee(formData).unwrap();
-      setFeedbackMsg("Employee created successfully and registered as User!");
-      setShowAddModal(false);
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        phone: "",
-        role: "STAFF",
-        joiningDate: new Date().toISOString().split("T")[0],
-        status: "ACTIVE",
-        outletIds: [],
-      });
-    } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to create employee");
-    }
-  };
-
-  const handleUpdateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editEmployeeItem) return;
-    try {
-      await updateEmployee({
-        id: editEmployeeItem.id,
-        ...formData,
-      }).unwrap();
-      setFeedbackMsg("Employee updated successfully!");
-      setEditEmployeeItem(null);
-    } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to update employee");
-    }
-  };
-
-  const handleDocSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!docUploadItem || !selectedFile) return;
-    try {
-      const fd = new FormData();
-      fd.append("document", selectedFile);
-      await uploadDocument({ id: docUploadItem.id, formData: fd }).unwrap();
-      setFeedbackMsg("Document uploaded successfully!");
-      setDocUploadItem(null);
-      setSelectedFile(null);
-    } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to upload document");
-    }
-  };
+  const shifts = shiftsData?.data || [];
 
   const user = useAppSelector((state) => state.auth.user);
   const isManagerOrOwner =
     user?.role === "BUSINESS_OWNER" ||
     user?.role === "MANAGER" ||
     user?.role === "SUPER_ADMIN";
+
+  const currentEmployee = React.useMemo(() => {
+    return employees.find(
+      (e: any) => e.userId === user?.id || (user?.email && e.email === user?.email)
+    );
+  }, [employees, user]);
+
+  const myAssignments = React.useMemo(() => {
+    if (!currentEmployee) return [];
+    const list: any[] = [];
+    (shifts || []).forEach((s: any) => {
+      (s.assignments || []).forEach((a: any) => {
+        if (a.employeeId === currentEmployee.id || a.employee?.userId === user?.id) {
+          const aDate = new Date(a.date).toISOString().split("T")[0];
+          list.push({
+            shiftId: s.id,
+            shiftName: s.name,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            dateISO: aDate,
+            outletName: s.outlet?.name,
+          });
+        }
+      });
+    });
+    return list;
+  }, [shifts, currentEmployee, user]);
+
+  const todayISO = new Date().toISOString().split("T")[0];
+  const todayAssignment = React.useMemo(() => {
+    return myAssignments.find((a) => a.dateISO === todayISO) || myAssignments[0];
+  }, [myAssignments, todayISO]);
+
+  const weekSchedule = React.useMemo(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const monOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + monOffset);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateISO = d.toISOString().split("T")[0];
+      const match = myAssignments.find((a) => a.dateISO === dateISO);
+
+      days.push({
+        dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
+        dateLabel: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        dateISO,
+        shift: match ? `${match.startTime} - ${match.endTime}` : "OFF",
+        shiftName: match ? match.shiftName : null,
+        status: dateISO === todayISO ? "Active" : match ? "Upcoming" : "Off Day",
+      });
+    }
+    return days;
+  }, [myAssignments, todayISO]);
 
   const [showSwapModal, setShowSwapModal] = useState(false);
 
@@ -564,10 +477,14 @@ export default function WorkforcePage() {
             <div className="bg-gradient-to-r from-[#0B1221] to-[#1F2B42] text-white rounded-2xl p-6 shadow-md border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <span className="text-xs uppercase tracking-wider text-emerald-400 font-semibold">Today's Assigned Shift</span>
-                <h2 className="text-xl font-bold mt-1 text-white">Morning Duty - 09:00 AM to 05:00 PM</h2>
+                <h2 className="text-xl font-bold mt-1 text-white">
+                  {todayAssignment
+                    ? `${todayAssignment.shiftName} (${todayAssignment.startTime} to ${todayAssignment.endTime})`
+                    : "No Shift Assigned Today (Off Day)"}
+                </h2>
                 <p className="text-xs text-zinc-300 mt-1 flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5 text-zinc-400" />
-                  Assigned Branch: Bombay Branch (Main Outlet)
+                  Assigned Branch: {todayAssignment?.outletName || activeBranch?.name || "Main Branch"}
                 </p>
               </div>
               <a
@@ -586,31 +503,26 @@ export default function WorkforcePage() {
                 This Week's Assigned Roster
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {[
-                  { day: "Mon", date: "Jul 21", shift: "09:00 AM - 05:00 PM", status: "Active" },
-                  { day: "Tue", date: "Jul 22", shift: "09:00 AM - 05:00 PM", status: "Upcoming" },
-                  { day: "Wed", date: "Jul 23", shift: "01:00 PM - 09:00 PM", status: "Upcoming" },
-                  { day: "Thu", date: "Jul 24", shift: "OFF", status: "Off Day" },
-                  { day: "Fri", date: "Jul 25", shift: "09:00 AM - 05:00 PM", status: "Upcoming" },
-                  { day: "Sat", date: "Jul 26", shift: "10:00 AM - 06:00 PM", status: "Upcoming" },
-                  { day: "Sun", date: "Jul 27", shift: "OFF", status: "Off Day" },
-                ].map((item, idx) => (
+                {weekSchedule.map((item, idx) => (
                   <div
                     key={idx}
                     className={cn(
                       "rounded-xl border p-3.5 text-center flex flex-col justify-between h-32 transition-all",
                       item.status === "Active"
-                        ? "border-[#D3232A] bg-red-50/30 shadow-xs"
+                        ? "border-[#D3232A] bg-red-50/30 shadow-xs font-semibold"
                         : item.shift === "OFF"
                         ? "border-gray-200 bg-gray-50 opacity-60"
                         : "border-gray-200 bg-white"
                     )}
                   >
                     <div>
-                      <span className="text-xs font-bold text-gray-500 uppercase">{item.day}</span>
-                      <div className="text-xs font-medium text-gray-900">{item.date}</div>
+                      <span className="text-xs font-bold text-gray-500 uppercase">{item.dayName}</span>
+                      <div className="text-xs font-medium text-gray-900">{item.dateLabel}</div>
                     </div>
                     <div className="my-1">
+                      {item.shiftName && (
+                        <div className="text-[10px] text-gray-500 truncate">{item.shiftName}</div>
+                      )}
                       <span className={cn("text-xs font-bold block", item.shift === "OFF" ? "text-gray-400" : "text-[#D3232A]")}>
                         {item.shift}
                       </span>

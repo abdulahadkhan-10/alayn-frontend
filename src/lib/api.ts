@@ -5,8 +5,19 @@ import { showToast } from "./toast";
 
 const RAW_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_VERSION = "v1";
-const BASE_DOMAIN = RAW_URL.replace(/\/$/, "").replace(/\/api\/v\d+$/, "");
+export const BASE_DOMAIN = RAW_URL.replace(/\/$/, "").replace(/\/api\/v\d+$/, "");
 const BACKEND_URL = `${BASE_DOMAIN}/api/${API_VERSION}`;
+
+/** Base URL for resolving uploaded media files (images, documents, etc.) */
+const MEDIA_BASE = (process.env.NEXT_PUBLIC_API_URI || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
+
+/** Resolves a relative upload path (e.g. /uploads/menu-items/foo.jpg) to a full backend URL */
+export function resolveUploadUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${MEDIA_BASE}${path.startsWith("/") ? path : "/" + path}`;
+}
+
 
 // ── Shared request helper ─────────────────────────────────────────────────────
 

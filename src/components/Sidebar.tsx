@@ -227,14 +227,26 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
           role="navigation"
           style={{ scrollbarWidth: "none" }}
         >
-          {navItems.map((item) => (
-            <NavLinkItem
-              key={item.href}
-              item={item}
-              isActive={pathname === item.href}
-              isCollapsed={isCollapsed}
-            />
-          ))}
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/" &&
+                pathname.startsWith(item.href) &&
+                !navItems.some(
+                  (other) =>
+                    other.href !== item.href &&
+                    other.href.startsWith(item.href) &&
+                    pathname.startsWith(other.href)
+                ));
+            return (
+              <NavLinkItem
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                isCollapsed={isCollapsed}
+              />
+            );
+          })}
         </nav>
       </div>
 

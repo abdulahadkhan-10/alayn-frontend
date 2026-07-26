@@ -16,6 +16,9 @@ import {
   Layers,
   Users,
   UserCheck,
+  RefreshCw,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
@@ -25,9 +28,12 @@ import {
   createBulkTables,
   updateTable,
   deleteTable,
+  regenerateTableQRToken,
   TableItem,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { QRCodeSVG } from "../common/QRCodeSVG";
+import { showToast } from "@/lib/toast";
 
 type FilterType = "ALL" | "AC" | "NON_AC" | "AVAILABLE" | "OCCUPIED";
 
@@ -143,6 +149,23 @@ export default function TableManagementComponent() {
     }
   };
 
+  const handleRegenerateQR = async (table: TableItem) => {
+    if (!currentOutletId) return;
+    setPendingId(table.id);
+    const res = await regenerateTableQRToken(currentOutletId, table.id);
+    setPendingId(null);
+    if (res.ok && res.token) {
+      setTables((prev) =>
+        prev.map((t) => (t.id === table.id ? { ...t, currentToken: res.token! } : t))
+      );
+      if (printTable?.id === table.id) {
+        setPrintTable((prev) => (prev ? { ...prev, currentToken: res.token! } : null));
+      }
+    } else {
+      setError(res.error || "Failed to regenerate QR token.");
+    }
+  };
+
   const handleDeleteTable = async (table: TableItem) => {
     if (!currentOutletId) return;
     if (!window.confirm(`Delete Table ${table.tableNumber}? This cannot be undone.`)) return;
@@ -183,9 +206,17 @@ export default function TableManagementComponent() {
     return { total, acCount, nonAcCount, availableCount, occupiedCount };
   }, [tables]);
 
-  const getQRImageUrl = (token: string | null, size = 180) => {
+  const getTableOrderUrl = (token: string | null) => {
     if (!token) return "";
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(token)}`;
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return `${origin}/order?token=${token}`;
+  };
+
+  const copyOrderUrl = (token: string | null) => {
+    const url = getTableOrderUrl(token);
+    if (!url) return;
+    navigator.clipboard.writeText(url);
+    showToast.success("Link Copied", "Customer order URL copied to clipboard.");
   };
 
   const StatCard = ({
@@ -216,6 +247,7 @@ export default function TableManagementComponent() {
     const isAc = table.tableType === "AC";
     const isOccupied = table.status === "OCCUPIED";
     const isPending = pendingId === table.id;
+    const orderUrl = getTableOrderUrl(table.currentToken);
 
     return (
       <div
@@ -257,12 +289,15 @@ export default function TableManagementComponent() {
                 {isAc ? <Wind className="w-2.5 h-2.5" /> : <Sun className="w-2.5 h-2.5" />}
                 {isAc ? "AC" : "Non-AC"}
               </span>
-              <span
+              <button
+                type="button"
+                onClick={() => handleToggleStatus(table)}
+                disabled={isPending}
                 className={cn(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                  "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105",
                   isOccupied
-                    ? "bg-rose-50 text-rose-600 border-rose-200"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                 )}
               >
                 <span
@@ -272,8 +307,71 @@ export default function TableManagementComponent() {
                   )}
                 />
                 {isOccupied ? "Occupied" : "Available"}
-              </span>
+              </button>
             </div>
+          </div>
+
+          {/* QR Code Display & Quick Link */}
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex flex-col items-center justify-center relative group/qr">
+            {orderUrl ? (
+              <div
+                onClick={() => setPrintTable(table)}
+                className="cursor-pointer flex flex-col items-center"
+                title="Click to view & print full QR sticker"
+              >
+                <QRCodeSVG value={orderUrl} size={110} fgColor="#1B2A4A" bgColor="#F9FAFB" />
+                <p className="text-[10px] font-bold text-[#1B2A4A] mt-2 flex items-center gap-1 group-hover/qr:text-[#D3232A] transition-colors">
+                  <QrCode className="w-3 h-3 text-[#D3232A]" />
+                  Scan to Order
+                </p>
+              </div>
+            ) : (
+              <div className="py-4 text-center space-y-2">
+                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
+                <p className="text-[11px] text-gray-500 font-medium">No QR token found</p>
+                <button
+                  type="button"
+                  onClick={() => handleRegenerateQR(table)}
+                  disabled={isPending}
+                  className="px-2.5 py-1 text-[10px] font-bold bg-[#1B2A4A] text-white rounded-lg hover:bg-[#D3232A] transition"
+                >
+                  Generate Token
+                </button>
+              </div>
+            )}
+
+            {orderUrl && (
+              <div className="flex items-center gap-1 mt-2.5 pt-2 border-t border-gray-200/60 w-full justify-center">
+                <button
+                  type="button"
+                  onClick={() => copyOrderUrl(table.currentToken)}
+                  className="px-2 py-1 bg-white border border-gray-200 rounded-md text-[10px] font-bold text-gray-600 hover:text-[#1B2A4A] hover:bg-gray-100 transition flex items-center gap-1 cursor-pointer"
+                  title="Copy menu URL"
+                >
+                  <Copy className="w-2.5 h-2.5 text-gray-400" />
+                  Copy Link
+                </button>
+                <a
+                  href={orderUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1 bg-white border border-gray-200 rounded-md text-[10px] font-bold text-gray-600 hover:text-[#D3232A] hover:bg-gray-100 transition flex items-center gap-1 cursor-pointer"
+                  title="Open customer order page"
+                >
+                  <ExternalLink className="w-2.5 h-2.5 text-gray-400" />
+                  Test Menu
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleRegenerateQR(table)}
+                  disabled={isPending}
+                  className="p-1 bg-white border border-gray-200 rounded-md text-gray-400 hover:text-[#D3232A] hover:bg-gray-100 transition cursor-pointer"
+                  title="Regenerate QR code token"
+                >
+                  <RefreshCw className={cn("w-2.5 h-2.5", isPending && "animate-spin")} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Assign Staff Button */}
@@ -298,7 +396,7 @@ export default function TableManagementComponent() {
             className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-[#1B2A4A] hover:text-white hover:border-[#1B2A4A] text-xs font-bold text-gray-600 transition-all cursor-pointer"
           >
             <Printer className="w-3 h-3" />
-            Print QR
+            Print QR Sticker
           </button>
           <button
             onClick={() => handleDeleteTable(table)}
@@ -527,36 +625,56 @@ export default function TableManagementComponent() {
               </button>
             </div>
 
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center">
+            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-5 flex flex-col items-center">
               <p className="text-[10px] font-bold tracking-[0.15em] text-[#D3232A] uppercase">
                 Alayn Dining
               </p>
               <h3 className="text-xl font-extrabold text-[#1B2A4A] mt-1">
                 Table {printTable.tableNumber}
               </h3>
-              <span className="text-xs font-semibold text-gray-500 mb-2">
+              <span className="text-xs font-semibold text-gray-500 mb-3">
                 {printTable.tableType === "AC" ? "AC TABLE" : "NON-AC TABLE"}
               </span>
 
-              <img
-                src={getQRImageUrl(printTable.currentToken, 160)}
-                alt={`Table ${printTable.tableNumber} QR`}
-                width={160}
-                height={160}
-                className="my-2 object-contain"
-              />
+              {getTableOrderUrl(printTable.currentToken) ? (
+                <div className="p-2 bg-white rounded-xl shadow-xs border border-gray-200 mb-3">
+                  <QRCodeSVG
+                    value={getTableOrderUrl(printTable.currentToken)}
+                    size={170}
+                    fgColor="#1B2A4A"
+                    bgColor="#FFFFFF"
+                  />
+                </div>
+              ) : (
+                <div className="py-6 text-amber-600 text-xs font-semibold">
+                  No QR token found for this table.
+                </div>
+              )}
 
               <p className="text-xs font-bold text-[#1B2A4A]">SCAN TO ORDER</p>
               <p className="text-[10px] text-gray-400">Point phone camera at QR code</p>
             </div>
 
-            <button
-              onClick={() => window.print()}
-              className="w-full btn-primary py-2 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              Print Sticker
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleRegenerateQR(printTable)}
+                disabled={pendingId === printTable.id}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 hover:text-[#D3232A] transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Regenerate QR Token"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", pendingId === printTable.id && "animate-spin")} />
+                Reset Token
+              </button>
+
+              <button
+                onClick={() => window.print()}
+                className="flex-1 btn-primary py-2 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                Print Sticker
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -589,33 +707,36 @@ export default function TableManagementComponent() {
 
             {/* Printable sheet */}
             <div id="printable-bulk" className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-50">
-              {tables.map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-3 flex flex-col items-center text-center"
-                >
-                  <p className="text-[9px] font-bold tracking-[0.12em] text-[#D3232A] uppercase">
-                    Alayn Dining
-                  </p>
-                  <h4 className="text-lg font-extrabold text-[#1B2A4A] mt-0.5">
-                    Table {t.tableNumber}
-                  </h4>
-                  <span className="text-[10px] font-semibold text-gray-500">
-                    {t.tableType === "AC" ? "AC TABLE" : "NON-AC TABLE"}
-                  </span>
-                  <div className="my-2 p-1 border border-gray-100 rounded-lg">
-                    <img
-                      src={getQRImageUrl(t.currentToken, 140)}
-                      alt={`Table ${t.tableNumber} QR`}
-                      width={140}
-                      height={140}
-                      className="object-contain"
-                    />
+              {tables.map((t) => {
+                const orderUrl = getTableOrderUrl(t.currentToken);
+                return (
+                  <div
+                    key={t.id}
+                    className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center text-center"
+                  >
+                    <p className="text-[9px] font-bold tracking-[0.12em] text-[#D3232A] uppercase">
+                      Alayn Dining
+                    </p>
+                    <h4 className="text-lg font-extrabold text-[#1B2A4A] mt-0.5">
+                      Table {t.tableNumber}
+                    </h4>
+                    <span className="text-[10px] font-semibold text-gray-500 mb-2">
+                      {t.tableType === "AC" ? "AC TABLE" : "NON-AC TABLE"}
+                    </span>
+                    <div className="my-1 p-2 border border-gray-100 rounded-xl bg-white shadow-2xs">
+                      {orderUrl ? (
+                        <QRCodeSVG value={orderUrl} size={140} fgColor="#1B2A4A" bgColor="#FFFFFF" />
+                      ) : (
+                        <div className="w-[140px] h-[140px] flex items-center justify-center text-[10px] text-gray-400">
+                          No Token
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] font-bold text-[#1B2A4A] mt-1">SCAN TO ORDER</p>
+                    <p className="text-[9px] text-gray-400">Point camera at QR code</p>
                   </div>
-                  <p className="text-[10px] font-bold text-[#1B2A4A]">SCAN TO ORDER</p>
-                  <p className="text-[9px] text-gray-400">Point camera at QR code</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
