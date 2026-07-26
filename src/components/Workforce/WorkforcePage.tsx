@@ -164,6 +164,140 @@ export default function WorkforcePage() {
   }, [myAssignments, todayISO]);
 
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editEmployeeItem, setEditEmployeeItem] = useState<any>(null);
+  const [docUploadItem, setDocUploadItem] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkResult, setBulkResult] = useState<any>(null);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    role: "STAFF",
+    status: "ACTIVE",
+    outletIds: [] as string[],
+    joiningDate: new Date().toISOString().split("T")[0],
+  });
+
+  const filteredEmployees = React.useMemo(() => {
+    return employees.filter((emp: any) => {
+      const matchesSearch =
+        !searchTerm ||
+        emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.phone?.includes(searchTerm) ||
+        (emp.email || emp.user?.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === "ALL" || emp.role === roleFilter;
+      const matchesStatus = statusFilter === "ALL" || emp.status === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [employees, searchTerm, roleFilter, statusFilter]);
+
+  const handleOpenAddModal = () => {
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+      role: "STAFF",
+      status: "ACTIVE",
+      outletIds: outlets.length > 0 ? [outlets[0].id] : [],
+      joiningDate: new Date().toISOString().split("T")[0],
+    });
+    setShowAddModal(true);
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createEmployee({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: formData.role,
+        status: formData.status,
+        outletIds: formData.outletIds,
+        joiningDate: formData.joiningDate,
+      }).unwrap();
+      setFeedbackMsg("Employee created successfully.");
+      setShowAddModal(false);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to create employee.");
+    }
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEmployeeItem) return;
+    try {
+      await updateEmployee({
+        id: editEmployeeItem.id,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password || undefined,
+        phone: formData.phone,
+        role: formData.role,
+        status: formData.status,
+        outletIds: formData.outletIds,
+        joiningDate: formData.joiningDate,
+      }).unwrap();
+      setFeedbackMsg("Employee updated successfully.");
+      setEditEmployeeItem(null);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update employee.");
+    }
+  };
+
+  const handleDocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docUploadItem || !selectedFile) return;
+    try {
+      const data = new FormData();
+      data.append("file", selectedFile);
+      await uploadDocument({ id: docUploadItem.id, formData: data }).unwrap();
+      setFeedbackMsg("Document uploaded successfully.");
+      setDocUploadItem(null);
+      setSelectedFile(null);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to upload document.");
+    }
+  };
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkFile) return;
+    try {
+      const data = new FormData();
+      data.append("file", bulkFile);
+      if (outletId) data.append("outletId", outletId);
+      const res = await bulkUpload(data).unwrap();
+      setBulkResult(res?.data || res);
+      setFeedbackMsg("Bulk upload processed.");
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to process bulk upload.");
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8,Name,Email,Password,Phone,Role,JoiningDate\n" +
+      "John Doe,john.doe@example.com,Password123!,+91 9876543210,STAFF,2024-01-01\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "employee_bulk_upload_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <DashboardLayout>
