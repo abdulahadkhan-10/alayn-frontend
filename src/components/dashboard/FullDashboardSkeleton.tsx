@@ -4,7 +4,11 @@ import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
-export default function FullDashboardSkeleton() {
+interface Props {
+  children?: React.ReactNode;
+}
+
+export default function FullDashboardSkeleton({ children }: Props) {
   return (
     <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
       <div className="flex h-screen overflow-hidden bg-[#F4F7F9]">
@@ -55,38 +59,44 @@ export default function FullDashboardSkeleton() {
 
           {/* Page Content Skeleton */}
           <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
-            {/* Banner Skeleton */}
-            <div className="bg-[#0B1221] p-6 rounded-2xl border border-slate-800 flex justify-between items-center">
-              <div className="space-y-2">
-                <Skeleton width={120} height={18} borderRadius={6} baseColor="#1E293B" highlightColor="#334155" />
-                <Skeleton width={240} height={26} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
-                <Skeleton width={340} height={14} borderRadius={4} baseColor="#1E293B" highlightColor="#334155" />
-              </div>
-              <Skeleton width={110} height={36} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
-            </div>
-
-            {/* KPI Cards Grid Skeleton */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 space-y-3">
-                  <Skeleton width={80} height={14} borderRadius={4} />
-                  <Skeleton width={100} height={26} borderRadius={6} />
-                  <Skeleton width={110} height={12} borderRadius={4} />
+            {children ? (
+              children
+            ) : (
+              <>
+                {/* Banner Skeleton */}
+                <div className="bg-[#0B1221] p-6 rounded-2xl border border-slate-800 flex justify-between items-center">
+                  <div className="space-y-2">
+                    <Skeleton width={120} height={18} borderRadius={6} baseColor="#1E293B" highlightColor="#334155" />
+                    <Skeleton width={240} height={26} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
+                    <Skeleton width={340} height={14} borderRadius={4} baseColor="#1E293B" highlightColor="#334155" />
+                  </div>
+                  <Skeleton width={110} height={36} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
                 </div>
-              ))}
-            </div>
 
-            {/* Content Cards Skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
-                <Skeleton width={180} height={20} borderRadius={6} />
-                <Skeleton height={200} borderRadius={12} />
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
-                <Skeleton width={180} height={20} borderRadius={6} />
-                <Skeleton height={200} borderRadius={12} />
-              </div>
-            </div>
+                {/* KPI Cards Grid Skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 space-y-3">
+                      <Skeleton width={80} height={14} borderRadius={4} />
+                      <Skeleton width={100} height={26} borderRadius={6} />
+                      <Skeleton width={110} height={12} borderRadius={4} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Content Cards Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
+                    <Skeleton width={180} height={20} borderRadius={6} />
+                    <Skeleton height={200} borderRadius={12} />
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
+                    <Skeleton width={180} height={20} borderRadius={6} />
+                    <Skeleton height={200} borderRadius={12} />
+                  </div>
+                </div>
+              </>
+            )}
           </main>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
+import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
   useGetEmployeesQuery,
   useCreateEmployeeMutation,
@@ -360,7 +361,9 @@ export default function WorkforcePage() {
         )}
 
         {/* Role-based Content: Manager/Owner gets Directory, Staff gets Shift Calendar */}
-        {isManagerOrOwner ? (
+        {isLoading ? (
+          <WorkforceSkeleton />
+        ) : isManagerOrOwner ? (
           <>
             {/* Metrics Row */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -264,7 +264,7 @@ export default function HeroScene() {
                 </div>
               </motion.div>
 
-              {/* MOBILE PHONE CONTAINER MOCKUP */}
+              {/* MOBILE PHONE MOCKUP (IMAGE ALREADY INCLUDES PHONE FRAME) */}
               <motion.div
                 initial={{ opacity: 0, y: 30, scale: 0.9 }}
                 animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
@@ -276,52 +276,26 @@ export default function HeroScene() {
                 className="hero-phone-mockup"
                 style={{
                   position: "absolute",
-                  bottom: "-20px",
-                  borderRadius: "28px",
-                  padding: "6px",
-                  background: "linear-gradient(160deg, #374151 0%, #111827 50%, #000000 100%)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
+                  bottom: "-50px",
+                  left: "-15px",
+                  width: "clamp(160px, 32%, 225px)",
                   zIndex: 20,
+                  filter: "drop-shadow(0 20px 35px rgba(15, 23, 42, 0.35))",
                 }}
               >
-                {/* Left Hardware Buttons */}
-                <div style={{ position: "absolute", left: "-3px", top: "70px", width: "3px", height: "20px", background: "#475569", borderRadius: "2px 0 0 2px" }} />
-                <div style={{ position: "absolute", left: "-3px", top: "105px", width: "3px", height: "40px", background: "#475569", borderRadius: "2px 0 0 2px" }} />
-                <div style={{ position: "absolute", left: "-3px", top: "155px", width: "3px", height: "40px", background: "#475569", borderRadius: "2px 0 0 2px" }} />
-
-                {/* Right Hardware Button */}
-                <div style={{ position: "absolute", right: "-3px", top: "115px", width: "3px", height: "55px", background: "#475569", borderRadius: "0 2px 2px 0" }} />
-
-                {/* Display Screen Container */}
-                <div
+                <Image
+                  src="/screencapture.png"
+                  alt="Alayn Mobile App Interface"
+                  width={393}
+                  height={799}
+                  priority
+                  sizes="(max-width: 768px) 160px, 225px"
                   style={{
-                    borderRadius: "28px",
-                    overflow: "hidden",
-                    position: "relative",
                     width: "100%",
-                    aspectRatio: "73 / 128", // Exact aspect ratio of mobilepreview.jpeg to prevent cropping
-                    backgroundColor: "#f8fafc",
-                    boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0.15)",
+                    height: "auto",
+                    display: "block",
                   }}
-                >
-                  {/* Original Mobile Screen Image */}
-                  <Image
-                    src="/mobilepreview.jpeg"
-                    alt="Alayn Mobile App Interface"
-                    width={292}
-                    height={512}
-                    priority
-                    sizes="(max-width: 768px) 180px, 260px"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      objectPosition: "top", // Ensures top is visible
-                      display: "block",
-                    }}
-                  />
-                </div>
+                />
               </motion.div>
 
               {/* Floating Alert / Live Sync Badge */}
