@@ -40,6 +40,13 @@ export default function SettingsPage() {
     }
     return 30;
   });
+  const [lateGraceMins, setLateGraceMins] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("alayn_late_grace_mins");
+      if (saved) return Number(saved);
+    }
+    return 15;
+  });
   const { data: holidaysData, isLoading } = useGetHolidaysQuery(outletId ? { outletId } : undefined);
   const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
 
@@ -329,9 +336,22 @@ export default function SettingsPage() {
                   <div className="font-semibold text-gray-900">Late Arrival Grace Period</div>
                   <div className="text-xs text-gray-500 mt-0.5">Automatic LATE status tag if employee punches in after grace period</div>
                 </div>
-                <span className="text-xs font-medium text-gray-700 bg-white border border-gray-300 px-3 py-1 rounded-lg">
-                  15 Mins Grace
-                </span>
+                <select
+                  value={lateGraceMins}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setLateGraceMins(val);
+                    localStorage.setItem("alayn_late_grace_mins", String(val));
+                    setFeedbackMsg(`Late Arrival Grace Period updated to ${val} minutes after shift start!`);
+                  }}
+                  className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                >
+                  <option value={5}>5 Mins Grace</option>
+                  <option value={10}>10 Mins Grace</option>
+                  <option value={15}>15 Mins Grace (Default)</option>
+                  <option value={20}>20 Mins Grace</option>
+                  <option value={30}>30 Mins Grace</option>
+                </select>
               </div>
 
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">

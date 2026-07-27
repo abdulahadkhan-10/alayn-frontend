@@ -112,7 +112,7 @@ export default function AttendanceLogsPage() {
 
     if (totalLogs === 0) {
       return {
-        rate: "100%",
+        rate: "0%",
         subtext: isManagerOrOwner ? "No store records yet" : "0 Shifts Present",
         totalHoursStr: "0 hrs",
         avgHoursSubtext: isManagerOrOwner ? "Average across outlet" : "Average 0 hrs / shift",
