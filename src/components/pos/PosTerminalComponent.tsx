@@ -234,13 +234,13 @@ export default function PosTerminalComponent() {
   return (
     <DashboardLayout>
       <div className="h-[calc(100vh-4.5rem)] flex flex-col lg:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
-        
+
         {/* ── LEFT CONTAINER: Menu Catalog & Controls ───────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-3 lg:p-4 gap-3">
-          
+
           {/* Top Bar: Counter Direct Mode Badge + Search & Controls */}
           <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-            
+
             {/* Mode Badge — Counter Direct Only */}
             <div className="flex items-center gap-2 bg-[#1B2A4A] text-white px-3.5 py-1.5 rounded-xl font-black text-xs shadow-xs shrink-0">
               <CreditCard className="w-4 h-4 text-rose-400" />
@@ -276,22 +276,20 @@ export default function PosTerminalComponent() {
                 <button
                   onClick={() => setViewMode("GRID")}
                   title="Grid View"
-                  className={`p-1.5 rounded-lg transition ${
-                    viewMode === "GRID"
+                  className={`p-1.5 rounded-lg transition ${viewMode === "GRID"
                       ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("LIST")}
                   title="Fast List View"
-                  className={`p-1.5 rounded-lg transition ${
-                    viewMode === "LIST"
+                  className={`p-1.5 rounded-lg transition ${viewMode === "LIST"
                       ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -307,11 +305,10 @@ export default function PosTerminalComponent() {
                   setSelectedCategoryId("ALL");
                   setCurrentPage(1);
                 }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${
-                  selectedCategoryId === "ALL"
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${selectedCategoryId === "ALL"
                     ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                     : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 All Items ({menuItems.length})
               </button>
@@ -327,11 +324,10 @@ export default function PosTerminalComponent() {
                       setSelectedCategoryId(cat.id);
                       setCurrentPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${
-                      isSelected
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${isSelected
                         ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                    }`}
+                      }`}
                   >
                     {cat.imageUrl && (
                       <img
@@ -345,11 +341,10 @@ export default function PosTerminalComponent() {
                     )}
                     {cat.name}
                     <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded font-black ${
-                        isSelected
+                      className={`text-[9px] px-1.5 py-0.2 rounded font-black ${isSelected
                           ? "bg-white/20 text-white"
                           : "bg-gray-200 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {count}
                     </span>
@@ -421,11 +416,10 @@ export default function PosTerminalComponent() {
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${
-                          isSelected
+                        className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${isSelected
                             ? "border-[#D3232A] bg-rose-50/20 ring-1 ring-[#D3232A]/30"
                             : "border-gray-200 hover:border-gray-300"
-                        }`}
+                          }`}
                       >
                         {/* Top Badge: Category & Quantity Indicator */}
                         <div className="flex items-center justify-between gap-1 mb-1.5">
@@ -433,9 +427,8 @@ export default function PosTerminalComponent() {
                             {item.category?.name || "General"}
                           </span>
                           <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                              item.isVeg ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.isVeg ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
                             title={item.isVeg ? "Veg" : "Non-Veg"}
                           />
                         </div>
@@ -510,17 +503,15 @@ export default function PosTerminalComponent() {
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-xl p-3 flex items-center justify-between gap-3 transition shadow-2xs ${
-                          isSelected
+                        className={`bg-white border rounded-xl p-3 flex items-center justify-between gap-3 transition shadow-2xs ${isSelected
                             ? "border-[#D3232A] bg-rose-50/20"
                             : "border-gray-200 hover:border-gray-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                              item.isVeg ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.isVeg ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
                           />
                           <div>
                             <div className="flex items-center gap-2">
@@ -614,7 +605,7 @@ export default function PosTerminalComponent() {
 
         {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (ALWAYS Visible on Desktop) ── */}
         <div className="hidden lg:flex w-full lg:w-[380px] xl:w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
-          
+
           {/* Cart Ticket Header */}
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
@@ -704,11 +695,10 @@ export default function PosTerminalComponent() {
                         onClick={() =>
                           setEditingNoteItemId(isEditingNote ? null : ci.menuItem.id)
                         }
-                        className={`text-[10px] font-bold flex items-center gap-1 ${
-                          ci.notes
+                        className={`text-[10px] font-bold flex items-center gap-1 ${ci.notes
                             ? "text-[#D3232A]"
                             : "text-gray-400 hover:text-gray-600"
-                        }`}
+                          }`}
                       >
                         <FileText className="w-3 h-3" />
                         {ci.notes ? "Edit Note" : "+ Note"}
@@ -1007,11 +997,10 @@ export default function PosTerminalComponent() {
                       key={method}
                       type="button"
                       onClick={() => setPaymentMethod(method)}
-                      className={`py-3 rounded-xl border text-xs font-black transition flex flex-col items-center gap-1 cursor-pointer ${
-                        paymentMethod === method
+                      className={`py-3 rounded-xl border text-xs font-black transition flex flex-col items-center gap-1 cursor-pointer ${paymentMethod === method
                           ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md"
                           : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       {method === "UPI" && <QrCode className="w-4 h-4" />}
                       {method === "CARD" && <CreditCard className="w-4 h-4" />}
