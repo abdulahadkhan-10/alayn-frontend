@@ -143,6 +143,8 @@ export const baseApi = createApi({
         "KitchenTickets",
         "Roster",
         "Holidays",
+        "Tickets",
+        "StaffQueries",
     ],
 
 

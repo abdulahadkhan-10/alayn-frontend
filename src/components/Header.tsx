@@ -39,10 +39,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
+
   const handleOutletChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === "__CREATE__") {
-      window.location.href = "/outlets/create";
+      if (isOwner) {
+        window.location.href = "/outlets/create";
+      }
       return;
     }
     const selected = branches.find((b) => b.id === val) || null;
@@ -109,9 +113,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       {b.name}
                     </option>
                   ))}
-                  <option value="__CREATE__">+ Add New Outlet</option>
+                  {isOwner && <option value="__CREATE__">+ Add New Outlet</option>}
                 </select>
-              ) : (
+              ) : isOwner ? (
                 <Link
                   href="/outlets/create"
                   className="text-xs font-bold text-[#D3232A] hover:underline flex items-center gap-1"
@@ -119,7 +123,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <Plus className="h-3.5 w-3.5" />
                   Create First Outlet
                 </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
