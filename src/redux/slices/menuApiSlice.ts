@@ -9,6 +9,7 @@ export interface MenuItem {
   isVeg?: boolean;
   isAvailable: boolean;
   categoryId: string;
+  outletId?: string;
   category?: {
     id: string;
     name: string;
@@ -22,6 +23,7 @@ export interface MenuCategory {
   name: string;
   description?: string;
   imageUrl?: string;
+  outletId?: string;
   items?: MenuItem[];
 }
 
@@ -46,21 +48,23 @@ export const menuApi = baseApi.injectEndpoints({
       providesTags: ["MenuCategories"],
     }),
 
-    createCategory: builder.mutation<MenuCategory, { name: string; description?: string; imageUrl?: string }>({
-      query: (body) => ({
+    createCategory: builder.mutation<MenuCategory, { name: string; description?: string; imageUrl?: string; outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
         url: "/menu/categories",
         method: "POST",
         body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuCategories"],
     }),
 
-    createMenuItem: builder.mutation<MenuItem, Partial<MenuItem>>({
-      query: (body) => ({
+    createMenuItem: builder.mutation<MenuItem, Partial<MenuItem> & { outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
         url: "/menu/items",
         method: "POST",
         body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuItems"],
@@ -76,11 +80,12 @@ export const menuApi = baseApi.injectEndpoints({
       invalidatesTags: ["MenuItems"],
     }),
 
-    toggleMenuItemStatus: builder.mutation<MenuItem, { id: string; isAvailable: boolean }>({
-      query: ({ id, isAvailable }) => ({
+    toggleMenuItemStatus: builder.mutation<MenuItem, { id: string; isAvailable: boolean; outletId?: string }>({
+      query: ({ id, isAvailable, outletId }) => ({
         url: `/menu/items/${id}/status`,
         method: "PATCH",
         body: { isAvailable },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuItems"],

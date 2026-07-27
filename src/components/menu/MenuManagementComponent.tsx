@@ -22,15 +22,29 @@ import {
   PackageCheck,
   Layers,
   ArrowUpDown,
+  Store,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
+import { useBranch } from "@/lib/BranchContext";
 
 type StatusFilter = "ALL" | "ACTIVE";
 type DietaryFilter = "ALL" | "VEG" | "NON_VEG";
 type SortOption = "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC";
 
 export default function MenuManagementComponent() {
+  const { activeBranch, branches } = useBranch();
+  const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
+  const isAllOutletsSelected = !activeBranch || activeBranch.id === "all";
+
+  const specificBranches = useMemo(() => {
+    return branches.filter((b) => b.id !== "all");
+  }, [branches]);
+
+  const [pendingConfirmAction, setPendingConfirmAction] = useState<"CATEGORY" | "ITEM" | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -75,13 +89,53 @@ export default function MenuManagementComponent() {
   // RTK Query Hooks
   const { data: rawCategories = [], isLoading: isCatLoading } = useGetCategoriesQuery();
   const { data: rawMenuItems = [], isLoading: isItemsLoading } = useGetMenuItemsQuery({
-    categoryId: selectedCategory === "ALL" ? undefined : selectedCategory,
     search: searchQuery.trim() || undefined,
     isAvailable: statusFilter === "ACTIVE" ? true : undefined,
     isVeg: dietaryFilter === "VEG" ? true : dietaryFilter === "NON_VEG" ? false : undefined,
   });
-  const categories = useMemo(() => (Array.isArray(rawCategories) ? rawCategories : []), [rawCategories]);
+
+  // Deduplicate categories by lowercase trimmed name
+  const categories = useMemo(() => {
+    const list = Array.isArray(rawCategories) ? rawCategories : [];
+    const map = new Map<string, (typeof list)[0]>();
+    list.forEach((c) => {
+      if (c && c.name) {
+        const key = c.name.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, c);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [rawCategories]);
+
   const menuItems = useMemo(() => (Array.isArray(rawMenuItems) ? rawMenuItems : []), [rawMenuItems]);
+
+  // Map category name -> array of category IDs sharing that name
+  const categoryNameToIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (Array.isArray(rawCategories) ? rawCategories : []).forEach((c) => {
+      if (c && c.name && c.id) {
+        const key = c.name.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+        map.get(key)!.push(c.id);
+      }
+    });
+    return map;
+  }, [rawCategories]);
+
+  // Active Category IDs for selected filter tab
+  const activeCategoryIds = useMemo(() => {
+    if (selectedCategory === "ALL") return null;
+    const foundCat = (Array.isArray(rawCategories) ? rawCategories : []).find(
+      (c) => c.id === selectedCategory || c.name.trim().toLowerCase() === selectedCategory.trim().toLowerCase()
+    );
+    if (!foundCat) return [selectedCategory];
+    const key = foundCat.name.trim().toLowerCase();
+    return categoryNameToIdsMap.get(key) || [foundCat.id];
+  }, [selectedCategory, rawCategories, categoryNameToIdsMap]);
 
   const [createCategory, { isLoading: isCreatingCat }] = useCreateCategoryMutation();
   const [createMenuItem, { isLoading: isCreatingItem }] = useCreateMenuItemMutation();
@@ -107,30 +161,116 @@ export default function MenuManagementComponent() {
     }
   };
 
+  const [pendingStatusToggle, setPendingStatusToggle] = useState<{
+    item: MenuItem;
+    targetStatus: boolean;
+    relatedItems: MenuItem[];
+  } | null>(null);
+
   // Metrics summary
   const metrics = useMemo(() => {
+    if (isAllOutletsSelected) {
+      const dishGroupMap = new Map<string, MenuItem[]>();
+      menuItems.forEach((item) => {
+        const key = item.name.trim().toLowerCase();
+        if (!dishGroupMap.has(key)) {
+          dishGroupMap.set(key, []);
+        }
+        dishGroupMap.get(key)!.push(item);
+      });
+
+      let activeCount = 0;
+      dishGroupMap.forEach((items) => {
+        if (items.every((i) => i.isAvailable === true)) {
+          activeCount++;
+        }
+      });
+
+      return {
+        total: dishGroupMap.size,
+        active: activeCount,
+        catCount: categories.length,
+      };
+    }
+
     const total = menuItems.length;
     const active = menuItems.filter((i) => i.isAvailable).length;
     const catCount = categories.length;
     return { total, active, catCount };
-  }, [menuItems, categories]);
+  }, [isAllOutletsSelected, menuItems, categories]);
 
   // Filtered & Sorted items
   const processedItems = useMemo(() => {
-    return [...menuItems].sort((a, b) => {
+    let items = menuItems;
+
+    if (activeCategoryIds && activeCategoryIds.length > 0) {
+      items = items.filter((i) => i.categoryId && activeCategoryIds.includes(i.categoryId));
+    }
+
+    return [...items].sort((a, b) => {
       if (sortBy === "NAME_ASC") return a.name.localeCompare(b.name);
       if (sortBy === "PRICE_ASC") return Number(a.price) - Number(b.price);
       if (sortBy === "PRICE_DESC") return Number(b.price) - Number(a.price);
       return 0;
     });
-  }, [menuItems, sortBy]);
+  }, [menuItems, activeCategoryIds, sortBy]);
+
+  // Group processed items by dish name for clean non-redundant rows when viewing All Outlets
+  const displayItems = useMemo(() => {
+    if (!isAllOutletsSelected) {
+      const start = (currentPage - 1) * pageSize;
+      return processedItems.slice(start, start + pageSize).map((item) => ({
+        primaryItem: item,
+        outletIds: item.outletId ? [item.outletId] : [],
+        allRelatedItems: [item],
+        isGroupActive: item.isAvailable,
+      }));
+    }
+
+    const map = new Map<
+      string,
+      {
+        primaryItem: MenuItem;
+        outletIds: string[];
+        allRelatedItems: MenuItem[];
+      }
+    >();
+
+    processedItems.forEach((item) => {
+      const key = item.name.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          primaryItem: item,
+          outletIds: item.outletId ? [item.outletId] : [],
+          allRelatedItems: [item],
+        });
+      } else {
+        const entry = map.get(key)!;
+        if (item.outletId && !entry.outletIds.includes(item.outletId)) {
+          entry.outletIds.push(item.outletId);
+        }
+        entry.allRelatedItems.push(item);
+      }
+    });
+
+    const grouped = Array.from(map.values()).map((group) => {
+      const isGroupActive = group.allRelatedItems.every((i) => i.isAvailable === true);
+      return {
+        ...group,
+        isGroupActive,
+      };
+    });
+
+    const start = (currentPage - 1) * pageSize;
+    return grouped.slice(start, start + pageSize);
+  }, [isAllOutletsSelected, processedItems, currentPage, pageSize]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(processedItems.length / pageSize) || 1;
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return processedItems.slice(start, start + pageSize);
-  }, [processedItems, currentPage, pageSize]);
+  const totalPages = Math.ceil(
+    (isAllOutletsSelected
+      ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
+      : processedItems.length) / pageSize
+  ) || 1;
 
   // Reset page when filters change
   const handleCategoryChange = (catId: string) => {
@@ -153,13 +293,32 @@ export default function MenuManagementComponent() {
     setCurrentPage(1);
   };
 
+  const outletMap = useMemo(() => {
+    const map = new Map<string, string>();
+    branches.forEach((b) => map.set(b.id, b.name));
+    return map;
+  }, [branches]);
+
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategory.name.trim()) return;
+
+    if (isAllOutletsSelected && !pendingConfirmAction) {
+      setPendingConfirmAction("CATEGORY");
+      return;
+    }
+
     try {
-      await createCategory(newCategory).unwrap();
+      if (isAllOutletsSelected && specificBranches.length > 0) {
+        for (const branch of specificBranches) {
+          await createCategory({ ...newCategory, outletId: branch.id }).unwrap();
+        }
+      } else {
+        await createCategory(newCategory).unwrap();
+      }
       setNewCategory({ name: "", description: "", imageUrl: "" });
       setIsAddCategoryOpen(false);
+      setPendingConfirmAction(null);
     } catch (err) {
       console.error("Failed to create category:", err);
     }
@@ -168,28 +327,121 @@ export default function MenuManagementComponent() {
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItem.name || !newItem.price || !newItem.categoryId) return;
+
+    if (isAllOutletsSelected && !pendingConfirmAction) {
+      setPendingConfirmAction("ITEM");
+      return;
+    }
+
+    const selectedCatObj = rawCategories.find((c) => c.id === newItem.categoryId);
+    const targetCategoryName = selectedCatObj ? selectedCatObj.name.trim().toLowerCase() : "";
+
     try {
-      await createMenuItem({
-        name: newItem.name,
-        description: newItem.description,
-        price: parseFloat(newItem.price),
-        categoryId: newItem.categoryId,
-        imageUrl: newItem.imageUrl,
-        isVeg: newItem.isVeg,
-        isAvailable: true,
-      }).unwrap();
+      if (isAllOutletsSelected && specificBranches.length > 0) {
+        for (const branch of specificBranches) {
+          let targetCatId = "";
+
+          // Strictly find category belonging to THIS branch location
+          const outletCat = (Array.isArray(rawCategories) ? rawCategories : []).find(
+            (c) =>
+              c.outletId === branch.id &&
+              c.name.trim().toLowerCase() === targetCategoryName
+          );
+
+          if (outletCat?.id) {
+            targetCatId = outletCat.id;
+          } else if (selectedCatObj) {
+            // Category missing in this outlet — create it for this branch first!
+            const newCatRes = await createCategory({
+              name: selectedCatObj.name,
+              description: selectedCatObj.description,
+              imageUrl: selectedCatObj.imageUrl,
+              outletId: branch.id,
+            }).unwrap();
+            if (newCatRes?.id) {
+              targetCatId = newCatRes.id;
+            }
+          }
+
+          if (!targetCatId) {
+            targetCatId = newItem.categoryId;
+          }
+
+          await createMenuItem({
+            name: newItem.name,
+            description: newItem.description,
+            price: parseFloat(newItem.price),
+            categoryId: targetCatId,
+            imageUrl: newItem.imageUrl,
+            isVeg: newItem.isVeg,
+            isAvailable: true,
+            outletId: branch.id,
+          }).unwrap();
+        }
+      } else {
+        await createMenuItem({
+          name: newItem.name,
+          description: newItem.description,
+          price: parseFloat(newItem.price),
+          categoryId: newItem.categoryId,
+          imageUrl: newItem.imageUrl,
+          isVeg: newItem.isVeg,
+          isAvailable: true,
+        }).unwrap();
+      }
+
       setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true });
       setIsAddItemOpen(false);
+      setPendingConfirmAction(null);
     } catch (err) {
       console.error("Failed to create menu item:", err);
     }
   };
 
-  const handleToggleAvailability = async (item: MenuItem) => {
+  const handleToggleAvailabilityClick = (
+    primaryItem: MenuItem,
+    relatedItems: MenuItem[],
+    isGroupActive: boolean
+  ) => {
+    const nextStatus = !isGroupActive;
+    if (isAllOutletsSelected) {
+      setPendingStatusToggle({
+        item: primaryItem,
+        targetStatus: nextStatus,
+        relatedItems,
+      });
+    } else {
+      handleExecuteToggle(primaryItem, nextStatus);
+    }
+  };
+
+  const handleExecuteToggle = async (item: MenuItem, isAvailable: boolean) => {
     try {
-      await toggleStatus({ id: item.id, isAvailable: !item.isAvailable }).unwrap();
+      await toggleStatus({
+        id: item.id,
+        isAvailable,
+        outletId: item.outletId || currentOutletId || undefined,
+      }).unwrap();
     } catch (err) {
       console.error("Failed to toggle availability:", err);
+    }
+  };
+
+  const handleConfirmAllOutletsToggle = async () => {
+    if (!pendingStatusToggle) return;
+    const { targetStatus, relatedItems } = pendingStatusToggle;
+    try {
+      for (const relItem of relatedItems) {
+        await toggleStatus({
+          id: relItem.id,
+          isAvailable: targetStatus,
+          outletId: relItem.outletId || currentOutletId || undefined,
+        }).unwrap();
+      }
+    } catch (err) {
+      console.error("Failed to toggle status across outlets:", err);
+    } finally {
+      setPendingStatusToggle(null);
     }
   };
 
@@ -395,16 +647,28 @@ export default function MenuManagementComponent() {
                   : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
               }`}
             >
-              All Items ({menuItems.length})
+              All Items ({isAllOutletsSelected ? new Set(menuItems.map((i) => i.name.trim().toLowerCase())).size : menuItems.length})
             </button>
             {categories.map((cat) => {
-              const count = menuItems.filter((i) => i.categoryId === cat.id).length;
+              const key = cat.name.trim().toLowerCase();
+              const sisterIds = categoryNameToIdsMap.get(key) || [cat.id];
+              const catItems = menuItems.filter(
+                (i) => i.categoryId && sisterIds.includes(i.categoryId)
+              );
+              const count = isAllOutletsSelected
+                ? new Set(catItems.map((i) => i.name.trim().toLowerCase())).size
+                : catItems.length;
+
+              const isSelected =
+                selectedCategory === cat.id ||
+                (activeCategoryIds && activeCategoryIds.includes(cat.id));
+
               return (
                 <button
                   key={cat.id}
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
-                    selectedCategory === cat.id
+                    isSelected
                       ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                   }`}
@@ -447,6 +711,7 @@ export default function MenuManagementComponent() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase font-bold tracking-wider">
                     <th className="py-3 px-4">Item</th>
+                    {isAllOutletsSelected && <th className="py-3 px-4">Outlet Location</th>}
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Price</th>
                     <th className="py-3 px-4">Status</th>
@@ -454,7 +719,7 @@ export default function MenuManagementComponent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-gray-800">
-                  {paginatedItems.map((item) => (
+                  {displayItems.map(({ primaryItem: item, outletIds, allRelatedItems, isGroupActive }) => (
                     <tr key={item.id} className="hover:bg-gray-50/80 transition">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
@@ -494,6 +759,28 @@ export default function MenuManagementComponent() {
                           </div>
                         </div>
                       </td>
+                      {isAllOutletsSelected && (
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
+                            {outletIds.length >= specificBranches.length && specificBranches.length > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <Store className="w-3.5 h-3.5 text-emerald-600" />
+                                All {specificBranches.length} Outlets
+                              </span>
+                            ) : (
+                              outletIds.map((outId) => (
+                                <span
+                                  key={outId}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                >
+                                  <Store className="w-3 h-3 text-indigo-500" />
+                                  {outletMap.get(outId) || "Outlet"}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                      )}
                       <td className="py-3 px-4">
                         <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                           {item.category?.name || "Uncategorized"}
@@ -506,24 +793,32 @@ export default function MenuManagementComponent() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleToggleAvailability(item)}
+                            onClick={() => handleToggleAvailabilityClick(item, allRelatedItems, isGroupActive)}
                             className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              item.isAvailable ? "bg-emerald-500" : "bg-gray-300"
+                              isGroupActive ? "bg-emerald-500" : "bg-gray-300"
                             }`}
-                            title={item.isAvailable ? "Click to Deactivate" : "Click to Activate"}
+                            title={
+                              isAllOutletsSelected
+                                ? isGroupActive
+                                  ? "Click to Deactivate across All Outlets"
+                                  : "Click to Activate across All Outlets"
+                                : item.isAvailable
+                                ? "Click to Deactivate"
+                                : "Click to Activate"
+                            }
                           >
                             <span
                               className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-2xs ring-0 transition duration-200 ease-in-out ${
-                                item.isAvailable ? "translate-x-5" : "translate-x-0"
+                                isGroupActive ? "translate-x-5" : "translate-x-0"
                               }`}
                             />
                           </button>
                           <span
                             className={`text-xs font-bold ${
-                              item.isAvailable ? "text-emerald-700" : "text-gray-500"
+                              isGroupActive ? "text-emerald-700" : "text-gray-500"
                             }`}
                           >
-                            {item.isAvailable ? "Active" : "Deactivated"}
+                            {isGroupActive ? "Active" : "Deactivated"}
                           </span>
                         </div>
                       </td>
@@ -953,6 +1248,156 @@ export default function MenuManagementComponent() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* All Outlets Creation Confirmation Modal */}
+        {pendingConfirmAction && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-[#1B2A4A]">
+                      Add to All Outlets?
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      'All Outlets' filter is currently selected.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPendingConfirmAction(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs text-amber-900 font-semibold space-y-1.5">
+                <p className="font-bold flex items-center gap-1.5 text-amber-950 text-sm">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  Confirm Multi-Outlet Creation
+                </p>
+                <p className="text-amber-800 text-xs leading-relaxed">
+                  Are you sure you want to add this{" "}
+                  <strong>
+                    {pendingConfirmAction === "CATEGORY" ? "Category" : "Menu Item"}
+                  </strong>{" "}
+                  across <strong>ALL {specificBranches.length} outlet locations</strong>?
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingConfirmAction(null)}
+                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isCreatingCat || isCreatingItem}
+                  onClick={(e) => {
+                    if (pendingConfirmAction === "CATEGORY") {
+                      handleCreateCategory(e as any);
+                    } else {
+                      handleCreateItem(e as any);
+                    }
+                  }}
+                  className="flex-1 py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer disabled:opacity-50"
+                >
+                  {isCreatingCat || isCreatingItem
+                    ? "Creating across outlets..."
+                    : "Yes, Add to All Outlets"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Status Toggle Confirmation Modal */}
+        {pendingStatusToggle && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`p-2.5 rounded-xl ${
+                      pendingStatusToggle.targetStatus
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-rose-100 text-rose-800"
+                    }`}
+                  >
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-[#1B2A4A]">
+                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across All Outlets?
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      'All Outlets' filter is currently selected.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPendingStatusToggle(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div
+                className={`p-3.5 rounded-xl text-xs font-semibold space-y-1.5 border ${
+                  pendingStatusToggle.targetStatus
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                    : "bg-rose-50 border-rose-200 text-rose-900"
+                }`}
+              >
+                <p className="font-bold flex items-center gap-1.5 text-sm">
+                  <AlertCircle
+                    className={`w-4 h-4 shrink-0 ${
+                      pendingStatusToggle.targetStatus ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  />
+                  Confirm Multi-Outlet Status Change
+                </p>
+                <p className="text-xs leading-relaxed">
+                  Are you sure you want to{" "}
+                  <strong>
+                    {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"}
+                  </strong>{" "}
+                  dish <strong>"{pendingStatusToggle.item.name}"</strong> across{" "}
+                  <strong>ALL {specificBranches.length} outlet locations</strong>?
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingStatusToggle(null)}
+                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAllOutletsToggle}
+                  className={`flex-1 py-2.5 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer ${
+                    pendingStatusToggle.targetStatus
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-rose-600 hover:bg-rose-700"
+                  }`}
+                >
+                  Yes, {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} for All Outlets
+                </button>
+              </div>
             </div>
           </div>
         )}
