@@ -71,7 +71,7 @@ export default function HeroScene() {
       chaos={0}
       sync={0.25}
       presence={0.25}
-      className="hero-section"
+      className="hero-section py-20 sm:py-32 px-4 sm:px-6"
       ariaLabel="Alayn"
       style={{
         background: "#FFFFFF",
@@ -80,7 +80,6 @@ export default function HeroScene() {
         alignItems: "center",
         position: "relative",
         overflow: "clip",
-        padding: "150px 24px 110px",
       }}
     >
       {/* Aurora wash — three blurred blobs, transform-only animation */}
@@ -91,16 +90,9 @@ export default function HeroScene() {
       </div>
 
       <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto", width: "100%" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
-            gap: "72px",
-            alignItems: "center",
-          }}
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left — the pitch */}
-          <div>
+          <div className="lg:col-span-6">
             <Assemble
               as="span"
               style={{
@@ -121,7 +113,7 @@ export default function HeroScene() {
               delay={0.06}
               style={{
                 fontFamily: "var(--font-playfair), Georgia, serif",
-                fontSize: "clamp(2.5rem, 5.2vw, 4.2rem)",
+                fontSize: "clamp(2rem, 6.5vw, 4.2rem)",
                 lineHeight: 1.08,
                 fontWeight: 800,
                 color: "var(--espresso)",
@@ -140,22 +132,22 @@ export default function HeroScene() {
               as="p"
               delay={0.12}
               style={{
-                fontSize: "clamp(1.05rem, 1.5vw, 1.1875rem)",
+                fontSize: "clamp(1rem, 2vw, 1.1875rem)",
                 lineHeight: 1.65,
                 color: "var(--muted)",
-                maxWidth: "480px",
-                marginBottom: "38px",
+                maxWidth: "520px",
+                marginBottom: "32px",
               }}
             >
-             Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
+              Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
             </Assemble>
 
             <Assemble
               as="div"
               delay={0.18}
-              style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap", marginBottom: "34px" }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 mb-8"
             >
-              <MagneticLink href="/signup" id="cta-hero" className="btn-primary">
+              <MagneticLink href="/signup" id="cta-hero" className="btn-primary w-full sm:w-auto text-center justify-center">
                 Book a Demonstration
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -164,6 +156,7 @@ export default function HeroScene() {
 
               <a
                 href="#how-it-works"
+                className="justify-center sm:justify-start"
                 style={{
                   fontSize: "0.9375rem",
                   fontWeight: 500,
@@ -183,11 +176,12 @@ export default function HeroScene() {
             </Assemble>
 
             <Assemble as="p" delay={0.24} style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.75, margin: 0 }}>
-              We&apos;re  introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.            </Assemble>
+              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
+            </Assemble>
           </div>
 
-            {/* Right — Product Showcase with Laptop and Overlapping Mobile Phone Mockup Containers */}
-          <Assemble as="div" delay={0.16} style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          {/* Right — Product Showcase with Laptop and Overlapping Mobile Phone Mockup Containers */}
+          <Assemble as="div" delay={0.16} className="lg:col-span-6 flex justify-center w-full mt-6 lg:mt-0">
             <div style={{ position: "relative", width: "100%", maxWidth: "720px", paddingBottom: "36px", paddingTop: "12px" }}>
               
               {/* LAPTOP / BROWSER CONTAINER MOCKUP */}
@@ -272,20 +266,19 @@ export default function HeroScene() {
 
               {/* MOBILE PHONE CONTAINER MOCKUP */}
               <motion.div
-                initial={{ opacity: 0, y: 30, x: -20, scale: 0.9 }}
-                animate={{ opacity: 1, y: [0, -6, 0], x: 0, scale: 1 }}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
                 transition={{
                   opacity: { duration: 0.8, delay: 0.3 },
                   scale: { duration: 0.8, delay: 0.3 },
                   y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 }
                 }}
+                className="hero-phone-mockup"
                 style={{
                   position: "absolute",
-                  bottom: "-30px",
-                  left: "-50px", // Moved to left side
-                  width: "clamp(180px, 28%, 260px)", // Increased width slightly
-                  borderRadius: "36px",
-                  padding: "8px",
+                  bottom: "-20px",
+                  borderRadius: "28px",
+                  padding: "6px",
                   background: "linear-gradient(160deg, #374151 0%, #111827 50%, #000000 100%)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
                   boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",

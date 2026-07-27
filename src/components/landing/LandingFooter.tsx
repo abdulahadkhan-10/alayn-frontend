@@ -9,43 +9,26 @@ export default function LandingFooter() {
       style={{
         background: "var(--espresso)",
         borderTop: "1px solid rgba(249, 246, 241, 0.06)",
-        padding: "48px 0 40px",
+        padding: "40px 0 32px",
       }}
       aria-label="Site footer"
     >
-      <div
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          padding: "0 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "24px",
-        }}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 flex-wrap">
         {/* Logo + tagline */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "8px",
-            }}
-          >
+        <div className="text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start mb-2 overflow-hidden">
             <Image
               src="/whitelogo.png"
               alt="Alayn — AI Operating System for Hospitality"
               width={1280}
               height={297}
               style={{ 
-                height: "64px", 
+                height: "48px", 
                 width: "auto",
-                transform: "scale(1.5)",
+                transform: "scale(1.4)",
                 transformOrigin: "left center"
               }}
-              className="w-auto object-contain"
+              className="w-auto object-contain sm:h-16"
             />
           </div>
           <p
@@ -56,17 +39,13 @@ export default function LandingFooter() {
               lineHeight: 1.5,
             }}
           >
-           Alayn — The All-in-One Operating System for Modern Businesses
+            Alayn — The All-in-One Operating System for Modern Businesses
           </p>
         </div>
 
         {/* Nav links */}
         <nav
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "24px",
-          }}
+          className="flex items-center justify-center gap-6 flex-wrap py-2"
           aria-label="Footer navigation"
         >
           {[
@@ -77,7 +56,7 @@ export default function LandingFooter() {
             <Link
               key={label}
               href={href}
-              className="footer-link"
+              className="footer-link min-h-[44px] flex items-center"
             >
               {label}
             </Link>

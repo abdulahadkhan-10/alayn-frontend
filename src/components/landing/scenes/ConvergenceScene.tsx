@@ -88,24 +88,16 @@ export default function ConvergenceScene() {
       chaos={0.04}
       sync={0.85}
       presence={0.9}
-      className="landing-section"
+      className="landing-section py-16 sm:py-24"
       style={{
         background: "#F4F5F8",
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
-        padding: "80px 0",
       }}
       ariaLabel="Alayn Unified Architecture"
     >
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "0 24px",
-          width: "100%",
-        }}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Section Header */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <span
@@ -125,7 +117,7 @@ export default function ConvergenceScene() {
             style={{
               fontFamily: "var(--font-playfair), Georgia, serif",
               fontWeight: 800,
-              fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
+              fontSize: "clamp(2rem, 5vw, 3.2rem)",
               lineHeight: 1.15,
               letterSpacing: "-0.02em",
               color: "var(--espresso)",
@@ -145,8 +137,8 @@ export default function ConvergenceScene() {
             </span>
           </h2>
           <p
+            className="text-xs sm:text-base"
             style={{
-              fontSize: "1rem",
               color: "var(--muted)",
               maxWidth: "760px",
               margin: "0 auto 16px",
@@ -156,9 +148,10 @@ export default function ConvergenceScene() {
             Alayn unifies orders, inventory, staffing, finance and operations into a single AI-powered operating system—providing real-time visibility, intelligent automation and complete operational control.
           </p>
           <div className="mt-4 flex items-center justify-center">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-rose-200 shadow-sm text-xs sm:text-sm font-bold text-[#C41E2A] tracking-wide animate-pulse">
-              <MousePointerClick className="w-4 h-4 text-[#C41E2A]" />
-              Click any module circle below to view details &amp; connected workflows
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white border border-rose-200 shadow-sm text-[11px] sm:text-sm font-bold text-[#C41E2A] tracking-wide animate-pulse">
+              <MousePointerClick className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C41E2A]" />
+              <span className="hidden sm:inline">Click any module circle below to view details &amp; connected workflows</span>
+              <span className="sm:hidden">Select any operational module below to inspect connected workflows</span>
             </span>
           </div>
         </div>

@@ -536,3 +536,16 @@ html {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* ---- Hero Phone Mockup Responsive Styling ---- */
+.hero-phone-mockup {
+  width: clamp(180px, 28%, 260px);
+  left: -50px;
+}
+@media (max-width: 640px) {
+  .hero-phone-mockup {
+    width: 170px !important;
+    left: 8px !important;
+    bottom: -15px !important;
+  }
+}
+

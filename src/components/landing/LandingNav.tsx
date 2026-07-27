@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useMagnetic, springSnappy } from "./motion/primitives";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
-import { LayoutGrid, User, LogOut, ChevronDown } from "lucide-react";
+import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -16,6 +16,7 @@ export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { ref: signupRef, x, y } = useMagnetic(0.2);
@@ -50,6 +51,7 @@ export default function LandingNav() {
     } finally {
       dispatch(logout());
       setDropdownOpen(false);
+      setMobileMenuOpen(false);
       window.location.reload();
     }
   };
@@ -65,32 +67,30 @@ export default function LandingNav() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 24px",
+          padding: "12px 16px",
           maxWidth: "1400px",
           margin: "0 auto",
         }}
       >
         {/* Brand logo */}
-        <Link href="/" className="nav-brand flex items-center">
+        <Link href="/" className="nav-brand flex items-center overflow-visible shrink-0">
           <Image
             src="/gptlogo.png"
             alt="Alayn — AI Operating System for Hospitality"
             width={480}
             height={111}
-            sizes="(max-width: 640px) 180px, 320px"
+            sizes="(max-width: 640px) 160px, 360px"
             style={{ 
-              height: "56px", 
               width: "auto",
-              transform: "scale(1.8)",
               transformOrigin: "left center"
             }}
-            className="w-auto object-contain"
+            className="w-auto h-9 sm:h-12 scale-110 sm:scale-150 transform-gpu object-contain transition-transform"
             priority
           />
         </Link>
 
-        {/* Right nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* Desktop Nav Actions */}
+        <div className="hidden sm:flex items-center gap-2">
           {!mounted ? (
             <Skeleton width={110} height={38} borderRadius={20} />
           ) : isAuthenticated && user ? (
@@ -98,12 +98,12 @@ export default function LandingNav() {
               <button
                 type="button"
                 onClick={() => setDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2.5 rounded-full bg-white/90 border border-zinc-200/80 px-3 py-1.5 shadow-sm hover:bg-zinc-50 transition-all duration-200"
+                className="flex items-center gap-2.5 rounded-full bg-white/90 border border-zinc-200/80 px-3 py-1.5 shadow-sm hover:bg-zinc-50 transition-all duration-200 min-h-[44px]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm" suppressHydrationWarning>
                   {initial}
                 </div>
-                <span className="hidden sm:inline-block text-xs font-semibold text-zinc-800" suppressHydrationWarning>
+                <span className="text-xs font-semibold text-zinc-800" suppressHydrationWarning>
                   {user.name || "Owner"}
                 </span>
                 <ChevronDown className={`h-4 w-4 text-zinc-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
@@ -159,7 +159,7 @@ export default function LandingNav() {
                   fontWeight: 600,
                   color: "#1A1D24",
                   textDecoration: "none",
-                  padding: "8px 16px",
+                  padding: "10px 18px",
                   borderRadius: "20px",
                   transition: "background-color 0.15s ease",
                 }}
@@ -172,7 +172,6 @@ export default function LandingNav() {
                 transition={springSnappy}
                 style={{ display: "inline-block" }}
               >
-
                 <Link
                   href="/signup"
                   id="nav-get-started"
@@ -183,7 +182,7 @@ export default function LandingNav() {
                     color: "#FFFFFF",
                     backgroundColor: "#1A1D24",
                     textDecoration: "none",
-                    padding: "8px 18px",
+                    padding: "10px 20px",
                     borderRadius: "20px",
                     display: "inline-block",
                     transition: "transform 0.15s ease, background-color 0.15s ease",
@@ -195,7 +194,82 @@ export default function LandingNav() {
             </>
           )}
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <div className="flex sm:hidden items-center">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle Navigation Menu"
+            className="p-2.5 rounded-xl bg-white/90 border border-zinc-200/80 text-zinc-800 shadow-sm focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="sm:hidden bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-2xl px-5 py-6 space-y-4 overflow-hidden"
+          >
+            {isAuthenticated && user ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D3232A] text-sm font-bold text-white shadow-sm">
+                    {initial}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-zinc-900 truncate">{user.name}</p>
+                    <p className="text-[11px] text-zinc-500 font-medium truncate">{user.email}</p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[#D3232A] px-4 py-3 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 min-h-[44px]"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Go to Dashboard
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 border border-red-200/60 px-4 py-3 text-xs font-bold text-red-600 transition-colors min-h-[44px]"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200/80 px-4 py-3 text-xs font-bold text-zinc-900 transition-colors min-h-[44px]"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl bg-[#1A1D24] px-4 py-3 text-xs font-bold text-white shadow-md transition-transform active:scale-95 min-h-[44px]"
+                >
+                  Get started
+                </Link>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
+

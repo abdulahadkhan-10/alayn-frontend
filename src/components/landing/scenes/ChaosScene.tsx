@@ -1,320 +1,271 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { FieldScene } from "../motion/GlobalField";
 
-// Brand crimson warning → calm resolved green. Canvas 2D never resolves CSS
-// custom properties, so these are the literal token values.
-const WARN = { r: 0xc4, g: 0x1e, b: 0x2a }; // #C41E2A
-const CALM = { r: 0x34, g: 0xb2, b: 0x7b }; // #34B27B
+interface OperationalPillar {
+  id: string;
+  category: string;
+  title: string;
+  traditionalProblem: string;
+  traditionalImpact: string;
+  alaynSolution: string;
+  alaynImpact: string;
+  statLabel: string;
+  statValue: string;
+}
 
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-// 0 below `a`, 1 above `b`, smooth in between.
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = clamp((x - a) / (b - a), 0, 1);
-  return t * t * (3 - 2 * t);
-};
-
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-const mixColor = (t: number) => {
-  const r = Math.round(lerp(WARN.r, CALM.r, t));
-  const g = Math.round(lerp(WARN.g, CALM.g, t));
-  const b = Math.round(lerp(WARN.b, CALM.b, t));
-  return `rgb(${r}, ${g}, ${b})`;
-};
+const PILLARS: OperationalPillar[] = [
+  {
+    id: "pos",
+    category: "Sales & Payments",
+    title: "POS & Revenue Tracking",
+    traditionalProblem: "Sales go unlogged during rush hours and offline connection drops, leaving revenue gaps at closing.",
+    traditionalImpact: "Hours lost balancing registers manually",
+    alaynSolution: "Offline-first POS ledger that automatically syncs sales and updates revenue totals the instant you reconnect.",
+    alaynImpact: "1-click night closeout in under 60 seconds",
+    statLabel: "Time Saved",
+    statValue: "2 hrs / day",
+  },
+  {
+    id: "kitchen",
+    category: "Floor & Kitchen",
+    title: "Table & Kitchen Sync",
+    traditionalProblem: "Servers and kitchen staff rely on printed paper tickets that get lost, delayed, or miscommunicated.",
+    traditionalImpact: "Delayed orders & upset guests",
+    alaynSolution: "Live Kitchen Display System (KDS) synchronized instantly with table handhelds and order statuses.",
+    alaynImpact: "Zero lost orders and faster table turnover",
+    statLabel: "Order Drift",
+    statValue: "0%",
+  },
+  {
+    id: "inventory",
+    category: "Stock & Ordering",
+    title: "Inventory & Food Waste",
+    traditionalProblem: "Key ingredients run out mid-service unannounced, and waste goes uncounted until monthly audits.",
+    traditionalImpact: "Emergency stockouts & bloated food costs",
+    alaynSolution: "Recipe-level stock deduction that auto-generates purchase orders before ingredients run dry.",
+    alaynImpact: "Predictive low-stock alerts & automated POs",
+    statLabel: "Stockout Reduction",
+    statValue: "99%",
+  },
+  {
+    id: "shifts",
+    category: "Team & Scheduling",
+    title: "Staff Shift Management",
+    traditionalProblem: "Shift mix-ups, verbal availability changes, and double-booking lead to understaffed shifts.",
+    traditionalImpact: "Strained staff & slow customer service",
+    alaynSolution: "Intelligent roster scheduling with automated shift swaps, conflict checks, and mobile clock-ins.",
+    alaynImpact: "Fair, error-free schedules published in minutes",
+    statLabel: "Schedule Speed",
+    statValue: "10x faster",
+  },
+];
 
 export default function ChaosScene() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [viewMode, setViewMode] = useState<"traditional" | "alayn">("alayn");
+  const [selectedId, setSelectedId] = useState<string>("pos");
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    let width = canvas.parentElement?.clientWidth || window.innerWidth;
-    const height = 420;
-
-    const ITEM_W = 220;
-    const ITEM_H = 48;
-
-    const applySize = () => {
-      width = canvas.parentElement?.clientWidth || window.innerWidth;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    applySize();
-
-    let animationFrameId = 0;
-
-    const labels = [
-      "Forgot to log a sale",
-      "Lost track of a table's order",
-      "Ran out of stock, no one noticed",
-      "Staff shift mix-up",
-      "Manual tally at closing",
-      "Missed a reorder",
-      "No record of today's waste",
-      "Two people counting the same stock",
-    ];
-
-    // Ordered destination: a tidy 2-column grid, centered in the box.
-    const cols = 2;
-    const gapX = 40;
-    const gridW = cols * ITEM_W + gapX;
-    const startX = (width - gridW) / 2;
-    const rows = Math.ceil(labels.length / cols);
-    const rowSpace = (height - 80) / rows;
-
-    const gridPos = (i: number) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      return {
-        x: startX + col * (ITEM_W + gapX),
-        y: 40 + row * rowSpace + (rowSpace - ITEM_H) / 2,
-      };
-    };
-
-    const hub = { x: width / 2, y: height / 2 };
-
-    // Timed autoplay: once the section is in view the sequence runs on its own
-    // clock so the resolution always completes while it's still on screen,
-    // independent of how fast the user scrolls.
-    const DURATION = 4200; // ms for the full chaos → order → connected arc
-    let startTime = 0;
-
-    // Each ticket carries a drifting "chaos" position and a fixed grid slot.
-    const items = labels.map((label, i) => ({
-      label,
-      cx: Math.random() * (width - ITEM_W - 40) + 20, // drifting chaos position
-      cy: Math.random() * (height - ITEM_H - 40) + 20,
-      vx: (Math.random() - 0.5) * 2,
-      vy: (Math.random() - 0.5) * 2,
-      grid: gridPos(i),
-    }));
-
-    const roundRect = (x: number, y: number, w: number, h: number, r: number) => {
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, r);
-    };
-
-    let isIntersecting = false;
-
-    const render = (p: number) => {
-      const snap = smoothstep(0.35, 0.65, p); // chaos → ordered
-      const ease = snap * snap * (3 - 2 * snap); // extra easing on convergence
-      const connect = smoothstep(0.6, 0.82, p); // connection lines fade in
-
-      ctx.clearRect(0, 0, width, height);
-
-      // Faint vertical grid, calming as things resolve.
-      ctx.strokeStyle = `rgba(255,255,255,${0.03 + 0.02 * snap})`;
-      ctx.lineWidth = 1;
-      for (let x = 0; x < width; x += 60) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-
-      // Resolved positions for this frame.
-      const positions = items.map((item) => ({
-        x: lerp(item.cx, item.grid.x, ease),
-        y: lerp(item.cy, item.grid.y, ease),
-      }));
-
-      // Connections to the central hub — "one connected platform".
-      if (connect > 0) {
-        ctx.save();
-        ctx.strokeStyle = `rgba(52, 178, 123, ${0.28 * connect})`;
-        ctx.lineWidth = 1;
-        positions.forEach((pos) => {
-          ctx.beginPath();
-          ctx.moveTo(hub.x, hub.y);
-          ctx.lineTo(pos.x + ITEM_W / 2, pos.y + ITEM_H / 2);
-          ctx.stroke();
-        });
-        // Hub node.
-        ctx.fillStyle = `rgba(52, 178, 123, ${0.85 * connect})`;
-        ctx.beginPath();
-        ctx.arc(hub.x, hub.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      const accent = mixColor(snap);
-
-      items.forEach((item, idx) => {
-        const pos = positions[idx];
-
-        ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.15)";
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.05 + 0.03 * snap})`;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.12 + 0.1 * snap})`;
-        roundRect(pos.x, pos.y, ITEM_W, ITEM_H, 8);
-        ctx.fill();
-        ctx.stroke();
-
-        // Left accent line: crimson warning → calm green as it resolves.
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = accent;
-        ctx.fillRect(pos.x, pos.y + 4, 3, ITEM_H - 8);
-
-        ctx.font = "500 12px system-ui, -apple-system, sans-serif";
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.75 + 0.2 * snap})`;
-        ctx.textAlign = "left";
-        ctx.fillText(item.label, pos.x + 14, pos.y + ITEM_H / 2 + 4);
-        ctx.restore();
-      });
-
-      // Intent caption, cross-fading between the two states.
-      const drawCaption = (text: string, color: string, alpha: number) => {
-        if (alpha <= 0.01) return;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = "600 12px system-ui, -apple-system, sans-serif";
-        ctx.textAlign = "left";
-        const padX = 28;
-        const w = ctx.measureText(text).width + padX * 2;
-        ctx.fillStyle = "rgba(255,255,255,0.06)";
-        roundRect(24, 20, w, 26, 13);
-        ctx.fill();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(24 + padX + 3, 33, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fillText(text, 24 + padX + 12, 37);
-        ctx.restore();
-      };
-      drawCaption("The everyday chaos", "#C41E2A", 1 - snap);
-      drawCaption("One connected system", "#34B27B", snap);
-    };
-
-    const draw = (now: number) => {
-      if (!isIntersecting) {
-        animationFrameId = 0;
-        return;
-      }
-      if (!startTime) startTime = now;
-      const p = clamp((now - startTime) / DURATION, 0, 1);
-      const snap = smoothstep(0.35, 0.65, p);
-
-      // Keep drifting while chaotic; settle as we snap.
-      items.forEach((item) => {
-        const drift = 1 - snap;
-        item.cx += item.vx * drift;
-        item.cy += item.vy * drift;
-        if (item.cx < 10 || item.cx > width - ITEM_W - 10) item.vx *= -1;
-        if (item.cy < 10 || item.cy > height - ITEM_H - 10) item.vy *= -1;
-      });
-
-      render(p);
-
-      // Hold the resolved end state; stop the loop once fully connected.
-      if (p >= 1) {
-        animationFrameId = 0;
-        return;
-      }
-      animationFrameId = requestAnimationFrame(draw);
-    };
-
-    const handleResize = () => {
-      applySize();
-      if (reduceMotion) render(1);
-    };
-    window.addEventListener("resize", handleResize);
-
-    if (reduceMotion) {
-      // No animation: show the resolved, connected end state.
-      render(1);
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    }
-
-    render(0); // paint the initial chaos frame before playback begins
-
-    // Start when the box is meaningfully in view so the arc plays centered.
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isIntersecting = entry.intersectionRatio >= 0.9;
-        if (isIntersecting && !animationFrameId) {
-          animationFrameId = requestAnimationFrame(draw);
-        } else if (!isIntersecting && animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = 0;
-        }
-      },
-      { threshold: [0, 0.4, 0.75, 1] }
-    );
-    observer.observe(canvas);
-
-    return () => {
-      observer.disconnect();
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
+  const activePillar = PILLARS.find((p) => p.id === selectedId) || PILLARS[0];
+  const isAlayn = viewMode === "alayn";
 
   return (
     <FieldScene
       id="chaos"
       domId="how-it-works"
-      chaos={0.85}
-      sync={0.05}
-      presence={0.85}
-      className="landing-section section-dark noise-overlay"
-      style={{ padding: "120px 0", minHeight: "100vh", overflow: "hidden" }}
+      chaos={isAlayn ? 0.05 : 0.7}
+      sync={isAlayn ? 0.95 : 0.05}
+      presence={0.65}
+      className="landing-section section-dark relative overflow-hidden bg-[#07080a] text-slate-100 py-16 sm:py-28"
+      style={{ minHeight: "100vh" }}
     >
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
-
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <h2 style={{
-            fontFamily: "var(--font-playfair), Georgia, serif",
-            fontWeight: 700,
-            fontSize: "clamp(2rem, 5.5vw, 4rem)",
-            lineHeight: 1.1,
-            color: "#FFFFFF",
-            letterSpacing: "-0.02em",
-            marginBottom: "24px"
-          }}>
-            Hospitality deserves better systems.
-            <br />
-            <span style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: "400" }}>
-              One connected platform. Complete operational visibility.
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 pb-8 border-b border-white/10">
+          <div className="max-w-3xl">
+            <span style={{
+              display: "inline-block",
+              fontSize: "0.6875rem",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--amber)",
+              marginBottom: "16px",
+            }}>
+              HOW ALAYN WORKS
             </span>
-          </h2>
-          <p style={{
-            color: "rgba(255, 255, 255, 0.65)",
-            maxWidth: "680px",
-            margin: "0 auto",
-            fontSize: "1.0625rem",
-            lineHeight: 1.6
-          }}>
-            Replace fragmented tools with an intelligent operating system that keeps every team, process and location perfectly aligned.
-          </p>
+
+            <h2
+              style={{
+                fontFamily: "var(--font-playfair), Georgia, serif",
+                fontWeight: 700,
+                fontSize: "clamp(1.8rem, 4.2vw, 3.4rem)",
+                lineHeight: 1.18,
+                color: "#FFFFFF",
+                letterSpacing: "-0.02em",
+                marginBottom: "24px",
+              }}
+            >
+              From daily operational chaos{" "}
+              <br className="hidden sm:inline" />
+              <span style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: "400" }}>
+                to complete clarity.
+              </span>
+            </h2>
+          </div>
+
+          <div className="max-w-md w-full">
+            <p className="text-xs sm:text-base text-slate-400 leading-relaxed mb-6">
+              Hospitality teams juggle dozens of moving parts every shift. See how Alayn replaces fragmented tools with a clean, unified workflow.
+            </p>
+
+            {/* Touch-Friendly Toggle */}
+            <div className="flex w-full p-1 rounded-xl bg-slate-900 border border-white/10">
+              <button
+                onClick={() => setViewMode("traditional")}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                  !isAlayn
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Traditional Operations
+              </button>
+              <button
+                onClick={() => setViewMode("alayn")}
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                  isAlayn
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                With Alayn OS
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Chaos → order interactive canvas. Scroll scrubs it from scattered
-            tickets into one connected, aligned system. */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.02)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: "16px",
-          overflow: "hidden",
-          position: "relative"
-        }}>
-          <canvas ref={canvasRef} style={{ display: "block", width: "100%" }} />
-        </div>
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: 4 Core Pillars Selection */}
+          <div className="lg:col-span-5 flex flex-col justify-start space-y-3">
+            <div className="px-1 mb-1">
+              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                Select Operational Area
+              </span>
+            </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              {PILLARS.map((pillar) => {
+                const isSelected = selectedId === pillar.id;
+                return (
+                  <button
+                    key={pillar.id}
+                    onClick={() => setSelectedId(pillar.id)}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                      isSelected
+                        ? isAlayn
+                          ? "bg-slate-900 border-emerald-500/40 text-white shadow-lg"
+                          : "bg-slate-900 border-rose-500/40 text-white shadow-lg"
+                        : "bg-slate-950/40 border-white/5 text-slate-400 hover:border-white/20 hover:text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                        {pillar.category}
+                      </span>
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isSelected
+                            ? isAlayn
+                              ? "bg-emerald-400 shadow-[0_0_8px_#34d399]"
+                              : "bg-rose-400 shadow-[0_0_8px_#f43f5e]"
+                            : "bg-slate-700"
+                        }`}
+                      />
+                    </div>
+                    <h4 className="text-base font-semibold tracking-tight text-white">
+                      {pillar.title}
+                    </h4>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Detailed Solution Showcase */}
+          <div className="lg:col-span-7 flex flex-col">
+            <div className="h-full p-2 rounded-3xl bg-white/[0.03] border border-white/10 shadow-2xl flex flex-col justify-between">
+              <div className="min-h-[420px] rounded-[calc(1.5rem-0.25rem)] bg-slate-950 p-6 sm:p-10 border border-white/5 flex flex-col justify-between relative overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${activePillar.id}-${viewMode}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="space-y-6 flex flex-col justify-between h-full"
+                  >
+                    <div className="space-y-6">
+                      {/* Header Tag */}
+                      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                        <span
+                          className={`text-xs font-semibold uppercase tracking-wider ${
+                            isAlayn ? "text-emerald-400" : "text-rose-400"
+                          }`}
+                        >
+                          {isAlayn ? "Alayn Automated Workflow" : "Traditional Manual Process"}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {activePillar.category}
+                        </span>
+                      </div>
+
+                      {/* Main Title & Narrative */}
+                      <div>
+                        <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-3">
+                          {activePillar.title}
+                        </h3>
+                        <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                          {isAlayn ? activePillar.alaynSolution : activePillar.traditionalProblem}
+                        </p>
+                      </div>
+
+                      {/* Key Business Impact Box */}
+                      <div
+                        className={`p-4 rounded-xl border ${
+                          isAlayn
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                            : "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                        }`}
+                      >
+                        <span className="text-xs font-semibold uppercase tracking-wider block mb-1 opacity-80">
+                          {isAlayn ? "Business Outcome" : "Operational Drag"}
+                        </span>
+                        <p className="text-sm font-medium">
+                          {isAlayn ? activePillar.alaynImpact : activePillar.traditionalImpact}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Always Rendered Equal Height Key Metric Footer */}
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+                      <span>{isAlayn ? `${activePillar.statLabel}:` : "Traditional System Overhead:"}</span>
+                      <span
+                        className={`font-semibold ${
+                          isAlayn ? "text-emerald-400 text-lg" : "text-rose-400 text-sm"
+                        }`}
+                      >
+                        {isAlayn ? activePillar.statValue : "High Error & Delay Risk"}
+                      </span>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </FieldScene>
   );

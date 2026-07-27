@@ -24,30 +24,29 @@ export default function SceneProgress() {
   const ratiosRef = useRef<number[]>(new Array(SCENES.length).fill(0));
 
   useEffect(() => {
-    const els = SCENES.map((s) => document.getElementById(s.id)).filter(Boolean) as HTMLElement[];
-    if (els.length === 0) return;
+    const handleScroll = () => {
+      const viewportCenter = window.innerHeight / 2;
+      let bestIdx = 0;
+      let minDistance = Infinity;
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const idx = SCENES.findIndex((s) => s.id === entry.target.id);
-          if (idx !== -1) ratiosRef.current[idx] = entry.intersectionRatio;
-        });
-        let best = 0;
-        let bestRatio = -1;
-        ratiosRef.current.forEach((r, i) => {
-          if (r > bestRatio) {
-            bestRatio = r;
-            best = i;
-          }
-        });
-        setActive(best);
-      },
-      { threshold: [0, 0.25, 0.5, 0.75, 1.0] }
-    );
+      SCENES.forEach((s, idx) => {
+        const el = document.getElementById(s.id);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const elCenter = rect.top + rect.height / 2;
+        const dist = Math.abs(elCenter - viewportCenter);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestIdx = idx;
+        }
+      });
 
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+      setActive(bestIdx);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (

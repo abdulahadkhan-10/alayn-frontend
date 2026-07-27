@@ -6,15 +6,15 @@ import { FieldScene } from "../motion/GlobalField";
 import { useCountUp } from "../motion/primitives";
 
 const BRIEFING_LINES = [
-  { 
-    label: "REVENUE INTELLIGENCE", 
-    text: "Revenue is trending ahead of forecast, with AI identifying the products and customer behaviours driving growth.", 
+  {
+    label: "REVENUE INTELLIGENCE",
+    text: "Revenue is trending ahead of forecast, with AI identifying the products and customer behaviours driving growth.",
     color: "#C41E2A", // Brand Crimson
     action: "Promote cold brews on self-checkout screen"
   },
-  { 
-    label: "INVENTORY INTELLIGENCE", 
-    text: "Predictive inventory monitoring ensures critical stock is replenished before shortages affect service.", 
+  {
+    label: "INVENTORY INTELLIGENCE",
+    text: "Predictive inventory monitoring ensures critical stock is replenished before shortages affect service.",
     color: "#E11D48", // Rose Accent
     action: "Approve restocking order (1-click)"
   },
@@ -169,15 +169,14 @@ export default function RunningScene() {
       chaos={0.03}
       sync={0.5}
       presence={0.55}
-      className="landing-section section-dark noise-overlay"
-      style={{ padding: "120px 0", minHeight: "100vh", display: "flex", alignItems: "center" }}
+      className="landing-section section-dark noise-overlay py-16 sm:py-28"
+      style={{ minHeight: "100vh", display: "flex", alignItems: "center" }}
       ariaLabel="The system runs"
     >
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", width: "100%" }}>
-        
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "60px", alignItems: "center" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
           {/* Left Column: Context & Global Pulse */}
-          <div>
+          <div className="lg:col-span-6">
             <span style={{
               display: "inline-block",
               fontSize: "0.6875rem",
@@ -193,35 +192,22 @@ export default function RunningScene() {
             <h2 style={{
               fontFamily: "var(--font-playfair), Georgia, serif",
               fontWeight: 800,
-              fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
+              fontSize: "clamp(2rem, 5.5vw, 3.5rem)",
               lineHeight: 1.1,
               letterSpacing: "-0.03em",
               color: "var(--cream-light)",
-              marginBottom: "24px",
+              marginBottom: "20px",
             }}>
               Run your business
               <br />
               <span style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: "400" }}>with confidence.</span>
             </h2>
-            <p style={{
-              fontSize: "1.15rem",
-              color: "rgba(255, 255, 255, 0.6)",
-              lineHeight: 1.6,
-              marginBottom: "40px",
-              maxWidth: "480px"
-            }}>
+            <p className="text-xs sm:text-base text-slate-300/80 leading-relaxed max-w-lg mb-8">
               Replace fragmented reports and manual analysis with real-time insights, proactive recommendations and AI-powered decision support—all from a single intelligent platform.
             </p>
 
             {/* Glowing Tracker Box */}
-            <div style={{
-              display: "inline-block",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              borderRadius: "16px",
-              padding: "24px 32px",
-              backdropFilter: "blur(12px)"
-            }}>
+            <div className="w-full max-w-md p-5 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-xl">
               <span style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(255,255,255,0.7)", fontWeight: 700, marginBottom: "4px" }}>
                 ACTIVE OPERATIONS
               </span>
@@ -229,10 +215,10 @@ export default function RunningScene() {
                 Processing operational insights in real time.
               </p>
               <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "8px" }}>
-                <span style={{ fontSize: "2rem", fontWeight: 700, color: "#FFFFFF", fontFamily: "var(--font-mono), monospace" }}>
+                <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#FFFFFF", fontFamily: "var(--font-mono), monospace" }}>
                   {displaySignals}
                 </span>
-                <span style={{ fontSize: "0.875rem", color: "var(--amber)", fontWeight: 500 }}>
+                <span style={{ fontSize: "0.8125rem", color: "var(--amber)", fontWeight: 500 }}>
                   AI insights processed every minute
                 </span>
               </div>
@@ -240,8 +226,8 @@ export default function RunningScene() {
           </div>
 
           {/* Right Column: Interactive Briefing Stream */}
-          <div style={{ position: "relative" }}>
-            
+          <div className="lg:col-span-6 relative">
+
             {/* Visualizer Canvas overlaying card container */}
             <div style={{
               position: "absolute",
@@ -260,78 +246,73 @@ export default function RunningScene() {
               {BRIEFING_LINES.map((line, i) => {
                 const isActive = activeLine === i;
                 return (
-                  <motion.div
+                  <div
                     key={line.label}
-                    layout
-                    initial={false}
-                    animate={{
-                      backgroundColor: isActive ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
-                      borderColor: isActive ? line.color : "rgba(255, 255, 255, 0.08)",
-                      boxShadow: isActive ? `0 12px 32px -8px ${line.color}35` : "0 4px 12px rgba(0,0,0,0.1)",
-                    }}
-                    transition={{
-                      duration: 0.35,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
+                    onClick={() => handleSelectLine(i)}
                     style={{
                       borderRadius: "16px",
-                      border: "1px solid",
+                      border: `1px solid ${isActive ? line.color : "rgba(255, 255, 255, 0.08)"}`,
+                      backgroundColor: isActive ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                      boxShadow: isActive ? `0 12px 32px -8px ${line.color}35` : "0 4px 12px rgba(0,0,0,0.1)",
                       padding: "24px",
                       cursor: "pointer",
                       backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      transition: "border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease",
+                      willChange: "background-color, border-color",
                     }}
-                    onClick={() => handleSelectLine(i)}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                       <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: line.color }}>
                         {line.label}
                       </span>
-                      {isActive && (
-                        <motion.span
-                          layoutId="active-dot"
-                          style={{
-                            display: "inline-block",
-                            width: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            background: line.color,
-                            boxShadow: `0 0 12px ${line.color}`
-                          }}
-                        />
-                      )}
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          background: line.color,
+                          boxShadow: isActive ? `0 0 12px ${line.color}` : "none",
+                          opacity: isActive ? 1 : 0,
+                          transform: isActive ? "scale(1)" : "scale(0.5)",
+                          transition: "opacity 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease",
+                        }}
+                      />
                     </div>
                     <p style={{ margin: 0, fontSize: "1rem", color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.65)", lineHeight: 1.5, transition: "color 0.3s ease" }}>
                       {line.text}
                     </p>
 
-                    <AnimatePresence initial={false}>
-                      {isActive && (
-                        <motion.div
-                          key="action-container"
-                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                          animate={{ height: "auto", opacity: 1, marginTop: 16 }}
-                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          style={{ overflow: "hidden" }}
-                        >
-                          <div style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            background: "rgba(255,255,255,0.08)",
-                            padding: "8px 16px",
-                            borderRadius: "20px",
-                            fontSize: "0.8125rem",
-                            fontWeight: 600,
-                            color: "#FFFFFF",
-                            border: `1px solid ${line.color}50`,
-                            boxShadow: `0 4px 14px ${line.color}20`
-                          }}>
-                            {line.action}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateRows: isActive ? "1fr" : "0fr",
+                        transition: "grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                      }}
+                    >
+                      <div style={{ overflow: "hidden" }}>
+                        <div style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          background: "rgba(255,255,255,0.08)",
+                          padding: "8px 16px",
+                          borderRadius: "20px",
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
+                          color: "#FFFFFF",
+                          border: `1px solid ${line.color}50`,
+                          boxShadow: `0 4px 14px ${line.color}20`,
+                          marginTop: "16px",
+                          opacity: isActive ? 1 : 0,
+                          transform: isActive ? "translateY(0)" : "translateY(6px)",
+                          transition: "opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s",
+                        }}>
+                          {line.action}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>

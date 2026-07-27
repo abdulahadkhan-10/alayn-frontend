@@ -63,48 +63,41 @@ export default function VerticalsScene() {
       chaos={0.03}
       sync={0.6}
       presence={0.75}
-      className="landing-section"
+      className="landing-section py-16 sm:py-24"
       style={{ background: "#FFFFFF", minHeight: "100vh", display: "flex", alignItems: "center" }}
       ariaLabel="Built for every hospitality business"
     >
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", width: "100%" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         
-        <div style={{ textAlign: "center", marginBottom: "50px" }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <h2 style={{
             fontFamily: "var(--font-playfair), Georgia, serif",
             fontWeight: 800,
-            fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
+            fontSize: "clamp(2rem, 5vw, 3.5rem)",
             lineHeight: 1.1,
             letterSpacing: "-0.03em",
             color: "var(--espresso)",
-            marginBottom: "24px",
+            marginBottom: "20px",
           }}>
             One intelligent platform.
             <br />
             <span style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: "400" }}>
-             Built for every hospitality business.
-
+              Built for every hospitality business.
             </span>
           </h2>
         </div>
 
         {/* Buttons selection grid */}
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px", marginBottom: "48px" }}>
+        <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-8 sm:mb-12">
           {VERTICALS.map((v, i) => (
             <button
               key={v.name}
               onClick={() => setActive(i)}
+              className="px-4 py-2.5 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-200 min-h-[44px] flex items-center justify-center"
               style={{
-                padding: "10px 24px",
-                borderRadius: "30px",
-                border: "1px solid",
                 borderColor: active === i ? "var(--amber)" : "var(--border-warm)",
                 background: active === i ? "rgba(196, 30, 42, 0.05)" : "transparent",
                 color: active === i ? "var(--amber)" : "var(--muted)",
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
               }}
             >
               {v.name}
@@ -113,16 +106,8 @@ export default function VerticalsScene() {
         </div>
 
         {/* Morphing Mockup Dashboard below */}
-        <div style={{
-          background: "#F4F5F8",
-          borderRadius: "24px",
-          border: "1px solid var(--border-warm)",
-          padding: "44px",
-          maxWidth: "960px",
-          margin: "0 auto",
-          boxShadow: "0 24px 72px rgba(27, 42, 74, 0.06)",
-        }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "40px" }}>
+        <div className="p-6 sm:p-10 rounded-3xl bg-[#F4F5F8] border border-[var(--border-warm)] max-w-4xl mx-auto shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             
             {/* Context Details */}
             <div>
@@ -138,10 +123,10 @@ export default function VerticalsScene() {
                   exit={{ opacity: 0, x: 12 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h3 style={{ fontSize: "1.75rem", fontWeight: 750, color: "var(--espresso)", margin: "0 0 16px" }}>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[var(--espresso)] mb-3">
                     Alayn for {activeVertical.name}
                   </h3>
-                  <p style={{ fontSize: "1.0625rem", color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
+                  <p className="text-xs sm:text-base text-[var(--muted)] leading-relaxed">
                     {activeVertical.outcome}
                   </p>
                 </motion.div>
