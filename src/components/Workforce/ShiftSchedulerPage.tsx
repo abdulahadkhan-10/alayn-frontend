@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import {
@@ -10,12 +10,12 @@ import {
   useRequestSwapMutation,
   useUpdateSwapStatusMutation,
 } from "@/redux/slices/shiftApiSlice";
-import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+import {
+  useGetEmployeesQuery,
+  useGetLeaveRequestsQuery,
+} from "@/redux/slices/employeeApiSlice";
 import {
   useGetHolidaysQuery,
-  useCreateHolidayMutation,
-  useDeleteHolidayMutation,
-  useUpdateOperatingDaysMutation,
 } from "@/redux/slices/holidayApiSlice";
 import {
   useGetOutletRostersQuery,
@@ -25,8 +25,6 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Plus,
-  RefreshCw,
-  UserCheck,
   CheckCircle2,
   XCircle,
   X,
@@ -35,17 +33,13 @@ import {
   ChevronRight,
   Palmtree,
   CalendarDays,
-  Trash2,
-  Grid,
   List,
   Users,
-  Sparkles,
-  Kanban,
-  User,
-  Filter,
-  Check,
   Search,
   Building2,
+  Repeat,
+  CalendarOff,
+  UserCheck,
 } from "lucide-react";
 
 const DEMO_SHIFTS = [
@@ -56,9 +50,9 @@ const DEMO_SHIFTS = [
     endTime: "16:00",
     outlet: { id: "o1", name: "Spice & Dine - MG Road" },
     assignments: [
-      { id: "a1", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-1", name: "Priya Verma", role: "STAFF" } },
-      { id: "a2", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" } },
-      { id: "a3", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" } },
+      { id: "a1", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-1", name: "Priya Verma", role: "STAFF" } },
+      { id: "a2", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" } },
+      { id: "a3", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" } },
     ],
     swapRequests: [],
   },
@@ -69,9 +63,7 @@ const DEMO_SHIFTS = [
     endTime: "00:00",
     outlet: { id: "o2", name: "Ocean Breeze - Juhu Beach" },
     assignments: [
-      { id: "a4", date: "2026-07-21T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
-      { id: "a5", date: "2026-07-22T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
-      { id: "a6", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-5", name: "Order Captain (Mumbai)", role: "CAPTAIN" } },
+      { id: "a4", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
     ],
     swapRequests: [
       {
@@ -79,19 +71,30 @@ const DEMO_SHIFTS = [
         fromEmployeeId: "demo-4",
         toEmployeeId: "demo-5",
         shiftId: "shift-2",
-        date: "2026-07-24",
+        date: "2026-07-27",
         status: "REQUESTED",
       },
     ],
   },
 ];
 
-// Date Key Helper (YYYY-MM-DD)
+// Helper: Parse Date Key YYYY-MM-DD in local timezone (prevents UTC offset shifts)
 function parseDateKey(dateInput: any): string {
   if (!dateInput) return "";
   if (typeof dateInput === "string") return dateInput.split("T")[0];
+  if (dateInput instanceof Date) {
+    const year = dateInput.getFullYear();
+    const month = String(dateInput.getMonth() + 1).padStart(2, "0");
+    const day = String(dateInput.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
   try {
-    return new Date(dateInput).toISOString().split("T")[0];
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   } catch {
     return "";
   }
@@ -112,13 +115,18 @@ function formatDateNice(dateStr: string): string {
 }
 
 export default function ShiftSchedulerPage() {
+  // Queries & Mutations
   const { data: shiftApiData, isLoading: isShiftsLoading } = useGetShiftsQuery(undefined);
-  const { data: empApiData } = useGetEmployeesQuery(undefined);
+  const { data: empApiData, isLoading: isEmpLoading } = useGetEmployeesQuery(undefined);
+  const { data: leaveApiData } = useGetLeaveRequestsQuery(undefined);
+  const { data: holidaysData } = useGetHolidaysQuery(undefined);
+  const { data: outletRostersData } = useGetOutletRostersQuery(undefined);
 
   const [createShift, { isLoading: isCreatingShift }] = useCreateShiftMutation();
   const [assignShift, { isLoading: isAssigning }] = useAssignShiftMutation();
   const [requestSwap, { isLoading: isSwapping }] = useRequestSwapMutation();
   const [updateSwapStatus, { isLoading: isUpdatingSwap }] = useUpdateSwapStatusMutation();
+  const [setWeeklyRoster, { isLoading: isSettingRoster }] = useSetWeeklyRosterMutation();
 
   const shifts = shiftApiData?.data || (isShiftsLoading ? [] : DEMO_SHIFTS);
   const employees = empApiData?.data || [
@@ -129,19 +137,14 @@ export default function ShiftSchedulerPage() {
     { id: "demo-5", name: "Order Captain (Mumbai)", role: "CAPTAIN" },
   ];
 
-  // RTK Query Hooks for Roster & Holidays
-  const { data: holidaysData } = useGetHolidaysQuery(undefined);
-  const [createHoliday] = useCreateHolidayMutation();
-  const [deleteHoliday] = useDeleteHolidayMutation();
-  const [updateOperatingDays] = useUpdateOperatingDaysMutation();
-  const [setWeeklyRoster, { isLoading: isSettingRoster }] = useSetWeeklyRosterMutation();
+  const leaveRequests = leaveApiData?.data || [];
 
-  // Selected Date State for Daily Roster (Defaults to 2026-07-24 or today)
-  const [selectedDate, setSelectedDate] = useState<string>("2026-07-24");
-  const [activeTab, setActiveTab] = useState<"daily" | "weekly" | "templates">("daily");
+  // Matrix View State
+  const [selectedMonthDate, setSelectedMonthDate] = useState<Date>(new Date(2026, 6, 27)); // Default July 2026
+  const [viewRange, setViewRange] = useState<"7" | "14" | "30">("7");
   const [selectedOutlet, setSelectedOutlet] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedAssignmentDetail, setSelectedAssignmentDetail] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"roster" | "templates">("roster");
 
   // Modals
   const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
@@ -151,53 +154,37 @@ export default function ShiftSchedulerPage() {
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Forms
-  const [shiftForm, setShiftForm] = useState({
-    name: "",
-    startTime: "09:00",
-    endTime: "17:00",
-  });
-
-  const [assignForm, setAssignForm] = useState<{
-    shiftId: string;
-    employeeIds: string[];
-    date: string;
-  }>({
+  const [shiftForm, setShiftForm] = useState({ name: "", startTime: "09:00", endTime: "17:00" });
+  const [assignForm, setAssignForm] = useState<{ shiftId: string; employeeIds: string[]; date: string }>({
     shiftId: "",
     employeeIds: [],
-    date: selectedDate,
+    date: parseDateKey(selectedMonthDate),
   });
+  const [swapForm, setSwapForm] = useState({ fromEmployeeId: "", toEmployeeId: "", shiftId: "", date: parseDateKey(selectedMonthDate) });
 
-  const [swapForm, setSwapForm] = useState({
-    fromEmployeeId: "",
-    toEmployeeId: "",
-    shiftId: "",
-    date: selectedDate,
-  });
-
-  // Pagination for Templates View
-  const [templatePage, setTemplatePage] = useState(1);
-  const [templatePageSize, setTemplatePageSize] = useState(9);
-
-  // Roster Form State
+  // Roster Modal Form State
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
   const [applyToAllShiftId, setApplyToAllShiftId] = useState("");
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({
-    MONDAY: "",
-    TUESDAY: "",
-    WEDNESDAY: "",
-    THURSDAY: "",
-    FRIDAY: "",
-    SATURDAY: "",
-    SUNDAY: "OFF",
+    MONDAY: "", TUESDAY: "", WEDNESDAY: "", THURSDAY: "", FRIDAY: "", SATURDAY: "", SUNDAY: "OFF",
   });
 
-  const [operatingDays, setOperatingDays] = useState<string[]>([
-    "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
-  ]);
+  const [operatingDays] = useState<string[]>(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]);
 
-  const holidaysList = holidaysData?.data || [];
+  // Pre-fill employee's existing saved weekly roster when selected in modal
+  useEffect(() => {
+    if (!rosterEmployeeId || !outletRostersData?.data) return;
+    const empRosters = outletRostersData.data.filter((r: any) => r.employeeId === rosterEmployeeId);
+    if (empRosters.length > 0) {
+      const schedule: Record<string, string> = { ...weeklySchedule };
+      empRosters.forEach((r: any) => {
+        if (r.dayOfWeek) schedule[r.dayOfWeek] = r.shiftId || "OFF";
+      });
+      setWeeklySchedule(schedule);
+    }
+  }, [rosterEmployeeId, outletRostersData]);
 
-  // Outlets List extracted from shifts data
+  // Outlets List extracted from shifts
   const outletOptions = useMemo(() => {
     const set = new Set<string>();
     shifts.forEach((s: any) => {
@@ -206,98 +193,157 @@ export default function ShiftSchedulerPage() {
     return Array.from(set);
   }, [shifts]);
 
-  // Date Strip Generator around selectedDate
-  const dateStrip = useMemo(() => {
-    const curr = new Date(selectedDate);
+  // Filter Employees by Search Query & Selected Outlet
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((e: any) => {
+      // 1. Search Query Filter
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchName = e.name?.toLowerCase().includes(q) || e.role?.toLowerCase().includes(q);
+        if (!matchName) return false;
+      }
+
+      // 2. Outlet Filter
+      if (selectedOutlet !== "ALL") {
+        // Direct employee outlet match
+        if (e.outlet?.name === selectedOutlet) return true;
+
+        // Check if employee has a shift assignment at selectedOutlet
+        const hasShiftAtOutlet = shifts.some(
+          (s: any) =>
+            s.outlet?.name === selectedOutlet &&
+            (s.assignments || []).some((a: any) => (a.employee?.id || a.employeeId) === e.id)
+        );
+        if (hasShiftAtOutlet) return true;
+
+        // Check if employee has a weekly roster at selectedOutlet
+        const rostersList = outletRostersData?.data || [];
+        const hasRosterAtOutlet = rostersList.some(
+          (r: any) =>
+            r.employeeId === e.id && r.shift?.outlet?.name === selectedOutlet
+        );
+        if (hasRosterAtOutlet) return true;
+
+        return false;
+      }
+
+      return true;
+    });
+  }, [employees, searchQuery, selectedOutlet, shifts, outletRostersData]);
+
+  // Generate Columns array based on selectedMonthDate & viewRange (7, 14, or 30 days)
+  const columns = useMemo(() => {
+    const count = parseInt(viewRange, 10);
     const result = [];
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(curr);
-      d.setDate(curr.getDate() + i);
+    const baseDate = new Date(selectedMonthDate);
+
+    for (let i = 0; i < count; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
       const dateKey = parseDateKey(d);
+      const todayKey = parseDateKey(new Date());
+
       result.push({
-        dateStr: dateKey,
+        dateObj: d,
+        dateKey,
         dayNum: d.getDate(),
         dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
         monthName: d.toLocaleDateString("en-US", { month: "short" }),
-        isToday: dateKey === parseDateKey(new Date()),
-        isSelected: dateKey === selectedDate,
+        dayOfWeekLong: d.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase(),
+        isToday: dateKey === todayKey,
       });
     }
     return result;
-  }, [selectedDate]);
+  }, [selectedMonthDate, viewRange]);
 
-  // Filter Shifts by Selected Outlet
-  const filteredShifts = useMemo(() => {
-    return shifts.filter((s: any) => {
-      const matchOutlet = selectedOutlet === "ALL" || s.outlet?.name === selectedOutlet;
-      const matchSearch =
-        !searchQuery ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.outlet?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchOutlet && matchSearch;
+  // Map of Employee Shift / Leave Matrix Lookup for ultra-fast rendering
+  // Key: `${employeeId}_${dateKey}` -> { type: 'LEAVE' | 'SHIFT', data: any }
+  const matrixLookup = useMemo(() => {
+    const lookup: Record<string, { type: "LEAVE" | "SHIFT"; data: any }[]> = {};
+
+    // 1. Map Leaves
+    leaveRequests.forEach((leave: any) => {
+      if (leave.status === "REJECTED") return;
+      const start = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateKey = parseDateKey(d);
+        const key = `${leave.employeeId}_${dateKey}`;
+        if (!lookup[key]) lookup[key] = [];
+        lookup[key].push({
+          type: "LEAVE",
+          data: {
+            id: leave.id,
+            reason: leave.reason || "Approved Leave",
+            status: leave.status,
+          },
+        });
+      }
     });
-  }, [shifts, selectedOutlet, searchQuery]);
 
-  // Daily Shifts Data for `selectedDate`
-  const dailyShiftData = useMemo(() => {
-    return filteredShifts.map((shift: any) => {
-      const dateAssignments = (shift.assignments || []).filter(
-        (a: any) => parseDateKey(a.date) === selectedDate
-      );
-      return {
-        ...shift,
-        dateAssignments,
-      };
+    // 2. Map Explicit Shift Assignments
+    shifts.forEach((shift: any) => {
+      if (selectedOutlet !== "ALL" && shift.outlet?.name !== selectedOutlet) return;
+
+      (shift.assignments || []).forEach((asgn: any) => {
+        const dateKey = parseDateKey(asgn.date);
+        const empId = asgn.employee?.id || asgn.employeeId;
+        if (!empId) return;
+
+        const key = `${empId}_${dateKey}`;
+        if (!lookup[key]) lookup[key] = [];
+
+        // Avoid duplicate shift assignments if already mapped
+        const exists = lookup[key].some((item) => item.type === "SHIFT" && item.data.shift.id === shift.id);
+        if (!exists) {
+          lookup[key].push({
+            type: "SHIFT",
+            data: {
+              asgnId: asgn.id,
+              shift,
+              isRecurring: false,
+            },
+          });
+        }
+      });
     });
-  }, [filteredShifts, selectedDate]);
 
-  // Summary Metrics for selectedDate
-  const totalStaffScheduledOnDate = useMemo(() => {
-    let count = 0;
-    dailyShiftData.forEach((s: any) => {
-      count += s.dateAssignments.length;
+    // 3. Map Recurring Weekly Rosters (EmployeeRoster)
+    const rostersList = outletRostersData?.data || [];
+    columns.forEach((col) => {
+      rostersList.forEach((r: any) => {
+        if (r.dayOfWeek === col.dayOfWeekLong && r.shiftId && r.shift && r.employeeId) {
+          if (selectedOutlet !== "ALL" && r.shift?.outlet?.name && r.shift.outlet.name !== selectedOutlet) return;
+
+          const key = `${r.employeeId}_${col.dateKey}`;
+          if (!lookup[key]) lookup[key] = [];
+
+          // Only add recurring roster if explicit assignment doesn't already exist for this date
+          const hasExplicit = lookup[key].some((item) => item.type === "SHIFT");
+          if (!hasExplicit) {
+            lookup[key].push({
+              type: "SHIFT",
+              data: {
+                asgnId: `roster-${r.id}`,
+                shift: r.shift,
+                isRecurring: true,
+              },
+            });
+          }
+        }
+      });
     });
-    return count;
-  }, [dailyShiftData]);
 
-  const activeShiftsOnDate = useMemo(() => {
-    return dailyShiftData.filter((s: any) => s.dateAssignments.length > 0).length;
-  }, [dailyShiftData]);
+    return lookup;
+  }, [shifts, leaveRequests, outletRostersData, columns, selectedOutlet]);
 
+  // Overall Pending Swap Requests List
   const allSwapRequests = useMemo(() => {
     return shifts.flatMap((s: any) => s.swapRequests || []);
   }, [shifts]);
 
-  const openRosterModalForEmployee = (empId?: string) => {
-    if (empId) setRosterEmployeeId(empId);
-    const initialSchedule: Record<string, string> = {};
-    const ALL_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-    ALL_DAYS.forEach((day) => {
-      if (!operatingDays.includes(day)) {
-        initialSchedule[day] = "OFF";
-      } else {
-        initialSchedule[day] = weeklySchedule[day] || "";
-      }
-    });
-    setWeeklySchedule(initialSchedule);
-    setShowRosterModal(true);
-  };
-
-  const handleApplyShiftToAllOpenDays = () => {
-    if (!applyToAllShiftId) return;
-    const nextSchedule = { ...weeklySchedule };
-    const ALL_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-    ALL_DAYS.forEach((day) => {
-      if (operatingDays.includes(day)) {
-        nextSchedule[day] = applyToAllShiftId;
-      } else {
-        nextSchedule[day] = "OFF";
-      }
-    });
-    setWeeklySchedule(nextSchedule);
-    setFeedbackMsg("Shift applied to all open days!");
-  };
-
+  // Handlers
   const handleRosterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rosterEmployeeId) return;
@@ -318,7 +364,7 @@ export default function ShiftSchedulerPage() {
     e.preventDefault();
     try {
       await createShift(shiftForm).unwrap();
-      setFeedbackMsg("New shift timing created successfully!");
+      setFeedbackMsg("New shift slot created successfully!");
       setShowCreateShiftModal(false);
       setShiftForm({ name: "", startTime: "09:00", endTime: "17:00" });
     } catch (err: any) {
@@ -336,10 +382,10 @@ export default function ShiftSchedulerPage() {
         date: assignForm.date,
       }).unwrap();
       const count = assignForm.employeeIds.length;
-      setFeedbackMsg(`Successfully assigned ${count} staff member${count === 1 ? '' : 's'} for ${formatDateNice(assignForm.date)}!`);
+      setFeedbackMsg(`Assigned ${count} staff member${count === 1 ? '' : 's'} for ${formatDateNice(assignForm.date)}!`);
       setShowAssignModal(false);
     } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to assign shift (Check for overlap)");
+      setFeedbackMsg(err?.data?.message || "Failed to assign shift");
     }
   };
 
@@ -366,14 +412,14 @@ export default function ShiftSchedulerPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Page Title & Main CTAs */}
+        {/* Header Title & Main Action CTAs */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
               <span>Shift Scheduler & Roster</span>
             </h1>
             <p className="text-sm text-gray-500">
-              Manage daily shift rosters, employee assignments, and shift swap requests.
+              Interactive Employee Shift Matrix, Recurring Rosters, and Leave Integration.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -385,7 +431,10 @@ export default function ShiftSchedulerPage() {
               Outlet Holidays
             </a>
             <button
-              onClick={() => openRosterModalForEmployee()}
+              onClick={() => {
+                setRosterEmployeeId(employees[0]?.id || "");
+                setShowRosterModal(true);
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-50 text-indigo-900 border border-indigo-200/80 px-4 py-2.5 text-xs font-semibold hover:bg-indigo-100 transition-colors shadow-2xs cursor-pointer"
             >
               <CalendarDays className="h-4 w-4 text-indigo-600" />
@@ -404,7 +453,7 @@ export default function ShiftSchedulerPage() {
         {/* Navigation Tabs */}
         <WorkforceHeaderNav />
 
-        {/* Feedback Banner */}
+        {/* Feedback Message */}
         {feedbackMsg && (
           <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-xl text-sm shadow-xs">
             <span className="font-medium">{feedbackMsg}</span>
@@ -414,37 +463,100 @@ export default function ShiftSchedulerPage() {
           </div>
         )}
 
-        {/* Top Control Strip: Outlet Filter & View Switcher */}
+        {/* Top Controls Strip: Month Selector, Range Toggle, Outlet & Search */}
         <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* View Mode Tabs */}
-            <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/80">
-              <button
-                onClick={() => setActiveTab("daily")}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  activeTab === "daily"
-                    ? "bg-white text-gray-900 shadow-xs font-bold"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <CalendarIcon className="h-4 w-4 text-[#D3232A]" />
-                Daily Shift Board
-              </button>
-              <button
-                onClick={() => setActiveTab("templates")}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  activeTab === "templates"
-                    ? "bg-white text-gray-900 shadow-xs font-bold"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <List className="h-4 w-4 text-[#D3232A]" />
-                Shift Templates ({shifts.length})
-              </button>
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            {/* View Mode & Date Range Selector */}
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              {/* Tab Selector */}
+              <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/80">
+                <button
+                  onClick={() => setActiveTab("roster")}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    activeTab === "roster"
+                      ? "bg-white text-gray-900 shadow-xs font-bold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 text-[#D3232A]" />
+                  Roster Matrix
+                </button>
+                <button
+                  onClick={() => setActiveTab("templates")}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    activeTab === "templates"
+                      ? "bg-white text-gray-900 shadow-xs font-bold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5 text-[#D3232A]" />
+                  Shift Slots ({shifts.length})
+                </button>
+              </div>
+
+              {/* View Range Toggle (7, 14, 30 Days) */}
+              {activeTab === "roster" && (
+                <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/80 text-xs">
+                  <button
+                    onClick={() => setViewRange("7")}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      viewRange === "7" ? "bg-white text-[#D3232A] shadow-xs" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    7 Days (Week)
+                  </button>
+                  <button
+                    onClick={() => setViewRange("14")}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      viewRange === "14" ? "bg-white text-[#D3232A] shadow-xs" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    14 Days
+                  </button>
+                  <button
+                    onClick={() => setViewRange("30")}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      viewRange === "30" ? "bg-white text-[#D3232A] shadow-xs" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Full Month
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Outlet Filter & Search */}
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Date Navigator & Filters */}
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+              {/* Date Navigator Buttons */}
+              {activeTab === "roster" && (
+                <div className="flex items-center bg-gray-50 border border-gray-200/80 rounded-xl px-2 py-1 gap-1.5">
+                  <button
+                    onClick={() => {
+                      const prev = new Date(selectedMonthDate);
+                      prev.setDate(prev.getDate() - (viewRange === "7" ? 7 : viewRange === "14" ? 14 : 30));
+                      setSelectedMonthDate(prev);
+                    }}
+                    className="p-1 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-200/60 cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs font-bold text-gray-800 min-w-[110px] text-center">
+                    {columns[0]?.monthName} {columns[0]?.dayNum} – {columns[columns.length - 1]?.monthName} {columns[columns.length - 1]?.dayNum}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const next = new Date(selectedMonthDate);
+                      next.setDate(next.getDate() + (viewRange === "7" ? 7 : viewRange === "14" ? 14 : 30));
+                      setSelectedMonthDate(next);
+                    }}
+                    className="p-1 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-200/60 cursor-pointer"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Outlet Filter */}
               {outletOptions.length > 0 && (
                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200/80 px-3 py-1.5 rounded-xl text-xs">
                   <Building2 className="h-3.5 w-3.5 text-gray-400" />
@@ -463,226 +575,188 @@ export default function ShiftSchedulerPage() {
                 </div>
               )}
 
+              {/* Search Staff */}
               <div className="relative">
                 <Search className="h-3.5 w-3.5 text-gray-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Search shifts or outlet..."
+                  placeholder="Search staff or role..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200/80 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-48"
+                  className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200/80 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-40 sm:w-48"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* ================= TAB 1: DAILY SHIFT BOARD (PRIMARY OPERATIONAL VIEW) ================= */}
-        {activeTab === "daily" && (
-          <div className="space-y-6">
-            {/* Interactive Date Carousel Strip */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  onClick={() => {
-                    const prev = new Date(selectedDate);
-                    prev.setDate(prev.getDate() - 1);
-                    setSelectedDate(parseDateKey(prev));
-                  }}
-                  className="p-2 rounded-xl border border-gray-200/80 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
+        {/* ================= TAB 1: EMPLOYEE ROSTER MATRIX VIEW ================= */}
+        {activeTab === "roster" && (
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+            {/* Scrollable Matrix Table Container */}
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full border-collapse text-left">
+                {/* Table Header: Sticky Left Employee Column + Date Columns */}
+                <thead>
+                  <tr className="bg-gray-50/90 border-b border-gray-200 text-xs">
+                    {/* Sticky Left Column: Employee Info Header */}
+                    <th className="sticky left-0 z-20 bg-gray-50/90 px-4 py-3.5 font-bold text-gray-700 w-56 min-w-[220px] border-r border-gray-200 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span>EMPLOYEE STAFF</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-200/60 px-2 py-0.5 rounded-full">
+                          {filteredEmployees.length} Team
+                        </span>
+                      </div>
+                    </th>
 
-                {/* 7 Days Strip */}
-                <div className="flex-1 grid grid-cols-7 gap-2">
-                  {dateStrip.map((item) => (
-                    <button
-                      key={item.dateStr}
-                      onClick={() => setSelectedDate(item.dateStr)}
-                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                        item.isSelected
-                          ? "bg-[#D3232A] text-white border-[#D3232A] shadow-xs font-bold"
-                          : item.isToday
-                          ? "bg-red-50 text-[#D3232A] border-red-200 font-semibold"
-                          : "bg-gray-50/80 text-gray-700 border-gray-200/60 hover:bg-gray-100"
-                      }`}
-                    >
-                      <div className="text-[10px] uppercase tracking-wider opacity-80">{item.dayName}</div>
-                      <div className="text-base font-bold my-0.5">{item.dayNum}</div>
-                      <div className="text-[10px] opacity-80">{item.monthName}</div>
-                    </button>
-                  ))}
-                </div>
+                    {/* Date Column Headers */}
+                    {columns.map((col) => (
+                      <th
+                        key={col.dateKey}
+                        className={`px-3 py-3 font-bold text-center border-r border-gray-200/60 min-w-[140px] max-w-[200px] transition-colors ${
+                          col.isToday ? "bg-red-50/80 text-[#D3232A]" : "text-gray-700"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">{col.dayName}</span>
+                          <span
+                            className={`text-sm font-bold my-0.5 px-2 py-0.5 rounded-md ${
+                              col.isToday ? "bg-[#D3232A] text-white" : "text-gray-900"
+                            }`}
+                          >
+                            {col.dayNum} {col.monthName}
+                          </span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
 
-                <button
-                  onClick={() => {
-                    const next = new Date(selectedDate);
-                    next.setDate(next.getDate() + 1);
-                    setSelectedDate(parseDateKey(next));
-                  }}
-                  className="p-2 rounded-xl border border-gray-200/80 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Daily Roster Metrics Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Scheduled Date</p>
-                  <p className="text-lg font-bold text-gray-900 mt-1">{formatDateNice(selectedDate)}</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-red-50 text-[#D3232A] flex items-center justify-center font-bold">
-                  <CalendarIcon className="h-5 w-5" />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Staff Working Today</p>
-                  <p className="text-lg font-bold text-emerald-600 mt-1">{totalStaffScheduledOnDate} Members</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  <Users className="h-5 w-5" />
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Shifts</p>
-                  <p className="text-lg font-bold text-indigo-600 mt-1">{activeShiftsOnDate} Shift Slots</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                  <Clock className="h-5 w-5" />
-                </div>
-              </div>
-            </div>
-
-            {/* Active Shifts Cards Grid for Selected Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {isShiftsLoading ? (
-                <div className="col-span-full py-12 text-center text-gray-500 font-medium">
-                  Loading shift roster...
-                </div>
-              ) : dailyShiftData.length === 0 ? (
-                <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-200/80">
-                  No shifts scheduled for {formatDateNice(selectedDate)}.
-                </div>
-              ) : (
-                dailyShiftData.map((shift: any) => {
-                  const assignedStaff = shift.dateAssignments || [];
-
-                  return (
-                    <div
-                      key={shift.id}
-                      className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4 hover:shadow-md transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        {/* Header */}
-                        <div className="flex items-start justify-between border-b border-gray-100 pb-3.5">
-                          <div>
-                            {shift.outlet?.name && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#D3232A] bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 mb-1.5">
-                                📍 {shift.outlet.name}
-                              </span>
-                            )}
-                            <h3 className="font-bold text-gray-900 text-lg leading-snug">{shift.name}</h3>
-                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mt-1">
-                              <Clock className="h-3.5 w-3.5 text-gray-400" />
-                              <span>
-                                {shift.startTime} - {shift.endTime}
+                {/* Table Body: Employee Rows */}
+                <tbody className="divide-y divide-gray-200/60 text-xs">
+                  {isEmpLoading || isShiftsLoading ? (
+                    <tr>
+                      <td colSpan={columns.length + 1} className="py-12 text-center text-gray-500 font-medium">
+                        Loading employee roster matrix...
+                      </td>
+                    </tr>
+                  ) : filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan={columns.length + 1} className="py-12 text-center text-gray-500 font-medium">
+                        No employees found matching filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEmployees.map((emp: any) => (
+                      <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors group">
+                        {/* Sticky Left Column: Employee Cell */}
+                        <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50/90 px-4 py-3 border-r border-gray-200 shadow-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-[#D3232A]/10 text-[#D3232A] font-bold text-xs flex items-center justify-center border border-red-200/60 shrink-0">
+                              {emp.name?.[0] || "E"}
+                            </div>
+                            <div className="overflow-hidden">
+                              <span className="font-bold text-gray-900 truncate block text-xs">{emp.name}</span>
+                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5">
+                                {emp.role || "STAFF"}
                               </span>
                             </div>
                           </div>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              assignedStaff.length > 0
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                          >
-                            {assignedStaff.length} Scheduled
-                          </span>
-                        </div>
+                        </td>
 
-                        {/* Assigned Staff List for selectedDate */}
-                        <div className="mt-4">
-                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                            Assigned Staff ({formatDateNice(selectedDate)})
-                          </p>
+                        {/* Date Cells for Employee */}
+                        {columns.map((col) => {
+                          const lookupKey = `${emp.id}_${col.dateKey}`;
+                          const cellItems = matrixLookup[lookupKey] || [];
 
-                          {assignedStaff.length === 0 ? (
-                            <div className="p-3 bg-gray-50/80 rounded-xl border border-dashed border-gray-200 text-center text-xs text-gray-400 italic">
-                              No staff assigned to this shift on {formatDateNice(selectedDate)}.
-                            </div>
-                          ) : (
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                              {assignedStaff.map((asgn: any, aIdx: number) => (
-                                <div
-                                  key={aIdx}
-                                  className="flex items-center justify-between p-2.5 bg-gray-50/80 rounded-xl text-xs border border-gray-200/60"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="h-7 w-7 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-xs">
-                                      {asgn.employee?.name?.[0] || "E"}
-                                    </div>
-                                    <div>
-                                      <span className="font-semibold text-gray-900 block">{asgn.employee?.name || "Staff Member"}</span>
-                                      <span className="text-[10px] text-gray-400">{asgn.employee?.role || "Staff"}</span>
-                                    </div>
+                          const leaveItem = cellItems.find((i) => i.type === "LEAVE");
+                          const shiftItems = cellItems.filter((i) => i.type === "SHIFT");
+
+                          return (
+                            <td
+                              key={col.dateKey}
+                              className={`px-2 py-2.5 border-r border-gray-200/60 align-top transition-colors ${
+                                col.isToday ? "bg-red-50/20" : ""
+                              }`}
+                            >
+                              {/* 1. If Employee is On Leave */}
+                              {leaveItem ? (
+                                <div className="p-2 bg-rose-50 border border-rose-200/80 rounded-xl text-rose-900 space-y-1 shadow-2xs">
+                                  <div className="flex items-center gap-1 font-bold text-[11px] text-rose-700">
+                                    <Palmtree className="h-3.5 w-3.5 text-rose-600" />
+                                    <span>On Leave</span>
                                   </div>
+                                  <p className="text-[10px] text-rose-600 line-clamp-1 italic" title={leaveItem.data.reason}>
+                                    {leaveItem.data.reason}
+                                  </p>
+                                </div>
+                              ) : shiftItems.length > 0 ? (
+                                /* 2. If Employee has Assigned Shift(s) */
+                                <div className="space-y-1.5">
+                                  {shiftItems.map((item, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="p-2 bg-[#D3232A]/5 hover:bg-[#D3232A]/10 border border-red-200/80 rounded-xl text-gray-900 space-y-1 transition-colors relative group/card"
+                                    >
+                                      <div className="flex items-center justify-between gap-1">
+                                        <span className="font-bold text-xs text-gray-900 truncate">{item.data.shift.name}</span>
+                                        {item.data.isRecurring && (
+                                          <span className="inline-flex items-center text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-200/80 shrink-0" title="Weekly Recurring Roster">
+                                            <Repeat className="h-2.5 w-2.5 text-indigo-500" />
+                                          </span>
+                                        )}
+                                      </div>
 
+                                      <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-600">
+                                        <Clock className="h-3 w-3 text-gray-400 shrink-0" />
+                                        <span>{item.data.shift.startTime} - {item.data.shift.endTime}</span>
+                                      </div>
+
+                                      {/* Show Outlet Name if "ALL" Outlets selected */}
+                                      {selectedOutlet === "ALL" && item.data.shift.outlet?.name && (
+                                        <div className="text-[9px] font-bold text-[#D3232A] bg-red-100/60 px-1.5 py-0.5 rounded truncate" title={item.data.shift.outlet.name}>
+                                          📍 {item.data.shift.outlet.name}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                /* 3. Day Off / Unassigned Cell -> Hover Quick Assign */
+                                <div className="h-full min-h-[50px] flex items-center justify-center">
                                   <button
                                     onClick={() => {
-                                      setSwapForm({
-                                        fromEmployeeId: asgn.employee?.id || "",
-                                        toEmployeeId: "",
-                                        shiftId: shift.id,
-                                        date: selectedDate,
+                                      setAssignForm({
+                                        shiftId: shifts[0]?.id || "",
+                                        employeeIds: [emp.id],
+                                        date: col.dateKey,
                                       });
-                                      setShowSwapModal(true);
+                                      setShowAssignModal(true);
                                     }}
-                                    className="px-2 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md border border-indigo-200/80 transition-colors cursor-pointer"
+                                    className="w-full h-full py-2.5 text-[11px] font-semibold text-gray-400 hover:text-[#D3232A] hover:bg-red-50/60 rounded-xl border border-dashed border-transparent hover:border-red-200 transition-all flex items-center justify-center gap-1 opacity-40 hover:opacity-100 cursor-pointer"
                                   >
-                                    Swap
+                                    <Plus className="h-3.5 w-3.5" />
+                                    <span>Assign</span>
                                   </button>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Quick Assign Action */}
-                      <button
-                        onClick={() => {
-                          setAssignForm({
-                            shiftId: shift.id,
-                            employeeIds: [],
-                            date: selectedDate,
-                          });
-                          setShowAssignModal(true);
-                        }}
-                        className="w-full mt-4 py-2.5 text-xs font-bold text-center text-red-700 bg-red-50 hover:bg-red-100/80 rounded-xl transition-colors border border-red-200/80 cursor-pointer"
-                      >
-                        + Assign Staff for {formatDateNice(selectedDate)}
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* ================= TAB 2: SHIFT TEMPLATES MASTER DIRECTORY ================= */}
+        {/* ================= TAB 2: SHIFT SLOTS MASTER DIRECTORY ================= */}
         {activeTab === "templates" && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredShifts.map((shift: any) => (
+              {shifts.map((shift: any) => (
                 <div
                   key={shift.id}
                   className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4 hover:shadow-md transition-shadow flex flex-col justify-between"
@@ -712,7 +786,7 @@ export default function ShiftSchedulerPage() {
                       setAssignForm({
                         shiftId: shift.id,
                         employeeIds: [],
-                        date: selectedDate,
+                        date: parseDateKey(new Date()),
                       });
                       setShowAssignModal(true);
                     }}
@@ -798,7 +872,7 @@ export default function ShiftSchedulerPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-bold text-gray-900">Create Shift Timing</h3>
+                <h3 className="text-lg font-bold text-gray-900">Create Shift Slot</h3>
                 <button onClick={() => setShowCreateShiftModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
@@ -1131,7 +1205,22 @@ export default function ShiftSchedulerPage() {
                   <div className="flex gap-2">
                     <select
                       value={applyToAllShiftId}
-                      onChange={(e) => setApplyToAllShiftId(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setApplyToAllShiftId(val);
+                        if (val) {
+                          const nextSchedule = { ...weeklySchedule };
+                          const ALL_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+                          ALL_DAYS.forEach((day) => {
+                            if (operatingDays.includes(day)) {
+                              nextSchedule[day] = val;
+                            } else {
+                              nextSchedule[day] = "OFF";
+                            }
+                          });
+                          setWeeklySchedule(nextSchedule);
+                        }
+                      }}
                       className="flex-1 px-3 py-1.5 border border-indigo-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">-- Choose Common Shift Timing --</option>
@@ -1141,14 +1230,6 @@ export default function ShiftSchedulerPage() {
                         </option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={handleApplyShiftToAllOpenDays}
-                      disabled={!applyToAllShiftId}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
-                    >
-                      Apply
-                    </button>
                   </div>
                 </div>
 
