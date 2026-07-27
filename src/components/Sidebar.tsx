@@ -77,6 +77,7 @@ const staffNavItems: NavItem[] = [
   { name: "Leave Request", icon: FileText, href: "/workforce/leaves" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders" },
+  { name: "Support & Queries", icon: MessageSquare, href: "/support" },
   { name: "Attendance Logs", icon: Clock, href: "/workforce/attendance" },
 ];
 
@@ -84,6 +85,7 @@ const kitchenNavItems: NavItem[] = [
   { name: "Shift Calendar", icon: Calendar, href: "/workforce" },
   { name: "Leave Request", icon: FileText, href: "/workforce/leaves" },
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen" },
+  { name: "Support & Queries", icon: MessageSquare, href: "/support" },
   { name: "Attendance Logs", icon: Clock, href: "/workforce/attendance" },
 ];
 

@@ -2,12 +2,16 @@
 
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Store, MapPin, Landmark, Map, Globe, Loader2, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
+import AuthGuard from "@/components/auth/AuthGuard";
+import { Store, MapPin, Landmark, Map, Globe, Loader2, ArrowRight, ShieldCheck, ArrowLeft, ShieldAlert } from "lucide-react";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
+import { useAppSelector } from "@/redux/store/hooks";
 import Link from "next/link";
 
 export default function CreateOutletPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
 
   const { refreshBranches, branches } = useBranch();
   const [createOutlet, { isLoading: loading }] = useCreateOutletMutation();
@@ -22,6 +26,35 @@ export default function CreateOutletPage() {
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState("");
+
+  if (!isOwner) {
+    return (
+      <AuthGuard>
+        <DashboardLayout>
+          <div className="max-w-2xl mx-auto py-12 text-center">
+            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-xl border border-gray-100 flex flex-col items-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-[#D3232A] mb-6 shadow-xs">
+                <ShieldAlert className="h-8 w-8" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 font-serif mb-3">
+                Access Restricted
+              </h1>
+              <p className="text-sm text-zinc-500 max-w-md font-medium leading-relaxed mb-8">
+                Adding or registering new restaurant outlets is strictly reserved for <strong>Business Owners</strong> and <strong>Super Admins</strong>.
+              </p>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-[#b01e23] transition-all"
+              >
+                Return to Dashboard
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </DashboardLayout>
+      </AuthGuard>
+    );
+  }
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));

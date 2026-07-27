@@ -36,7 +36,7 @@ import AdjustStockModal   from "./AdjustStockModal";
 import SmartPOModal       from "./SmartPOModal";
 
 export default function InventoryPage() {
-  const { activeBranch, loading: branchLoading } = useBranch();
+  const { activeBranch, branches, setActiveBranch, loading: branchLoading } = useBranch();
 
   // Production RTK Query hooks
   const {
@@ -104,7 +104,7 @@ export default function InventoryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-zinc-900">
-              Stock Items — <span className="text-[#D3232A]">{activeBranch?.name || "Branch"}</span>
+              Stock Items — <span className="text-[#D3232A] font-bold">{activeBranch?.name || "Main Branch"}</span>
             </h1>
             <p className="text-xs text-zinc-500 mt-0.5">
               Track stock levels, min reorder alerts, and total inventory value
@@ -249,6 +249,27 @@ export default function InventoryPage() {
               </button>
             </div>
 
+            {branches.length > 1 && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-2xs">
+                <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" />
+                <select
+                  id="inventory-outlet-filter"
+                  value={activeBranch?.id || ""}
+                  onChange={(e) => {
+                    const selected = branches.find((b) => b.id === e.target.value) || null;
+                    setActiveBranch(selected);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-zinc-800 focus:outline-none cursor-pointer"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <select
               id="inventory-category-filter"
               value={categoryFilter}
@@ -277,7 +298,7 @@ export default function InventoryPage() {
         </div>
 
         {/* Stock Items Table */}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-hidden h-fit mb-6">
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-xs overflow-x-auto min-w-0 h-fit mb-6">
           {isPageLoading ? (
             <div className="p-4 space-y-3">
               <Skeleton height={24} width="30%" className="mb-4" />
