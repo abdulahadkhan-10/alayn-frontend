@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import {
@@ -36,6 +36,16 @@ import {
   Palmtree,
   CalendarDays,
   Trash2,
+  Grid,
+  List,
+  Users,
+  Sparkles,
+  Kanban,
+  User,
+  Filter,
+  Check,
+  Search,
+  Building2,
 } from "lucide-react";
 
 const DEMO_SHIFTS = [
@@ -44,9 +54,11 @@ const DEMO_SHIFTS = [
     name: "Morning Rush",
     startTime: "08:00",
     endTime: "16:00",
+    outlet: { id: "o1", name: "Spice & Dine - MG Road" },
     assignments: [
-      { id: "a1", date: "2026-07-21", employee: { id: "demo-1", name: "Rohan Sharma" } },
-      { id: "a2", date: "2026-07-21", employee: { id: "demo-2", name: "Priya Patel" } },
+      { id: "a1", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-1", name: "Priya Verma", role: "STAFF" } },
+      { id: "a2", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" } },
+      { id: "a3", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" } },
     ],
     swapRequests: [],
   },
@@ -55,21 +67,49 @@ const DEMO_SHIFTS = [
     name: "Evening Shift",
     startTime: "16:00",
     endTime: "00:00",
+    outlet: { id: "o2", name: "Ocean Breeze - Juhu Beach" },
     assignments: [
-      { id: "a3", date: "2026-07-21", employee: { id: "demo-3", name: "Amit Kumar" } },
+      { id: "a4", date: "2026-07-21T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
+      { id: "a5", date: "2026-07-22T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
+      { id: "a6", date: "2026-07-24T00:00:00.000Z", employee: { id: "demo-5", name: "Order Captain (Mumbai)", role: "CAPTAIN" } },
     ],
     swapRequests: [
       {
         id: "s1",
-        fromEmployeeId: "demo-3",
-        toEmployeeId: "demo-2",
+        fromEmployeeId: "demo-4",
+        toEmployeeId: "demo-5",
         shiftId: "shift-2",
-        date: "2026-07-21",
+        date: "2026-07-24",
         status: "REQUESTED",
       },
     ],
   },
 ];
+
+// Date Key Helper (YYYY-MM-DD)
+function parseDateKey(dateInput: any): string {
+  if (!dateInput) return "";
+  if (typeof dateInput === "string") return dateInput.split("T")[0];
+  try {
+    return new Date(dateInput).toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+}
+
+// Clean Date Formatter
+function formatDateNice(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return "Today";
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function ShiftSchedulerPage() {
   const { data: shiftApiData, isLoading: isShiftsLoading } = useGetShiftsQuery(undefined);
@@ -82,25 +122,32 @@ export default function ShiftSchedulerPage() {
 
   const shifts = shiftApiData?.data || (isShiftsLoading ? [] : DEMO_SHIFTS);
   const employees = empApiData?.data || [
-    { id: "demo-1", name: "Rohan Sharma" },
-    { id: "demo-2", name: "Priya Patel" },
-    { id: "demo-3", name: "Amit Kumar" },
+    { id: "demo-1", name: "Priya Verma", role: "STAFF" },
+    { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" },
+    { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" },
+    { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" },
+    { id: "demo-5", name: "Order Captain (Mumbai)", role: "CAPTAIN" },
   ];
 
   // RTK Query Hooks for Roster & Holidays
   const { data: holidaysData } = useGetHolidaysQuery(undefined);
-  const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
+  const [createHoliday] = useCreateHolidayMutation();
   const [deleteHoliday] = useDeleteHolidayMutation();
   const [updateOperatingDays] = useUpdateOperatingDaysMutation();
-  const { data: outletRostersData } = useGetOutletRostersQuery(undefined);
   const [setWeeklyRoster, { isLoading: isSettingRoster }] = useSetWeeklyRosterMutation();
+
+  // Selected Date State for Daily Roster (Defaults to 2026-07-24 or today)
+  const [selectedDate, setSelectedDate] = useState<string>("2026-07-24");
+  const [activeTab, setActiveTab] = useState<"daily" | "weekly" | "templates">("daily");
+  const [selectedOutlet, setSelectedOutlet] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedAssignmentDetail, setSelectedAssignmentDetail] = useState<any>(null);
 
   // Modals
   const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showRosterModal, setShowRosterModal] = useState(false);
-  const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Forms
@@ -117,42 +164,21 @@ export default function ShiftSchedulerPage() {
   }>({
     shiftId: "",
     employeeIds: [],
-    date: new Date().toISOString().split("T")[0],
+    date: selectedDate,
   });
 
   const [swapForm, setSwapForm] = useState({
     fromEmployeeId: "",
     toEmployeeId: "",
     shiftId: "",
-    date: new Date().toISOString().split("T")[0],
+    date: selectedDate,
   });
 
-  // Pagination States for Shift Scheduler
-  const [shiftPage, setShiftPage] = useState(1);
-  const [shiftPageSize, setShiftPageSize] = useState(6);
+  // Pagination for Templates View
+  const [templatePage, setTemplatePage] = useState(1);
+  const [templatePageSize, setTemplatePageSize] = useState(9);
 
-  const [swapPage, setSwapPage] = useState(1);
-  const [swapPageSize, setSwapPageSize] = useState(5);
-
-  const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPageSize));
-  const safeShiftPage = Math.min(shiftPage, totalShiftPages);
-  const startShiftIdx = (safeShiftPage - 1) * shiftPageSize;
-  const paginatedShifts = React.useMemo(() => {
-    return shifts.slice(startShiftIdx, startShiftIdx + shiftPageSize);
-  }, [shifts, startShiftIdx, shiftPageSize]);
-
-  const allSwapRequests = React.useMemo(() => {
-    return shifts.flatMap((s: any) => s.swapRequests || []);
-  }, [shifts]);
-
-  const totalSwapPages = Math.max(1, Math.ceil(allSwapRequests.length / swapPageSize));
-  const safeSwapPage = Math.min(swapPage, totalSwapPages);
-  const startSwapIdx = (safeSwapPage - 1) * swapPageSize;
-  const paginatedSwapRequests = React.useMemo(() => {
-    return allSwapRequests.slice(startSwapIdx, startSwapIdx + swapPageSize);
-  }, [allSwapRequests, startSwapIdx, swapPageSize]);
-
-  // Roster Builder Form State
+  // Roster Form State
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
   const [applyToAllShiftId, setApplyToAllShiftId] = useState("");
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({
@@ -165,19 +191,83 @@ export default function ShiftSchedulerPage() {
     SUNDAY: "OFF",
   });
 
-  // Holiday Form State
-  const [holidayForm, setHolidayForm] = useState({
-    name: "",
-    date: new Date().toISOString().split("T")[0],
-    applyToAllOutlets: false,
-  });
-
   const [operatingDays, setOperatingDays] = useState<string[]>([
     "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
-    // SUNDAY defaults as closed if unselected
   ]);
 
-  // When roster modal opens or operatingDays changes, auto-set closed days as OFF
+  const holidaysList = holidaysData?.data || [];
+
+  // Outlets List extracted from shifts data
+  const outletOptions = useMemo(() => {
+    const set = new Set<string>();
+    shifts.forEach((s: any) => {
+      if (s.outlet?.name) set.add(s.outlet.name);
+    });
+    return Array.from(set);
+  }, [shifts]);
+
+  // Date Strip Generator around selectedDate
+  const dateStrip = useMemo(() => {
+    const curr = new Date(selectedDate);
+    const result = [];
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(curr);
+      d.setDate(curr.getDate() + i);
+      const dateKey = parseDateKey(d);
+      result.push({
+        dateStr: dateKey,
+        dayNum: d.getDate(),
+        dayName: d.toLocaleDateString("en-US", { weekday: "short" }),
+        monthName: d.toLocaleDateString("en-US", { month: "short" }),
+        isToday: dateKey === parseDateKey(new Date()),
+        isSelected: dateKey === selectedDate,
+      });
+    }
+    return result;
+  }, [selectedDate]);
+
+  // Filter Shifts by Selected Outlet
+  const filteredShifts = useMemo(() => {
+    return shifts.filter((s: any) => {
+      const matchOutlet = selectedOutlet === "ALL" || s.outlet?.name === selectedOutlet;
+      const matchSearch =
+        !searchQuery ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.outlet?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchOutlet && matchSearch;
+    });
+  }, [shifts, selectedOutlet, searchQuery]);
+
+  // Daily Shifts Data for `selectedDate`
+  const dailyShiftData = useMemo(() => {
+    return filteredShifts.map((shift: any) => {
+      const dateAssignments = (shift.assignments || []).filter(
+        (a: any) => parseDateKey(a.date) === selectedDate
+      );
+      return {
+        ...shift,
+        dateAssignments,
+      };
+    });
+  }, [filteredShifts, selectedDate]);
+
+  // Summary Metrics for selectedDate
+  const totalStaffScheduledOnDate = useMemo(() => {
+    let count = 0;
+    dailyShiftData.forEach((s: any) => {
+      count += s.dateAssignments.length;
+    });
+    return count;
+  }, [dailyShiftData]);
+
+  const activeShiftsOnDate = useMemo(() => {
+    return dailyShiftData.filter((s: any) => s.dateAssignments.length > 0).length;
+  }, [dailyShiftData]);
+
+  const allSwapRequests = useMemo(() => {
+    return shifts.flatMap((s: any) => s.swapRequests || []);
+  }, [shifts]);
+
   const openRosterModalForEmployee = (empId?: string) => {
     if (empId) setRosterEmployeeId(empId);
     const initialSchedule: Record<string, string> = {};
@@ -193,7 +283,6 @@ export default function ShiftSchedulerPage() {
     setShowRosterModal(true);
   };
 
-  // Helper to Apply 1 Shift to All Open Days
   const handleApplyShiftToAllOpenDays = () => {
     if (!applyToAllShiftId) return;
     const nextSchedule = { ...weeklySchedule };
@@ -209,8 +298,6 @@ export default function ShiftSchedulerPage() {
     setFeedbackMsg("Shift applied to all open days!");
   };
 
-  const holidaysList = holidaysData?.data || [];
-
   const handleRosterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rosterEmployeeId) return;
@@ -224,44 +311,6 @@ export default function ShiftSchedulerPage() {
       setShowRosterModal(false);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update weekly roster");
-    }
-  };
-
-  const handleCreateHolidaySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!holidayForm.name || !holidayForm.date) return;
-    try {
-      await createHoliday(holidayForm).unwrap();
-      setFeedbackMsg(
-        holidayForm.applyToAllOutlets
-          ? `Holiday '${holidayForm.name}' added for ALL outlets!`
-          : `Holiday '${holidayForm.name}' added for this branch!`
-      );
-      setHolidayForm({ name: "", date: new Date().toISOString().split("T")[0], applyToAllOutlets: false });
-    } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to add holiday");
-    }
-  };
-
-  const handleDeleteHoliday = async (id: string) => {
-    try {
-      await deleteHoliday(id).unwrap();
-      setFeedbackMsg("Holiday removed.");
-    } catch (err: any) {
-      setFeedbackMsg("Failed to remove holiday.");
-    }
-  };
-
-  const handleToggleOperatingDay = async (day: string) => {
-    const nextDays = operatingDays.includes(day)
-      ? operatingDays.filter((d) => d !== day)
-      : [...operatingDays, day];
-    setOperatingDays(nextDays);
-    try {
-      await updateOperatingDays({ operatingDays: nextDays }).unwrap();
-      setFeedbackMsg("Operating days updated.");
-    } catch (err: any) {
-      setFeedbackMsg("Failed to update operating days.");
     }
   };
 
@@ -287,7 +336,7 @@ export default function ShiftSchedulerPage() {
         date: assignForm.date,
       }).unwrap();
       const count = assignForm.employeeIds.length;
-      setFeedbackMsg(`Successfully assigned ${count} staff member${count === 1 ? '' : 's'}!`);
+      setFeedbackMsg(`Successfully assigned ${count} staff member${count === 1 ? '' : 's'} for ${formatDateNice(assignForm.date)}!`);
       setShowAssignModal(false);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to assign shift (Check for overlap)");
@@ -317,32 +366,34 @@ export default function ShiftSchedulerPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header Title & Actions */}
+        {/* Page Title & Main CTAs */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Shift Scheduler & Roster</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+              <span>Shift Scheduler & Roster</span>
+            </h1>
             <p className="text-sm text-gray-500">
-              Set weekly rosters (with off-days & variable shifts), festival holidays, and shift swaps.
+              Manage daily shift rosters, employee assignments, and shift swap requests.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <a
               href="/settings"
-              className="inline-flex items-center gap-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 px-3.5 py-2 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-50 text-amber-900 border border-amber-200/80 px-4 py-2.5 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-2xs cursor-pointer"
             >
               <Palmtree className="h-4 w-4 text-amber-600" />
-              Outlet Holidays (Settings)
+              Outlet Holidays
             </a>
             <button
               onClick={() => openRosterModalForEmployee()}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 px-3.5 py-2 text-xs font-semibold hover:bg-indigo-100 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-50 text-indigo-900 border border-indigo-200/80 px-4 py-2.5 text-xs font-semibold hover:bg-indigo-100 transition-colors shadow-2xs cursor-pointer"
             >
               <CalendarDays className="h-4 w-4 text-indigo-600" />
-              🔄 Set Recurring Roster
+              Set Weekly Roster
             </button>
             <button
               onClick={() => setShowCreateShiftModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors shadow-xs cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               New Shift Slot
@@ -353,151 +404,330 @@ export default function ShiftSchedulerPage() {
         {/* Navigation Tabs */}
         <WorkforceHeaderNav />
 
-        {/* Feedback Message Banner */}
+        {/* Feedback Banner */}
         {feedbackMsg && (
-          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm">
-            <span>{feedbackMsg}</span>
-            <button onClick={() => setFeedbackMsg(null)}>
-              <X className="h-4 w-4" />
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-xl text-sm shadow-xs">
+            <span className="font-medium">{feedbackMsg}</span>
+            <button onClick={() => setFeedbackMsg(null)} className="cursor-pointer">
+              <X className="h-4 w-4 text-emerald-700" />
             </button>
           </div>
         )}
 
-        {/* Shift Roster Cards Grid */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {isShiftsLoading ? (
-              <div className="col-span-full py-12 text-center text-gray-500">
-                Loading shifts roster...
+        {/* Top Control Strip: Outlet Filter & View Switcher */}
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* View Mode Tabs */}
+            <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/80">
+              <button
+                onClick={() => setActiveTab("daily")}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "daily"
+                    ? "bg-white text-gray-900 shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <CalendarIcon className="h-4 w-4 text-[#D3232A]" />
+                Daily Shift Board
+              </button>
+              <button
+                onClick={() => setActiveTab("templates")}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "templates"
+                    ? "bg-white text-gray-900 shadow-xs font-bold"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <List className="h-4 w-4 text-[#D3232A]" />
+                Shift Templates ({shifts.length})
+              </button>
+            </div>
+
+            {/* Outlet Filter & Search */}
+            <div className="flex flex-wrap items-center gap-3">
+              {outletOptions.length > 0 && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200/80 px-3 py-1.5 rounded-xl text-xs">
+                  <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                  <select
+                    value={selectedOutlet}
+                    onChange={(e) => setSelectedOutlet(e.target.value)}
+                    className="bg-transparent font-semibold text-gray-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All Outlets</option>
+                    {outletOptions.map((out) => (
+                      <option key={out} value={out}>
+                        {out}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 text-gray-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search shifts or outlet..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200/80 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-48"
+                />
               </div>
-            ) : shifts.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border border-gray-200">
-                No shifts created yet. Click "New Shift Slot" to configure employee shifts.
+            </div>
+          </div>
+        </div>
+
+        {/* ================= TAB 1: DAILY SHIFT BOARD (PRIMARY OPERATIONAL VIEW) ================= */}
+        {activeTab === "daily" && (
+          <div className="space-y-6">
+            {/* Interactive Date Carousel Strip */}
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  onClick={() => {
+                    const prev = new Date(selectedDate);
+                    prev.setDate(prev.getDate() - 1);
+                    setSelectedDate(parseDateKey(prev));
+                  }}
+                  className="p-2 rounded-xl border border-gray-200/80 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
+                {/* 7 Days Strip */}
+                <div className="flex-1 grid grid-cols-7 gap-2">
+                  {dateStrip.map((item) => (
+                    <button
+                      key={item.dateStr}
+                      onClick={() => setSelectedDate(item.dateStr)}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        item.isSelected
+                          ? "bg-[#D3232A] text-white border-[#D3232A] shadow-xs font-bold"
+                          : item.isToday
+                          ? "bg-red-50 text-[#D3232A] border-red-200 font-semibold"
+                          : "bg-gray-50/80 text-gray-700 border-gray-200/60 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="text-[10px] uppercase tracking-wider opacity-80">{item.dayName}</div>
+                      <div className="text-base font-bold my-0.5">{item.dayNum}</div>
+                      <div className="text-[10px] opacity-80">{item.monthName}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    const next = new Date(selectedDate);
+                    next.setDate(next.getDate() + 1);
+                    setSelectedDate(parseDateKey(next));
+                  }}
+                  className="p-2 rounded-xl border border-gray-200/80 text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
-            ) : (
-              paginatedShifts.map((shift: any) => (
+            </div>
+
+            {/* Daily Roster Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Scheduled Date</p>
+                  <p className="text-lg font-bold text-gray-900 mt-1">{formatDateNice(selectedDate)}</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-red-50 text-[#D3232A] flex items-center justify-center font-bold">
+                  <CalendarIcon className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Staff Working Today</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-1">{totalStaffScheduledOnDate} Members</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <Users className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Shifts</p>
+                  <p className="text-lg font-bold text-indigo-600 mt-1">{activeShiftsOnDate} Shift Slots</p>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Clock className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Active Shifts Cards Grid for Selected Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isShiftsLoading ? (
+                <div className="col-span-full py-12 text-center text-gray-500 font-medium">
+                  Loading shift roster...
+                </div>
+              ) : dailyShiftData.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-2xl border border-gray-200/80">
+                  No shifts scheduled for {formatDateNice(selectedDate)}.
+                </div>
+              ) : (
+                dailyShiftData.map((shift: any) => {
+                  const assignedStaff = shift.dateAssignments || [];
+
+                  return (
+                    <div
+                      key={shift.id}
+                      className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4 hover:shadow-md transition-all flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Header */}
+                        <div className="flex items-start justify-between border-b border-gray-100 pb-3.5">
+                          <div>
+                            {shift.outlet?.name && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#D3232A] bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100 mb-1.5">
+                                📍 {shift.outlet.name}
+                              </span>
+                            )}
+                            <h3 className="font-bold text-gray-900 text-lg leading-snug">{shift.name}</h3>
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mt-1">
+                              <Clock className="h-3.5 w-3.5 text-gray-400" />
+                              <span>
+                                {shift.startTime} - {shift.endTime}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              assignedStaff.length > 0
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                                : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {assignedStaff.length} Scheduled
+                          </span>
+                        </div>
+
+                        {/* Assigned Staff List for selectedDate */}
+                        <div className="mt-4">
+                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
+                            Assigned Staff ({formatDateNice(selectedDate)})
+                          </p>
+
+                          {assignedStaff.length === 0 ? (
+                            <div className="p-3 bg-gray-50/80 rounded-xl border border-dashed border-gray-200 text-center text-xs text-gray-400 italic">
+                              No staff assigned to this shift on {formatDateNice(selectedDate)}.
+                            </div>
+                          ) : (
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                              {assignedStaff.map((asgn: any, aIdx: number) => (
+                                <div
+                                  key={aIdx}
+                                  className="flex items-center justify-between p-2.5 bg-gray-50/80 rounded-xl text-xs border border-gray-200/60"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="h-7 w-7 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-xs">
+                                      {asgn.employee?.name?.[0] || "E"}
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold text-gray-900 block">{asgn.employee?.name || "Staff Member"}</span>
+                                      <span className="text-[10px] text-gray-400">{asgn.employee?.role || "Staff"}</span>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    onClick={() => {
+                                      setSwapForm({
+                                        fromEmployeeId: asgn.employee?.id || "",
+                                        toEmployeeId: "",
+                                        shiftId: shift.id,
+                                        date: selectedDate,
+                                      });
+                                      setShowSwapModal(true);
+                                    }}
+                                    className="px-2 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md border border-indigo-200/80 transition-colors cursor-pointer"
+                                  >
+                                    Swap
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quick Assign Action */}
+                      <button
+                        onClick={() => {
+                          setAssignForm({
+                            shiftId: shift.id,
+                            employeeIds: [],
+                            date: selectedDate,
+                          });
+                          setShowAssignModal(true);
+                        }}
+                        className="w-full mt-4 py-2.5 text-xs font-bold text-center text-red-700 bg-red-50 hover:bg-red-100/80 rounded-xl transition-colors border border-red-200/80 cursor-pointer"
+                      >
+                        + Assign Staff for {formatDateNice(selectedDate)}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 2: SHIFT TEMPLATES MASTER DIRECTORY ================= */}
+        {activeTab === "templates" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredShifts.map((shift: any) => (
                 <div
                   key={shift.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4 hover:shadow-md transition-shadow"
+                  className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs space-y-4 hover:shadow-md transition-shadow flex flex-col justify-between"
                 >
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <div className="flex items-start justify-between border-b border-gray-100 pb-3">
                     <div>
                       {shift.outlet?.name && (
-                        <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D3232A] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mb-1.5">
-                          <span>📍 {shift.outlet.name}</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#D3232A] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mb-1.5">
+                          📍 {shift.outlet.name}
+                        </span>
                       )}
-                      <h3 className="font-semibold text-gray-900 text-lg">{shift.name}</h3>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                        <Clock className="h-3.5 w-3.5" />
+                      <h3 className="font-bold text-gray-900 text-lg leading-snug">{shift.name}</h3>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mt-1">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
                         <span>
                           {shift.startTime} - {shift.endTime}
                         </span>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-[#D3232A]">
-                      {shift.assignments?.length || 0} Assigned
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-[#D3232A]">
+                      {shift.assignments?.length || 0} Total Assigned
                     </span>
                   </div>
 
-                  {/* Assigned Staff List */}
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Assigned Employees
-                    </p>
-                    {!shift.assignments || shift.assignments.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">No employees assigned to this slot.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {shift.assignments.map((asgn: any) => (
-                          <div
-                            key={asgn.id || asgn.employee?.id}
-                            className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg text-sm"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-xs">
-                                {asgn.employee?.name?.[0] || "E"}
-                              </div>
-                              <span className="font-medium text-gray-800">
-                                {asgn.employee?.name || "Staff Member"}
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-500">Today</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quick Assign Button */}
                   <button
                     onClick={() => {
                       setAssignForm({
                         shiftId: shift.id,
                         employeeIds: [],
-                        date: new Date().toISOString().split("T")[0],
+                        date: selectedDate,
                       });
                       setShowAssignModal(true);
                     }}
-                    className="w-full py-2 text-xs font-semibold text-center text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 cursor-pointer"
+                    className="w-full py-2.5 text-xs font-bold text-center text-red-700 bg-red-50 hover:bg-red-100/80 rounded-xl transition-colors border border-red-200/80 cursor-pointer"
                   >
-                    + Assign Staff for Date
+                    + Assign Staff
                   </button>
                 </div>
-              ))
-            )}
-          </div>
-
-          {/* Shift Grid Pagination Bar */}
-          {shifts.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 bg-white rounded-xl border border-gray-200 text-xs text-gray-600 shadow-sm">
-              <div className="flex items-center gap-2">
-                <span>Show</span>
-                <select
-                  value={shiftPageSize}
-                  onChange={(e) => {
-                    setShiftPageSize(Number(e.target.value));
-                    setShiftPage(1);
-                  }}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
-                >
-                  <option value={3}>3</option>
-                  <option value={6}>6</option>
-                  <option value={12}>12</option>
-                  <option value={24}>24</option>
-                </select>
-                <span>shifts per page</span>
-                <span className="text-gray-300 mx-1">|</span>
-                <span>
-                  Showing <strong>{shifts.length > 0 ? startShiftIdx + 1 : 0}</strong> to <strong>{Math.min(startShiftIdx + shiftPageSize, shifts.length)}</strong> of <strong>{shifts.length}</strong> shift slots
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setShiftPage((p) => Math.max(1, p - 1))}
-                  disabled={safeShiftPage === 1}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="px-2 font-medium">
-                  Page {safeShiftPage} of {totalShiftPages}
-                </span>
-                <button
-                  onClick={() => setShiftPage((p) => Math.min(totalShiftPages, p + 1))}
-                  disabled={safeShiftPage >= totalShiftPages}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Swap Requests Section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+        {/* Pending Swap Requests Section */}
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Pending Shift Swap Requests</h2>
@@ -505,7 +735,7 @@ export default function ShiftSchedulerPage() {
                 Staff members requesting to exchange assigned shifts.
               </p>
             </div>
-            <ArrowRightLeft className="h-5 w-5 text-gray-400" />
+            <ArrowRightLeft className="h-5 w-5 text-[#D3232A]" />
           </div>
 
           <div className="space-y-3">
@@ -514,16 +744,16 @@ export default function ShiftSchedulerPage() {
                 No active shift swap requests right now.
               </p>
             ) : (
-              paginatedSwapRequests.map((swap: any) => (
+              allSwapRequests.map((swap: any) => (
                 <div
                   key={swap.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 gap-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/80 rounded-xl border border-gray-200/80 gap-4"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                       <span>Swap Request #{swap.id.slice(0, 6)}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           swap.status === "APPROVED"
                             ? "bg-emerald-100 text-emerald-800"
                             : swap.status === "REJECTED"
@@ -535,7 +765,7 @@ export default function ShiftSchedulerPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-600">
-                      Requested on date: {new Date(swap.date).toLocaleDateString()}
+                      Requested date: {formatDateNice(swap.date)}
                     </p>
                   </div>
 
@@ -544,14 +774,14 @@ export default function ShiftSchedulerPage() {
                       <button
                         onClick={() => handleSwapAction(swap.id, "APPROVED")}
                         disabled={isUpdatingSwap}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" /> Approve
                       </button>
                       <button
                         onClick={() => handleSwapAction(swap.id, "REJECTED")}
                         disabled={isUpdatingSwap}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                       >
                         <XCircle className="h-3.5 w-3.5" /> Reject
                       </button>
@@ -561,61 +791,15 @@ export default function ShiftSchedulerPage() {
               ))
             )}
           </div>
-
-          {/* Swap Requests Pagination Bar */}
-          {allSwapRequests.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>Show</span>
-                <select
-                  value={swapPageSize}
-                  onChange={(e) => {
-                    setSwapPageSize(Number(e.target.value));
-                    setSwapPage(1);
-                  }}
-                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                </select>
-                <span>per page</span>
-                <span className="text-gray-300 mx-1">|</span>
-                <span>
-                  Showing <strong>{allSwapRequests.length > 0 ? startSwapIdx + 1 : 0}</strong> to <strong>{Math.min(startSwapIdx + swapPageSize, allSwapRequests.length)}</strong> of <strong>{allSwapRequests.length}</strong> swap requests
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setSwapPage((p) => Math.max(1, p - 1))}
-                  disabled={safeSwapPage === 1}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="px-2 font-medium">
-                  Page {safeSwapPage} of {totalSwapPages}
-                </span>
-                <button
-                  onClick={() => setSwapPage((p) => Math.min(totalSwapPages, p + 1))}
-                  disabled={safeSwapPage >= totalSwapPages}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Modal 1: Create Shift */}
+        {/* Modal 1: Create Shift Slot */}
         {showCreateShiftModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-bold text-gray-900">Create Shift Timing</h3>
-                <button onClick={() => setShowCreateShiftModal(false)}>
+                <button onClick={() => setShowCreateShiftModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
               </div>
@@ -630,7 +814,7 @@ export default function ShiftSchedulerPage() {
                     placeholder="e.g. Morning Shift, Evening Rush"
                     value={shiftForm.name}
                     onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -644,7 +828,7 @@ export default function ShiftSchedulerPage() {
                       placeholder="08:00"
                       value={shiftForm.startTime}
                       onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                   <div>
@@ -657,7 +841,7 @@ export default function ShiftSchedulerPage() {
                       placeholder="16:00"
                       value={shiftForm.endTime}
                       onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
@@ -665,14 +849,14 @@ export default function ShiftSchedulerPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreateShiftModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreatingShift}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isCreatingShift ? "Saving..." : "Create Shift Slot"}
                   </button>
@@ -682,17 +866,17 @@ export default function ShiftSchedulerPage() {
           </div>
         )}
 
-        {/* Modal 2: Assign Shift (Supports Bulk / Select All) */}
+        {/* Modal 2: Assign Shift */}
         {showAssignModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Assign Staff for Specific Date</h3>
-                  <p className="text-xs text-gray-500">Assign single or multiple employees to a shift for a selected date.</p>
+                  <h3 className="text-lg font-bold text-gray-900">Assign Staff for Date</h3>
+                  <p className="text-xs text-gray-500">Assign employees to a shift for {formatDateNice(assignForm.date)}.</p>
                 </div>
-                <button onClick={() => setShowAssignModal(false)}>
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600 cursor-pointer" />
+                <button onClick={() => setShowAssignModal(false)} className="cursor-pointer">
+                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
               <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
@@ -704,7 +888,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={assignForm.shiftId}
                     onChange={(e) => setAssignForm({ ...assignForm, shiftId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="">-- Select Shift Slot --</option>
                     {shifts.map((s: any) => (
@@ -715,7 +899,6 @@ export default function ShiftSchedulerPage() {
                   </select>
                 </div>
 
-                {/* Bulk Employee Selector */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">
@@ -736,32 +919,16 @@ export default function ShiftSchedulerPage() {
                     </button>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1.5 bg-gray-50">
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1.5 bg-gray-50">
                     {employees.length === 0 ? (
                       <p className="text-xs text-gray-400 p-2 text-center">No employees found.</p>
                     ) : (
                       employees.map((e: any) => {
                         const isChecked = assignForm.employeeIds.includes(e.id);
-                        
-                        // Check if employee already has an assigned shift on selected date
-                        let existingAssignment: any = null;
-                        (shifts || []).forEach((s: any) => {
-                          (s.assignments || []).forEach((a: any) => {
-                            const aDate = new Date(a.date).toISOString().split("T")[0];
-                            if (a.employeeId === e.id && aDate === assignForm.date) {
-                              existingAssignment = {
-                                shiftName: s.name,
-                                startTime: s.startTime,
-                                endTime: s.endTime,
-                              };
-                            }
-                          });
-                        });
-
                         return (
                           <label
                             key={e.id}
-                            className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
+                            className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${
                               isChecked
                                 ? "bg-red-50 border-red-200 text-gray-900 font-semibold"
                                 : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100"
@@ -780,14 +947,7 @@ export default function ShiftSchedulerPage() {
                                 }}
                                 className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
                               />
-                              <div>
-                                <span className="text-xs font-medium">{e.name}</span>
-                                {existingAssignment && (
-                                  <div className="text-[10px] text-amber-700 font-medium">
-                                    ⚠️ Already assigned: {existingAssignment.shiftName} ({existingAssignment.startTime} - {existingAssignment.endTime})
-                                  </div>
-                                )}
-                              </div>
+                              <span className="text-xs font-medium">{e.name}</span>
                             </div>
                             <span className="text-[11px] text-gray-400 uppercase tracking-wider">{e.role}</span>
                           </label>
@@ -806,7 +966,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={assignForm.date}
                     onChange={(e) => setAssignForm({ ...assignForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
@@ -814,14 +974,14 @@ export default function ShiftSchedulerPage() {
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isAssigning || assignForm.employeeIds.length === 0 || !assignForm.shiftId}
-                    className="px-4 py-2 text-sm font-semibold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isAssigning
                       ? "Assigning..."
@@ -836,10 +996,10 @@ export default function ShiftSchedulerPage() {
         {/* Modal 3: Request Swap */}
         {showSwapModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-bold text-gray-900">Request Shift Swap</h3>
-                <button onClick={() => setShowSwapModal(false)}>
+                <button onClick={() => setShowSwapModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
               </div>
@@ -852,7 +1012,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={swapForm.fromEmployeeId}
                     onChange={(e) => setSwapForm({ ...swapForm, fromEmployeeId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="">-- Select Source Employee --</option>
                     {employees.map((e: any) => (
@@ -870,7 +1030,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={swapForm.toEmployeeId}
                     onChange={(e) => setSwapForm({ ...swapForm, toEmployeeId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="">-- Select Replacement Employee --</option>
                     {employees.map((e: any) => (
@@ -888,7 +1048,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={swapForm.shiftId}
                     onChange={(e) => setSwapForm({ ...swapForm, shiftId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="">-- Select Shift --</option>
                     {shifts.map((s: any) => (
@@ -907,21 +1067,21 @@ export default function ShiftSchedulerPage() {
                     required
                     value={swapForm.date}
                     onChange={(e) => setSwapForm({ ...swapForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowSwapModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSwapping}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isSwapping ? "Submitting..." : "Submit Swap Request"}
                   </button>
@@ -931,10 +1091,10 @@ export default function ShiftSchedulerPage() {
           </div>
         )}
 
-        {/* Modal 4: Set Weekly Roster (Recurring Schedule) */}
+        {/* Modal 4: Set Weekly Roster */}
         {showRosterModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Set Employee Weekly Roster</h3>
@@ -953,7 +1113,7 @@ export default function ShiftSchedulerPage() {
                     required
                     value={rosterEmployeeId}
                     onChange={(e) => setRosterEmployeeId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="">-- Choose Employee --</option>
                     {employees.map((e: any) => (
@@ -964,17 +1124,15 @@ export default function ShiftSchedulerPage() {
                   </select>
                 </div>
 
-                {/* Quick Fill Action Bar */}
-                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2">
+                <div className="p-3 bg-indigo-50 border border-indigo-200/80 rounded-xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-indigo-900">⚡ Quick Action: Fill All Open Days</span>
-                    <span className="text-[11px] text-indigo-600">Saves time!</span>
                   </div>
                   <div className="flex gap-2">
                     <select
                       value={applyToAllShiftId}
                       onChange={(e) => setApplyToAllShiftId(e.target.value)}
-                      className="flex-1 px-3 py-1.5 border border-indigo-300 rounded-md text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 px-3 py-1.5 border border-indigo-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">-- Choose Common Shift Timing --</option>
                       {shifts.map((s: any) => (
@@ -987,56 +1145,39 @@ export default function ShiftSchedulerPage() {
                       type="button"
                       onClick={handleApplyShiftToAllOpenDays}
                       disabled={!applyToAllShiftId}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-semibold shadow-sm disabled:opacity-50 cursor-pointer"
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
                     >
-                      Apply to Open Days
+                      Apply
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-sm font-semibold text-gray-800">
-                      Weekly Schedule (Mon – Sun)
-                    </label>
-                    <span className="text-[11px] text-gray-500">Recurring for all months & years</span>
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Weekly Schedule (Mon – Sun)
+                  </label>
                   {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => {
-                    const isCafeClosedDay = !operatingDays.includes(day);
+                    const isClosed = !operatingDays.includes(day);
                     return (
-                      <div
-                        key={day}
-                        className={`flex items-center justify-between gap-4 p-2.5 rounded-lg border ${
-                          isCafeClosedDay
-                            ? "bg-rose-50/70 border-rose-200"
-                            : "bg-gray-50 border-gray-200"
-                        }`}
-                      >
-                        <div className="w-28 flex flex-col">
-                          <span className="text-xs font-semibold text-gray-800">{day}</span>
-                          {isCafeClosedDay && (
-                            <span className="text-[10px] font-bold text-rose-600">CAFE CLOSED</span>
-                          )}
-                        </div>
-                        <select
-                          value={isCafeClosedDay ? "OFF" : weeklySchedule[day]}
-                          disabled={isCafeClosedDay}
-                          onChange={(e) => setWeeklySchedule({ ...weeklySchedule, [day]: e.target.value })}
-                          className={`flex-1 px-3 py-1.5 border rounded-md text-xs focus:outline-none ${
-                            isCafeClosedDay
-                              ? "bg-rose-100/50 border-rose-300 text-rose-800 font-semibold cursor-not-allowed"
-                              : "bg-white border-gray-300 focus:ring-2 focus:ring-[#D3232A]"
-                          }`}
-                        >
-                          <option value="OFF">
-                            {isCafeClosedDay ? "⛔ CLOSED (Cafe Holiday / Closed Day)" : "⛔ WEEKLY OFF (No Punch-In)"}
-                          </option>
-                          {shifts.map((s: any) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name} ({s.startTime} - {s.endTime})
-                            </option>
-                          ))}
-                        </select>
+                      <div key={day} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-200/80 text-xs">
+                        <span className="font-bold text-gray-700 min-w-[90px]">{day}</span>
+                        {isClosed ? (
+                          <span className="text-gray-400 font-semibold italic">Outlet Closed</span>
+                        ) : (
+                          <select
+                            value={weeklySchedule[day] || ""}
+                            onChange={(e) => setWeeklySchedule({ ...weeklySchedule, [day]: e.target.value })}
+                            className="px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                          >
+                            <option value="">-- Select Shift --</option>
+                            <option value="OFF">OFF (Day Off)</option>
+                            {shifts.map((s: any) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} ({s.startTime} - {s.endTime})
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                     );
                   })}
@@ -1046,155 +1187,19 @@ export default function ShiftSchedulerPage() {
                   <button
                     type="button"
                     onClick={() => setShowRosterModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isSettingRoster}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
+                    disabled={isSettingRoster || !rosterEmployeeId}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                   >
-                    {isSettingRoster ? "Saving Roster..." : "Save Weekly Roster"}
+                    {isSettingRoster ? "Saving..." : "Save Weekly Roster"}
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Modal 5: Outlet Holidays & Operating Days */}
-        {showHolidayModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Outlet Holidays & Operating Days</h3>
-                  <p className="text-xs text-gray-500">Define festival closures & weekly open days for this branch or all outlets.</p>
-                </div>
-                <button onClick={() => setShowHolidayModal(false)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-                {/* 1. Cafe Weekly Operating Days */}
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Cafe Weekly Open Days</h4>
-                  <p className="text-xs text-gray-500 mb-3">Uncheck days when the cafe is completely closed (e.g. Closed on Sundays or Mondays).</p>
-                  <div className="flex flex-wrap gap-2">
-                    {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => {
-                      const isOpen = operatingDays.includes(day);
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => handleToggleOperatingDay(day)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                            isOpen
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                              : "bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100"
-                          }`}
-                        >
-                          {day} {isOpen ? "✓ OPEN" : "⛔ CLOSED"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <hr className="border-gray-200" />
-
-                {/* 2. Add Festival / National Holiday */}
-                <div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1">Add Festival / Custom Holiday</h4>
-                  <p className="text-xs text-gray-500 mb-2">Declare specific holiday dates like Diwali or Christmas.</p>
-                  <form onSubmit={handleCreateHolidaySubmit} className="space-y-3">
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Holiday Name</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Diwali / Independence Day"
-                          value={holidayForm.name}
-                          onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        />
-                      </div>
-                      <div className="w-36">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
-                        <input
-                          type="date"
-                          required
-                          value={holidayForm.date}
-                          onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={isCreatingHoliday}
-                        className="px-3.5 py-2 bg-[#D3232A] hover:bg-[#b01e23] text-white text-xs font-semibold rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
-                      >
-                        Add
-                      </button>
-                    </div>
-
-                    {/* Multi-Outlet Checkbox */}
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
-                      <input
-                        type="checkbox"
-                        id="applyToAllOutlets"
-                        checked={holidayForm.applyToAllOutlets}
-                        onChange={(e) => setHolidayForm({ ...holidayForm, applyToAllOutlets: e.target.checked })}
-                        className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
-                      />
-                      <label htmlFor="applyToAllOutlets" className="text-xs font-medium text-gray-700 cursor-pointer">
-                        Apply this holiday to <strong className="text-gray-900">ALL outlets in my business</strong> (e.g. Delhi, Mumbai, etc.)
-                      </label>
-                    </div>
-                  </form>
-                </div>
-
-                {/* 3. Holidays List */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-700 mb-2">Declared Holidays</h4>
-                  {holidaysList.length === 0 ? (
-                    <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-lg text-xs text-gray-500 text-center">
-                      No custom holidays declared yet.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {holidaysList.map((h: any) => (
-                        <div key={h.id} className="flex items-center justify-between p-2.5 bg-amber-50/50 border border-amber-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Palmtree className="h-4 w-4 text-amber-600" />
-                            <span className="text-xs font-semibold text-gray-900">{h.name}</span>
-                            <span className="text-xs text-gray-500">({new Date(h.date).toLocaleDateString()})</span>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteHoliday(h.id)}
-                            className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowHolidayModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
