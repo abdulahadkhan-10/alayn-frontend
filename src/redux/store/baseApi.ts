@@ -18,7 +18,7 @@ const baseQuery = fetchBaseQuery({
     prepareHeaders: (headers) => {
         if (typeof window !== "undefined") {
             const outletId = localStorage.getItem("alayn_active_branch_id");
-            if (outletId) {
+            if (outletId && !headers.has("x-outlet-id")) {
                 headers.set("x-outlet-id", outletId);
             }
         }

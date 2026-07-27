@@ -423,6 +423,7 @@ export interface TableItem {
   currentToken: string | null;
   tokenExpiresAt: string | null;
   createdAt: string;
+  outletId?: string;
 }
 
 export async function fetchTables(

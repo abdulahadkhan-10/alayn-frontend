@@ -19,6 +19,8 @@ import {
   RefreshCw,
   Copy,
   ExternalLink,
+  Store,
+  UtensilsCrossed,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
@@ -38,8 +40,14 @@ import { showToast } from "@/lib/toast";
 type FilterType = "ALL" | "AC" | "NON_AC" | "AVAILABLE" | "OCCUPIED";
 
 export default function TableManagementComponent() {
-  const { activeBranch } = useBranch();
+  const { activeBranch, branches } = useBranch();
   const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
+  const isAllOutlets = !currentOutletId || activeBranch?.id === "all";
+
+  // List of specific outlets excluding "all"
+  const specificBranches = useMemo(() => {
+    return branches.filter((b) => b.id !== "all");
+  }, [branches]);
 
   // RTK Query staff employees
   const { data: rawEmployees } = useGetEmployeesQuery(undefined);
@@ -60,6 +68,7 @@ export default function TableManagementComponent() {
 
   // Add tables modal
   const [showAddModal, setShowAddModal] = useState(false);
+  const [targetAddOutletId, setTargetAddOutletId] = useState<string>("");
   const [acCount, setAcCount] = useState<string | number>(0);
   const [nonAcCount, setNonAcCount] = useState<string | number>(0);
   const [submittingAdd, setSubmittingAdd] = useState(false);
@@ -76,21 +85,61 @@ export default function TableManagementComponent() {
   // Per-table action loading
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const loadTables = useCallback(async () => {
-    if (!currentOutletId) {
-      setLoading(false);
-      return;
+  // Sync default target outlet for adding tables
+  useEffect(() => {
+    if (currentOutletId) {
+      setTargetAddOutletId(currentOutletId);
+    } else if (specificBranches.length > 0) {
+      setTargetAddOutletId(specificBranches[0].id);
     }
+  }, [currentOutletId, specificBranches]);
+
+  // Helper to determine target outlet ID for table operations
+  const getTargetOutletId = (table: TableItem) => {
+    return (
+      table.outletId ||
+      currentOutletId ||
+      (specificBranches.length > 0 ? specificBranches[0].id : null)
+    );
+  };
+
+  const loadTables = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const res = await fetchTables(currentOutletId);
-    if (res.ok && res.tables) {
-      setTables(res.tables);
+
+    if (currentOutletId) {
+      // Single outlet view
+      const res = await fetchTables(currentOutletId);
+      if (res.ok && res.tables) {
+        setTables(res.tables.map((t) => ({ ...t, outletId: t.outletId || currentOutletId })));
+      } else {
+        setError(res.error || "Failed to load tables");
+      }
     } else {
-      setError(res.error || "Failed to load tables");
+      // All Outlets view: fetch tables across all specific branches concurrently
+      if (specificBranches.length === 0) {
+        setTables([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const results = await Promise.all(
+          specificBranches.map(async (branch) => {
+            const res = await fetchTables(branch.id);
+            if (res.ok && res.tables) {
+              return res.tables.map((t) => ({ ...t, outletId: t.outletId || branch.id }));
+            }
+            return [];
+          })
+        );
+        setTables(results.flat());
+      } catch (err: any) {
+        setError("Failed to load tables across outlets");
+      }
     }
     setLoading(false);
-  }, [currentOutletId]);
+  }, [currentOutletId, specificBranches]);
 
   useEffect(() => {
     loadTables();
@@ -98,7 +147,11 @@ export default function TableManagementComponent() {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentOutletId) return;
+    const outletIdToUse = currentOutletId || targetAddOutletId;
+    if (!outletIdToUse) {
+      setAddError("Please select a target outlet location.");
+      return;
+    }
 
     const parsedAc = parseInt(String(acCount), 10) || 0;
     const parsedNonAc = parseInt(String(nonAcCount), 10) || 0;
@@ -110,7 +163,7 @@ export default function TableManagementComponent() {
 
     setSubmittingAdd(true);
     setAddError(null);
-    const res = await createBulkTables(currentOutletId, parsedAc, parsedNonAc);
+    const res = await createBulkTables(outletIdToUse, parsedAc, parsedNonAc);
     setSubmittingAdd(false);
 
     if (res.ok) {
@@ -122,10 +175,12 @@ export default function TableManagementComponent() {
   };
 
   const handleToggleStatus = async (table: TableItem) => {
-    if (!currentOutletId) return;
+    const targetOutletId = getTargetOutletId(table);
+    if (!targetOutletId) return;
+
     const newStatus = table.status === "AVAILABLE" ? "OCCUPIED" : "AVAILABLE";
     setPendingId(table.id);
-    const res = await updateTable(currentOutletId, table.id, { status: newStatus });
+    const res = await updateTable(targetOutletId, table.id, { status: newStatus });
     setPendingId(null);
     if (res.ok) {
       setTables((prev) =>
@@ -137,10 +192,12 @@ export default function TableManagementComponent() {
   };
 
   const handleAssignStaff = async (table: TableItem, staffId: string) => {
-    if (!currentOutletId) return;
+    const targetOutletId = getTargetOutletId(table);
+    if (!targetOutletId) return;
+
     const assignedStaffId = staffId === "" ? null : staffId;
     setPendingId(table.id);
-    const res = await updateTable(currentOutletId, table.id, { assignedStaffId });
+    const res = await updateTable(targetOutletId, table.id, { assignedStaffId });
     setPendingId(null);
     if (res.ok) {
       loadTables();
@@ -150,9 +207,11 @@ export default function TableManagementComponent() {
   };
 
   const handleRegenerateQR = async (table: TableItem) => {
-    if (!currentOutletId) return;
+    const targetOutletId = getTargetOutletId(table);
+    if (!targetOutletId) return;
+
     setPendingId(table.id);
-    const res = await regenerateTableQRToken(currentOutletId, table.id);
+    const res = await regenerateTableQRToken(targetOutletId, table.id);
     setPendingId(null);
     if (res.ok && res.token) {
       setTables((prev) =>
@@ -167,10 +226,12 @@ export default function TableManagementComponent() {
   };
 
   const handleDeleteTable = async (table: TableItem) => {
-    if (!currentOutletId) return;
+    const targetOutletId = getTargetOutletId(table);
+    if (!targetOutletId) return;
+
     if (!window.confirm(`Delete Table ${table.tableNumber}? This cannot be undone.`)) return;
     setPendingId(table.id);
-    const res = await deleteTable(currentOutletId, table.id);
+    const res = await deleteTable(targetOutletId, table.id);
     setPendingId(null);
     if (res.ok) {
       loadTables();
@@ -190,12 +251,47 @@ export default function TableManagementComponent() {
         const query = search.toLowerCase();
         const matchesNo = String(t.tableNumber).includes(query);
         const matchesStaff = t.assignedStaff?.name?.toLowerCase().includes(query);
-        if (!matchesNo && !matchesStaff) return false;
+        const matchesOutlet = specificBranches
+          .find((b) => b.id === t.outletId)
+          ?.name?.toLowerCase()
+          .includes(query);
+        if (!matchesNo && !matchesStaff && !matchesOutlet) return false;
       }
 
       return true;
     });
-  }, [tables, filter, search]);
+  }, [tables, filter, search, specificBranches]);
+
+  // Group filtered tables by outlet when in 'All Outlets' mode
+  const groupedFilteredTables = useMemo(() => {
+    if (!isAllOutlets) {
+      return [
+        {
+          outletId: currentOutletId || "default",
+          outletName: activeBranch?.name || "Floor Tables",
+          tables: filteredTables,
+        },
+      ];
+    }
+
+    const map = new Map<string, { outletId: string; outletName: string; tables: TableItem[] }>();
+
+    // Pre-populate all specific branches
+    specificBranches.forEach((b) => {
+      map.set(b.id, { outletId: b.id, outletName: b.name, tables: [] });
+    });
+
+    filteredTables.forEach((t) => {
+      const outId = t.outletId || "other";
+      if (!map.has(outId)) {
+        const branchName = specificBranches.find((b) => b.id === outId)?.name || "Outlet Location";
+        map.set(outId, { outletId: outId, outletName: branchName, tables: [] });
+      }
+      map.get(outId)!.tables.push(t);
+    });
+
+    return Array.from(map.values());
+  }, [isAllOutlets, currentOutletId, activeBranch, filteredTables, specificBranches]);
 
   const stats = useMemo(() => {
     const total = tables.length;
@@ -248,6 +344,7 @@ export default function TableManagementComponent() {
     const isOccupied = table.status === "OCCUPIED";
     const isPending = pendingId === table.id;
     const orderUrl = getTableOrderUrl(table.currentToken);
+    const outletName = specificBranches.find((b) => b.id === table.outletId)?.name;
 
     return (
       <div
@@ -271,7 +368,7 @@ export default function TableManagementComponent() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                Dining Table
+                {isAllOutlets && outletName ? outletName : "Dining Table"}
               </p>
               <h3 className="text-lg font-extrabold text-[#1B2A4A] leading-tight mt-0.5">
                 # {table.tableNumber}
@@ -401,8 +498,8 @@ export default function TableManagementComponent() {
           <button
             onClick={() => handleDeleteTable(table)}
             disabled={isPending}
+            className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-gray-400 transition-all cursor-pointer disabled:opacity-50"
             title="Delete table"
-            className="cursor-pointer flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all disabled:opacity-40"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -413,20 +510,19 @@ export default function TableManagementComponent() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1600px] mx-auto space-y-6 text-[#1B2A4A]">
-        {/* Page header */}
+      <div className="p-6 max-w-[1600px] mx-auto space-y-6 bg-[#F4F5F8] min-h-screen text-[#1B2A4A]">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
           <div>
             <h1 className="text-2xl font-bold text-[#1B2A4A] flex items-center gap-2">
-              <QrCode className="w-7 h-7 text-[#D3232A]" />
+              <LayoutGrid className="w-6 h-6 text-[#D3232A]" />
               Table Management
             </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Organize dining tables, generate customer QR stickers, and assign staff members
+            <p className="text-gray-500 text-sm mt-1">
+              Configure AC and Non-AC dining tables, assign staff, and manage QR code menu ordering.
             </p>
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {tables.length > 0 && (
               <button
                 onClick={() => setShowBulkPrint(true)}
@@ -466,7 +562,7 @@ export default function TableManagementComponent() {
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search table number or staff..."
+              placeholder="Search table number, staff, or outlet..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#D3232A] transition"
@@ -494,7 +590,7 @@ export default function TableManagementComponent() {
           </div>
         </div>
 
-        {/* Tables Grid */}
+        {/* Tables Grid Grouped By Outlet */}
         {loading ? (
           <SkeletonTheme baseColor="#f3f4f6" highlightColor="#e5e7eb">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -529,10 +625,61 @@ export default function TableManagementComponent() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {filteredTables.map((t) => (
-              <TableCard key={t.id} table={t} />
-            ))}
+          <div className="space-y-8">
+            {groupedFilteredTables.map((group) => {
+              if (group.tables.length === 0 && isAllOutlets) {
+                return (
+                  <div key={group.outletId} className="space-y-3">
+                    <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                      <span className="p-1.5 rounded-lg bg-[#1B2A4A] text-white">
+                        <Store className="w-4 h-4 text-rose-400" />
+                      </span>
+                      <h2 className="text-base font-black text-[#1B2A4A]">
+                        {group.outletName}
+                      </h2>
+                      <span className="text-xs text-gray-400 font-bold">
+                        (0 Tables)
+                      </span>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-400 text-xs font-medium italic">
+                      No floor tables configured for {group.outletName}.
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={group.outletId} className="space-y-3">
+                  {/* Show Heading ONLY when viewing All Outlets */}
+                  {isAllOutlets && (
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 rounded-lg bg-[#1B2A4A] text-white shadow-xs">
+                          <Store className="w-4 h-4 text-rose-400" />
+                        </span>
+                        <h2 className="text-base font-black text-[#1B2A4A]">
+                          {group.outletName}
+                        </h2>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-200 text-gray-700 font-black">
+                          {group.tables.length} {group.tables.length === 1 ? "Table" : "Tables"}
+                        </span>
+                      </div>
+
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+                        {group.tables.filter((t) => t.status === "AVAILABLE").length} Available / {group.tables.filter((t) => t.status === "OCCUPIED").length} Occupied
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Grid of Table Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    {group.tables.map((t) => (
+                      <TableCard key={t.id} table={t} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -558,52 +705,77 @@ export default function TableManagementComponent() {
               {addError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  {addError}
+                  <span>{addError}</span>
                 </div>
               )}
 
-              <div>
-                <label className="text-xs font-bold text-[#1B2A4A] flex items-center gap-1.5 mb-1">
-                  <Wind className="w-4 h-4 text-cyan-600" />
-                  AC Tables Count
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={acCount}
-                  onChange={(e) => setAcCount(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-[#1B2A4A] focus:outline-none focus:border-[#D3232A]"
-                />
+              {/* Outlet Selector if in All Outlets Mode */}
+              {isAllOutlets && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Select Target Outlet Location
+                  </label>
+                  <select
+                    value={targetAddOutletId}
+                    onChange={(e) => setTargetAddOutletId(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-extrabold focus:outline-none focus:border-[#1B2A4A]"
+                  >
+                    {specificBranches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1">
+                    <Wind className="w-3.5 h-3.5 text-cyan-600" />
+                    AC Tables Count
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={acCount}
+                    onChange={(e) => setAcCount(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#D3232A]"
+                    placeholder="e.g. 5"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1">
+                    <Sun className="w-3.5 h-3.5 text-amber-600" />
+                    Non-AC Tables Count
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={nonAcCount}
+                    onChange={(e) => setNonAcCount(e.target.value)}
+                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#D3232A]"
+                    placeholder="e.g. 5"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#1B2A4A] flex items-center gap-1.5 mb-1">
-                  <Sun className="w-4 h-4 text-amber-600" />
-                  Non-AC Tables Count
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={nonAcCount}
-                  onChange={(e) => setNonAcCount(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-[#1B2A4A] focus:outline-none focus:border-[#D3232A]"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingAdd}
-                  className="btn-primary px-5 py-2 text-xs font-bold flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="flex-1 btn-primary text-xs font-bold py-2.5"
                 >
-                  {submittingAdd ? "Generating..." : "Generate Tables"}
+                  {submittingAdd ? "Creating..." : "Create Tables"}
                 </button>
               </div>
             </form>
@@ -611,12 +783,94 @@ export default function TableManagementComponent() {
         </div>
       )}
 
-      {/* Single Table QR Print Modal */}
-      {printTable && (
+      {/* Assign Staff Modal */}
+      {assignStaffTable && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 overflow-hidden text-center p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-[#1B2A4A]">Table Sticker Preview</h3>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-[#D3232A]" />
+                <h3 className="text-sm font-bold text-[#1B2A4A]">
+                  Assign Staff to Table #{assignStaffTable.tableNumber}
+                </h3>
+              </div>
+              <button
+                onClick={() => setAssignStaffTable(null)}
+                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search staff name..."
+                  value={staffSearch}
+                  onChange={(e) => setStaffSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#D3232A]"
+                />
+              </div>
+
+              <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAssignStaff(assignStaffTable, "");
+                    setAssignStaffTable(null);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border",
+                    !assignStaffTable.assignedStaff
+                      ? "bg-gray-100 text-gray-900 border-gray-300 font-bold"
+                      : "text-gray-600 hover:bg-gray-50 border-transparent"
+                  )}
+                >
+                  <span>Unassigned</span>
+                  {!assignStaffTable.assignedStaff && <CheckCircle2 className="w-3.5 h-3.5 text-[#D3232A]" />}
+                </button>
+
+                {staffList
+                  .filter((s: any) => s.name?.toLowerCase().includes(staffSearch.toLowerCase()))
+                  .map((staff: any) => {
+                    const isSelected = assignStaffTable.assignedStaff?.id === staff.id;
+                    return (
+                      <button
+                        key={staff.id}
+                        type="button"
+                        onClick={() => {
+                          handleAssignStaff(assignStaffTable, staff.id);
+                          setAssignStaffTable(null);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border",
+                          isSelected
+                            ? "bg-[#1B2A4A] text-white border-[#1B2A4A] font-bold"
+                            : "text-gray-700 hover:bg-gray-50 border-transparent"
+                        )}
+                      >
+                        <div>
+                          <p className="font-bold">{staff.name}</p>
+                          <p className="text-[10px] text-gray-400 font-normal">{staff.designation || staff.role || "Staff"}</p>
+                        </div>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Single Table Sticker Modal */}
+      {printTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 overflow-hidden text-center">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-sm font-bold text-[#1B2A4A]">Table #{printTable.tableNumber} QR Sticker</h3>
               <button
                 onClick={() => setPrintTable(null)}
                 className="p-1 rounded-lg text-gray-400 hover:bg-gray-100"
@@ -625,53 +879,36 @@ export default function TableManagementComponent() {
               </button>
             </div>
 
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-5 flex flex-col items-center">
-              <p className="text-[10px] font-bold tracking-[0.15em] text-[#D3232A] uppercase">
-                Alayn Dining
-              </p>
-              <h3 className="text-xl font-extrabold text-[#1B2A4A] mt-1">
-                Table {printTable.tableNumber}
-              </h3>
-              <span className="text-xs font-semibold text-gray-500 mb-3">
-                {printTable.tableType === "AC" ? "AC TABLE" : "NON-AC TABLE"}
-              </span>
-
-              {getTableOrderUrl(printTable.currentToken) ? (
-                <div className="p-2 bg-white rounded-xl shadow-xs border border-gray-200 mb-3">
-                  <QRCodeSVG
-                    value={getTableOrderUrl(printTable.currentToken)}
-                    size={170}
-                    fgColor="#1B2A4A"
-                    bgColor="#FFFFFF"
-                  />
+            <div className="p-6 space-y-4" id="table-print-single">
+              <div className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
+                <div className="p-2.5 bg-[#1B2A4A] text-white rounded-xl inline-block">
+                  <UtensilsCrossed className="w-6 h-6 text-rose-400" />
                 </div>
-              ) : (
-                <div className="py-6 text-amber-600 text-xs font-semibold">
-                  No QR token found for this table.
+                <h2 className="text-xl font-extrabold text-[#1B2A4A]">Table #{printTable.tableNumber}</h2>
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+                  {printTable.tableType} Dining Section
+                </p>
+                <div className="py-3 flex justify-center">
+                  <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={160} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                 </div>
-              )}
-
-              <p className="text-xs font-bold text-[#1B2A4A]">SCAN TO ORDER</p>
-              <p className="text-[10px] text-gray-400">Point phone camera at QR code</p>
+                <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="p-4 border-t border-gray-100 flex gap-2 bg-gray-50">
               <button
                 type="button"
-                onClick={() => handleRegenerateQR(printTable)}
-                disabled={pendingId === printTable.id}
-                className="px-3 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 hover:text-[#D3232A] transition flex items-center justify-center gap-1.5 cursor-pointer"
-                title="Regenerate QR Token"
+                onClick={() => setPrintTable(null)}
+                className="flex-1 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100"
               >
-                <RefreshCw className={cn("w-3.5 h-3.5", pendingId === printTable.id && "animate-spin")} />
-                Reset Token
+                Close
               </button>
-
               <button
+                type="button"
                 onClick={() => window.print()}
-                className="flex-1 btn-primary py-2 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 btn-primary py-2 text-xs font-bold flex items-center justify-center gap-1.5"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-3.5 h-3.5" />
                 Print Sticker
               </button>
             </div>
@@ -679,196 +916,49 @@ export default function TableManagementComponent() {
         </div>
       )}
 
-      {/* Bulk Print Modal */}
+      {/* Bulk Print All QRs Modal */}
       {showBulkPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl border border-gray-200 my-8">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
-              <div>
-                <h3 className="text-base font-bold text-[#1B2A4A]">Print All QR Stickers</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{tables.length} stickers ready to print</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => window.print()}
-                  className="btn-primary flex items-center gap-2 cursor-pointer"
-                >
-                  <Printer className="w-4 h-4" />
-                  Print Sheet
-                </button>
-                <button
-                  onClick={() => setShowBulkPrint(false)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Printable sheet */}
-            <div id="printable-bulk" className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-50">
-              {tables.map((t) => {
-                const orderUrl = getTableOrderUrl(t.currentToken);
-                return (
-                  <div
-                    key={t.id}
-                    className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center text-center"
-                  >
-                    <p className="text-[9px] font-bold tracking-[0.12em] text-[#D3232A] uppercase">
-                      Alayn Dining
-                    </p>
-                    <h4 className="text-lg font-extrabold text-[#1B2A4A] mt-0.5">
-                      Table {t.tableNumber}
-                    </h4>
-                    <span className="text-[10px] font-semibold text-gray-500 mb-2">
-                      {t.tableType === "AC" ? "AC TABLE" : "NON-AC TABLE"}
-                    </span>
-                    <div className="my-1 p-2 border border-gray-100 rounded-xl bg-white shadow-2xs">
-                      {orderUrl ? (
-                        <QRCodeSVG value={orderUrl} size={140} fgColor="#1B2A4A" bgColor="#FFFFFF" />
-                      ) : (
-                        <div className="w-[140px] h-[140px] flex items-center justify-center text-[10px] text-gray-400">
-                          No Token
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[10px] font-bold text-[#1B2A4A] mt-1">SCAN TO ORDER</p>
-                    <p className="text-[9px] text-gray-400">Point camera at QR code</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Staff Popup Modal */}
-      {assignStaffTable && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-150">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[#D3232A]/10 text-[#D3232A]">
-                  <UserCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-[#1B2A4A]">
-                    Assign Waiter / Staff
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Select employee for <span className="font-bold text-[#1B2A4A]">Table {assignStaffTable.tableNumber}</span>
-                  </p>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
+              <h3 className="text-sm font-bold text-[#1B2A4A]">Bulk QR Stickers ({tables.length} Tables)</h3>
               <button
-                onClick={() => setAssignStaffTable(null)}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                onClick={() => setShowBulkPrint(false)}
+                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="p-4 border-b border-gray-100 bg-white">
-              <div className="relative">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search employee by name, email or role..."
-                  value={staffSearch}
-                  onChange={(e) => setStaffSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#1B2A4A] font-semibold focus:outline-none focus:border-[#D3232A] transition"
-                />
-                {staffSearch && (
-                  <button
-                    onClick={() => setStaffSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {tables.map((t) => (
+                <div key={t.id} className="border-2 border-dashed border-[#1B2A4A]/20 p-4 rounded-xl bg-slate-50 text-center space-y-2">
+                  <h4 className="text-sm font-extrabold text-[#1B2A4A]">Table #{t.tableNumber}</h4>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">{t.tableType}</p>
+                  <div className="flex justify-center py-2">
+                    <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={110} fgColor="#1B2A4A" bgColor="#F8FAFC" />
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-700">Scan to Order</p>
+                </div>
+              ))}
             </div>
 
-            {/* Staff List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {/* Unassigned Option */}
+            <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  handleAssignStaff(assignStaffTable, "");
-                  setAssignStaffTable(null);
-                }}
-                className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
-                  !assignStaffTable.assignedStaffId && !assignStaffTable.assignedStaff?.id
-                    ? "bg-rose-50 border-rose-200 text-rose-700"
-                    : "bg-gray-50/70 border-gray-200 hover:bg-gray-100 text-[#1B2A4A]"
-                }`}
+                onClick={() => setShowBulkPrint(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100"
               >
-                <span className="text-xs font-bold">Unassigned (No Staff)</span>
-                {!assignStaffTable.assignedStaffId && !assignStaffTable.assignedStaff?.id && (
-                  <CheckCircle2 className="w-4 h-4 text-rose-600 shrink-0" />
-                )}
+                Close
               </button>
-
-              {staffList.filter((s: any) => {
-                const name = (s.name || s.user?.name || "").toLowerCase();
-                const email = (s.email || s.user?.email || "").toLowerCase();
-                const role = (s.role || s.user?.role || "").toLowerCase();
-                const query = staffSearch.toLowerCase();
-                return name.includes(query) || email.includes(query) || role.includes(query);
-              }).length === 0 ? (
-                <div className="py-8 text-center text-gray-400">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs font-semibold">No matching employees found</p>
-                </div>
-              ) : (
-                staffList
-                  .filter((s: any) => {
-                    const name = (s.name || s.user?.name || "").toLowerCase();
-                    const email = (s.email || s.user?.email || "").toLowerCase();
-                    const role = (s.role || s.user?.role || "").toLowerCase();
-                    const query = staffSearch.toLowerCase();
-                    return name.includes(query) || email.includes(query) || role.includes(query);
-                  })
-                  .map((s: any) => {
-                    const staffId = s.id;   // Employee.id — Table.assignedStaffId FK → Employee.id
-                    const name = s.name || s.user?.name || "Staff Member";
-                    const email = s.email || s.user?.email || "";
-                    const role = s.role || s.user?.role || "STAFF";
-                    const isSelected =
-                      assignStaffTable.assignedStaffId === staffId ||
-                      assignStaffTable.assignedStaff?.id === staffId;
-
-                    return (
-                      <button
-                        key={staffId}
-                        type="button"
-                        onClick={() => {
-                          handleAssignStaff(assignStaffTable, staffId);
-                          setAssignStaffTable(null);
-                        }}
-                        className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
-                          isSelected
-                            ? "bg-[#D3232A]/5 border-[#D3232A] text-[#1B2A4A]"
-                            : "bg-white border-gray-200 hover:bg-gray-50 text-[#1B2A4A]"
-                        }`}
-                      >
-                        <div>
-                          <p className="text-xs font-extrabold text-[#1B2A4A]">{name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {email && <span className="text-[10px] text-gray-400">{email}</span>}
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-gray-100 text-gray-600">
-                              {role}
-                            </span>
-                          </div>
-                        </div>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-[#D3232A] shrink-0" />}
-                      </button>
-                    );
-                  })
-              )}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print All ({tables.length})
+              </button>
             </div>
           </div>
         </div>
