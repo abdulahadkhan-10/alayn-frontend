@@ -34,6 +34,8 @@ import {
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   ArrowRightLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { cn } from "@/lib/utils";
@@ -188,6 +190,9 @@ export default function WorkforcePage() {
     joiningDate: new Date().toISOString().split("T")[0],
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const filteredEmployees = React.useMemo(() => {
     return employees.filter((emp: any) => {
       const matchesSearch =
@@ -200,6 +205,17 @@ export default function WorkforcePage() {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [employees, searchTerm, roleFilter, statusFilter]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedEmployees = React.useMemo(() => {
+    return filteredEmployees.slice(startIndex, startIndex + pageSize);
+  }, [filteredEmployees, startIndex, pageSize]);
 
   const handleOpenAddModal = () => {
     setFormData({
@@ -488,14 +504,14 @@ export default function WorkforcePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredEmployees.length === 0 ? (
+                    {paginatedEmployees.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-6 py-8 text-center text-gray-500 text-sm">
                           No employee profiles found matching your search.
                         </td>
                       </tr>
                     ) : (
-                      filteredEmployees.map((emp: any) => (
+                      paginatedEmployees.map((emp: any) => (
                         <tr key={emp.id} className="hover:bg-gray-50/80 transition-colors">
                           <td className="px-6 py-4 font-semibold text-gray-900">{emp.name}</td>
                           <td className="px-6 py-4">
@@ -604,6 +620,51 @@ export default function WorkforcePage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Pagination Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 bg-gray-50/80 border-t border-gray-200 text-xs text-gray-600">
+                <div className="flex items-center gap-2">
+                  <span>Show</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span>per page</span>
+                  <span className="text-gray-300 mx-1">|</span>
+                  <span>
+                    Showing <strong>{filteredEmployees.length > 0 ? startIndex + 1 : 0}</strong> to <strong>{Math.min(startIndex + pageSize, filteredEmployees.length)}</strong> of <strong>{filteredEmployees.length}</strong> staff
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="px-2 font-medium">
+                    Page {safeCurrentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safeCurrentPage >= totalPages}
+                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </>

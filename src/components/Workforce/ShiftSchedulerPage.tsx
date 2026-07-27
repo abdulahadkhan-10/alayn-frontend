@@ -127,6 +127,31 @@ export default function ShiftSchedulerPage() {
     date: new Date().toISOString().split("T")[0],
   });
 
+  // Pagination States for Shift Scheduler
+  const [shiftPage, setShiftPage] = useState(1);
+  const [shiftPageSize, setShiftPageSize] = useState(6);
+
+  const [swapPage, setSwapPage] = useState(1);
+  const [swapPageSize, setSwapPageSize] = useState(5);
+
+  const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPageSize));
+  const safeShiftPage = Math.min(shiftPage, totalShiftPages);
+  const startShiftIdx = (safeShiftPage - 1) * shiftPageSize;
+  const paginatedShifts = React.useMemo(() => {
+    return shifts.slice(startShiftIdx, startShiftIdx + shiftPageSize);
+  }, [shifts, startShiftIdx, shiftPageSize]);
+
+  const allSwapRequests = React.useMemo(() => {
+    return shifts.flatMap((s: any) => s.swapRequests || []);
+  }, [shifts]);
+
+  const totalSwapPages = Math.max(1, Math.ceil(allSwapRequests.length / swapPageSize));
+  const safeSwapPage = Math.min(swapPage, totalSwapPages);
+  const startSwapIdx = (safeSwapPage - 1) * swapPageSize;
+  const paginatedSwapRequests = React.useMemo(() => {
+    return allSwapRequests.slice(startSwapIdx, startSwapIdx + swapPageSize);
+  }, [allSwapRequests, startSwapIdx, swapPageSize]);
+
   // Roster Builder Form State
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
   const [applyToAllShiftId, setApplyToAllShiftId] = useState("");
@@ -339,86 +364,135 @@ export default function ShiftSchedulerPage() {
         )}
 
         {/* Shift Roster Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isShiftsLoading ? (
-            <div className="col-span-full py-12 text-center text-gray-500">
-              Loading shifts roster...
-            </div>
-          ) : shifts.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border border-gray-200">
-              No shifts created yet. Click "New Shift Slot" to configure employee shifts.
-            </div>
-          ) : (
-            shifts.map((shift: any) => (
-              <div
-                key={shift.id}
-                className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isShiftsLoading ? (
+              <div className="col-span-full py-12 text-center text-gray-500">
+                Loading shifts roster...
+              </div>
+            ) : shifts.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-gray-500 bg-white rounded-xl border border-gray-200">
+                No shifts created yet. Click "New Shift Slot" to configure employee shifts.
+              </div>
+            ) : (
+              paginatedShifts.map((shift: any) => (
+                <div
+                  key={shift.id}
+                  className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                      {shift.outlet?.name && (
+                        <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D3232A] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mb-1.5">
+                          <span>📍 {shift.outlet.name}</span>
+                        </div>
+                      )}
+                      <h3 className="font-semibold text-gray-900 text-lg">{shift.name}</h3>
+                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>
+                          {shift.startTime} - {shift.endTime}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-[#D3232A]">
+                      {shift.assignments?.length || 0} Assigned
+                    </span>
+                  </div>
+
+                  {/* Assigned Staff List */}
                   <div>
-                    {shift.outlet?.name && (
-                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[#D3232A] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mb-1.5">
-                        <span>📍 {shift.outlet.name}</span>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      Assigned Employees
+                    </p>
+                    {!shift.assignments || shift.assignments.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No employees assigned to this slot.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {shift.assignments.map((asgn: any) => (
+                          <div
+                            key={asgn.id || asgn.employee?.id}
+                            className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg text-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-xs">
+                                {asgn.employee?.name?.[0] || "E"}
+                              </div>
+                              <span className="font-medium text-gray-800">
+                                {asgn.employee?.name || "Staff Member"}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">Today</span>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <h3 className="font-semibold text-gray-900 text-lg">{shift.name}</h3>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>
-                        {shift.startTime} - {shift.endTime}
-                      </span>
-                    </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-[#D3232A]">
-                    {shift.assignments?.length || 0} Assigned
-                  </span>
-                </div>
 
-                {/* Assigned Staff List */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Assigned Employees
-                  </p>
-                  {!shift.assignments || shift.assignments.length === 0 ? (
-                    <p className="text-xs text-gray-400 italic">No employees assigned to this slot.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {shift.assignments.map((asgn: any) => (
-                        <div
-                          key={asgn.id || asgn.employee?.id}
-                          className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg text-sm"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-xs">
-                              {asgn.employee?.name?.[0] || "E"}
-                            </div>
-                            <span className="font-medium text-gray-800">
-                              {asgn.employee?.name || "Staff Member"}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500">Today</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Quick Assign Button */}
+                  <button
+                    onClick={() => {
+                      setAssignForm({
+                        shiftId: shift.id,
+                        employeeIds: [],
+                        date: new Date().toISOString().split("T")[0],
+                      });
+                      setShowAssignModal(true);
+                    }}
+                    className="w-full py-2 text-xs font-semibold text-center text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 cursor-pointer"
+                  >
+                    + Assign Staff for Date
+                  </button>
                 </div>
+              ))
+            )}
+          </div>
 
-                {/* Quick Assign Button */}
-                <button
-                  onClick={() => {
-                    setAssignForm({
-                      shiftId: shift.id,
-                      employeeIds: [],
-                      date: new Date().toISOString().split("T")[0],
-                    });
-                    setShowAssignModal(true);
+          {/* Shift Grid Pagination Bar */}
+          {shifts.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 bg-white rounded-xl border border-gray-200 text-xs text-gray-600 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span>Show</span>
+                <select
+                  value={shiftPageSize}
+                  onChange={(e) => {
+                    setShiftPageSize(Number(e.target.value));
+                    setShiftPage(1);
                   }}
-                  className="w-full py-2 text-xs font-semibold text-center text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100 cursor-pointer"
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                 >
-                  + Assign Staff for Date
+                  <option value={3}>3</option>
+                  <option value={6}>6</option>
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                </select>
+                <span>shifts per page</span>
+                <span className="text-gray-300 mx-1">|</span>
+                <span>
+                  Showing <strong>{shifts.length > 0 ? startShiftIdx + 1 : 0}</strong> to <strong>{Math.min(startShiftIdx + shiftPageSize, shifts.length)}</strong> of <strong>{shifts.length}</strong> shift slots
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setShiftPage((p) => Math.max(1, p - 1))}
+                  disabled={safeShiftPage === 1}
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-2 font-medium">
+                  Page {safeShiftPage} of {totalShiftPages}
+                </span>
+                <button
+                  onClick={() => setShiftPage((p) => Math.min(totalShiftPages, p + 1))}
+                  disabled={safeShiftPage >= totalShiftPages}
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-            ))
+            </div>
           )}
         </div>
 
@@ -435,60 +509,104 @@ export default function ShiftSchedulerPage() {
           </div>
 
           <div className="space-y-3">
-            {shifts.flatMap((s: any) => s.swapRequests || []).length === 0 ? (
+            {allSwapRequests.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">
                 No active shift swap requests right now.
               </p>
             ) : (
-              shifts
-                .flatMap((s: any) => s.swapRequests || [])
-                .map((swap: any) => (
-                  <div
-                    key={swap.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 gap-4"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                        <span>Swap Request #{swap.id.slice(0, 6)}</span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            swap.status === "APPROVED"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : swap.status === "REJECTED"
-                              ? "bg-rose-100 text-rose-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {swap.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600">
-                        Requested on date: {new Date(swap.date).toLocaleDateString()}
-                      </p>
+              paginatedSwapRequests.map((swap: any) => (
+                <div
+                  key={swap.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 gap-4"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <span>Swap Request #{swap.id.slice(0, 6)}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          swap.status === "APPROVED"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : swap.status === "REJECTED"
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {swap.status}
+                      </span>
                     </div>
-
-                    {swap.status === "REQUESTED" && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSwapAction(swap.id, "APPROVED")}
-                          disabled={isUpdatingSwap}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-                        </button>
-                        <button
-                          onClick={() => handleSwapAction(swap.id, "REJECTED")}
-                          disabled={isUpdatingSwap}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Reject
-                        </button>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-600">
+                      Requested on date: {new Date(swap.date).toLocaleDateString()}
+                    </p>
                   </div>
-                ))
+
+                  {swap.status === "REQUESTED" && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleSwapAction(swap.id, "APPROVED")}
+                        disabled={isUpdatingSwap}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleSwapAction(swap.id, "REJECTED")}
+                        disabled={isUpdatingSwap}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
+
+          {/* Swap Requests Pagination Bar */}
+          {allSwapRequests.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
+              <div className="flex items-center gap-2">
+                <span>Show</span>
+                <select
+                  value={swapPageSize}
+                  onChange={(e) => {
+                    setSwapPageSize(Number(e.target.value));
+                    setSwapPage(1);
+                  }}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+                <span>per page</span>
+                <span className="text-gray-300 mx-1">|</span>
+                <span>
+                  Showing <strong>{allSwapRequests.length > 0 ? startSwapIdx + 1 : 0}</strong> to <strong>{Math.min(startSwapIdx + swapPageSize, allSwapRequests.length)}</strong> of <strong>{allSwapRequests.length}</strong> swap requests
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setSwapPage((p) => Math.max(1, p - 1))}
+                  disabled={safeSwapPage === 1}
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="px-2 font-medium">
+                  Page {safeSwapPage} of {totalSwapPages}
+                </span>
+                <button
+                  onClick={() => setSwapPage((p) => Math.min(totalSwapPages, p + 1))}
+                  disabled={safeSwapPage >= totalSwapPages}
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal 1: Create Shift */}

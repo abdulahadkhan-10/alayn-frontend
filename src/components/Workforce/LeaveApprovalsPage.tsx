@@ -17,6 +17,8 @@ import {
   Plus,
   X,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 
@@ -105,9 +107,23 @@ export default function LeaveApprovalsPage() {
     return leaves;
   }, [leaves, isManagerOrOwner, currentEmployee, user]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const filteredLeaves = userLeaves.filter(
     (l: any) => statusFilter === "ALL" || l.status === statusFilter
   );
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeaves.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedLeaves = React.useMemo(() => {
+    return filteredLeaves.slice(startIndex, startIndex + pageSize);
+  }, [filteredLeaves, startIndex, pageSize]);
 
   const pendingCount = userLeaves.filter((l: any) => l.status === "REQUESTED").length;
   const approvedCount = userLeaves.filter((l: any) => l.status === "APPROVED").length;
@@ -271,14 +287,14 @@ export default function LeaveApprovalsPage() {
                       Loading leave requests...
                     </td>
                   </tr>
-                ) : filteredLeaves.length === 0 ? (
+                ) : paginatedLeaves.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                       No leave requests found.
                     </td>
                   </tr>
                 ) : (
-                  filteredLeaves.map((l: any) => (
+                  paginatedLeaves.map((l: any) => (
                     <tr key={l.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">
@@ -345,6 +361,51 @@ export default function LeaveApprovalsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 bg-gray-50/80 border-t border-gray-200 text-xs text-gray-600">
+            <div className="flex items-center gap-2">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>per page</span>
+              <span className="text-gray-300 mx-1">|</span>
+              <span>
+                Showing <strong>{filteredLeaves.length > 0 ? startIndex + 1 : 0}</strong> to <strong>{Math.min(startIndex + pageSize, filteredLeaves.length)}</strong> of <strong>{filteredLeaves.length}</strong> leave requests
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage === 1}
+                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="px-2 font-medium">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
