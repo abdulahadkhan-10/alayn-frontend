@@ -35,9 +35,35 @@ import {
   Phone,
   Mail,
   RotateCcw,
+  Eye,
+  User,
+  MapPin,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
+
+// Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
+function generateTimestampBatchNo(category?: string): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+  const prefix = category ? category.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) : "BCH";
+  const rand = Math.floor(100 + Math.random() * 900);
+  return `${prefix}-${yyyy}${mm}${dd}-${hh}${min}-${rand}`;
+}
+
+// Helper for understandable order numbers: e.g. PO-20260727-5F4591
+function formatUnderstandableOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
+  if (po.poNumber) return po.poNumber;
+  const dateStr = po.createdAt
+    ? new Date(po.createdAt).toISOString().slice(0, 10).replace(/-/g, "")
+    : new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const shortHash = po.id.slice(0, 6).toUpperCase();
+  return `PO-${dateStr}-${shortHash}`;
+}
 
 export default function ProcurementPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
@@ -60,6 +86,7 @@ export default function ProcurementPage() {
   const [prefilledSupplierId, setPrefilledSupplierId] = useState<string | null>(null);
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderApi | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
+  const [viewingSupplier, setViewingSupplier] = useState<SupplierApi | null>(null);
 
   // Search, Status Filter, Category & Outlet Filter states
   const [poSearchQuery, setPoSearchQuery] = useState("");
@@ -189,7 +216,7 @@ export default function ProcurementPage() {
       const remaining = Math.max(0, (item.orderedQuantity || 0) - (item.receivedQuantity || 0));
       initialInputs[item.itemId] = {
         receivedQuantity: remaining,
-        batchNumber: `BATCH-${Date.now().toString().slice(-4)}`,
+        batchNumber: generateTimestampBatchNo(item.item?.category),
         expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       };
     });
@@ -413,57 +440,58 @@ export default function ProcurementPage() {
                 const safePoPage = Math.min(poPage, totalPoPages || 1);
                 const startPoIdx = (safePoPage - 1) * poPageSize;
                 const paginatedPOs = finalFilteredPOs.slice(startPoIdx, startPoIdx + poPageSize);
+                const showPoOutlet = Boolean(isAllOutlets || finalFilteredPOs.some((p) => p.supplier || p.outlet));
 
                 return (
                   <div className="flex flex-col">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm border-collapse">
-                        <thead>
-                          <tr className="bg-zinc-50 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                            <th className="px-5 py-3">Order #</th>
-                            <th className="px-5 py-3">Supplier</th>
-                            {(isAllOutlets || finalFilteredPOs.some((po) => po.supplier)) && (
-                              <th className="px-5 py-3">Outlet</th>
-                            )}
-                            <th className="px-5 py-3 text-center">Items</th>
-                            <th className="px-5 py-3 text-right">Total Cost</th>
-                            <th className="px-5 py-3 text-center">Status</th>
-                            <th className="px-5 py-3 text-center">Date Placed</th>
-                            <th className="px-5 py-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedPOs.map((po) => {
-                            const statusConfig: Record<string, { label: string; cls: string }> = {
-                              DRAFT: { label: "Draft", cls: "bg-zinc-100 text-zinc-700 border-zinc-300" },
-                              SENT: { label: "Placed", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-                              PARTIALLY_RECEIVED: { label: "Partial", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-                              RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                              CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
-                            };
-                            const statusInfo = statusConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
-                            const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
+                      <table className="w-full min-w-[850px] text-sm border-collapse table-fixed">
+                      <thead>
+                        <tr className="bg-zinc-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[12%]" : "w-[15%]"}`}>Order #</th>
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[20%]" : "w-[28%]"}`}>Supplier</th>
+                          {showPoOutlet && (
+                            <th className="px-4 py-3.5 w-[16%]">Outlet</th>
+                          )}
+                          <th className="px-4 py-3.5 text-center w-[8%]">Items</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[14%]"}`}>Total Cost</th>
+                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Status</th>
+                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Date Placed</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[7%]"}`}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {paginatedPOs.map((po) => {
+                          const statusConfig: Record<string, { label: string; cls: string }> = {
+                            DRAFT: { label: "Draft", cls: "bg-zinc-100 text-zinc-700 border-zinc-300" },
+                            SENT: { label: "Placed", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+                            PARTIALLY_RECEIVED: { label: "Partial", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                            RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                            CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+                          };
+                          const statusInfo = statusConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
+                          const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
 
-                            return (
-                              <tr key={po.id} className="border-b border-zinc-100 hover:bg-zinc-50/70 transition-colors">
-                                <td className="px-5 py-3 font-mono font-bold text-zinc-800 text-xs">
-                                  #{po.id.slice(0, 8).toUpperCase()}
+                          return (
+                            <tr key={po.id} className="hover:bg-zinc-50/70 transition-colors">
+                              <td className="px-4 py-3.5 font-mono font-bold text-zinc-800 text-xs whitespace-nowrap overflow-hidden">
+                                #{formatUnderstandableOrderNo(po)}
+                              </td>
+                              <td className="px-4 py-3.5 font-bold text-zinc-900 whitespace-nowrap overflow-hidden">
+                                <span className="truncate max-w-[200px] block">{po.actualSupplier?.name || "Supplier"}</span>
+                              </td>
+                              {showPoOutlet && (
+                                <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-2xs">
+                                    <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" />
+                                    <span className="truncate max-w-[130px] font-medium">{po.supplier?.name || po.outlet?.name || "Main Branch"}</span>
+                                  </span>
                                 </td>
-                                <td className="px-5 py-3 font-bold text-zinc-900">
-                                  {po.actualSupplier?.name || "Supplier"}
-                                </td>
-                                {(isAllOutlets || finalFilteredPOs.some((p) => p.supplier || p.outlet)) && (
-                                  <td className="px-5 py-3">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
-                                      <Building2 className="h-3 w-3 shrink-0" />
-                                      {po.supplier?.name || po.outlet?.name || "Branch"}
-                                    </span>
-                                  </td>
-                                )}
-                                <td className="px-5 py-3 text-center text-zinc-600 font-semibold">{po.items?.length || 0}</td>
-                                <td className="px-5 py-3 text-right font-bold text-zinc-900 tabular-nums">
-                                  ₹{(po.totalAmountPaise / 100).toFixed(2)}
-                                </td>
+                              )}
+                              <td className="px-4 py-3.5 text-center text-zinc-600 font-semibold whitespace-nowrap">{po.items?.length || 0}</td>
+                              <td className="px-4 py-3.5 text-right font-bold text-zinc-900 tabular-nums whitespace-nowrap">
+                                ₹{(po.totalAmountPaise / 100).toFixed(2)}
+                              </td>
                                 <td className="px-5 py-3 text-center">
                                   <span
                                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusInfo.cls}`}
@@ -646,8 +674,8 @@ export default function ProcurementPage() {
                               </h3>
                               <p className="text-xs font-semibold text-zinc-500 mt-0.5">Contact: {s.contactPerson}</p>
                               {(isAllOutlets || s.outlet) && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 mt-1.5">
-                                  <Building2 className="h-3 w-3" /> {s.outlet?.name || "Branch"}
+                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-800 mt-1.5">
+                                  <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" /> {s.outlet?.name || "Main Branch"}
                                 </span>
                               )}
                             </div>
@@ -656,8 +684,15 @@ export default function ProcurementPage() {
                                 {s.category || "General"}
                               </span>
                               <button
+                                onClick={() => setViewingSupplier(s)}
+                                className="p-1.5 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <button
                                 onClick={() => setDeletingSupplier(s)}
-                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-0.5"
                                 title="Delete Supplier"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -679,16 +714,22 @@ export default function ProcurementPage() {
                           </div>
                         </div>
 
-                        {/* Quick Order Button per Supplier */}
-                        <div className="mt-4 pt-3 border-t border-zinc-100">
+                        {/* Action Buttons: View Details & Order */}
+                        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-zinc-100">
+                          <button
+                            onClick={() => setViewingSupplier(s)}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition-colors shadow-2xs"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-zinc-500" /> Details
+                          </button>
                           <button
                             onClick={() => {
                               setPrefilledSupplierId(s.id);
                               setShowSmartPOModal(true);
                             }}
-                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-bold text-white hover:bg-[#D3232A] transition-colors shadow-2xs"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#D3232A] px-2.5 py-1.5 text-xs font-bold text-white hover:bg-[#b01e23] transition-colors shadow-2xs"
                           >
-                            <Zap className="h-3.5 w-3.5 text-amber-400 fill-current" /> Order from {s.name.split(" ")[0]}
+                            <Zap className="h-3.5 w-3.5 fill-current" /> Order
                           </button>
                         </div>
                       </div>
@@ -977,6 +1018,130 @@ export default function ProcurementPage() {
                   className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   {isDeletingSupplier ? "Deleting…" : "Delete Supplier"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 6: VIEW SUPPLIER DETAILS */}
+        {viewingSupplier && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-zinc-200 relative max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setViewingSupplier(null)}
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Header */}
+              <div className="flex items-start gap-3.5 mb-5 pb-4 border-b border-zinc-100">
+                <div className="rounded-xl bg-red-50 p-3 text-[#D3232A] shrink-0">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg font-bold text-zinc-900">{viewingSupplier.name}</h2>
+                    <span className="rounded-full bg-red-50 text-[#D3232A] border border-red-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
+                      {viewingSupplier.category || "General"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Registered Vendor Details & Order History
+                  </p>
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3.5 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Contact Info</span>
+                  <p className="text-xs text-zinc-800 font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4 text-zinc-400 shrink-0" /> {viewingSupplier.contactPerson || "Primary Contact"}
+                  </p>
+                  <p className="text-xs text-zinc-800 font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-zinc-400 shrink-0" />
+                    <a href={`tel:${viewingSupplier.phone}`} className="hover:text-[#D3232A]">{viewingSupplier.phone}</a>
+                  </p>
+                  <p className="text-xs text-zinc-800 font-semibold flex items-center gap-2 truncate">
+                    <Mail className="h-4 w-4 text-zinc-400 shrink-0" />
+                    <a href={`mailto:${viewingSupplier.email}`} className="hover:text-[#D3232A] truncate">{viewingSupplier.email}</a>
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3.5 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Location & Outlet</span>
+                  <p className="text-xs text-zinc-800 font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-[#D3232A] shrink-0" />
+                    <span>{viewingSupplier.address}</span>
+                  </p>
+                  <p className="text-xs text-zinc-600 font-medium flex items-center gap-2 pt-1">
+                    <Building2 className="h-4 w-4 text-zinc-400 shrink-0" />
+                    <span>Assigned Outlet: <strong>{viewingSupplier.outlet?.name || "Main Branch"}</strong></span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Order History */}
+              <div className="mb-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
+                  Recent Purchase Orders
+                </h3>
+                {(() => {
+                  const supplierPOs = purchaseOrders.filter(
+                    (p) => p.supplierId === viewingSupplier.id || p.actualSupplier?.id === viewingSupplier.id || p.supplier?.name === viewingSupplier.name
+                  );
+                  if (supplierPOs.length === 0) {
+                    return (
+                      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-center text-xs text-zinc-500">
+                        No purchase orders recorded with this supplier yet.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="rounded-xl border border-zinc-200 overflow-hidden divide-y divide-zinc-100 text-xs">
+                      {supplierPOs.slice(0, 4).map((po) => (
+                        <div key={po.id} className="p-3 bg-white flex items-center justify-between gap-3">
+                          <div>
+                            <span className="font-mono font-bold text-zinc-900">#{formatUnderstandableOrderNo(po)}</span>
+                            <span className="text-zinc-400 text-[11px] ml-2">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN") : ""}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-zinc-900 tabular-nums">₹{(po.totalAmountPaise / 100).toFixed(2)}</span>
+                            <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
+                              {po.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-100">
+                <button
+                  onClick={() => {
+                    const sup = viewingSupplier;
+                    setViewingSupplier(null);
+                    setDeletingSupplier(sup);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete Supplier
+                </button>
+                <button
+                  onClick={() => {
+                    const supId = viewingSupplier.id;
+                    setViewingSupplier(null);
+                    setPrefilledSupplierId(supId);
+                    setShowSmartPOModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#D3232A] px-4 py-2 text-xs font-bold text-white hover:bg-[#b01e23] transition-colors shadow-2xs"
+                >
+                  <Zap className="h-4 w-4 fill-current" /> Order from Supplier
                 </button>
               </div>
             </div>

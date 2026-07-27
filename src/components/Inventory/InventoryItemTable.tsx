@@ -30,24 +30,26 @@ export default function InventoryItemTable({ items, onAdjust, onOrder, canManage
   const startIndex = (safeCurrentPage - 1) * pageSize;
   const paginatedItems = items.slice(startIndex, startIndex + pageSize);
 
+  const showOutletColumn = Boolean(isAllOutlets || items.some((i) => i.outlet));
+
   return (
-    <div className="flex flex-col">
-      <table className="w-full text-sm border-collapse">
+    <div className="flex flex-col w-full overflow-x-auto">
+      <table className="w-full min-w-[960px] text-sm border-collapse table-fixed">
         <thead>
-          <tr className="bg-zinc-50 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-            <th className="px-5 py-3">Item & Code</th>
-            {(isAllOutlets || items.some((i) => i.outlet)) && (
-              <th className="px-5 py-3">Outlet</th>
+          <tr className="bg-zinc-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
+            <th className={`px-4 py-3.5 ${showOutletColumn ? "w-[17%]" : "w-[24%]"}`}>Item & Code</th>
+            {showOutletColumn && (
+              <th className="px-3.5 py-3.5 w-[15%]">Outlet</th>
             )}
-            <th className="px-5 py-3">Category</th>
-            <th className="px-5 py-3 text-right">Cost / Unit</th>
-            <th className="px-5 py-3 text-center">In Stock</th>
-            <th className="px-5 py-3 text-center">Min Reorder Level</th>
-            <th className="px-5 py-3 text-center">Status</th>
-            {canManage && <th className="px-5 py-3 text-right">Actions</th>}
+            <th className={`px-3.5 py-3.5 ${showOutletColumn ? "w-[11%]" : "w-[13%]"}`}>Category</th>
+            <th className={`px-3.5 py-3.5 text-right ${showOutletColumn ? "w-[9%]" : "w-[11%]"}`}>Cost / Unit</th>
+            <th className={`px-3.5 py-3.5 text-center ${showOutletColumn ? "w-[11%]" : "w-[12%]"}`}>In Stock</th>
+            <th className={`px-3.5 py-3.5 text-center ${showOutletColumn ? "w-[9%]" : "w-[11%]"}`}>Min Reorder</th>
+            <th className={`px-3.5 py-3.5 text-center ${showOutletColumn ? "w-[12%]" : "w-[13%]"}`}>Status</th>
+            {canManage && <th className={`px-3.5 py-3.5 text-right ${showOutletColumn ? "w-[16%]" : "w-[16%]"}`}>Actions</th>}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-zinc-100">
           {paginatedItems.map((item, idx) => {
             const isLow = item.currentStock <= item.reorderThreshold;
             const healthPercentage = Math.min(100, Math.max(5, Math.round((item.currentStock / (item.reorderThreshold * 2 || 1)) * 100)));
@@ -55,39 +57,43 @@ export default function InventoryItemTable({ items, onAdjust, onOrder, canManage
             return (
               <tr
                 key={item.id}
-                className={`border-b border-zinc-100 transition-colors ${
+                className={`transition-colors ${
                   isLow
-                    ? "bg-red-50/80 hover:bg-red-100/70 border-l-4 border-l-red-500"
+                    ? "bg-red-50/70 hover:bg-red-100/60"
                     : idx % 2 === 0
-                    ? "hover:bg-zinc-50/70"
-                    : "bg-zinc-50/30 hover:bg-zinc-50/70"
+                    ? "bg-white hover:bg-zinc-50/80"
+                    : "bg-zinc-50/30 hover:bg-zinc-50/80"
                 }`}
               >
-                <td className="px-5 py-3">
-                  <p className={`font-bold leading-tight ${isLow ? "text-red-950" : "text-zinc-900"}`}>{item.name}</p>
-                  <p className={`text-[11px] font-mono mt-0.5 ${isLow ? "text-red-600 font-semibold" : "text-zinc-400"}`}>
+                <td className="px-4 py-3.5 relative whitespace-nowrap overflow-hidden">
+                  {/* Subtle Red Left Accent Bar for Low Stock (Does NOT alter table cell dimensions or shift rows) */}
+                  {isLow && (
+                    <span aria-hidden="true" className="absolute left-0 top-0 bottom-0 w-1 bg-[#D3232A] rounded-r-xs" />
+                  )}
+                  <p className={`font-bold leading-tight truncate ${isLow ? "text-red-950" : "text-zinc-900"}`}>{item.name}</p>
+                  <p className={`text-[11px] font-mono mt-0.5 truncate ${isLow ? "text-red-600 font-semibold" : "text-zinc-400"}`}>
                     Code: {item.sku}
                   </p>
                 </td>
-                {(isAllOutlets || items.some((i) => i.outlet)) && (
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
-                      <Building2 className="h-3 w-3 shrink-0" />
-                      {item.outlet?.name || "Branch"}
+                {showOutletColumn && (
+                  <td className="px-3.5 py-3.5 whitespace-nowrap overflow-hidden">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2 py-1 text-xs font-semibold text-slate-800 shadow-2xs">
+                      <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" />
+                      <span className="truncate max-w-[120px] font-medium">{item.outlet?.name || "Main Branch"}</span>
                     </span>
                   </td>
                 )}
-                <td className="px-5 py-3">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${isLow ? "bg-red-100 text-red-700" : "bg-zinc-100 text-zinc-600"}`}>
+                <td className="px-3.5 py-3.5 whitespace-nowrap overflow-hidden">
+                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium truncate max-w-[95px] ${isLow ? "bg-red-100 text-red-700 font-semibold" : "bg-zinc-100 text-zinc-600"}`}>
                     {item.category}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-right text-zinc-700 tabular-nums font-semibold">
+                <td className="px-3.5 py-3.5 text-right text-zinc-700 tabular-nums font-semibold">
                   ₹{(item.unitCostPaise / 100).toFixed(2)}
                 </td>
-                <td className="px-5 py-3 text-center">
-                  <div className="flex flex-col items-center">
-                    <span className={`text-base font-bold tabular-nums ${isLow ? "text-red-600 animate-pulse" : "text-zinc-800"}`}>
+                <td className="px-3.5 py-3.5 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <span className={`text-sm font-bold tabular-nums ${isLow ? "text-red-600" : "text-zinc-800"}`}>
                       {item.currentStock} <span className="text-[11px] text-zinc-500 font-normal">{item.unit}</span>
                     </span>
                     {/* Visual Health Progress Meter */}
@@ -101,27 +107,27 @@ export default function InventoryItemTable({ items, onAdjust, onOrder, canManage
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-3 text-center text-zinc-500 text-xs tabular-nums font-medium">
+                <td className="px-3.5 py-3.5 text-center text-zinc-500 text-xs tabular-nums font-medium">
                   {item.reorderThreshold} {item.unit}
                 </td>
-                <td className="px-5 py-3 text-center">
+                <td className="px-3.5 py-3.5 text-center whitespace-nowrap overflow-hidden">
                   {isLow ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700 shadow-2xs">
-                      <AlertTriangle className="h-3 w-3 text-red-600" /> Low Stock
+                    <span className="inline-flex items-center justify-center gap-1 rounded-full border border-red-300 bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700 shadow-2xs">
+                      <AlertTriangle className="h-3 w-3 text-red-600 shrink-0" /> Low Stock
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                      <CheckCircle2 className="h-3 w-3" /> Healthy
+                    <span className="inline-flex items-center justify-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3 w-3 shrink-0" /> Healthy
                     </span>
                   )}
                 </td>
                 {canManage && (
-                  <td className="px-5 py-3 text-right whitespace-nowrap">
+                  <td className="px-3.5 py-3.5 text-right whitespace-nowrap overflow-hidden">
                     <div className="flex items-center justify-end gap-1.5">
                       {isLow && onOrder && (
                         <button
                           onClick={onOrder}
-                          className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-amber-500 to-[#D3232A] px-2.5 py-1 text-xs font-bold text-white hover:opacity-90 transition-opacity shadow-2xs"
+                          className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-amber-500 to-[#D3232A] px-2 py-1 text-xs font-bold text-white hover:opacity-90 transition-opacity shadow-2xs shrink-0"
                         >
                           <Zap className="h-3 w-3 fill-current" /> Order
                         </button>
@@ -129,7 +135,7 @@ export default function InventoryItemTable({ items, onAdjust, onOrder, canManage
                       <button
                         id={`adjust-btn-${item.id}`}
                         onClick={() => onAdjust(item)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-1 text-xs font-bold text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shadow-2xs group"
+                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-bold text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shadow-2xs group shrink-0"
                       >
                         <Sliders className="h-3 w-3 text-zinc-400 group-hover:text-white transition-colors" /> Adjust
                       </button>

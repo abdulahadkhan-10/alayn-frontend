@@ -78,7 +78,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <Header onMenuClick={openMobileSidebar} />
         <main
-          className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8"
+          className="flex-1 overflow-y-auto overflow-x-auto p-4 sm:p-6 lg:p-8 min-w-0"
           id="main-content"
         >
           {children}

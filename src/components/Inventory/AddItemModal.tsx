@@ -7,8 +7,10 @@ import {
   HelpCircle,
   Package,
   Check,
+  Building2,
 } from "lucide-react";
 import { createInventoryItem, InventoryItem } from "@/lib/api";
+import { useBranch } from "@/lib/BranchContext";
 
 type NewItem = Omit<InventoryItem, "id" | "currentStock" | "createdAt">;
 
@@ -46,6 +48,15 @@ interface Props {
 }
 
 export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: Props) {
+  const { branches, activeBranch } = useBranch();
+  const realOutlets = branches.filter((b) => b.id !== "all");
+
+  const [selectedOutletId, setSelectedOutletId] = useState<string>(() => {
+    if (outletId && outletId !== "all") return outletId;
+    if (activeBranch && activeBranch.id !== "all") return activeBranch.id;
+    return realOutlets[0]?.id || "";
+  });
+
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Dairy");
   const [customCategory, setCustomCategory] = useState("");
@@ -98,6 +109,13 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
     e.preventDefault();
     setError(null);
 
+    const targetOutletId = selectedOutletId || (outletId !== "all" ? outletId : "");
+
+    if (!targetOutletId || targetOutletId === "all") {
+      setError("Please select a target outlet location for this item.");
+      return;
+    }
+
     const finalCategory = isCustomCategory ? customCategory.trim() : category;
     const finalUnit = isCustomUnit ? customUnit.trim() : unit;
 
@@ -127,7 +145,6 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
     }
     const unitCostPaise = Math.round(rupeesNum * 100);
 
-
     // Auto-generate SKU behind the scenes (e.g. DAI-MIL-782)
     const cleanCat = finalCategory.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) || "ITM";
     const cleanName = name
@@ -150,7 +167,7 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
 
     setBusy(true);
     try {
-      if (isDemo || outletId.startsWith("demo-")) {
+      if (isDemo || targetOutletId.startsWith("demo-")) {
         const demoItem: InventoryItem = {
           ...itemPayload,
           id: `demo-${Date.now()}`,
@@ -160,7 +177,7 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
         return;
       }
 
-      const res = await createInventoryItem(outletId, itemPayload);
+      const res = await createInventoryItem(targetOutletId, itemPayload);
       if (!res.ok) {
         setError(res.error ?? "Failed to create item.");
         return;
@@ -176,19 +193,19 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-item-title"
-      className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden"
+      className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
-        <div className="flex items-center gap-2.5">
-          <div className="rounded-xl bg-red-50 p-2 text-[#D3232A]">
+      <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 bg-zinc-50/50">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-red-50 p-2.5 text-[#D3232A]">
             <Package className="h-5 w-5" />
           </div>
           <div>
-            <h2 id="add-item-title" className="text-base font-bold text-zinc-900">
+            <h2 id="add-item-title" className="text-base sm:text-lg font-bold text-zinc-900">
               Add New Inventory Item
             </h2>
-            <p className="text-xs text-zinc-500">Catalog a new ingredient or stock item</p>
+            <p className="text-xs text-zinc-500">Catalog a new ingredient or stock item for your outlet</p>
           </div>
         </div>
         <button
@@ -203,6 +220,37 @@ export default function AddItemModal({ outletId, onCreated, onClose, isDemo }: P
       {/* Body */}
       <div className="p-6 max-h-[82vh] overflow-y-auto">
         <form id="add-item-form" onSubmit={handleSubmit} className="space-y-4">
+          {/* Target Outlet Selection */}
+          <div>
+            <label htmlFor="item-outlet-select" className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 mb-1 flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 text-[#D3232A]" /> Target Outlet Location <span className="text-[#D3232A]">*</span>
+            </label>
+            <select
+              id="item-outlet-select"
+              value={selectedOutletId}
+              onChange={(e) => {
+                setSelectedOutletId(e.target.value);
+                setError(null);
+              }}
+              className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none bg-white font-semibold"
+            >
+              {realOutlets.length === 0 ? (
+                <option value="">No Outlet Registered</option>
+              ) : (
+                realOutlets.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.address ? `(${b.address})` : ""}
+                  </option>
+                ))
+              )}
+            </select>
+            {(!selectedOutletId || selectedOutletId === "all") && (
+              <p className="text-[11px] text-red-600 font-bold mt-1">
+                ⚠️ Inventory items must be assigned to a specific outlet location. Please select an outlet above.
+              </p>
+            )}
+          </div>
+
           {/* Item Name */}
           <div>
             <label htmlFor="item-name" className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 mb-1">

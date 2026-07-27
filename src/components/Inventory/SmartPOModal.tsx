@@ -512,8 +512,12 @@ export default function SmartPOModal({
             <p className="text-2xl font-extrabold flex items-center gap-1 text-emerald-400 mt-0.5">
               <IndianRupee className="h-5 w-5" />
               {(totalEstimatedPaise / 100).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
+            </p>
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              Formula: Sum of (Order Qty × Unit Price) for {lines.length} items
             </p>
           </div>
           <div className="text-right text-xs text-zinc-400">

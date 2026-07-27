@@ -44,7 +44,7 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onDemoAdj
 
   const reasons    = mode === "add" ? ADD_REASONS : REMOVE_REASONS;
   const change     = mode === "add" ? qty : -qty;
-  const stockAfter = item.currentStock + change;
+  const stockAfter = Number((item.currentStock + change).toFixed(2));
   const overRemoval = mode === "remove" && qty > item.currentStock;
   const financialCost = (qty * (item.unitCostPaise / 100)).toFixed(2);
 
@@ -93,10 +93,10 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onDemoAdj
       role="dialog"
       aria-modal="true"
       aria-labelledby="adjust-stock-title"
-      className="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden"
+      className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
+      <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 bg-zinc-50/50">
         <div className="flex items-center gap-2.5">
           <div className="rounded-xl bg-[#D3232A] p-2 text-white shadow-xs">
             <Sliders className="h-5 w-5" />
@@ -294,13 +294,27 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onDemoAdj
                 {mode === "add" ? `+${qty}` : `-${qty}`} {item.unit}
               </span>
             </div>
-            <p className="text-2xl font-black text-zinc-900 mt-1 tabular-nums">
-              {overRemoval ? "—" : stockAfter}{" "}
-              <span className="text-xs font-normal text-zinc-500">{item.unit}</span>
-            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mt-1">
+              <p className="text-2xl font-black text-zinc-900 tabular-nums">
+                {overRemoval ? "—" : stockAfter}{" "}
+                <span className="text-xs font-normal text-zinc-500">{item.unit}</span>
+              </p>
+              <p className="text-xs text-zinc-600 font-medium">
+                Calculation: <strong>{item.currentStock}</strong> {mode === "add" ? "+" : "-"} <strong>{qty}</strong> = <strong>{overRemoval ? "Invalid" : stockAfter} {item.unit}</strong>
+              </p>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-zinc-200/60 flex items-center justify-between text-xs text-zinc-600 font-medium">
+              <span>Cost Impact:</span>
+              <span className="font-bold text-zinc-900">
+                {qty} {item.unit} × ₹{(item.unitCostPaise / 100).toFixed(2)} = ₹{financialCost}
+              </span>
+            </div>
+
             {!overRemoval && stockAfter <= item.reorderThreshold && (
-              <p className="text-xs font-bold text-red-600 flex items-center gap-1 mt-1">
-                <AlertTriangle className="h-3.5 w-3.5" /> Balance will be at or below minimum reorder level ({item.reorderThreshold} {item.unit})!
+              <p className="text-xs font-bold text-red-600 flex items-center gap-1 mt-2">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Balance will be at or below minimum reorder level ({item.reorderThreshold} {item.unit})!
               </p>
             )}
           </div>

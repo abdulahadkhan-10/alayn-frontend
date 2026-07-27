@@ -499,6 +499,9 @@ export default function WasteManagementPage() {
                     <span className="font-semibold">Calculated Loss:</span>
                     <strong className="text-red-700 text-sm font-extrabold">₹{calculatedCostRupees}</strong>
                   </div>
+                  <p className="text-[11px] text-zinc-600 font-medium">
+                    Formula: {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} = ₹{calculatedCostRupees}
+                  </p>
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
                     <div className="bg-white/80 p-1.5 rounded-lg border border-red-100">
                       <span className="block text-[10px] text-zinc-500 font-semibold">CURRENT</span>
@@ -507,7 +510,7 @@ export default function WasteManagementPage() {
                     <div className="bg-white/80 p-1.5 rounded-lg border border-red-100">
                       <span className="block text-[10px] text-zinc-500 font-semibold">REMAINING</span>
                       <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
-                        {remainingStock} {selectedItem.unit}
+                        {Number(remainingStock.toFixed(2))} {selectedItem.unit}
                       </strong>
                     </div>
                   </div>
@@ -607,97 +610,98 @@ export default function WasteManagementPage() {
               const safeWastePage = Math.min(wastePage, totalWastePages || 1);
               const startWasteIdx = (safeWastePage - 1) * wastePageSize;
               const paginatedLogs = processedLogs.slice(startWasteIdx, startWasteIdx + wastePageSize);
+              const showWasteOutlet = Boolean(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet));
 
               return (
                 <div className="flex flex-col">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="bg-zinc-50/90 text-left text-[11px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                          <th
-                            className="px-4 py-3 cursor-pointer select-none hover:text-zinc-900"
-                            onClick={() => toggleSort("createdAt")}
-                          >
-                            <div className="flex items-center gap-1">
-                              Logged Date <ArrowUpDown className="h-3 w-3" />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3">Item & Code</th>
-                          {(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet)) && (
-                            <th className="px-4 py-3">Outlet</th>
-                          )}
-                          <th
-                            className="px-4 py-3 text-center cursor-pointer select-none hover:text-zinc-900"
-                            onClick={() => toggleSort("quantity")}
-                          >
-                            <div className="flex items-center justify-center gap-1">
-                              Quantity <ArrowUpDown className="h-3 w-3" />
-                            </div>
-                          </th>
-                          <th
-                            className="px-4 py-3 text-right cursor-pointer select-none hover:text-zinc-900"
-                            onClick={() => toggleSort("costAtLoggingPaise")}
-                          >
-                            <div className="flex items-center justify-end gap-1">
-                              Loss Value (₹) <ArrowUpDown className="h-3 w-3" />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 text-center">Reason</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100">
-                        {paginatedLogs.map((log) => {
-                          const reasonColors: Record<string, string> = {
-                            SPOILAGE: "bg-red-50 text-red-700 border-red-200",
-                            OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
-                            ERROR: "bg-orange-50 text-orange-700 border-orange-200",
-                            RETURN: "bg-blue-50 text-blue-700 border-blue-200",
-                          };
-
-                          return (
-                            <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
-                              <td className="px-4 py-3 text-xs text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
-                                {mounted ? new Date(log.createdAt).toLocaleString("en-IN", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }) : ""}
-                              </td>
-
-                              <td className="px-4 py-3">
-                                <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
-                                <p className="text-[10px] text-zinc-400 font-mono">Code: {log.item?.sku || "N/A"}</p>
-                              </td>
-                              {(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet)) && (
-                                <td className="px-4 py-3">
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
-                                    <Building2 className="h-3 w-3 shrink-0" />
-                                    {log.outlet?.name || log.item?.outlet?.name || "Branch"}
-                                  </span>
-                                </td>
+                    <table className="w-full min-w-[850px] text-sm border-collapse table-fixed">
+                          <thead>
+                            <tr className="bg-zinc-50/90 text-left text-[11px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
+                              <th
+                                className={`px-4 py-3.5 cursor-pointer select-none hover:text-zinc-900 ${showWasteOutlet ? "w-[18%]" : "w-[24%]"}`}
+                                onClick={() => toggleSort("createdAt")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Logged Date <ArrowUpDown className="h-3 w-3" />
+                                </div>
+                              </th>
+                              <th className={`px-4 py-3.5 ${showWasteOutlet ? "w-[24%]" : "w-[30%]"}`}>Item & Code</th>
+                              {showWasteOutlet && (
+                                <th className="px-4 py-3.5 w-[20%]">Outlet</th>
                               )}
-                              <td className="px-4 py-3 text-center text-zinc-800 font-bold text-xs whitespace-nowrap">
-                                {log.quantity} <span className="text-zinc-400 font-normal text-[11px]">{log.item?.unit || ""}</span>
-                              </td>
-                              <td className="px-4 py-3 text-right font-extrabold text-red-600 text-xs tabular-nums whitespace-nowrap">
-                                ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-3 text-center whitespace-nowrap">
-                                <span
-                                  className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
-                                    reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"
-                                  }`}
-                                >
-                                  {log.reason.replace("_", " ")}
-                                </span>
-                              </td>
+                              <th
+                                className={`px-4 py-3.5 text-center cursor-pointer select-none hover:text-zinc-900 ${showWasteOutlet ? "w-[12%]" : "w-[14%]"}`}
+                                onClick={() => toggleSort("quantity")}
+                              >
+                                <div className="flex items-center justify-center gap-1">
+                                  Quantity <ArrowUpDown className="h-3 w-3" />
+                                </div>
+                              </th>
+                              <th
+                                className={`px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900 ${showWasteOutlet ? "w-[13%]" : "w-[16%]"}`}
+                                onClick={() => toggleSort("costAtLoggingPaise")}
+                              >
+                                <div className="flex items-center justify-end gap-1">
+                                  Loss Value (₹) <ArrowUpDown className="h-3 w-3" />
+                                </div>
+                              </th>
+                              <th className={`px-4 py-3.5 text-center ${showWasteOutlet ? "w-[13%]" : "w-[16%]"}`}>Reason</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {paginatedLogs.map((log) => {
+                              const reasonColors: Record<string, string> = {
+                                SPOILAGE: "bg-red-50 text-red-700 border-red-200",
+                                OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
+                                ERROR: "bg-orange-50 text-orange-700 border-orange-200",
+                                RETURN: "bg-blue-50 text-blue-700 border-blue-200",
+                              };
+
+                              return (
+                                <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
+                                  <td className="px-4 py-3.5 text-xs text-zinc-600 whitespace-nowrap overflow-hidden" suppressHydrationWarning>
+                                    {mounted ? new Date(log.createdAt).toLocaleString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }) : ""}
+                                  </td>
+
+                                  <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
+                                    <p className="font-bold text-zinc-900 text-xs truncate">{log.item?.name || "Ingredient Item"}</p>
+                                    <p className="text-[10px] text-zinc-400 font-mono truncate">Code: {log.item?.sku || "N/A"}</p>
+                                  </td>
+                                  {showWasteOutlet && (
+                                    <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
+                                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-2xs">
+                                        <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" />
+                                        <span className="truncate max-w-[130px] font-medium">{log.outlet?.name || log.item?.outlet?.name || "Main Branch"}</span>
+                                      </span>
+                                    </td>
+                                  )}
+                                  <td className="px-4 py-3.5 text-center text-zinc-800 font-bold text-xs whitespace-nowrap">
+                                    {log.quantity} <span className="text-zinc-400 font-normal text-[11px]">{log.item?.unit || ""}</span>
+                                  </td>
+                                  <td className="px-4 py-3.5 text-right font-extrabold text-red-600 text-xs tabular-nums whitespace-nowrap">
+                                    ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
+                                  </td>
+                                  <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                    <span
+                                      className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
+                                        reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"
+                                      }`}
+                                    >
+                                      {log.reason.replace("_", " ")}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
 
                   {/* Pagination Bar */}
                   <div className="flex items-center justify-between px-4 py-3 bg-zinc-50/80 border-t border-zinc-200 text-xs text-zinc-600">
