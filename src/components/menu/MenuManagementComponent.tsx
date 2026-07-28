@@ -68,6 +68,7 @@ export default function MenuManagementComponent() {
     categoryId: "",
     imageUrl: "",
     isVeg: true,
+    outletIds: [] as string[],
   });
 
   const [editItem, setEditItem] = useState({
@@ -78,6 +79,7 @@ export default function MenuManagementComponent() {
     categoryId: "",
     imageUrl: "",
     isVeg: true,
+    outletIds: [] as string[],
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -221,43 +223,30 @@ export default function MenuManagementComponent() {
       const start = (currentPage - 1) * pageSize;
       return processedItems.slice(start, start + pageSize).map((item) => ({
         primaryItem: item,
-        outletIds: item.outletId ? [item.outletId] : [],
+        outletIds: item.outletIds && item.outletIds.length > 0 ? item.outletIds : (item.outletId ? [item.outletId] : []),
         allRelatedItems: [item],
         isGroupActive: item.isAvailable,
       }));
     }
 
-    const map = new Map<
-      string,
-      {
-        primaryItem: MenuItem;
-        outletIds: string[];
-        allRelatedItems: MenuItem[];
-      }
-    >();
+    const map = new Map<string, { primaryItem: MenuItem; outletIds: string[]; allRelatedItems: MenuItem[] }>();
 
     processedItems.forEach((item) => {
-      const key = item.name.trim().toLowerCase();
-      if (!map.has(key)) {
-        map.set(key, {
-          primaryItem: item,
-          outletIds: item.outletId ? [item.outletId] : [],
-          allRelatedItems: [item],
-        });
-      } else {
-        const entry = map.get(key)!;
-        if (item.outletId && !entry.outletIds.includes(item.outletId)) {
-          entry.outletIds.push(item.outletId);
-        }
-        entry.allRelatedItems.push(item);
-      }
+      const itemOutletIds = item.outletIds && item.outletIds.length > 0
+        ? item.outletIds
+        : (item.outletId ? [item.outletId] : []);
+
+      map.set(item.id, {
+        primaryItem: item,
+        outletIds: itemOutletIds,
+        allRelatedItems: [item],
+      });
     });
 
     const grouped = Array.from(map.values()).map((group) => {
-      const isGroupActive = group.allRelatedItems.every((i) => i.isAvailable === true);
       return {
         ...group,
-        isGroupActive,
+        isGroupActive: group.primaryItem.isAvailable,
       };
     });
 
@@ -324,73 +313,42 @@ export default function MenuManagementComponent() {
     }
   };
 
+  const handleOpenAddItemModal = () => {
+    const defaultIds = currentOutletId
+      ? [currentOutletId]
+      : specificBranches.map((b) => b.id);
+    setNewItem({
+      name: "",
+      description: "",
+      price: "",
+      categoryId: selectedCategory !== "ALL" ? selectedCategory : "",
+      imageUrl: "",
+      isVeg: true,
+      outletIds: defaultIds,
+    });
+    setIsAddItemOpen(true);
+  };
+
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItem.name || !newItem.price || !newItem.categoryId) return;
-
-    if (isAllOutletsSelected && !pendingConfirmAction) {
-      setPendingConfirmAction("ITEM");
-      return;
-    }
-
-    const selectedCatObj = rawCategories.find((c) => c.id === newItem.categoryId);
-    const targetCategoryName = selectedCatObj ? selectedCatObj.name.trim().toLowerCase() : "";
+    const targetOutletIds = newItem.outletIds.length > 0
+      ? newItem.outletIds
+      : (currentOutletId ? [currentOutletId] : specificBranches.map((b) => b.id));
 
     try {
-      if (isAllOutletsSelected && specificBranches.length > 0) {
-        for (const branch of specificBranches) {
-          let targetCatId = "";
+      await createMenuItem({
+        name: newItem.name,
+        description: newItem.description,
+        price: parseFloat(newItem.price),
+        categoryId: newItem.categoryId,
+        imageUrl: newItem.imageUrl,
+        isVeg: newItem.isVeg,
+        isAvailable: true,
+        outletIds: targetOutletIds,
+      }).unwrap();
 
-          // Strictly find category belonging to THIS branch location
-          const outletCat = (Array.isArray(rawCategories) ? rawCategories : []).find(
-            (c) =>
-              c.outletId === branch.id &&
-              c.name.trim().toLowerCase() === targetCategoryName
-          );
-
-          if (outletCat?.id) {
-            targetCatId = outletCat.id;
-          } else if (selectedCatObj) {
-            // Category missing in this outlet — create it for this branch first!
-            const newCatRes = await createCategory({
-              name: selectedCatObj.name,
-              description: selectedCatObj.description,
-              imageUrl: selectedCatObj.imageUrl,
-              outletId: branch.id,
-            }).unwrap();
-            if (newCatRes?.id) {
-              targetCatId = newCatRes.id;
-            }
-          }
-
-          if (!targetCatId) {
-            targetCatId = newItem.categoryId;
-          }
-
-          await createMenuItem({
-            name: newItem.name,
-            description: newItem.description,
-            price: parseFloat(newItem.price),
-            categoryId: targetCatId,
-            imageUrl: newItem.imageUrl,
-            isVeg: newItem.isVeg,
-            isAvailable: true,
-            outletId: branch.id,
-          }).unwrap();
-        }
-      } else {
-        await createMenuItem({
-          name: newItem.name,
-          description: newItem.description,
-          price: parseFloat(newItem.price),
-          categoryId: newItem.categoryId,
-          imageUrl: newItem.imageUrl,
-          isVeg: newItem.isVeg,
-          isAvailable: true,
-        }).unwrap();
-      }
-
-      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true });
+      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, outletIds: [] });
       setIsAddItemOpen(false);
       setPendingConfirmAction(null);
     } catch (err) {
@@ -446,6 +404,10 @@ export default function MenuManagementComponent() {
   };
 
   const handleOpenEditModal = (item: MenuItem) => {
+    const itemOutletIds = item.outletIds && item.outletIds.length > 0
+      ? item.outletIds
+      : (item.outletId ? [item.outletId] : specificBranches.map((b) => b.id));
+
     setEditItem({
       id: item.id,
       name: item.name,
@@ -454,6 +416,7 @@ export default function MenuManagementComponent() {
       categoryId: item.categoryId || "",
       imageUrl: item.imageUrl || "",
       isVeg: item.isVeg !== false,
+      outletIds: itemOutletIds,
     });
     setIsEditItemOpen(true);
   };
@@ -471,6 +434,7 @@ export default function MenuManagementComponent() {
           categoryId: editItem.categoryId,
           imageUrl: editItem.imageUrl,
           isVeg: editItem.isVeg,
+          outletIds: editItem.outletIds,
         },
       }).unwrap();
       setIsEditItemOpen(false);
@@ -1007,6 +971,55 @@ export default function MenuManagementComponent() {
                   </div>
                 </div>
 
+                {/* Outlet Assignment Selection */}
+                {specificBranches.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-gray-700">Assigned Outlets / Locations *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allIds = specificBranches.map((b) => b.id);
+                          const isAllSelected = newItem.outletIds.length === allIds.length;
+                          setNewItem({ ...newItem, outletIds: isAllSelected ? [] : allIds });
+                        }}
+                        className="text-[11px] font-bold text-[#D3232A] hover:underline cursor-pointer"
+                      >
+                        {newItem.outletIds.length === specificBranches.length ? "Deselect All" : "Select All Outlets"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-36 overflow-y-auto">
+                      {specificBranches.map((b) => {
+                        const isChecked = newItem.outletIds.includes(b.id);
+                        return (
+                          <label
+                            key={b.id}
+                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${
+                              isChecked
+                                ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
+                                : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const newIds = e.target.checked
+                                  ? [...newItem.outletIds, b.id]
+                                  : newItem.outletIds.filter((id) => id !== b.id);
+                                setNewItem({ ...newItem, outletIds: newIds });
+                              }}
+                              className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
+                            />
+                            <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                            <span className="truncate">{b.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
                   <textarea
@@ -1219,6 +1232,55 @@ export default function MenuManagementComponent() {
                     )}
                   </div>
                 </div>
+
+                {/* Outlet Assignment Selection */}
+                {specificBranches.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-gray-700">Assigned Outlets / Locations *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allIds = specificBranches.map((b) => b.id);
+                          const isAllSelected = editItem.outletIds.length === allIds.length;
+                          setEditItem({ ...editItem, outletIds: isAllSelected ? [] : allIds });
+                        }}
+                        className="text-[11px] font-bold text-[#D3232A] hover:underline cursor-pointer"
+                      >
+                        {editItem.outletIds.length === specificBranches.length ? "Deselect All" : "Select All Outlets"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-36 overflow-y-auto">
+                      {specificBranches.map((b) => {
+                        const isChecked = editItem.outletIds.includes(b.id);
+                        return (
+                          <label
+                            key={b.id}
+                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${
+                              isChecked
+                                ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
+                                : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const newIds = e.target.checked
+                                  ? [...editItem.outletIds, b.id]
+                                  : editItem.outletIds.filter((id) => id !== b.id);
+                                setEditItem({ ...editItem, outletIds: newIds });
+                              }}
+                              className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
+                            />
+                            <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                            <span className="truncate">{b.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
