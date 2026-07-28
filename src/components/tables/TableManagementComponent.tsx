@@ -6,8 +6,6 @@ import {
   Plus,
   Printer,
   Trash2,
-  Wind,
-  Sun,
   Search,
   CheckCircle2,
   X,
@@ -16,9 +14,6 @@ import {
   Layers,
   Users,
   UserCheck,
-  RefreshCw,
-  Copy,
-  ExternalLink,
   Store,
   UtensilsCrossed,
 } from "lucide-react";
@@ -37,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "../common/QRCodeSVG";
 import { showToast } from "@/lib/toast";
 
-type FilterType = "ALL" | "AC" | "NON_AC" | "AVAILABLE" | "OCCUPIED";
+type FilterType = "ALL" | "AVAILABLE" | "OCCUPIED";
 
 export default function TableManagementComponent() {
   const { activeBranch, branches } = useBranch();
@@ -69,8 +64,7 @@ export default function TableManagementComponent() {
   // Add tables modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [targetAddOutletId, setTargetAddOutletId] = useState<string>("");
-  const [acCount, setAcCount] = useState<string | number>(0);
-  const [nonAcCount, setNonAcCount] = useState<string | number>(0);
+  const [tableCount, setTableCount] = useState<string | number>(1);
   const [submittingAdd, setSubmittingAdd] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -153,17 +147,16 @@ export default function TableManagementComponent() {
       return;
     }
 
-    const parsedAc = parseInt(String(acCount), 10) || 0;
-    const parsedNonAc = parseInt(String(nonAcCount), 10) || 0;
+    const parsedCount = parseInt(String(tableCount), 10) || 0;
 
-    if (parsedAc === 0 && parsedNonAc === 0) {
-      setAddError("Please add at least 1 AC or Non-AC table.");
+    if (parsedCount <= 0) {
+      setAddError("Please enter at least 1 table to create.");
       return;
     }
 
     setSubmittingAdd(true);
     setAddError(null);
-    const res = await createBulkTables(outletIdToUse, parsedAc, parsedNonAc);
+    const res = await createBulkTables(outletIdToUse, parsedCount);
     setSubmittingAdd(false);
 
     if (res.ok) {
@@ -242,8 +235,6 @@ export default function TableManagementComponent() {
 
   const filteredTables = useMemo(() => {
     return tables.filter((t) => {
-      if (filter === "AC" && t.tableType !== "AC") return false;
-      if (filter === "NON_AC" && t.tableType !== "NON_AC") return false;
       if (filter === "AVAILABLE" && t.status !== "AVAILABLE") return false;
       if (filter === "OCCUPIED" && t.status !== "OCCUPIED") return false;
 
@@ -295,24 +286,15 @@ export default function TableManagementComponent() {
 
   const stats = useMemo(() => {
     const total = tables.length;
-    const acCount = tables.filter((t) => t.tableType === "AC").length;
-    const nonAcCount = tables.filter((t) => t.tableType === "NON_AC").length;
     const availableCount = tables.filter((t) => t.status === "AVAILABLE").length;
     const occupiedCount = tables.filter((t) => t.status === "OCCUPIED").length;
-    return { total, acCount, nonAcCount, availableCount, occupiedCount };
+    return { total, availableCount, occupiedCount };
   }, [tables]);
 
   const getTableOrderUrl = (token: string | null) => {
     if (!token) return "";
     const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
     return `${origin}/order?token=${token}`;
-  };
-
-  const copyOrderUrl = (token: string | null) => {
-    const url = getTableOrderUrl(token);
-    if (!url) return;
-    navigator.clipboard.writeText(url);
-    showToast.success("Link Copied", "Customer order URL copied to clipboard.");
   };
 
   const StatCard = ({
@@ -340,138 +322,85 @@ export default function TableManagementComponent() {
   );
 
   const TableCard = ({ table }: { table: TableItem }) => {
-    const isAc = table.tableType === "AC";
     const isOccupied = table.status === "OCCUPIED";
     const isPending = pendingId === table.id;
     const orderUrl = getTableOrderUrl(table.currentToken);
-    const outletName = specificBranches.find((b) => b.id === table.outletId)?.name;
 
     return (
       <div
         className={cn(
-          "bg-white rounded-2xl border flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg group relative",
-          isOccupied ? "border-rose-200 shadow-rose-50 shadow-sm" : "border-gray-200 shadow-sm"
+          "bg-white rounded-2xl border flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md group relative",
+          isOccupied ? "border-rose-200 shadow-rose-50 shadow-xs" : "border-gray-200/90 shadow-xs"
         )}
       >
-        {/* Top color bar — status indicator */}
+        {/* Top subtle status line */}
         <div
           className={cn(
-            "h-1 w-full",
+            "h-1 w-full shrink-0",
             isOccupied
               ? "bg-gradient-to-r from-rose-400 to-rose-500"
               : "bg-gradient-to-r from-emerald-400 to-emerald-500"
           )}
         />
 
-        <div className="p-4 flex flex-col gap-3 flex-1">
+        <div className="p-3.5 flex flex-col gap-2.5 flex-1">
           {/* Header row */}
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                {isAllOutlets && outletName ? outletName : "Dining Table"}
-              </p>
-              <h3 className="text-lg font-extrabold text-[#1B2A4A] leading-tight mt-0.5">
-                # {table.tableNumber}
-              </h3>
-            </div>
-            <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-black text-[#1B2A4A] tracking-tight shrink-0">
+              T{table.tableNumber}
+            </h3>
+            <button
+              type="button"
+              onClick={() => handleToggleStatus(table)}
+              disabled={isPending}
+              className={cn(
+                "cursor-pointer inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105 shrink-0",
+                isOccupied
+                  ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+              )}
+            >
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border",
-                  isAc
-                    ? "bg-cyan-50 text-cyan-700 border-cyan-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200"
+                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  isOccupied ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
                 )}
-              >
-                {isAc ? <Wind className="w-2.5 h-2.5" /> : <Sun className="w-2.5 h-2.5" />}
-                {isAc ? "AC" : "Non-AC"}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(table)}
-                disabled={isPending}
-                className={cn(
-                  "cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all hover:scale-105",
-                  isOccupied
-                    ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                )}
-              >
-                <span
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    isOccupied ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
-                  )}
-                />
-                {isOccupied ? "Occupied" : "Available"}
-              </button>
-            </div>
+              />
+              {isOccupied ? "Occupied" : "Available"}
+            </button>
           </div>
 
-          {/* QR Code Display & Quick Link */}
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex flex-col items-center justify-center relative group/qr">
+          {/* Clean & Compact QR Display */}
+          <div className="bg-gray-50/80 border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center">
             {orderUrl ? (
               <div
                 onClick={() => setPrintTable(table)}
-                className="cursor-pointer flex flex-col items-center"
+                className="cursor-pointer flex flex-col items-center group/qr"
                 title="Click to view & print full QR sticker"
               >
-                <QRCodeSVG value={orderUrl} size={110} fgColor="#1B2A4A" bgColor="#F9FAFB" />
-                <p className="text-[10px] font-bold text-[#1B2A4A] mt-2 flex items-center gap-1 group-hover/qr:text-[#D3232A] transition-colors">
+                <QRCodeSVG value={orderUrl} size={92} fgColor="#1B2A4A" bgColor="#F9FAFB" />
+                <p className="text-[10px] font-bold text-[#1B2A4A] mt-1.5 flex items-center gap-1 group-hover/qr:text-[#D3232A] transition-colors">
                   <QrCode className="w-3 h-3 text-[#D3232A]" />
                   Scan to Order
                 </p>
               </div>
             ) : (
-              <div className="py-4 text-center space-y-2">
-                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
-                <p className="text-[11px] text-gray-500 font-medium">No QR token found</p>
+              <div className="py-2.5 text-center space-y-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-500 mx-auto" />
+                <p className="text-[10px] text-gray-500 font-medium">No QR token</p>
                 <button
                   type="button"
                   onClick={() => handleRegenerateQR(table)}
                   disabled={isPending}
-                  className="px-2.5 py-1 text-[10px] font-bold bg-[#1B2A4A] text-white rounded-lg hover:bg-[#D3232A] transition"
+                  className="px-2 py-0.5 text-[10px] font-bold bg-[#1B2A4A] text-white rounded-md hover:bg-[#D3232A] transition cursor-pointer"
                 >
                   Generate Token
                 </button>
               </div>
             )}
-
-            {orderUrl && (
-              <div className="flex items-center gap-1 mt-2.5 pt-2 border-t border-gray-200/60 w-full justify-center">
-                <button
-                  type="button"
-                  onClick={() => copyOrderUrl(table.currentToken)}
-                  className="px-2 py-1 bg-white border border-gray-200 rounded-md text-[10px] font-bold text-gray-600 hover:text-[#1B2A4A] hover:bg-gray-100 transition flex items-center gap-1 cursor-pointer"
-                  title="Copy menu URL"
-                >
-                  <Copy className="w-2.5 h-2.5 text-gray-400" />
-                  Copy Link
-                </button>
-                <a
-                  href={orderUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2 py-1 bg-white border border-gray-200 rounded-md text-[10px] font-bold text-gray-600 hover:text-[#D3232A] hover:bg-gray-100 transition flex items-center gap-1 cursor-pointer"
-                  title="Open customer order page"
-                >
-                  <ExternalLink className="w-2.5 h-2.5 text-gray-400" />
-                  Test Menu
-                </a>
-                <button
-                  type="button"
-                  onClick={() => handleRegenerateQR(table)}
-                  disabled={isPending}
-                  className="p-1 bg-white border border-gray-200 rounded-md text-gray-400 hover:text-[#D3232A] hover:bg-gray-100 transition cursor-pointer"
-                  title="Regenerate QR code token"
-                >
-                  <RefreshCw className={cn("w-2.5 h-2.5", isPending && "animate-spin")} />
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Assign Staff Button */}
+          {/* Staff Assignment */}
           <button
             type="button"
             onClick={() => {
@@ -479,26 +408,26 @@ export default function TableManagementComponent() {
               setStaffSearch("");
             }}
             disabled={isPending}
-            className="cursor-pointer w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-[#D3232A] text-gray-600 hover:text-white border border-gray-200 hover:border-[#D3232A] text-xs font-bold transition-all disabled:opacity-50"
+            className="cursor-pointer w-full flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100/80 hover:bg-[#D3232A] text-gray-600 hover:text-white border border-gray-200/80 hover:border-[#D3232A] text-[11px] font-bold transition-all disabled:opacity-50 truncate"
           >
-            <UserCheck className="w-3.5 h-3.5" />
-            {table.assignedStaff ? `Assigned: ${table.assignedStaff.name}` : "Assign Staff"}
+            <UserCheck className="w-3 h-3 shrink-0 text-gray-500 group-hover:text-white" />
+            <span className="truncate">{table.assignedStaff ? `Staff: ${table.assignedStaff.name}` : "Assign Staff"}</span>
           </button>
         </div>
 
         {/* Footer actions */}
-        <div className="border-t border-gray-100 px-4 py-2.5 flex items-center gap-2 bg-gray-50/50">
+        <div className="border-t border-gray-100 px-3 py-1.5 flex items-center gap-1.5 bg-gray-50/50">
           <button
             onClick={() => setPrintTable(table)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-[#1B2A4A] hover:text-white hover:border-[#1B2A4A] text-xs font-bold text-gray-600 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border border-gray-200 bg-white hover:bg-[#1B2A4A] hover:text-white hover:border-[#1B2A4A] text-[11px] font-bold text-gray-600 transition-all cursor-pointer"
           >
-            <Printer className="w-3 h-3" />
-            Print QR Sticker
+            <Printer className="w-3 h-3 shrink-0" />
+            Print QR
           </button>
           <button
             onClick={() => handleDeleteTable(table)}
             disabled={isPending}
-            className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-gray-400 transition-all cursor-pointer disabled:opacity-50"
+            className="p-1 rounded-lg border border-gray-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-gray-400 transition-all cursor-pointer disabled:opacity-50 shrink-0"
             title="Delete table"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -519,7 +448,7 @@ export default function TableManagementComponent() {
               Table Management
             </h1>
             <p className="text-gray-500 text-sm mt-1">
-              Configure AC and Non-AC dining tables, assign staff, and manage QR code menu ordering.
+              Configure dining tables, assign staff, and manage QR code menu ordering.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -534,8 +463,7 @@ export default function TableManagementComponent() {
             )}
             <button
               onClick={() => {
-                setAcCount(0);
-                setNonAcCount(0);
+                setTableCount(1);
                 setAddError(null);
                 setShowAddModal(true);
               }}
@@ -548,10 +476,8 @@ export default function TableManagementComponent() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard label="Total Tables" value={stats.total} icon={Layers} colorClass="text-[#1B2A4A]" bgClass="bg-gray-100" />
-          <StatCard label="AC Tables" value={stats.acCount} icon={Wind} colorClass="text-cyan-600" bgClass="bg-cyan-50" />
-          <StatCard label="Non-AC Tables" value={stats.nonAcCount} icon={Sun} colorClass="text-amber-600" bgClass="bg-amber-50" />
           <StatCard label="Available" value={stats.availableCount} icon={CheckCircle2} colorClass="text-emerald-600" bgClass="bg-emerald-50" />
           <StatCard label="Occupied" value={stats.occupiedCount} icon={Users} colorClass="text-rose-600" bgClass="bg-rose-50" />
         </div>
@@ -570,19 +496,17 @@ export default function TableManagementComponent() {
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-none w-full md:w-auto">
-            {(["ALL", "AC", "NON_AC", "AVAILABLE", "OCCUPIED"] as FilterType[]).map((f) => (
+            {(["ALL", "AVAILABLE", "OCCUPIED"] as FilterType[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                   filter === f
                     ? "bg-[#1B2A4A] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {f === "ALL" && "All Tables"}
-                {f === "AC" && "AC Only"}
-                {f === "NON_AC" && "Non-AC Only"}
                 {f === "AVAILABLE" && "Available"}
                 {f === "OCCUPIED" && "Occupied"}
               </button>
@@ -593,7 +517,7 @@ export default function TableManagementComponent() {
         {/* Tables Grid Grouped By Outlet */}
         {loading ? (
           <SkeletonTheme baseColor="#f3f4f6" highlightColor="#e5e7eb">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
                 <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
                   <div className="flex justify-between items-center">
@@ -672,7 +596,7 @@ export default function TableManagementComponent() {
                   )}
 
                   {/* Grid of Table Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
                     {group.tables.map((t) => (
                       <TableCard key={t.id} table={t} />
                     ))}
@@ -695,7 +619,7 @@ export default function TableManagementComponent() {
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -729,51 +653,33 @@ export default function TableManagementComponent() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1">
-                    <Wind className="w-3.5 h-3.5 text-cyan-600" />
-                    AC Tables Count
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="50"
-                    value={acCount}
-                    onChange={(e) => setAcCount(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#D3232A]"
-                    placeholder="e.g. 5"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-1">
-                    <Sun className="w-3.5 h-3.5 text-amber-600" />
-                    Non-AC Tables Count
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="50"
-                    value={nonAcCount}
-                    onChange={(e) => setNonAcCount(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#D3232A]"
-                    placeholder="e.g. 5"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Number of Tables to Add
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={tableCount}
+                  onChange={(e) => setTableCount(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-[#D3232A]"
+                  placeholder="e.g. 5"
+                />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingAdd}
-                  className="flex-1 btn-primary text-xs font-bold py-2.5"
+                  className="flex-1 btn-primary text-xs font-bold py-2.5 cursor-pointer"
                 >
                   {submittingAdd ? "Creating..." : "Create Tables"}
                 </button>
@@ -796,7 +702,7 @@ export default function TableManagementComponent() {
               </div>
               <button
                 onClick={() => setAssignStaffTable(null)}
-                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -822,7 +728,7 @@ export default function TableManagementComponent() {
                     setAssignStaffTable(null);
                   }}
                   className={cn(
-                    "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border",
+                    "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border cursor-pointer",
                     !assignStaffTable.assignedStaff
                       ? "bg-gray-100 text-gray-900 border-gray-300 font-bold"
                       : "text-gray-600 hover:bg-gray-50 border-transparent"
@@ -845,7 +751,7 @@ export default function TableManagementComponent() {
                           setAssignStaffTable(null);
                         }}
                         className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border",
+                          "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border cursor-pointer",
                           isSelected
                             ? "bg-[#1B2A4A] text-white border-[#1B2A4A] font-bold"
                             : "text-gray-700 hover:bg-gray-50 border-transparent"
@@ -873,7 +779,7 @@ export default function TableManagementComponent() {
               <h3 className="text-sm font-bold text-[#1B2A4A]">Table #{printTable.tableNumber} QR Sticker</h3>
               <button
                 onClick={() => setPrintTable(null)}
-                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100"
+                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -885,9 +791,6 @@ export default function TableManagementComponent() {
                   <UtensilsCrossed className="w-6 h-6 text-rose-400" />
                 </div>
                 <h2 className="text-xl font-extrabold text-[#1B2A4A]">Table #{printTable.tableNumber}</h2>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-                  {printTable.tableType} Dining Section
-                </p>
                 <div className="py-3 flex justify-center">
                   <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={160} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                 </div>
@@ -899,14 +802,14 @@ export default function TableManagementComponent() {
               <button
                 type="button"
                 onClick={() => setPrintTable(null)}
-                className="flex-1 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100"
+                className="flex-1 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer"
               >
                 Close
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex-1 btn-primary py-2 text-xs font-bold flex items-center justify-center gap-1.5"
+                className="flex-1 btn-primary py-2 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Print Sticker
@@ -924,7 +827,7 @@ export default function TableManagementComponent() {
               <h3 className="text-sm font-bold text-[#1B2A4A]">Bulk QR Stickers ({tables.length} Tables)</h3>
               <button
                 onClick={() => setShowBulkPrint(false)}
-                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100"
+                className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -934,7 +837,6 @@ export default function TableManagementComponent() {
               {tables.map((t) => (
                 <div key={t.id} className="border-2 border-dashed border-[#1B2A4A]/20 p-4 rounded-xl bg-slate-50 text-center space-y-2">
                   <h4 className="text-sm font-extrabold text-[#1B2A4A]">Table #{t.tableNumber}</h4>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase">{t.tableType}</p>
                   <div className="flex justify-center py-2">
                     <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={110} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                   </div>
@@ -947,14 +849,14 @@ export default function TableManagementComponent() {
               <button
                 type="button"
                 onClick={() => setShowBulkPrint(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer"
               >
                 Close
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5"
+                className="btn-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Print All ({tables.length})

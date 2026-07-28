@@ -10,6 +10,7 @@ export interface MenuItem {
   isAvailable: boolean;
   categoryId: string;
   outletId?: string;
+  outletIds?: string[];
   category?: {
     id: string;
     name: string;

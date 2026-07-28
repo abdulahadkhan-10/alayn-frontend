@@ -416,7 +416,7 @@ export interface TableStaff {
 export interface TableItem {
   id: string;
   tableNumber: number;
-  tableType: "AC" | "NON_AC";
+  tableType?: "AC" | "NON_AC";
   status: "AVAILABLE" | "OCCUPIED";
   assignedStaffId?: string | null;
   assignedStaff?: TableStaff | null;
@@ -436,17 +436,15 @@ export async function fetchTables(
 
 export async function createBulkTables(
   outletId: string,
-  acCount: number,
-  nonAcCount: number
+  count: number
 ): Promise<{ ok: boolean; tables?: TableItem[]; error?: string }> {
   const result = await apiRequest<TableItem[]>("/tables", {
     method: "POST",
-    body: { acCount, nonAcCount },
+    body: { acCount: 0, nonAcCount: count },
     outletId,
   });
   if (result.ok) {
-    const total = acCount + nonAcCount;
-    showToast.success("Tables Created Successfully", `${total} table${total !== 1 ? "s" : ""} added with QR tokens.`);
+    showToast.success("Tables Created Successfully", `${count} table${count !== 1 ? "s" : ""} added with QR tokens.`);
     return { ok: true, tables: result.data };
   }
   showToast.error("Table Creation Failed", result.error);
