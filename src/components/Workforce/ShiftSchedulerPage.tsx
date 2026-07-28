@@ -883,22 +883,55 @@ export default function ShiftSchedulerPage() {
                       </div>
                     </div>
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-[#D3232A]">
-                      {shift.assignments?.length || 0} Total Assigned
+                      {shift.assignments?.length || 0} Total
                     </span>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+                      <span>ASSIGNED TEAM MEMBERS</span>
+                      <span className="text-[10px] text-gray-400 font-semibold">{shift.assignments?.length || 0} Staff</span>
+                    </div>
+
+                    {shift.assignments && shift.assignments.length > 0 ? (
+                      <div className="flex items-center gap-1.5 flex-wrap max-h-24 overflow-y-auto">
+                        {shift.assignments.map((asgn: any, idx: number) => {
+                          const empName = asgn.employee?.name || "Staff";
+                          return (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-gray-100 border border-gray-200/80 px-2 py-0.5 rounded-lg"
+                            >
+                              <Users className="h-3 w-3 text-gray-400" />
+                              {empName}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-gray-400 italic">No staff assigned to this shift yet.</p>
+                    )}
                   </div>
 
                   <button
                     onClick={() => {
+                      const todayKey = parseDateKey(new Date());
+                      // Find employees currently assigned to this shift for today
+                      const currentlyAssignedIds = (shift.assignments || [])
+                        .filter((asgn: any) => parseDateKey(asgn.date) === todayKey)
+                        .map((asgn: any) => asgn.employee?.id || asgn.employeeId)
+                        .filter(Boolean);
+
                       setAssignForm({
                         shiftId: shift.id,
-                        employeeIds: [],
-                        date: parseDateKey(new Date()),
+                        employeeIds: currentlyAssignedIds,
+                        date: todayKey,
                       });
                       setShowAssignModal(true);
                     }}
                     className="w-full py-2.5 text-xs font-bold text-center text-red-700 bg-red-50 hover:bg-red-100/80 rounded-xl transition-colors border border-red-200/80 cursor-pointer"
                   >
-                    + Assign Staff
+                    + Assign / Manage Staff
                   </button>
                 </div>
               ))}
@@ -1099,17 +1132,37 @@ export default function ShiftSchedulerPage() {
                     </button>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1.5 bg-gray-50">
+                  <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1.5 bg-gray-50">
                     {employees.length === 0 ? (
                       <p className="text-xs text-gray-400 p-2 text-center">No employees found.</p>
                     ) : (
                       employees.map((e: any) => {
                         const isChecked = assignForm.employeeIds.includes(e.id);
+
+                        // Check assignment & leave status for this employee on assignForm.date
+                        const selectedShift = shifts.find((s: any) => s.id === assignForm.shiftId);
+                        const isAlreadyAssigned = (selectedShift?.assignments || []).some((asgn: any) => {
+                          const asgnDate = parseDateKey(asgn.date);
+                          const asgnEmpId = asgn.employee?.id || asgn.employeeId;
+                          return asgnDate === assignForm.date && asgnEmpId === e.id;
+                        });
+
+                        const lookupKey = `${e.id}_${assignForm.date}`;
+                        const cellItems = matrixLookup[lookupKey] || [];
+                        const leaveItem = cellItems.find((i) => i.type === "LEAVE");
+                        const otherShiftItem = cellItems.find(
+                          (i) => i.type === "SHIFT" && i.data.shift.id !== assignForm.shiftId
+                        );
+
                         return (
                           <label
                             key={e.id}
                             className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${
-                              isChecked
+                              leaveItem
+                                ? "bg-rose-50/60 border-rose-200 text-rose-800 opacity-75"
+                                : isAlreadyAssigned
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-semibold"
+                                : isChecked
                                 ? "bg-red-50 border-red-200 text-gray-900 font-semibold"
                                 : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100"
                             }`}
@@ -1127,9 +1180,28 @@ export default function ShiftSchedulerPage() {
                                 }}
                                 className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
                               />
-                              <span className="text-xs font-medium">{e.name}</span>
+                              <div>
+                                <span className="text-xs font-medium block">{e.name}</span>
+                                <span className="text-[10px] text-gray-400 uppercase tracking-wider">{e.role || "STAFF"}</span>
+                              </div>
                             </div>
-                            <span className="text-[11px] text-gray-400 uppercase tracking-wider">{e.role}</span>
+
+                            {/* Status Indicators */}
+                            <div className="flex items-center gap-1.5">
+                              {leaveItem ? (
+                                <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200">
+                                  🌴 On Leave
+                                </span>
+                              ) : isAlreadyAssigned ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  ✓ Already Assigned
+                                </span>
+                              ) : otherShiftItem ? (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200" title={otherShiftItem.data.shift.name}>
+                                  ⚠️ Shift: {otherShiftItem.data.shift.name}
+                                </span>
+                              ) : null}
+                            </div>
                           </label>
                         );
                       })
