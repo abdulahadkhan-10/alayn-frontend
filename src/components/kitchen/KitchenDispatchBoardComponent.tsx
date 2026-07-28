@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { io, Socket } from "socket.io-client";
 import {
   useGetKitchenTicketsQuery,
   useUpdateOrderStatusMutation,
@@ -10,9 +11,24 @@ import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight, RefreshCw, Utensils } 
 import DashboardLayout from "../layout/DashboardLayout";
 
 export default function KitchenDispatchBoardComponent() {
-  const { data: tickets = [], isLoading, refetch, isFetching } = useGetKitchenTicketsQuery(undefined, {
-    pollingInterval: 4000,
-  });
+  const { data: tickets = [], isLoading, refetch, isFetching } = useGetKitchenTicketsQuery(undefined);
+
+  useEffect(() => {
+    // Realtime Socket.IO WebSocket Connection for Zero-Polling KDS Feed
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+    const socket: Socket = io(socketUrl, {
+      transports: ["websocket", "polling"],
+      withCredentials: true,
+    });
+
+    socket.on("kds_update", () => {
+      refetch();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [refetch]);
 
   const [updateStatus] = useUpdateOrderStatusMutation();
 
