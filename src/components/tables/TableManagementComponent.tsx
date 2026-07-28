@@ -467,7 +467,7 @@ export default function TableManagementComponent() {
                 setAddError(null);
                 setShowAddModal(true);
               }}
-              className="btn-primary flex items-center gap-2 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#b01e23] transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add Tables
@@ -679,7 +679,7 @@ export default function TableManagementComponent() {
                 <button
                   type="submit"
                   disabled={submittingAdd}
-                  className="flex-1 btn-primary text-xs font-bold py-2.5 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white text-xs font-bold transition cursor-pointer disabled:opacity-50"
                 >
                   {submittingAdd ? "Creating..." : "Create Tables"}
                 </button>

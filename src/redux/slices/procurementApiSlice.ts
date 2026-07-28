@@ -59,6 +59,14 @@ export const procurementApiSlice = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Supplier"],
     }),
+    updateSupplier: builder.mutation<SupplierApi, { id: string; data: Partial<SupplierApi> }>({
+      query: ({ id, data }) => ({
+        url: `/purchase-orders/suppliers/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["Supplier"],
+    }),
     getPurchaseOrders: builder.query<PurchaseOrderApi[], void>({
       query: () => "/purchase-orders",
       providesTags: ["PurchaseOrder"],
@@ -95,6 +103,7 @@ export const procurementApiSlice = baseApi.injectEndpoints({
 export const {
   useGetSuppliersQuery,
   useCreateSupplierMutation,
+  useUpdateSupplierMutation,
   useDeleteSupplierMutation,
   useGetPurchaseOrdersQuery,
   useCreatePurchaseOrderMutation,

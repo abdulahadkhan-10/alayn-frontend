@@ -51,8 +51,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            mkdir -p /opt/apps/projects/ALAYN
-            cd /opt/apps/projects/ALAYN
+            mkdir -p /opt/apps/projects/ALAYN/frontend
+            cd /opt/apps/projects/ALAYN/frontend
             docker compose pull alayn-frontend || docker-compose pull alayn-frontend || true
             docker compose up -d --no-deps alayn-frontend || docker-compose up -d --no-deps alayn-frontend || true
             docker image prune -f
