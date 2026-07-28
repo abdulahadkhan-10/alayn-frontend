@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.github
+.vscode
+.claude
+npm-debug.log
+.env
+.env*.local
