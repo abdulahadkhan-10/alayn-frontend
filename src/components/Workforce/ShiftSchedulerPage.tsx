@@ -156,10 +156,26 @@ export default function ShiftSchedulerPage() {
 
   // Forms
   const [shiftForm, setShiftForm] = useState({ name: "", startTime: "09:00", endTime: "17:00" });
-  const [assignForm, setAssignForm] = useState<{ shiftId: string; employeeIds: string[]; date: string }>({
+  const [assignForm, setAssignForm] = useState<{
+    shiftId: string;
+    employeeIds: string[];
+    date: string;
+    isSingleEmp?: boolean;
+    singleEmpName?: string;
+    singleEmpRole?: string;
+    isCustomHours?: boolean;
+    customStartTime?: string;
+    customEndTime?: string;
+  }>({
     shiftId: "",
     employeeIds: [],
     date: parseDateKey(selectedMonthDate),
+    isSingleEmp: false,
+    singleEmpName: "",
+    singleEmpRole: "",
+    isCustomHours: false,
+    customStartTime: "09:00",
+    customEndTime: "17:00",
   });
   const [swapForm, setSwapForm] = useState({ fromEmployeeId: "", toEmployeeId: "", shiftId: "", date: parseDateKey(selectedMonthDate) });
 
@@ -412,15 +428,46 @@ export default function ShiftSchedulerPage() {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignForm.shiftId || assignForm.employeeIds.length === 0) return;
+    if (assignForm.employeeIds.length === 0) return;
+
     try {
+      let targetShiftId = assignForm.shiftId;
+
+      // Handle Custom Hours selection
+      if (assignForm.isCustomHours && assignForm.customStartTime && assignForm.customEndTime) {
+        const match = shifts.find(
+          (s: any) => s.startTime === assignForm.customStartTime && s.endTime === assignForm.customEndTime
+        );
+        if (match) {
+          targetShiftId = match.id;
+        } else {
+          // Dynamic creation of custom shift slot
+          const customName = `Shift (${assignForm.customStartTime} - ${assignForm.customEndTime})`;
+          const res = await createShift({
+            name: customName,
+            startTime: assignForm.customStartTime,
+            endTime: assignForm.customEndTime,
+          }).unwrap();
+          targetShiftId = res?.data?.id || res?.id || res?.data?.data?.id;
+        }
+      }
+
+      if (!targetShiftId) {
+        setFeedbackMsg("Please select a shift preset or specify start/end times.");
+        return;
+      }
+
       await assignShift({
-        shiftId: assignForm.shiftId,
+        shiftId: targetShiftId,
         employeeIds: assignForm.employeeIds,
         date: assignForm.date,
       }).unwrap();
-      const count = assignForm.employeeIds.length;
-      setFeedbackMsg(`Assigned ${count} staff member${count === 1 ? '' : 's'} for ${formatDateNice(assignForm.date)}!`);
+
+      const empLabel = assignForm.isSingleEmp && assignForm.singleEmpName
+        ? assignForm.singleEmpName
+        : `${assignForm.employeeIds.length} staff member${assignForm.employeeIds.length === 1 ? '' : 's'}`;
+
+      setFeedbackMsg(`Successfully assigned shift to ${empLabel} for ${formatDateNice(assignForm.date)}!`);
       setShowAssignModal(false);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to assign shift");
@@ -783,10 +830,17 @@ export default function ShiftSchedulerPage() {
                                 <div className="h-full min-h-[50px] flex items-center justify-center">
                                   <button
                                     onClick={() => {
+                                      const defaultShift = shifts[0];
                                       setAssignForm({
-                                        shiftId: shifts[0]?.id || "",
+                                        shiftId: defaultShift?.id || "",
                                         employeeIds: [emp.id],
                                         date: col.dateKey,
+                                        isSingleEmp: true,
+                                        singleEmpName: emp.name,
+                                        singleEmpRole: emp.role || "STAFF",
+                                        isCustomHours: false,
+                                        customStartTime: defaultShift?.startTime || "09:00",
+                                        customEndTime: defaultShift?.endTime || "17:00",
                                       });
                                       setShowAssignModal(true);
                                     }}
@@ -1085,158 +1139,285 @@ export default function ShiftSchedulerPage() {
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Assign Staff for Date</h3>
-                  <p className="text-xs text-gray-500">Assign employees to a shift for {formatDateNice(assignForm.date)}.</p>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span>
+                      {assignForm.isSingleEmp
+                        ? `Assign Shift — ${assignForm.singleEmpName}`
+                        : "Assign Shift to Staff"}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {assignForm.isSingleEmp
+                      ? `Assigning shift for ${formatDateNice(assignForm.date)}.`
+                      : `Assign employees to a shift slot for ${formatDateNice(assignForm.date)}.`}
+                  </p>
                 </div>
                 <button onClick={() => setShowAssignModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
-              <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Shift Slot
-                  </label>
-                  <select
-                    required
-                    value={assignForm.shiftId}
-                    onChange={(e) => setAssignForm({ ...assignForm, shiftId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                  >
-                    <option value="">-- Select Shift Slot --</option>
-                    {shifts.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.startTime} - {s.endTime})
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Select Staff Members ({assignForm.employeeIds.length} / {employees.length} selected)
+              <form onSubmit={handleAssignSubmit} className="p-6 space-y-5">
+                {/* 1. Employee Target Display */}
+                {assignForm.isSingleEmp ? (
+                  <div className="bg-red-50/50 border border-red-100 rounded-xl p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[#D3232A]/10 text-[#D3232A] font-bold text-sm flex items-center justify-center border border-red-200 shrink-0">
+                        {assignForm.singleEmpName?.[0] || "E"}
+                      </div>
+                      <div>
+                        <span className="font-bold text-gray-900 text-sm block">
+                          {assignForm.singleEmpName}
+                        </span>
+                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded mt-0.5">
+                          {assignForm.singleEmpRole || "STAFF"}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-[#D3232A] bg-red-100/60 px-2.5 py-1 rounded-lg border border-red-200/60">
+                      Target Employee
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Select Staff Members ({assignForm.employeeIds.length} / {employees.length} selected)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (assignForm.employeeIds.length === employees.length) {
+                            setAssignForm({ ...assignForm, employeeIds: [] });
+                          } else {
+                            setAssignForm({ ...assignForm, employeeIds: employees.map((e: any) => e.id) });
+                          }
+                        }}
+                        className="text-xs font-bold text-[#D3232A] hover:underline cursor-pointer"
+                      >
+                        {assignForm.employeeIds.length === employees.length ? "Deselect All" : "⚡ Select All Staff"}
+                      </button>
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1.5 bg-gray-50">
+                      {employees.length === 0 ? (
+                        <p className="text-xs text-gray-400 p-2 text-center">No employees found.</p>
+                      ) : (
+                        employees.map((e: any) => {
+                          const isChecked = assignForm.employeeIds.includes(e.id);
+                          const selectedShift = shifts.find((s: any) => s.id === assignForm.shiftId);
+                          const isAlreadyAssigned = (selectedShift?.assignments || []).some((asgn: any) => {
+                            const asgnDate = parseDateKey(asgn.date);
+                            const asgnEmpId = asgn.employee?.id || asgn.employeeId;
+                            return asgnDate === assignForm.date && asgnEmpId === e.id;
+                          });
+
+                          const lookupKey = `${e.id}_${assignForm.date}`;
+                          const cellItems = matrixLookup[lookupKey] || [];
+                          const leaveItem = cellItems.find((i) => i.type === "LEAVE");
+                          const otherShiftItem = cellItems.find(
+                            (i) => i.type === "SHIFT" && i.data.shift.id !== assignForm.shiftId
+                          );
+
+                          return (
+                            <label
+                              key={e.id}
+                              className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                                leaveItem
+                                  ? "bg-rose-50/60 border-rose-200 text-rose-800 opacity-75"
+                                  : isAlreadyAssigned
+                                  ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-semibold"
+                                  : isChecked
+                                  ? "bg-red-50 border-red-200 text-gray-900 font-semibold"
+                                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(evt) => {
+                                    if (evt.target.checked) {
+                                      setAssignForm({ ...assignForm, employeeIds: [...assignForm.employeeIds, e.id] });
+                                    } else {
+                                      setAssignForm({ ...assignForm, employeeIds: assignForm.employeeIds.filter((id) => id !== e.id) });
+                                    }
+                                  }}
+                                  className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
+                                />
+                                <div>
+                                  <span className="text-xs font-medium block">{e.name}</span>
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">{e.role || "STAFF"}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                {leaveItem ? (
+                                  <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200">
+                                    🌴 On Leave
+                                  </span>
+                                ) : isAlreadyAssigned ? (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                                    ✓ Already Assigned
+                                  </span>
+                                ) : otherShiftItem ? (
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200">
+                                    ⚠️ Shift: {otherShiftItem.data.shift.name}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Hybrid Shift & Time Selector */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Select Shift Preset OR Custom Hours
                     </label>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (assignForm.employeeIds.length === employees.length) {
-                          setAssignForm({ ...assignForm, employeeIds: [] });
-                        } else {
-                          setAssignForm({ ...assignForm, employeeIds: employees.map((e: any) => e.id) });
-                        }
-                      }}
-                      className="text-xs font-bold text-[#D3232A] hover:underline cursor-pointer"
+                      onClick={() =>
+                        setAssignForm({
+                          ...assignForm,
+                          isCustomHours: !assignForm.isCustomHours,
+                        })
+                      }
+                      className="text-xs font-bold text-[#D3232A] hover:bg-red-50 px-2.5 py-1 rounded-lg border border-red-200/80 transition-colors cursor-pointer"
                     >
-                      {assignForm.employeeIds.length === employees.length ? "Deselect All" : "⚡ Select All Staff"}
+                      {assignForm.isCustomHours ? "← Use Presets" : "⏱️ Custom Hours"}
                     </button>
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1.5 bg-gray-50">
-                    {employees.length === 0 ? (
-                      <p className="text-xs text-gray-400 p-2 text-center">No employees found.</p>
-                    ) : (
-                      employees.map((e: any) => {
-                        const isChecked = assignForm.employeeIds.includes(e.id);
-
-                        // Check assignment & leave status for this employee on assignForm.date
-                        const selectedShift = shifts.find((s: any) => s.id === assignForm.shiftId);
-                        const isAlreadyAssigned = (selectedShift?.assignments || []).some((asgn: any) => {
-                          const asgnDate = parseDateKey(asgn.date);
-                          const asgnEmpId = asgn.employee?.id || asgn.employeeId;
-                          return asgnDate === assignForm.date && asgnEmpId === e.id;
-                        });
-
-                        const lookupKey = `${e.id}_${assignForm.date}`;
-                        const cellItems = matrixLookup[lookupKey] || [];
-                        const leaveItem = cellItems.find((i) => i.type === "LEAVE");
-                        const otherShiftItem = cellItems.find(
-                          (i) => i.type === "SHIFT" && i.data.shift.id !== assignForm.shiftId
-                        );
-
-                        return (
-                          <label
-                            key={e.id}
-                            className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${
-                              leaveItem
-                                ? "bg-rose-50/60 border-rose-200 text-rose-800 opacity-75"
-                                : isAlreadyAssigned
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-semibold"
-                                : isChecked
-                                ? "bg-red-50 border-red-200 text-gray-900 font-semibold"
-                                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(evt) => {
-                                  if (evt.target.checked) {
-                                    setAssignForm({ ...assignForm, employeeIds: [...assignForm.employeeIds, e.id] });
-                                  } else {
-                                    setAssignForm({ ...assignForm, employeeIds: assignForm.employeeIds.filter((id) => id !== e.id) });
-                                  }
-                                }}
-                                className="h-4 w-4 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A] cursor-pointer"
-                              />
-                              <div>
-                                <span className="text-xs font-medium block">{e.name}</span>
-                                <span className="text-[10px] text-gray-400 uppercase tracking-wider">{e.role || "STAFF"}</span>
+                  {!assignForm.isCustomHours ? (
+                    /* Shift Slot Pills / Presets */
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {shifts.map((s: any) => {
+                          const isSelected = !assignForm.isCustomHours && assignForm.shiftId === s.id;
+                          return (
+                            <button
+                              type="button"
+                              key={s.id}
+                              onClick={() =>
+                                setAssignForm({
+                                  ...assignForm,
+                                  shiftId: s.id,
+                                  isCustomHours: false,
+                                  customStartTime: s.startTime,
+                                  customEndTime: s.endTime,
+                                })
+                              }
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                isSelected
+                                  ? "bg-red-50 border-[#D3232A] ring-2 ring-[#D3232A]/20 shadow-xs"
+                                  : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between w-full mb-1">
+                                <span className={`text-xs font-bold ${isSelected ? "text-[#D3232A]" : "text-gray-900"}`}>
+                                  {s.name}
+                                </span>
+                                {isSelected && (
+                                  <CheckCircle2 className="h-4 w-4 text-[#D3232A] shrink-0" />
+                                )}
                               </div>
-                            </div>
-
-                            {/* Status Indicators */}
-                            <div className="flex items-center gap-1.5">
-                              {leaveItem ? (
-                                <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200">
-                                  🌴 On Leave
-                                </span>
-                              ) : isAlreadyAssigned ? (
-                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
-                                  ✓ Already Assigned
-                                </span>
-                              ) : otherShiftItem ? (
-                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200" title={otherShiftItem.data.shift.name}>
-                                  ⚠️ Shift: {otherShiftItem.data.shift.name}
-                                </span>
-                              ) : null}
-                            </div>
+                              <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-500">
+                                <Clock className="h-3 w-3 text-gray-400 shrink-0" />
+                                <span>{s.startTime} - {s.endTime}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Custom Start & End Time Input Pickers */
+                    <div className="bg-amber-50/50 border border-amber-200/80 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                        <Clock className="h-4 w-4 text-amber-600" />
+                        <span>Specify Custom Shift Window</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Start Time
                           </label>
-                        );
-                      })
-                    )}
-                  </div>
+                          <input
+                            type="time"
+                            required
+                            value={assignForm.customStartTime || "09:00"}
+                            onChange={(e) =>
+                              setAssignForm({ ...assignForm, customStartTime: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white text-gray-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            End Time
+                          </label>
+                          <input
+                            type="time"
+                            required
+                            value={assignForm.customEndTime || "17:00"}
+                            onChange={(e) =>
+                              setAssignForm({ ...assignForm, customEndTime: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white text-gray-900"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-amber-700/90 font-medium">
+                        ✨ Custom shift times are automatically created as an ad-hoc slot if no preset exists.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
+                {/* 3. Date Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Shift Date
                   </label>
                   <input
                     type="date"
                     required
                     value={assignForm.date}
                     onChange={(e) => setAssignForm({ ...assignForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                {/* Submit Actions */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={isAssigning || assignForm.employeeIds.length === 0 || !assignForm.shiftId}
-                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
+                    disabled={
+                      isAssigning ||
+                      isCreatingShift ||
+                      assignForm.employeeIds.length === 0 ||
+                      (!assignForm.isCustomHours && !assignForm.shiftId) ||
+                      (assignForm.isCustomHours && (!assignForm.customStartTime || !assignForm.customEndTime))
+                    }
+                    className="px-5 py-2.5 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer transition-all"
                   >
-                    {isAssigning
-                      ? "Assigning..."
+                    {isAssigning || isCreatingShift
+                      ? "Saving..."
+                      : assignForm.isSingleEmp
+                      ? `Assign Shift to ${assignForm.singleEmpName?.split(' ')[0] || 'Staff'}`
                       : `Assign ${assignForm.employeeIds.length} Staff Member${assignForm.employeeIds.length === 1 ? "" : "s"}`}
                   </button>
                 </div>
