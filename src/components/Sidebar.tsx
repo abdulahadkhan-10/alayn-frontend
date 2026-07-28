@@ -123,7 +123,7 @@ const NavLinkItem = memo(function NavLinkItem({
         aria-hidden="true"
       />
       {!isCollapsed && (
-        <span className="truncate leading-none">{item.name}</span>
+        <span className="truncate leading-normal py-0.5">{item.name}</span>
       )}
       {!isCollapsed && item.badge && (
         <span className="ml-auto shrink-0 rounded-full bg-[#D3232A] px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
