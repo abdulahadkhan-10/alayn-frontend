@@ -64,7 +64,7 @@ const PILLARS: OperationalPillar[] = [
 ];
 
 export default function ChaosScene() {
-  const [viewMode, setViewMode] = useState<"traditional" | "alayn">("alayn");
+  const [viewMode, setViewMode] = useState<"traditional" | "alayn">("traditional");
   const [selectedId, setSelectedId] = useState<string>("pos");
 
   const activePillar = PILLARS.find((p) => p.id === selectedId) || PILLARS[0];

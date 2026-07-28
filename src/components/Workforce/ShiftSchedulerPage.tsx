@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
+import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
   useGetShiftsQuery,
   useCreateShiftMutation,
@@ -231,6 +232,22 @@ export default function ShiftSchedulerPage() {
     });
   }, [employees, searchQuery, selectedOutlet, shifts, outletRostersData]);
 
+  const [matrixPage, setMatrixPage] = useState<number>(1);
+  const [matrixPageSize, setMatrixPageSize] = useState<number | "ALL">(10);
+
+  useEffect(() => {
+    setMatrixPage(1);
+  }, [searchQuery, selectedOutlet, viewRange]);
+
+  const paginatedRosterEmployees = useMemo(() => {
+    if (matrixPageSize === "ALL") return filteredEmployees;
+    const start = (matrixPage - 1) * (matrixPageSize as number);
+    return filteredEmployees.slice(start, start + (matrixPageSize as number));
+  }, [filteredEmployees, matrixPage, matrixPageSize]);
+
+  const totalMatrixPages = matrixPageSize === "ALL" ? 1 : Math.max(1, Math.ceil(filteredEmployees.length / (matrixPageSize as number)));
+  const safeMatrixPage = Math.min(matrixPage, totalMatrixPages);
+
   // Generate Columns array based on selectedMonthDate & viewRange (7, 14, or 30 days)
   const columns = useMemo(() => {
     const count = parseInt(viewRange, 10);
@@ -343,6 +360,27 @@ export default function ShiftSchedulerPage() {
     return shifts.flatMap((s: any) => s.swapRequests || []);
   }, [shifts]);
 
+  // Open Weekly Roster Modal pre-filled for a specific employee
+  const openRosterModalForEmployee = (empId?: string) => {
+    const targetEmpId = empId || employees[0]?.id || "";
+    setRosterEmployeeId(targetEmpId);
+
+    const initialSchedule: Record<string, string> = {};
+    const ALL_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+
+    const empRosters = (outletRostersData?.data || []).filter((r: any) => r.employeeId === targetEmpId);
+    ALL_DAYS.forEach((day) => {
+      if (!operatingDays.includes(day)) {
+        initialSchedule[day] = "OFF";
+      } else {
+        const found = empRosters.find((r: any) => r.dayOfWeek === day);
+        initialSchedule[day] = found?.shiftId || "OFF";
+      }
+    });
+    setWeeklySchedule(initialSchedule);
+    setShowRosterModal(true);
+  };
+
   // Handlers
   const handleRosterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -408,6 +446,17 @@ export default function ShiftSchedulerPage() {
       setFeedbackMsg(err?.data?.message || `Failed to update swap status`);
     }
   };
+
+  if (isShiftsLoading || isEmpLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <WorkforceHeaderNav />
+          <WorkforceSkeleton />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -593,14 +642,14 @@ export default function ShiftSchedulerPage() {
         {/* ================= TAB 1: EMPLOYEE ROSTER MATRIX VIEW ================= */}
         {activeTab === "roster" && (
           <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-            {/* Scrollable Matrix Table Container */}
+            {/* Clean Matrix Table Container (Single-Page Document Scrolling) */}
             <div className="overflow-x-auto max-w-full">
               <table className="w-full border-collapse text-left">
-                {/* Table Header: Sticky Left Employee Column + Date Columns */}
+                {/* Table Header: Sticky Left Employee Column + Date Headers */}
                 <thead>
-                  <tr className="bg-gray-50/90 border-b border-gray-200 text-xs">
-                    {/* Sticky Left Column: Employee Info Header */}
-                    <th className="sticky left-0 z-20 bg-gray-50/90 px-4 py-3.5 font-bold text-gray-700 w-56 min-w-[220px] border-r border-gray-200 shadow-xs">
+                  <tr className="bg-gray-50/95 border-b border-gray-200 text-xs">
+                    {/* Sticky Left Column Header */}
+                    <th className="sticky left-0 z-20 bg-gray-50/95 px-4 py-3 font-bold text-gray-700 w-56 min-w-[220px] border-r border-gray-200 shadow-xs">
                       <div className="flex items-center justify-between">
                         <span>EMPLOYEE STAFF</span>
                         <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-200/60 px-2 py-0.5 rounded-full">
@@ -609,12 +658,12 @@ export default function ShiftSchedulerPage() {
                       </div>
                     </th>
 
-                    {/* Date Column Headers */}
+                    {/* Sticky Date Column Headers */}
                     {columns.map((col) => (
                       <th
                         key={col.dateKey}
-                        className={`px-3 py-3 font-bold text-center border-r border-gray-200/60 min-w-[140px] max-w-[200px] transition-colors ${
-                          col.isToday ? "bg-red-50/80 text-[#D3232A]" : "text-gray-700"
+                        className={`px-3 py-2.5 font-bold text-center border-r border-gray-200/60 min-w-[140px] max-w-[200px] transition-colors ${
+                          col.isToday ? "bg-red-50/90 text-[#D3232A]" : "text-gray-700"
                         }`}
                       >
                         <div className="flex flex-col items-center">
@@ -640,14 +689,14 @@ export default function ShiftSchedulerPage() {
                         Loading employee roster matrix...
                       </td>
                     </tr>
-                  ) : filteredEmployees.length === 0 ? (
+                  ) : paginatedRosterEmployees.length === 0 ? (
                     <tr>
                       <td colSpan={columns.length + 1} className="py-12 text-center text-gray-500 font-medium">
                         No employees found matching filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    filteredEmployees.map((emp: any) => (
+                    paginatedRosterEmployees.map((emp: any) => (
                       <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors group">
                         {/* Sticky Left Column: Employee Cell */}
                         <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50/90 px-4 py-3 border-r border-gray-200 shadow-xs">
@@ -701,9 +750,17 @@ export default function ShiftSchedulerPage() {
                                       <div className="flex items-center justify-between gap-1">
                                         <span className="font-bold text-xs text-gray-900 truncate">{item.data.shift.name}</span>
                                         {item.data.isRecurring && (
-                                          <span className="inline-flex items-center text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-200/80 shrink-0" title="Weekly Recurring Roster">
-                                            <Repeat className="h-2.5 w-2.5 text-indigo-500" />
-                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openRosterModalForEmployee(emp.id);
+                                            }}
+                                            className="inline-flex items-center gap-1 text-[9px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-1.5 py-0.5 rounded shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-2xs"
+                                            title="Click to edit Weekly Recurring Roster for this employee"
+                                          >
+                                            <Repeat className="h-2.5 w-2.5 text-indigo-600" />
+                                          </button>
                                         )}
                                       </div>
 
@@ -748,6 +805,55 @@ export default function ShiftSchedulerPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Roster Matrix Pagination & Viewport Controls Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 bg-gray-50/90 border-t border-gray-200 text-xs text-gray-600">
+              <div className="flex items-center gap-2">
+                <span>Show</span>
+                <select
+                  value={matrixPageSize}
+                  onChange={(e) => {
+                    const val = e.target.value === "ALL" ? "ALL" : Number(e.target.value);
+                    setMatrixPageSize(val);
+                    setMatrixPage(1);
+                  }}
+                  className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                >
+                  <option value={10}>10 employees</option>
+                  <option value={15}>15 employees</option>
+                  <option value={25}>25 employees</option>
+                  <option value={50}>50 employees</option>
+                  <option value="ALL">Show All ({filteredEmployees.length})</option>
+                </select>
+                <span>per page</span>
+                <span className="text-gray-300 mx-1">|</span>
+                <span>
+                  Showing <strong>{filteredEmployees.length > 0 ? (matrixPageSize === "ALL" ? 1 : (safeMatrixPage - 1) * (matrixPageSize as number) + 1) : 0}</strong> to <strong>{matrixPageSize === "ALL" ? filteredEmployees.length : Math.min(safeMatrixPage * (matrixPageSize as number), filteredEmployees.length)}</strong> of <strong>{filteredEmployees.length}</strong> team members
+                </span>
+              </div>
+
+              {matrixPageSize !== "ALL" && totalMatrixPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setMatrixPage((p) => Math.max(1, p - 1))}
+                    disabled={safeMatrixPage === 1}
+                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="px-2 font-medium">
+                    Page {safeMatrixPage} of {totalMatrixPages}
+                  </span>
+                  <button
+                    onClick={() => setMatrixPage((p) => Math.min(totalMatrixPages, p + 1))}
+                    disabled={safeMatrixPage >= totalMatrixPages}
+                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

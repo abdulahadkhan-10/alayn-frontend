@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
+import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
   useGetLeaveRequestsQuery,
   useCreateLeaveRequestMutation,
@@ -24,6 +25,7 @@ import {
   User,
   Calendar,
   Check,
+  Lock,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
@@ -33,8 +35,8 @@ const DEMO_LEAVE_REQUESTS = [
     id: "leave-1",
     employeeId: "demo-2",
     employee: { name: "Priya Patel", role: "STAFF" },
-    startDate: "2026-07-25",
-    endDate: "2026-07-27",
+    startDate: "2026-07-28",
+    endDate: "2026-07-30",
     reason: "Family medical emergency",
     status: "REQUESTED",
     createdAt: "2026-07-20T10:00:00Z",
@@ -59,6 +61,31 @@ function toDateString(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// Clean Leave Span Formatter
+function formatLeaveSpan(startDateStr: string, endDateStr: string): string {
+  if (!startDateStr || !endDateStr) return "—";
+  try {
+    const sKey = startDateStr.split("T")[0];
+    const eKey = endDateStr.split("T")[0];
+
+    const d1 = new Date(sKey);
+    const d2 = new Date(eKey);
+
+    const f1 = d1.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    if (sKey === eKey) {
+      return `${f1} (1 Day)`;
+    }
+
+    const f2 = d2.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return `${f1} – ${f2} (${diffDays} Days)`;
+  } catch {
+    return `${startDateStr.split("T")[0]} to ${endDateStr.split("T")[0]}`;
+  }
+}
+
 export default function LeaveApprovalsPage() {
   const { activeBranch } = useBranch();
   const outletId = activeBranch?.id === "all" ? undefined : activeBranch?.id;
@@ -81,8 +108,10 @@ export default function LeaveApprovalsPage() {
     { id: "demo-3", name: "Amit Kumar" },
   ];
 
+  const todayStr = toDateString(new Date());
+
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date("2026-07-27"));
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLeaveDetail, setSelectedLeaveDetail] = useState<any>(null);
@@ -90,8 +119,8 @@ export default function LeaveApprovalsPage() {
 
   const [leaveForm, setLeaveForm] = useState({
     employeeId: "",
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: todayStr,
+    endDate: todayStr,
     reason: "",
   });
 
@@ -147,7 +176,6 @@ export default function LeaveApprovalsPage() {
   // Calendar Grid Calculation
   const currentYear = calendarDate.getFullYear();
   const currentMonth = calendarDate.getMonth();
-  const todayStr = toDateString(new Date());
 
   const monthGridDays = React.useMemo(() => {
     const firstDay = new Date(currentYear, currentMonth, 1);
@@ -156,27 +184,31 @@ export default function LeaveApprovalsPage() {
     let startDayOfWeek = firstDay.getDay() - 1; // Mon = 0
     if (startDayOfWeek === -1) startDayOfWeek = 6;
 
-    const days: { date: Date; dateStr: string; isCurrentMonth: boolean; dayNum: number }[] = [];
+    const days: { date: Date; dateStr: string; isCurrentMonth: boolean; dayNum: number; isPast: boolean }[] = [];
 
     // Prev month padding
     for (let i = startDayOfWeek - 1; i >= 0; i--) {
       const d = new Date(currentYear, currentMonth, -i);
+      const dStr = toDateString(d);
       days.push({
         date: d,
-        dateStr: toDateString(d),
+        dateStr: dStr,
         isCurrentMonth: false,
         dayNum: d.getDate(),
+        isPast: dStr < todayStr,
       });
     }
 
     // Current month
     for (let i = 1; i <= lastDay.getDate(); i++) {
       const d = new Date(currentYear, currentMonth, i);
+      const dStr = toDateString(d);
       days.push({
         date: d,
-        dateStr: toDateString(d),
+        dateStr: dStr,
         isCurrentMonth: true,
         dayNum: i,
+        isPast: dStr < todayStr,
       });
     }
 
@@ -185,16 +217,18 @@ export default function LeaveApprovalsPage() {
     const remaining = targetLength - days.length;
     for (let i = 1; i <= remaining; i++) {
       const d = new Date(currentYear, currentMonth + 1, i);
+      const dStr = toDateString(d);
       days.push({
         date: d,
-        dateStr: toDateString(d),
+        dateStr: dStr,
         isCurrentMonth: false,
         dayNum: d.getDate(),
+        isPast: dStr < todayStr,
       });
     }
 
     return days;
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, todayStr]);
 
   const handlePrevMonth = () => setCalendarDate(new Date(currentYear, currentMonth - 1, 1));
   const handleNextMonth = () => setCalendarDate(new Date(currentYear, currentMonth + 1, 1));
@@ -202,6 +236,10 @@ export default function LeaveApprovalsPage() {
 
   const handleCreateLeaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (leaveForm.startDate < todayStr) {
+      setFeedbackMsg("Cannot apply for leave on past dates.");
+      return;
+    }
     try {
       const targetEmpId = leaveForm.employeeId || currentEmployee?.id;
       if (!targetEmpId) {
@@ -213,8 +251,8 @@ export default function LeaveApprovalsPage() {
       setShowCreateModal(false);
       setLeaveForm({
         employeeId: "",
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date().toISOString().split("T")[0],
+        startDate: todayStr,
+        endDate: todayStr,
         reason: "",
       });
     } catch (err: any) {
@@ -232,6 +270,18 @@ export default function LeaveApprovalsPage() {
     }
   };
 
+  // Render Skeleton Loader while API is fetching
+  if (isLeavesLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <WorkforceHeaderNav />
+          <WorkforceSkeleton />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -247,13 +297,15 @@ export default function LeaveApprovalsPage() {
                 : "Submit time-off requests and track the approval status of your applications."}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#b01e23] transition-colors cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Apply for Leave
-          </button>
+          {!isManagerOrOwner && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-[#b01e23] transition-colors cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Apply for Leave
+            </button>
+          )}
         </div>
 
         {/* Navigation Tabs */}
@@ -261,8 +313,8 @@ export default function LeaveApprovalsPage() {
 
         {/* Feedback Banner */}
         {feedbackMsg && (
-          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm shadow-sm">
-            <span>{feedbackMsg}</span>
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm shadow-xs">
+            <span className="font-medium">{feedbackMsg}</span>
             <button onClick={() => setFeedbackMsg(null)} className="cursor-pointer">
               <X className="h-4 w-4" />
             </button>
@@ -273,20 +325,20 @@ export default function LeaveApprovalsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div
             onClick={() => setStatusFilter("REQUESTED")}
-            className={`rounded-xl border p-5 shadow-sm transition-all cursor-pointer ${
+            className={`rounded-2xl border p-5 shadow-xs transition-all cursor-pointer ${
               statusFilter === "REQUESTED"
                 ? "border-amber-400 bg-amber-50/60 ring-2 ring-amber-400/20"
-                : "border-gray-200 bg-white hover:border-amber-300"
+                : "border-gray-200/80 bg-white hover:border-amber-300"
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Pending Approvals
                 </p>
                 <p className="mt-1 text-2xl font-bold text-amber-600">{pendingCount}</p>
               </div>
-              <div className="rounded-lg bg-amber-100/80 p-3 text-amber-600">
+              <div className="rounded-xl bg-amber-100/80 p-3 text-amber-600">
                 <Clock className="h-6 w-6" />
               </div>
             </div>
@@ -294,20 +346,20 @@ export default function LeaveApprovalsPage() {
 
           <div
             onClick={() => setStatusFilter("APPROVED")}
-            className={`rounded-xl border p-5 shadow-sm transition-all cursor-pointer ${
+            className={`rounded-2xl border p-5 shadow-xs transition-all cursor-pointer ${
               statusFilter === "APPROVED"
                 ? "border-emerald-400 bg-emerald-50/60 ring-2 ring-emerald-400/20"
-                : "border-gray-200 bg-white hover:border-emerald-300"
+                : "border-gray-200/80 bg-white hover:border-emerald-300"
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Approved Leaves
                 </p>
                 <p className="mt-1 text-2xl font-bold text-emerald-600">{approvedCount}</p>
               </div>
-              <div className="rounded-lg bg-emerald-100/80 p-3 text-emerald-600">
+              <div className="rounded-xl bg-emerald-100/80 p-3 text-emerald-600">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
             </div>
@@ -315,20 +367,20 @@ export default function LeaveApprovalsPage() {
 
           <div
             onClick={() => setStatusFilter("REJECTED")}
-            className={`rounded-xl border p-5 shadow-sm transition-all cursor-pointer ${
+            className={`rounded-2xl border p-5 shadow-xs transition-all cursor-pointer ${
               statusFilter === "REJECTED"
                 ? "border-rose-400 bg-rose-50/60 ring-2 ring-rose-400/20"
-                : "border-gray-200 bg-white hover:border-rose-300"
+                : "border-gray-200/80 bg-white hover:border-rose-300"
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Rejected Leaves
                 </p>
                 <p className="mt-1 text-2xl font-bold text-rose-600">{rejectedCount}</p>
               </div>
-              <div className="rounded-lg bg-rose-100/80 p-3 text-rose-600">
+              <div className="rounded-xl bg-rose-100/80 p-3 text-rose-600">
                 <XCircle className="h-6 w-6" />
               </div>
             </div>
@@ -336,15 +388,15 @@ export default function LeaveApprovalsPage() {
         </div>
 
         {/* View Mode & Filter Control Bar */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
+            <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200/80">
               <button
                 onClick={() => setViewMode("calendar")}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   viewMode === "calendar"
-                    ? "bg-white text-gray-900 shadow-sm font-bold"
+                    ? "bg-white text-gray-900 shadow-xs font-bold"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -355,7 +407,7 @@ export default function LeaveApprovalsPage() {
                 onClick={() => setViewMode("table")}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   viewMode === "table"
-                    ? "bg-white text-gray-900 shadow-sm font-bold"
+                    ? "bg-white text-gray-900 shadow-xs font-bold"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -367,22 +419,22 @@ export default function LeaveApprovalsPage() {
             {/* Calendar Month Navigation */}
             {viewMode === "calendar" && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-gray-50 border border-gray-200/80 rounded-xl p-1">
                   <button
                     onClick={handlePrevMonth}
-                    className="p-1.5 text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-600 hover:bg-gray-200/60 rounded-lg transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleTodayMonth}
-                    className="px-2.5 py-1 text-xs font-bold text-[#D3232A] hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                    className="px-2.5 py-1 text-xs font-bold text-[#D3232A] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                   >
                     Today
                   </button>
                   <button
                     onClick={handleNextMonth}
-                    className="p-1.5 text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-600 hover:bg-gray-200/60 rounded-lg transition-colors cursor-pointer"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -407,8 +459,8 @@ export default function LeaveApprovalsPage() {
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                     statusFilter === st
-                      ? "bg-[#D3232A] text-white shadow-xs"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-[#D3232A] text-white shadow-xs font-bold"
+                      : "bg-gray-100/80 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   {st === "REQUESTED" ? "PENDING" : st}
@@ -420,20 +472,21 @@ export default function LeaveApprovalsPage() {
 
         {/* CALENDAR VIEW GRID */}
         {viewMode === "calendar" && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
             {/* Days of Week Header */}
             <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 text-center">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
-                <div key={dayName} className="py-3 text-xs font-bold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                <div key={dayName} className="py-3 text-xs font-bold text-gray-600 uppercase tracking-wider border-r border-gray-200/60 last:border-r-0">
                   {dayName}
                 </div>
               ))}
             </div>
 
             {/* Grid Date Cells */}
-            <div className="grid grid-cols-7 divide-x divide-y divide-gray-200 bg-gray-100">
+            <div className="grid grid-cols-7 divide-x divide-y divide-gray-200/60 bg-gray-100/60">
               {monthGridDays.map((dayItem, idx) => {
                 const isToday = dayItem.dateStr === todayStr;
+                const isPastDate = dayItem.isPast;
 
                 // Leaves overlapping on this day
                 const leavesOnDate = filteredLeaves.filter((l: any) => {
@@ -446,8 +499,10 @@ export default function LeaveApprovalsPage() {
                   <div
                     key={idx}
                     className={`min-h-[120px] p-2.5 transition-colors relative flex flex-col justify-between group ${
-                      !dayItem.isCurrentMonth
-                        ? "bg-gray-50/60 text-gray-400"
+                      isPastDate
+                        ? "bg-gray-50/50 text-gray-400 opacity-70"
+                        : !dayItem.isCurrentMonth
+                        ? "bg-gray-50/80 text-gray-400"
                         : isToday
                         ? "bg-red-50/40"
                         : "bg-white text-gray-800 hover:bg-slate-50/80"
@@ -460,30 +515,38 @@ export default function LeaveApprovalsPage() {
                           isToday
                             ? "bg-[#D3232A] text-white shadow-xs"
                             : dayItem.isCurrentMonth
-                            ? "text-gray-800"
+                            ? isPastDate
+                              ? "text-gray-400"
+                              : "text-gray-800"
                             : "text-gray-400"
                         }`}
                       >
                         {dayItem.dayNum}
                       </span>
 
-                      {/* Click Date to Apply for Leave */}
-                      <button
-                        onClick={() => {
-                          setLeaveForm({
-                            employeeId: currentEmployee?.id || "",
-                            startDate: dayItem.dateStr,
-                            endDate: dayItem.dateStr,
-                            reason: "",
-                          });
-                          setShowCreateModal(true);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-[#D3232A] hover:bg-red-100 rounded-md text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer"
-                        title="Apply Leave for this date"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="hidden lg:inline">Leave</span>
-                      </button>
+                      {/* Click Date to Apply for Leave (Only for Employees on Today & Future Dates) */}
+                      {!isManagerOrOwner && !isPastDate ? (
+                        <button
+                          onClick={() => {
+                            setLeaveForm({
+                              employeeId: currentEmployee?.id || "",
+                              startDate: dayItem.dateStr,
+                              endDate: dayItem.dateStr,
+                              reason: "",
+                            });
+                            setShowCreateModal(true);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-[#D3232A] hover:bg-red-100 rounded-md text-[11px] font-semibold flex items-center gap-0.5 cursor-pointer"
+                          title="Apply Leave for this date"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          <span className="hidden lg:inline">Leave</span>
+                        </button>
+                      ) : isPastDate ? (
+                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5" title="Past dates are locked">
+                          <Lock className="h-3 w-3 text-gray-300" />
+                        </span>
+                      ) : null}
                     </div>
 
                     {/* Cell Body: Leave Pills */}
@@ -496,7 +559,7 @@ export default function LeaveApprovalsPage() {
                             <div
                               key={leave.id}
                               onClick={() => setSelectedLeaveDetail(leave)}
-                              className={`p-1.5 rounded-lg border text-[11px] font-semibold shadow-2xs cursor-pointer transition-all hover:shadow-sm ${
+                              className={`p-1.5 rounded-lg border text-[11px] font-semibold shadow-2xs cursor-pointer transition-all hover:shadow-xs ${
                                 isApproved
                                   ? "bg-emerald-50 border-emerald-300 text-emerald-900 hover:border-emerald-500"
                                   : isRejected
@@ -515,7 +578,7 @@ export default function LeaveApprovalsPage() {
                           );
                         })
                       ) : (
-                        <div className="text-[11px] text-gray-300 italic pt-1 text-center font-mono">
+                        <div className="text-[10px] text-gray-300 italic pt-1 text-center font-mono">
                           No leaves
                         </div>
                       )}
@@ -529,26 +592,20 @@ export default function LeaveApprovalsPage() {
 
         {/* TABLE VIEW */}
         {viewMode === "table" && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-gray-600">
-                <thead className="bg-gray-50 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-200">
+                <thead className="bg-gray-50 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-200/80">
                   <tr>
-                    <th className="px-6 py-3 font-semibold">Employee</th>
-                    <th className="px-6 py-3 font-semibold">Duration</th>
-                    <th className="px-6 py-3 font-semibold">Reason</th>
-                    <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-6 py-3.5 font-semibold">Employee</th>
+                    <th className="px-6 py-3.5 font-semibold">Duration Span</th>
+                    <th className="px-6 py-3.5 font-semibold">Reason</th>
+                    <th className="px-6 py-3.5 font-semibold">Status</th>
+                    <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {isLeavesLoading ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                        Loading leave requests...
-                      </td>
-                    </tr>
-                  ) : paginatedLeaves.length === 0 ? (
+                <tbody className="divide-y divide-gray-200/60">
+                  {paginatedLeaves.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                         No leave requests found.
@@ -558,27 +615,18 @@ export default function LeaveApprovalsPage() {
                     paginatedLeaves.map((l: any) => (
                       <tr key={l.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-bold text-gray-900">
                             {l.employee?.name || "Staff Member"}
                           </div>
-                          <div className="text-xs text-gray-400">{l.employee?.role}</div>
+                          <div className="text-xs text-gray-400">{l.employee?.role || "Staff"}</div>
                         </td>
-                        <td className="px-6 py-4 text-gray-700 font-medium">
-                          {new Date(l.startDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                          })}{" "}
-                          -{" "}
-                          {new Date(l.endDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                        <td className="px-6 py-4 text-gray-800 font-semibold">
+                          {formatLeaveSpan(l.startDate, l.endDate)}
                         </td>
                         <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{l.reason}</td>
                         <td className="px-6 py-4">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                               l.status === "APPROVED"
                                 ? "bg-emerald-100 text-emerald-800"
                                 : l.status === "REJECTED"
@@ -596,14 +644,14 @@ export default function LeaveApprovalsPage() {
                                 <button
                                   onClick={() => handleStatusUpdate(l.id, "APPROVED")}
                                   disabled={isUpdating}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
                                 >
                                   Approve
                                 </button>
                                 <button
                                   onClick={() => handleStatusUpdate(l.id, "REJECTED")}
                                   disabled={isUpdating}
-                                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
                                 >
                                   Reject
                                 </button>
@@ -652,7 +700,7 @@ export default function LeaveApprovalsPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={safeCurrentPage === 1}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -662,7 +710,7 @@ export default function LeaveApprovalsPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safeCurrentPage >= totalPages}
-                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                  className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -674,7 +722,7 @@ export default function LeaveApprovalsPage() {
         {/* Modal: Leave Detail & Approval Popover */}
         {selectedLeaveDetail && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 p-6 space-y-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-9 w-9 rounded-full bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center font-bold text-sm">
@@ -690,17 +738,17 @@ export default function LeaveApprovalsPage() {
                 </button>
               </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Duration Span</span>
-                  <span className="font-bold text-gray-900">
-                    {selectedLeaveDetail.startDate} to {selectedLeaveDetail.endDate}
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">Duration Span</span>
+                  <span className="font-bold text-gray-900 text-xs">
+                    {formatLeaveSpan(selectedLeaveDetail.startDate, selectedLeaveDetail.endDate)}
                   </span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-100">
-                  <span className="text-gray-500">Current Status</span>
+                <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">Current Status</span>
                   <span
-                    className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
+                    className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${
                       selectedLeaveDetail.status === "APPROVED"
                         ? "bg-emerald-100 text-emerald-800"
                         : selectedLeaveDetail.status === "REJECTED"
@@ -712,19 +760,19 @@ export default function LeaveApprovalsPage() {
                   </span>
                 </div>
                 <div className="pt-1">
-                  <span className="text-gray-500 block mb-1">Reason:</span>
-                  <p className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-gray-800 text-xs leading-relaxed">
-                    {selectedLeaveDetail.reason}
+                  <span className="text-gray-500 font-medium block mb-1">Reason:</span>
+                  <p className="bg-gray-50/80 p-3 rounded-xl border border-gray-200/80 text-gray-800 text-xs leading-relaxed">
+                    {selectedLeaveDetail.reason || "No reason specified."}
                   </p>
                 </div>
               </div>
 
               {isManagerOrOwner && selectedLeaveDetail.status === "REQUESTED" && (
-                <div className="pt-2 flex gap-3 border-t border-gray-100">
+                <div className="pt-3 flex gap-3 border-t border-gray-100">
                   <button
                     onClick={() => handleStatusUpdate(selectedLeaveDetail.id, "APPROVED")}
                     disabled={isUpdating}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     Approve Leave
@@ -732,7 +780,7 @@ export default function LeaveApprovalsPage() {
                   <button
                     onClick={() => handleStatusUpdate(selectedLeaveDetail.id, "REJECTED")}
                     disabled={isUpdating}
-                    className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <XCircle className="h-4 w-4" />
                     Reject Leave
@@ -746,48 +794,35 @@ export default function LeaveApprovalsPage() {
         {/* Modal: Request Leave */}
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-bold text-gray-900">New Leave Application</h3>
+                <h3 className="text-lg font-bold text-gray-900">Apply for Leave</h3>
                 <button onClick={() => setShowCreateModal(false)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400" />
+                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
               <form onSubmit={handleCreateLeaveSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {!isManagerOrOwner ? "Applicant Employee" : "Select Employee"}
-                  </label>
-                  {!isManagerOrOwner ? (
-                    <input
-                      type="text"
-                      readOnly
-                      disabled
-                      value={
-                        currentEmployee
-                          ? `${currentEmployee.name} (${currentEmployee.role})`
-                          : user?.name
-                          ? `${user.name} (${user.role})`
-                          : "Logged-in Employee"
-                      }
-                      className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-700 font-medium rounded-lg text-sm cursor-not-allowed"
-                    />
-                  ) : (
+                {isManagerOrOwner && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Employee
+                    </label>
                     <select
                       required
                       value={leaveForm.employeeId}
                       onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
-                      <option value="">-- Select Employee --</option>
+                      <option value="">-- Choose Employee --</option>
                       {employees.map((e: any) => (
                         <option key={e.id} value={e.id}>
-                          {e.name} {e.role ? `(${e.role})` : ""}
+                          {e.name}
                         </option>
                       ))}
                     </select>
-                  )}
-                </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -796,9 +831,10 @@ export default function LeaveApprovalsPage() {
                     <input
                       type="date"
                       required
+                      min={todayStr}
                       value={leaveForm.startDate}
                       onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                   <div>
@@ -808,12 +844,14 @@ export default function LeaveApprovalsPage() {
                     <input
                       type="date"
                       required
+                      min={leaveForm.startDate || todayStr}
                       value={leaveForm.endDate}
                       onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reason for Leave
@@ -821,24 +859,25 @@ export default function LeaveApprovalsPage() {
                   <textarea
                     required
                     rows={3}
-                    placeholder="Provide detailed reason..."
+                    placeholder="Provide a detailed reason for leave..."
                     value={leaveForm.reason}
                     onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? "Submitting..." : "Submit Leave Request"}
                   </button>

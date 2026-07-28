@@ -373,10 +373,10 @@ export default function MasterDashboardPage(props?: PageProps) {
           </div>
 
           {/* Main Analytics Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SalesForecastChart data={salesData} isLoading={isSalesLoading} />
-            <InventoryForecastChart data={inventoryData} isLoading={isInventoryLoading} />
-          </div>
+
+          <SalesForecastChart data={salesData} isLoading={isSalesLoading} />
+          <InventoryForecastChart data={inventoryData} isLoading={isInventoryLoading} />
+
 
           {/* Real-time Insights & Activity Feed */}
           {(() => {

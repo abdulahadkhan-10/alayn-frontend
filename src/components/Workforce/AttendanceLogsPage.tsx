@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
+import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
   useClockInMutation,
   useClockOutMutation,
@@ -19,10 +20,12 @@ import {
   UserCheck,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
+import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 
 const DEMO_ATTENDANCE_LOGS = [
   {
@@ -51,7 +54,34 @@ const DEMO_ATTENDANCE_LOGS = [
   },
 ];
 
-import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+// Clean Date Formatter for Attendance Logs
+function formatAttendanceDate(rawDate: string): string {
+  if (!rawDate) return "—";
+  try {
+    const key = rawDate.split("T")[0];
+    const d = new Date(key);
+    if (isNaN(d.getTime())) return rawDate;
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return rawDate;
+  }
+}
+
+// Clean Time Formatter for Clock In / Clock Out
+function formatAttendanceTime(rawTime: string | null | undefined): string {
+  if (!rawTime || rawTime === "-- : --" || rawTime === "--:--") return "-- : --";
+  // If already formatted like "09:00 AM" or "05:30 PM"
+  if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(String(rawTime).trim())) {
+    return String(rawTime).trim();
+  }
+  try {
+    const d = new Date(rawTime);
+    if (isNaN(d.getTime())) return String(rawTime);
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  } catch {
+    return String(rawTime);
+  }
+}
 
 export default function AttendanceLogsPage() {
   const { activeBranch } = useBranch();
@@ -189,13 +219,25 @@ export default function AttendanceLogsPage() {
     }
   };
 
+  // Render Skeleton Loader while API is fetching
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <WorkforceHeaderNav />
+          <WorkforceSkeleton />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Attendance & Punch Logs</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Attendance & Punch Logs</h1>
             <p className="text-sm text-gray-500">
               Clock in/out for your assigned shifts and review your attendance history.
             </p>
@@ -207,7 +249,7 @@ export default function AttendanceLogsPage() {
 
         {/* Feedback Message */}
         {feedbackMsg && (
-          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm font-medium">
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm font-medium shadow-xs">
             <span>{feedbackMsg}</span>
             <button onClick={() => setFeedbackMsg(null)} className="text-emerald-600 hover:text-emerald-900 cursor-pointer font-bold text-base">
               &times;
@@ -217,7 +259,7 @@ export default function AttendanceLogsPage() {
 
         {/* Error Message Banner */}
         {errorMsg && (
-          <div className="flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-lg text-sm font-medium shadow-sm">
+          <div className="flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm font-medium shadow-xs">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-rose-600 flex-shrink-0" />
               <span>{errorMsg}</span>
@@ -272,7 +314,7 @@ export default function AttendanceLogsPage() {
 
             {/* Quick Metrics */}
             <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">This Month's Attendance</span>
                   <UserCheck className="h-5 w-5 text-emerald-600" />
@@ -283,7 +325,7 @@ export default function AttendanceLogsPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Hours Worked</span>
                   <Timer className="h-5 w-5 text-indigo-600" />
@@ -294,7 +336,7 @@ export default function AttendanceLogsPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between sm:col-span-2">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between sm:col-span-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Shift Guidelines</span>
                   <Clock className="h-5 w-5 text-amber-600" />
@@ -308,7 +350,7 @@ export default function AttendanceLogsPage() {
         ) : (
           /* Metrics Cards for Business Owner / Manager */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Overall Attendance Rate</span>
                 <UserCheck className="h-5 w-5 text-emerald-600" />
@@ -319,7 +361,7 @@ export default function AttendanceLogsPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Staff Work Hours</span>
                 <Timer className="h-5 w-5 text-indigo-600" />
@@ -330,7 +372,7 @@ export default function AttendanceLogsPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Attendance Policy</span>
                 <Clock className="h-5 w-5 text-amber-600" />
@@ -343,7 +385,7 @@ export default function AttendanceLogsPage() {
         )}
 
         {/* Personal Attendance Logs Table */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-[#D3232A]" />
@@ -353,7 +395,7 @@ export default function AttendanceLogsPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
+              <thead className="bg-gray-50 text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200/80">
                 <tr>
                   <th className="px-6 py-3.5">Date</th>
                   {isManagerOrOwner && <th className="px-6 py-3.5">Employee</th>}
@@ -363,7 +405,7 @@ export default function AttendanceLogsPage() {
                   <th className="px-6 py-3.5">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200/60">
                 {paginatedLogs.length === 0 ? (
                   <tr>
                     <td colSpan={isManagerOrOwner ? 6 : 5} className="px-6 py-8 text-center text-xs text-gray-500">
@@ -373,17 +415,17 @@ export default function AttendanceLogsPage() {
                 ) : (
                   paginatedLogs.map((log: any) => (
                     <tr key={log.id} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{log.date}</td>
+                      <td className="px-6 py-4 font-bold text-gray-900">{formatAttendanceDate(log.date)}</td>
                       {isManagerOrOwner && (
                         <td className="px-6 py-4 font-semibold text-gray-900">
                           {log.employee?.name || "Staff Member"}
                         </td>
                       )}
-                      <td className="px-6 py-4 text-gray-600">{log.checkInTime || log.clockIn || "09:00 AM"}</td>
-                      <td className="px-6 py-4 text-gray-600">{log.checkOutTime || log.clockOut || "-- : --"}</td>
+                      <td className="px-6 py-4 text-gray-700 font-medium">{formatAttendanceTime(log.clockIn || log.checkInTime)}</td>
+                      <td className="px-6 py-4 text-gray-700 font-medium">{formatAttendanceTime(log.clockOut || log.checkOutTime)}</td>
                       <td className="px-6 py-4 font-mono text-xs text-gray-700">{log.totalHours || "8 hrs"}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${log.status === "PRESENT" ? "bg-emerald-100 text-emerald-800" : log.status === "LATE" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800"}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${log.status === "PRESENT" ? "bg-emerald-100 text-emerald-800" : log.status === "LATE" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800"}`}>
                           {log.status || "PRESENT"}
                         </span>
                       </td>
@@ -422,7 +464,7 @@ export default function AttendanceLogsPage() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={safeCurrentPage === 1}
-                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -432,7 +474,7 @@ export default function AttendanceLogsPage() {
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safeCurrentPage >= totalPages}
-                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors"
+                className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
