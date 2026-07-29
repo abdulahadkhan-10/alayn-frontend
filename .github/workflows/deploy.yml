@@ -50,43 +50,17 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          timeout: 60s
-          command_timeout: 10m
           script: |
             set -e
-            echo "==> Navigating to root project directory..."
+            echo "==> Navigating to project directory..."
             cd /opt/apps/projects/ALAYN
 
             echo "==> Pulling latest frontend image..."
             docker compose pull alayn-frontend
 
-            echo "==> Force-recreating frontend container..."
+            echo "==> Recreating frontend container..."
             docker compose up -d --force-recreate --remove-orphans alayn-frontend
 
-            echo "==> Verifying container health status..."
-            MAX_RETRIES=15
-            COUNT=0
-            until [ $COUNT -ge $MAX_RETRIES ]
-            do
-              STATUS=$(docker inspect --format='{{.State.Status}}' alayn-frontend 2>/dev/null || echo "not_found")
-              if [ "$STATUS" = "running" ]; then
-                HEALTH=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}healthy{{end}}' alayn-frontend 2>/dev/null || echo "healthy")
-                if [ "$HEALTH" = "healthy" ]; then
-                  echo "==> Container alayn-frontend is running and healthy!"
-                  break
-                fi
-              fi
-              echo "Waiting for container to be ready... (attempt $((COUNT+1))/$MAX_RETRIES)"
-              COUNT=$((COUNT+1))
-              sleep 3
-            done
-
-            if [ $COUNT -eq $MAX_RETRIES ]; then
-              echo "Error: Container alayn-frontend failed to reach healthy state!"
-              docker logs --tail 50 alayn-frontend
-              exit 1
-            fi
-
-            echo "==> Cleaning up unused Docker images..."
+            echo "==> Pruning unused Docker images..."
             docker image prune -af
+
