@@ -4,46 +4,11 @@ on:
   push:
     branches: ["main"]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: abdulahadkhan-10/alayn-frontend
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix=
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -54,17 +19,11 @@ jobs:
             set -e
             echo "==> Updating frontend repository..."
             cd /opt/apps/projects/ALAYN/frontend
-            git pull origin main || true
+            git pull origin main
 
-            echo "==> Navigating to root project directory..."
+            echo "==> Building and deploying frontend container..."
             cd /opt/apps/projects/ALAYN
+            docker compose up -d --build alayn-frontend
 
-            echo "==> Pulling latest frontend image from GHCR..."
-            docker compose pull alayn-frontend
-
-            echo "==> Recreating frontend container..."
-            docker compose up -d --force-recreate --remove-orphans alayn-frontend
-
-            echo "==> Pruning unused Docker images..."
-            docker image prune -af
-
+            echo "==> Cleaning up unused Docker images..."
+            docker image prune -f
