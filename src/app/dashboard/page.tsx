@@ -54,6 +54,8 @@ export default function MasterDashboardPage(props?: PageProps) {
       router.replace("/pos");
     } else if (user?.role === "KITCHEN") {
       router.replace("/kitchen");
+    } else if (user?.role === "SUPPLIER") {
+      router.replace("/supplier");
     }
   }, [user?.role, router]);
 

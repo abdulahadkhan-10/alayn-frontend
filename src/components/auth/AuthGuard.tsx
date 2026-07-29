@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGetMeQuery } from "@/redux/slices/authApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
@@ -17,11 +17,21 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  // If user profile is already present in Redux state, render children instantly (no loader on tab switch)
   const hasUser = !!user || isAuthenticated;
+
+  // Enforce a minimum 2-second loader time on initial load / refresh
+  const [isMinLoading, setIsMinLoading] = useState(true);
 
   // Execute getMe query in background to validate HTTP-Only cookie session
   const { data: meData, isLoading, isError } = useGetMeQuery(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinLoading(false);
+    }, 800); // 800ms snappy display time
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync user state on getMe success
   useEffect(() => {
@@ -33,29 +43,25 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [meData, dispatch]);
 
-  // Handle unauthorized session -> logout Redux state and redirect to /login
+  // Handle unauthorized session -> logout Redux state and redirect to /login after 2-second loader
   useEffect(() => {
-    if (isError || (!isLoading && !isAuthenticated && !user)) {
-      console.warn("AuthGuard: Session validation failed or unauthenticated. Redirecting to /login...");
+    if (!isMinLoading && (isError || (!isLoading && !hasUser))) {
+      console.warn("AuthGuard: Unauthenticated session. Redirecting to /login...");
       dispatch(logout());
       router.replace("/login");
     }
-  }, [isError, isLoading, isAuthenticated, user, dispatch, router]);
+  }, [isError, isLoading, hasUser, isMinLoading, dispatch, router]);
 
-  // If user is already loaded in Redux state, render children IMMEDIATELY without flashing any loader screen on tab switch!
-  if (hasUser) {
-    return <>{children}</>;
-  }
-
-  // On fresh cold load when user is not populated yet, display FullDashboardSkeleton layout
-  if (isLoading) {
+  // Show FullDashboardSkeleton for at least 2 seconds or while querying session
+  if (isMinLoading || isLoading) {
     return <FullDashboardSkeleton />;
   }
 
-  // If session validation failed or unauthenticated, return null while redirecting
+  // If session validation failed or unauthenticated after min loading time, show FullDashboardSkeleton while redirecting
   if (isError || !hasUser) {
-    return null;
+    return <FullDashboardSkeleton />;
   }
 
+  // Render protected children only once authenticated and 2-second min loader time has elapsed
   return <>{children}</>;
 }

@@ -192,25 +192,42 @@ export default function CreatePurchaseOrderModal({
           )}
 
           {/* Vendor Selection (Soft Blue/Slate Tint Box) */}
-          <div className="flex items-center gap-2.5 bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
-            <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
-            <label className="text-xs font-bold text-slate-700 shrink-0">Vendor:</label>
-            {isLoadingSuppliers ? (
-              <span className="text-xs text-zinc-400">Loading vendors...</span>
-            ) : (
-              <select
-                required
-                value={selectedSupplierId}
-                onChange={(e) => setSelectedSupplierId(e.target.value)}
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-900 bg-white focus:border-[#D3232A] focus:outline-none shadow-2xs"
-              >
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} {s.category ? `(${s.category})` : ""}
-                  </option>
-                ))}
-              </select>
-            )}
+          <div className="space-y-1.5 bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
+            <div className="flex items-center gap-2.5">
+              <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
+              <label className="text-xs font-bold text-slate-700 shrink-0">Vendor:</label>
+              {isLoadingSuppliers ? (
+                <span className="text-xs text-zinc-400">Loading vendors...</span>
+              ) : (
+                <select
+                  required
+                  value={selectedSupplierId}
+                  onChange={(e) => setSelectedSupplierId(e.target.value)}
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-900 bg-white focus:border-[#D3232A] focus:outline-none shadow-2xs cursor-pointer"
+                >
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} [{s.type === "ONLINE" ? "⚡ ONLINE Vendor" : "📦 OFFLINE Vendor"}]{s.category ? ` • ${s.category}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {(() => {
+              const selectedSup = suppliers.find((s) => s.id === selectedSupplierId);
+              if (!selectedSup) return null;
+              return selectedSup.type === "ONLINE" ? (
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50/90 border border-emerald-200/80 px-2.5 py-1 rounded-lg">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>⚡ ONLINE Vendor (Direct portal sync: Vendor will receive & pack order online)</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-slate-100/90 border border-slate-200 px-2.5 py-1 rounded-lg">
+                  <span>📦 OFFLINE Vendor (Manual order fulfillment via phone or paper invoice)</span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Add Item Row (Soft Amber/Red Tint Box) */}
