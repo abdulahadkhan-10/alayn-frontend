@@ -1,22 +1,35 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Install ALL dependencies (including devDeps needed to build)
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build Next.js application
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-EXPOSE 3000
+# --- Production Stage ---
+FROM node:20-alpine AS production
 
+WORKDIR /app
+
+# Install ONLY production dependencies (no devDeps)
+COPY package*.json ./
+RUN npm install --only=production --legacy-peer-deps
+
+# Copy the built Next.js output from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["npm", "start"]
+EXPOSE 3000
+
+CMD ["./node_modules/.bin/next", "start"]
