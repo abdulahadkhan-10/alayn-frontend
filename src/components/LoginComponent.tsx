@@ -38,6 +38,8 @@ export default function LoginComponent() {
         router.replace("/pos");
       } else if (role === "KITCHEN") {
         router.replace("/kitchen");
+      } else if (role === "SUPPLIER") {
+        router.replace("/supplier");
       } else {
         router.replace("/dashboard");
       }

@@ -9,6 +9,11 @@ export interface SupplierApi {
   email: string;
   address: string;
   category?: string;
+  type?: "ONLINE" | "OFFLINE";
+  userId?: string;
+  password?: string;
+  initialPassword?: string;
+  user?: { id: string; email: string; name: string; role: string };
   outletId?: string;
   outlet?: { id: string; name: string };
   createdAt?: string;
@@ -19,7 +24,9 @@ export interface PurchaseOrderItemApi {
   purchaseOrderId?: string;
   itemId: string;
   orderedQuantity: number;
+  dispatchedQuantity?: number;
   receivedQuantity?: number;
+  damagedQuantity?: number;
   unitCostPaise: number;
   item?: InventoryItemApi;
 }
@@ -27,8 +34,21 @@ export interface PurchaseOrderItemApi {
 export interface PurchaseOrderApi {
   id: string;
   supplierId: string;
-  status: "DRAFT" | "SENT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CLOSED";
+  status:
+    | "DRAFT"
+    | "SENT"
+    | "PACKING"
+    | "PARTIALLY_DISPATCHED"
+    | "DISPATCHED"
+    | "OUT_OF_STOCK"
+    | "PARTIALLY_RECEIVED"
+    | "RECEIVED"
+    | "CLOSED"
+    | "CANCELLED";
   totalAmountPaise: number;
+  supplierNotes?: string;
+  dispatchDate?: string;
+  expectedNextDeliveryDate?: string;
   outletId?: string;
   outlet?: { id: string; name: string };
   supplier?: { id: string; name: string };
@@ -51,6 +71,7 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         body: data,
       }),
       invalidatesTags: ["Supplier"],
+      transformResponse: (response: any) => response?.data ?? response,
     }),
     deleteSupplier: builder.mutation<void, string>({
       query: (id) => ({
@@ -87,7 +108,13 @@ export const procurementApiSlice = baseApi.injectEndpoints({
       PurchaseOrderApi,
       {
         id: string;
-        items: { itemId: string; receivedQuantity: number; batchNumber: string; expiryDate: string }[];
+        items: {
+          itemId: string;
+          receivedQuantity: number;
+          damagedQuantity?: number;
+          batchNumber: string;
+          expiryDate: string;
+        }[];
       }
     >({
       query: ({ id, items }) => ({
@@ -96,6 +123,30 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         body: { items },
       }),
       invalidatesTags: ["PurchaseOrder", "Inventory"],
+    }),
+
+    // --- Supplier Portal RTK Queries ---
+    getSupplierPortalOrders: builder.query<PurchaseOrderApi[], void>({
+      query: () => "/purchase-orders/portal/orders",
+      providesTags: ["PurchaseOrder"],
+      transformResponse: (response: any) => response?.data ?? response ?? [],
+    }),
+    updateSupplierPOStatus: builder.mutation<
+      PurchaseOrderApi,
+      {
+        id: string;
+        status: "PACKING" | "OUT_OF_STOCK" | "PARTIALLY_DISPATCHED" | "DISPATCHED";
+        supplierNotes?: string;
+        expectedNextDeliveryDate?: string;
+        items?: { itemId: string; dispatchedQuantity: number }[];
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/purchase-orders/portal/orders/${id}/status`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["PurchaseOrder"],
     }),
   }),
 });
@@ -108,4 +159,6 @@ export const {
   useGetPurchaseOrdersQuery,
   useCreatePurchaseOrderMutation,
   useReceivePOItemMutation,
+  useGetSupplierPortalOrdersQuery,
+  useUpdateSupplierPOStatusMutation,
 } = procurementApiSlice;

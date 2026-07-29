@@ -3,12 +3,13 @@
 import React, { useState, useCallback, useEffect, memo } from "react";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
+import AuthGuard from "../auth/AuthGuard";
 
 const EXPANDED = 244;
 const COLLAPSED = 72;
 const LS_KEY = "alayn_sidebar_collapsed";
 
-function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Always start false (matches SSR), then sync from localStorage after mount
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -38,7 +39,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F4F7F9]">
-
       {/* ─── Mobile backdrop ─────────────────── */}
       {mobileSidebarOpen && (
         <div
@@ -48,11 +48,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* ─── Sidebar wrapper ─────────────────────────────────────────────
-          Strategy: fixed pixel width container, sidebar inside is w-full.
-          Width transition happens here — GPU composited via contain:layout.
-          This avoids re-layout of sibling content on every animation frame.
-      ──────────────────────────────────────────────────────────────────── */}
+      {/* ─── Sidebar wrapper ───────────────────────────────────────────── */}
       <div
         suppressHydrationWarning
         className={[
@@ -85,6 +81,14 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+  );
+}
+
+function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGuard>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </AuthGuard>
   );
 }
 

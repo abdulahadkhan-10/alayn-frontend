@@ -26,16 +26,23 @@ export default function GuestGuard({ children }: GuestGuardProps) {
       const userData = (meData as any)?.data || meData;
       if (userData?.user || userData?.id) {
         dispatch(setCredentials(userData));
-        router.replace("/dashboard");
+        const role = userData?.user?.role || userData?.role;
+        if (role === "STAFF") router.replace("/pos");
+        else if (role === "KITCHEN") router.replace("/kitchen");
+        else if (role === "SUPPLIER") router.replace("/supplier");
+        else router.replace("/dashboard");
       }
     }
   }, [meData, dispatch, router]);
 
   useEffect(() => {
     if (hasUser) {
-      router.replace("/dashboard");
+      if (user?.role === "STAFF") router.replace("/pos");
+      else if (user?.role === "KITCHEN") router.replace("/kitchen");
+      else if (user?.role === "SUPPLIER") router.replace("/supplier");
+      else router.replace("/dashboard");
     }
-  }, [hasUser, router]);
+  }, [hasUser, user?.role, router]);
 
   // If user is already authenticated, return null while redirecting to /dashboard
   if (hasUser) {

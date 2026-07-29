@@ -12,6 +12,13 @@ import Link from "next/link";
 export default function CreateOutletPage() {
   const user = useAppSelector((state) => state.auth.user);
   const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
+  const isSupplier = user?.role === "SUPPLIER";
+
+  React.useEffect(() => {
+    if (isSupplier) {
+      window.location.href = "/supplier";
+    }
+  }, [isSupplier]);
 
   const { refreshBranches, branches } = useBranch();
   const [createOutlet, { isLoading: loading }] = useCreateOutletMutation();

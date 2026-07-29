@@ -112,11 +112,12 @@ export default function ProcurementPage() {
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
   const [viewingSupplier, setViewingSupplier] = useState<SupplierApi | null>(null);
 
-  // Search, Status Filter, Category & Outlet Filter states
+  // Search, Status Filter, Category, Type & Outlet Filter states
   const [poSearchQuery, setPoSearchQuery] = useState("");
   const [poStatusFilter, setPoStatusFilter] = useState("ALL");
   const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
   const [selectedSupplierCategoryFilter, setSelectedSupplierCategoryFilter] = useState("ALL");
+  const [selectedSupplierTypeFilter, setSelectedSupplierTypeFilter] = useState<"ALL" | "ONLINE" | "OFFLINE">("ALL");
   const [procurementOutletFilter, setProcurementOutletFilter] = useState("ALL");
 
   // Pagination states
@@ -198,26 +199,71 @@ export default function ProcurementPage() {
         selectedSupplierCategoryFilter === "ALL" ||
         (s.category && s.category.toLowerCase().trim() === selectedSupplierCategoryFilter.toLowerCase().trim());
 
+      const matchesType =
+        selectedSupplierTypeFilter === "ALL" ||
+        (s.type || "OFFLINE") === selectedSupplierTypeFilter;
+
       const matchesOutlet =
         !isAllOutlets ||
         procurementOutletFilter === "ALL" ||
         s.outlet?.id === procurementOutletFilter ||
         s.outletId === procurementOutletFilter;
 
-      return matchesSearch && matchesCategory && matchesOutlet;
+      return matchesSearch && matchesCategory && matchesType && matchesOutlet;
     });
-  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, isAllOutlets, procurementOutletFilter]);
+  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, isAllOutlets, procurementOutletFilter]);
 
   // Form states
-  const [supplierForm, setSupplierForm] = useState({ name: "", contactPerson: "", phone: "", email: "", address: "", category: "Dairy" });
-  const [receiveItemInputs, setReceiveItemInputs] = useState<{ [itemId: string]: { receivedQuantity: number; batchNumber: string; expiryDate: string } }>({});
+  const [supplierForm, setSupplierForm] = useState<{
+    name: string;
+    contactPerson: string;
+    phone: string;
+    email: string;
+    address: string;
+    category: string;
+    type: "ONLINE" | "OFFLINE";
+    password?: string;
+  }>({
+    name: "",
+    contactPerson: "",
+    phone: "",
+    email: "",
+    address: "",
+    category: "Dairy",
+    type: "OFFLINE",
+    password: "",
+  });
+
+  const [receiveItemInputs, setReceiveItemInputs] = useState<{
+    [itemId: string]: {
+      receivedQuantity: number;
+      damagedQuantity: number;
+      batchNumber: string;
+      expiryDate: string;
+    };
+  }>({});
 
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createSupplier(supplierForm).unwrap();
+      const res = await createSupplier(supplierForm).unwrap();
       setShowAddSupplierModal(false);
-      setSupplierForm({ name: "", contactPerson: "", phone: "", email: "", address: "", category: "Dairy" });
+      setSupplierForm({
+        name: "",
+        contactPerson: "",
+        phone: "",
+        email: "",
+        address: "",
+        category: "Dairy",
+        type: "OFFLINE",
+        password: "",
+      });
+
+      if (res?.initialPassword) {
+        alert(
+          `ONLINE Supplier registered successfully!\n\nLogin Email: ${res.email}\nTemporary Password: ${res.initialPassword}\n\nPlease share these credentials with the vendor.`
+        );
+      }
     } catch (err: any) {
       alert(err?.data?.message || "Failed to create supplier");
     }
@@ -235,11 +281,25 @@ export default function ProcurementPage() {
 
   const handleOpenReceive = (po: PurchaseOrderApi) => {
     setReceivingPO(po);
-    const initialInputs: { [itemId: string]: { receivedQuantity: number; batchNumber: string; expiryDate: string } } = {};
+    const initialInputs: {
+      [itemId: string]: {
+        receivedQuantity: number;
+        damagedQuantity: number;
+        batchNumber: string;
+        expiryDate: string;
+      };
+    } = {};
+
     po.items.forEach((item) => {
       const remaining = Math.max(0, (item.orderedQuantity || 0) - (item.receivedQuantity || 0));
+      const prefillQty =
+        item.dispatchedQuantity && item.dispatchedQuantity > 0
+          ? item.dispatchedQuantity
+          : remaining;
+
       initialInputs[item.itemId] = {
-        receivedQuantity: remaining,
+        receivedQuantity: prefillQty,
+        damagedQuantity: 0,
         batchNumber: generateTimestampBatchNo(item.item?.category),
         expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       };
@@ -263,10 +323,11 @@ export default function ProcurementPage() {
     }
 
     const itemsPayload = Object.entries(receiveItemInputs)
-      .filter(([_, input]) => Number(input.receivedQuantity) > 0)
+      .filter(([_, input]) => Number(input.receivedQuantity) > 0 || Number(input.damagedQuantity) > 0)
       .map(([itemId, input]) => ({
         itemId,
-        receivedQuantity: Number(input.receivedQuantity),
+        receivedQuantity: Number(input.receivedQuantity || 0),
+        damagedQuantity: Number(input.damagedQuantity || 0),
         batchNumber: input.batchNumber.trim(),
         expiryDate: input.expiryDate,
       }));
@@ -591,20 +652,61 @@ export default function ProcurementPage() {
         {/* TAB 2: SUPPLIERS */}
         {activeTab === "SUPPLIERS" && (
           <div className="space-y-4">
-            {/* Search & Category Dropdown Filter Bar */}
+            {/* Search, Type Filter Tabs & Category Dropdown Filter Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200 shadow-2xs">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search suppliers by name, contact, phone..."
-                  value={supplierSearchQuery}
-                  onChange={(e) => {
-                    setSupplierSearchQuery(e.target.value);
-                    setSupPage(1);
-                  }}
-                  className="w-full rounded-xl border border-zinc-200 pl-9 pr-3 py-2 text-xs text-zinc-800 focus:border-[#D3232A] focus:outline-none"
-                />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search suppliers by name, contact, phone..."
+                    value={supplierSearchQuery}
+                    onChange={(e) => {
+                      setSupplierSearchQuery(e.target.value);
+                      setSupPage(1);
+                    }}
+                    className="w-full rounded-xl border border-zinc-200 pl-9 pr-3 py-2 text-xs text-zinc-800 focus:border-[#D3232A] focus:outline-none"
+                  />
+                </div>
+
+                {/* ONLINE vs OFFLINE Filter Tabs */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-100/70 p-1 flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedSupplierTypeFilter("ALL"); setSupPage(1); }}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      selectedSupplierTypeFilter === "ALL"
+                        ? "bg-zinc-900 text-white shadow-2xs"
+                        : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                    }`}
+                  >
+                    All Vendors ({suppliers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedSupplierTypeFilter("ONLINE"); setSupPage(1); }}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      selectedSupplierTypeFilter === "ONLINE"
+                        ? "bg-emerald-600 text-white shadow-2xs"
+                        : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                    }`}
+                  >
+                    <Zap className="h-3 w-3 fill-current" />
+                    ONLINE ({suppliers.filter((s) => s.type === "ONLINE").length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedSupplierTypeFilter("OFFLINE"); setSupPage(1); }}
+                    className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      selectedSupplierTypeFilter === "OFFLINE"
+                        ? "bg-slate-700 text-white shadow-2xs"
+                        : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                    }`}
+                  >
+                    <User className="h-3 w-3" />
+                    OFFLINE ({suppliers.filter((s) => s.type !== "ONLINE").length})
+                  </button>
+                </div>
               </div>
 
               {/* Category Filter Dropdown */}
@@ -660,6 +762,7 @@ export default function ProcurementPage() {
                     onClick={() => {
                       setSupplierSearchQuery("");
                       setSelectedSupplierCategoryFilter("ALL");
+                      setSelectedSupplierTypeFilter("ALL");
                       setSupPage(1);
                     }}
                     className="text-xs text-[#D3232A] font-semibold underline"
@@ -694,7 +797,7 @@ export default function ProcurementPage() {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-zinc-50/80 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-200/80">
                         <tr>
-                          <th className="px-5 py-3.5">Vendor</th>
+                          <th className="px-5 py-3.5">Vendor Name & Type</th>
                           <th className="px-4 py-3.5 text-center">Category</th>
                           <th className="px-4 py-3.5 text-center">Orders</th>
                           <th className="px-4 py-3.5">Contact Info</th>
@@ -712,8 +815,21 @@ export default function ProcurementPage() {
                             <tr key={s.id} className="hover:bg-zinc-50/70 transition-colors">
                               {/* Vendor Name & Primary Contact */}
                               <td className="px-5 py-4">
-                                <p className="font-bold text-zinc-900 text-sm leading-snug">{s.name}</p>
-                                <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Contact: {s.contactPerson}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-bold text-zinc-900 text-sm leading-snug">{s.name}</p>
+                                  {s.type === "ONLINE" ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200 shrink-0">
+                                      <Zap className="h-3 w-3 fill-current text-emerald-600" /> ONLINE Vendor
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200 shrink-0">
+                                      <User className="h-3 w-3 text-slate-500" /> OFFLINE Vendor
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
+                                  Contact: {s.contactPerson} {s.user?.email ? `• Login Account: ${s.user.email}` : ""}
+                                </p>
                               </td>
 
                               {/* Category Tag with Subtle Relevant Color */}
@@ -834,102 +950,215 @@ export default function ProcurementPage() {
 
         {/* MODAL 1: ADD SUPPLIER */}
         {showAddSupplierModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative">
-              <button
-                onClick={() => setShowAddSupplierModal(false)}
-                className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <h2 className="text-base font-bold text-zinc-900 mb-1">Add Supplier Contact</h2>
-              <p className="text-xs text-zinc-500 mb-4">Register a vendor to send stock orders to</p>
-
-              <form onSubmit={handleCreateSupplier} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Supplier / Business Name</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Amul Dairy Pvt Ltd"
-                    value={supplierForm.name}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Supplier Product Category</label>
-                  <select
-                    required
-                    value={supplierForm.category}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none font-medium bg-white"
-                  >
-                    <option value="Dairy">Dairy (Milk, Cheese, Butter, etc.)</option>
-                    <option value="Frozen Goods">Frozen Goods (Frozen Chicken, Ice Cream, etc.)</option>
-                    <option value="Meat & Poultry">Meat & Poultry (Chicken, Mutton, Fish)</option>
-                    <option value="Produce">Produce / Vegetables & Fruits</option>
-                    <option value="Beverages">Beverages & Soft Drinks</option>
-                    <option value="Bakery">Bakery & Bread</option>
-                    <option value="Syrups & Sauces">Syrups, Sauces & Spices</option>
-                    <option value="Packaging">Packaging & Containers</option>
-                    <option value="General">General / All Categories</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Contact Person</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Rajesh Kumar"
-                    value={supplierForm.contactPerson}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#D3232A] to-rose-500 text-white flex items-center justify-center shadow-xs">
+                    <Building2 className="h-5 w-5" />
+                  </div>
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-700 mb-1">Phone</label>
+                    <h2 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+                      Register Supplier
+                    </h2>
+                    <p className="text-xs text-zinc-500 font-medium">
+                      Configure vendor details and portal access
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAddSupplierModal(false)}
+                  className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Form Body */}
+              <form onSubmit={handleCreateSupplier} className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-thin">
+                  {/* ONLINE vs OFFLINE Segmented Switch */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider">
+                      Supplier Integration Mode:
+                    </label>
+                    <div className="rounded-2xl border border-zinc-200 bg-zinc-100/70 p-1.5 grid grid-cols-2 gap-1.5 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setSupplierForm({ ...supplierForm, type: "OFFLINE" })}
+                        className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-bold transition-all ${
+                          supplierForm.type === "OFFLINE"
+                            ? "bg-zinc-900 text-white shadow-sm ring-2 ring-zinc-900/10"
+                            : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                        }`}
+                      >
+                        <User className="h-3.5 w-3.5" />
+                        OFFLINE Vendor
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSupplierForm({ ...supplierForm, type: "ONLINE" })}
+                        className={`flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-bold transition-all ${
+                          supplierForm.type === "ONLINE"
+                            ? "bg-[#D3232A] text-white shadow-sm ring-2 ring-[#D3232A]/20"
+                            : "text-zinc-600 hover:text-zinc-900 hover:bg-white/60"
+                        }`}
+                      >
+                        <Zap className="h-3.5 w-3.5 fill-current" />
+                        ONLINE Vendor
+                      </button>
+                    </div>
+
+                    {supplierForm.type === "ONLINE" ? (
+                      <div className="rounded-xl bg-red-50/80 border border-red-200/80 p-3 text-[11px] font-medium text-[#D3232A] flex items-start gap-2">
+                        <Zap className="h-4 w-4 shrink-0 fill-current mt-0.5" />
+                        <span>
+                          <strong>ONLINE Portal Access:</strong> Vendor gets a login account to manage orders, mark items packing, update dispatch quantities & expected delivery dates directly.
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-zinc-500 font-medium px-1">
+                        Manual vendor record for offline paper/phone orders.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-700 mb-1">
+                      Business / Company Name *
+                    </label>
                     <input
                       required
                       type="text"
-                      placeholder="+91 9876543210"
-                      value={supplierForm.phone}
-                      onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
+                      placeholder="e.g. Amul Dairy Pvt Ltd"
+                      value={supplierForm.name}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                      className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
                     />
                   </div>
+
+                  {supplierForm.type === "ONLINE" && (
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Portal Login Password (Optional)
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Leave blank for auto-generated password (Supplier@123)"
+                        value={supplierForm.password || ""}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, password: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-mono text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Category *
+                      </label>
+                      <select
+                        required
+                        value={supplierForm.category}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none bg-white shadow-2xs"
+                      >
+                        <option value="Dairy">Dairy</option>
+                        <option value="Frozen Goods">Frozen Goods</option>
+                        <option value="Meat & Poultry">Meat & Poultry</option>
+                        <option value="Produce">Produce</option>
+                        <option value="Beverages">Beverages</option>
+                        <option value="Bakery">Bakery</option>
+                        <option value="Syrups & Sauces">Syrups & Sauces</option>
+                        <option value="Packaging">Packaging</option>
+                        <option value="General">General</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Contact Person *
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. Rajesh Kumar"
+                        value={supplierForm.contactPerson}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Phone *
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="+91 9876543210"
+                        value={supplierForm.phone}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        required
+                        type="email"
+                        placeholder="supplier@example.com"
+                        value={supplierForm.email}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-700 mb-1">Email</label>
-                    <input
+                    <label className="block text-xs font-bold text-zinc-700 mb-1">
+                      Address *
+                    </label>
+                    <textarea
                       required
-                      type="email"
-                      placeholder="supplier@example.com"
-                      value={supplierForm.email}
-                      onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
+                      rows={2}
+                      placeholder="Supplier street address..."
+                      value={supplierForm.address}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                      className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-medium text-zinc-900 focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 focus:outline-none transition-all shadow-2xs"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-1">Address</label>
-                  <textarea
-                    required
-                    rows={2}
-                    placeholder="Supplier street address..."
-                    value={supplierForm.address}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[#D3232A] focus:outline-none"
-                  />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isCreatingSupplier}
-                  className="w-full rounded-lg bg-[#D3232A] py-2.5 text-sm font-semibold text-white hover:bg-[#b01e23] transition-colors mt-2"
-                >
-                  {isCreatingSupplier ? "Saving Supplier…" : "Save Supplier"}
-                </button>
+                {/* Footer */}
+                <div className="px-5 sm:px-6 py-4 bg-zinc-50/90 border-t border-zinc-100 flex items-center justify-end gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSupplierModal(false)}
+                    className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingSupplier}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-5 py-2 text-xs font-bold text-white hover:bg-[#b01e23] disabled:opacity-50 transition-colors shadow-xs"
+                  >
+                    {isCreatingSupplier ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                      </>
+                    ) : (
+                      "Save Supplier"
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -937,19 +1166,29 @@ export default function ProcurementPage() {
 
         {/* MODAL 2.5: EDIT SUPPLIER */}
         {editingSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-zinc-200">
-              <button
-                onClick={() => setEditingSupplier(null)}
-                className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 p-1 rounded-lg"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-5 w-5 text-[#D3232A]" />
-                <h2 className="text-base sm:text-lg font-bold text-zinc-900">Edit Vendor Details</h2>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#D3232A] to-rose-500 text-white flex items-center justify-center shadow-xs">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+                      Edit Vendor Details
+                    </h2>
+                    <p className="text-xs text-zinc-500 font-medium">
+                      Update vendor contact information and category
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingSupplier(null)}
+                  className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <p className="text-xs text-zinc-500 mb-4">Update vendor contact information and category</p>
 
               <form
                 onSubmit={async (e) => {
@@ -972,91 +1211,112 @@ export default function ProcurementPage() {
                     alert(err?.data?.message || "Failed to update vendor");
                   }
                 }}
-                className="space-y-3"
+                className="flex flex-col flex-1 min-h-0"
               >
-                <div>
-                  <label className="block text-xs font-bold text-zinc-700 mb-1">Vendor / Business Name</label>
-                  <input
-                    required
-                    type="text"
-                    value={editingSupplier.name}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, name: e.target.value })}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-semibold focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-700 mb-1">Contact Person</label>
-                  <input
-                    required
-                    type="text"
-                    value={editingSupplier.contactPerson}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, contactPerson: e.target.value })}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-semibold focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-thin">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-700 mb-1">Category</label>
-                    <select
-                      value={editingSupplier.category || "General"}
-                      onChange={(e) => setEditingSupplier({ ...editingSupplier, category: e.target.value })}
-                      className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-semibold focus:border-[#D3232A] focus:outline-none bg-white text-zinc-900"
-                    >
-                      <option value="Dairy">Dairy</option>
-                      <option value="Produce">Produce</option>
-                      <option value="Beverages">Beverages</option>
-                      <option value="Bakery">Bakery</option>
-                      <option value="Syrups & Sauces">Syrups & Sauces</option>
-                      <option value="Packaging">Packaging</option>
-                      <option value="General">General</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 mb-1">Phone</label>
+                    <label className="block text-xs font-bold text-zinc-700 mb-1">
+                      Vendor / Business Name
+                    </label>
                     <input
                       required
                       type="text"
-                      value={editingSupplier.phone}
-                      onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
-                      className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-semibold focus:border-[#D3232A] focus:outline-none"
+                      value={editingSupplier.name}
+                      onChange={(e) => setEditingSupplier({ ...editingSupplier, name: e.target.value })}
+                      className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={editingSupplier.category || "General"}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, category: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none bg-white shadow-2xs"
+                      >
+                        <option value="Dairy">Dairy</option>
+                        <option value="Produce">Produce</option>
+                        <option value="Beverages">Beverages</option>
+                        <option value="Bakery">Bakery</option>
+                        <option value="Syrups & Sauces">Syrups & Sauces</option>
+                        <option value="Packaging">Packaging</option>
+                        <option value="General">General</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">
+                        Contact Person
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={editingSupplier.contactPerson}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, contactPerson: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">Phone</label>
+                      <input
+                        required
+                        type="text"
+                        value={editingSupplier.phone}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, phone: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1">Email</label>
+                      <input
+                        required
+                        type="email"
+                        value={editingSupplier.email}
+                        onChange={(e) => setEditingSupplier({ ...editingSupplier, email: e.target.value })}
+                        className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-700 mb-1">Address</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={editingSupplier.address}
+                      onChange={(e) => setEditingSupplier({ ...editingSupplier, address: e.target.value })}
+                      className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-medium text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-700 mb-1">Email</label>
-                  <input
-                    required
-                    type="email"
-                    value={editingSupplier.email}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, email: e.target.value })}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-semibold focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-700 mb-1">Address</label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={editingSupplier.address}
-                    onChange={(e) => setEditingSupplier({ ...editingSupplier, address: e.target.value })}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2 text-xs sm:text-sm font-medium focus:border-[#D3232A] focus:outline-none"
-                  />
-                </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="px-5 sm:px-6 py-4 bg-zinc-50/90 border-t border-zinc-100 flex items-center justify-end gap-2.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setEditingSupplier(null)}
-                    className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50"
+                    className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isUpdatingSupplier}
-                    className="rounded-xl bg-[#D3232A] px-5 py-2 text-xs font-bold text-white hover:bg-[#b01e23] disabled:opacity-50 shadow-2xs"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-5 py-2 text-xs font-bold text-white hover:bg-[#b01e23] disabled:opacity-50 transition-colors shadow-xs"
                   >
-                    {isUpdatingSupplier ? "Saving Changes…" : "Update Vendor"}
+                    {isUpdatingSupplier ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                      </>
+                    ) : (
+                      "Update Vendor"
+                    )}
                   </button>
                 </div>
               </form>
@@ -1066,88 +1326,165 @@ export default function ProcurementPage() {
 
         {/* MODAL 3: RECEIVE PO ITEMS */}
         {receivingPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setReceivingPO(null)}
-                className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <h2 className="text-lg font-bold text-zinc-900 mb-1">
-                Receive Stock — Order #{receivingPO.id.slice(0, 8).toUpperCase()}
-              </h2>
-              <p className="text-xs text-zinc-500 mb-4">
-                Record incoming stock batch details and expiry dates
-              </p>
-
-              <div className="space-y-4">
-                {receivingPO.items.map((poItem) => {
-                  const input = receiveItemInputs[poItem.itemId] || { receivedQuantity: 0, batchNumber: "", expiryDate: "" };
-                  return (
-                    <div key={poItem.id} className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold text-zinc-900 text-sm">{poItem.item?.name || "Ingredient"}</span>
-                        <span className="text-xs text-zinc-500">
-                          Ordered: <strong>{poItem.orderedQuantity}</strong> | Prev Received: <strong>{poItem.receivedQuantity}</strong>
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Receive Quantity</label>
-                          <input
-                            type="number"
-                            step="any"
-                            value={input.receivedQuantity}
-                            onChange={(e) =>
-                              setReceiveItemInputs({
-                                ...receiveItemInputs,
-                                [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
-                              })
-                            }
-                            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs bg-white focus:outline-none font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Batch Number</label>
-                          <input
-                            type="text"
-                            value={input.batchNumber}
-                            onChange={(e) =>
-                              setReceiveItemInputs({
-                                ...receiveItemInputs,
-                                [poItem.itemId]: { ...input, batchNumber: e.target.value },
-                              })
-                            }
-                            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs bg-white focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Expiry Date</label>
-                          <input
-                            type="date"
-                            value={input.expiryDate}
-                            onChange={(e) =>
-                              setReceiveItemInputs({
-                                ...receiveItemInputs,
-                                [poItem.itemId]: { ...input, expiryDate: e.target.value },
-                              })
-                            }
-                            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 text-xs bg-white focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-xs">
+                    <PackageCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+                      Receive Stock — Order #{formatUnderstandableOrderNo(receivingPO)}
+                    </h2>
+                    <p className="text-xs text-zinc-500 font-medium">
+                      Review supplier dispatched quantities, record accepted stock & log damaged items
+                    </p>
+                  </div>
+                </div>
                 <button
+                  onClick={() => setReceivingPO(null)}
+                  className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-thin">
+                {/* Supplier Dispatch Status & Notes Banners */}
+                {(receivingPO.status === "DISPATCHED" || receivingPO.status === "PARTIALLY_DISPATCHED") && (
+                  <div className="rounded-xl bg-blue-50 border border-blue-200/80 p-3.5 text-xs text-blue-900 space-y-1 shadow-2xs">
+                    <div className="flex items-center gap-2 font-bold">
+                      <Truck className="h-4 w-4 text-blue-600" />
+                      Supplier Status: {receivingPO.status === "PARTIALLY_DISPATCHED" ? "Partial Dispatch Sent" : "Full Order Dispatched"}
+                    </div>
+                    {receivingPO.supplierNotes && (
+                      <p className="text-blue-800">
+                        <span className="font-semibold">Supplier Note:</span> {receivingPO.supplierNotes}
+                      </p>
+                    )}
+                    {receivingPO.expectedNextDeliveryDate && (
+                      <p className="text-purple-800 font-semibold">
+                        Expected Next Delivery: {new Date(receivingPO.expectedNextDeliveryDate).toLocaleDateString("en-IN")}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-blue-700 italic pt-0.5">
+                      ★ Dispatched quantities entered by vendor have been automatically pre-filled below for your convenience.
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {receivingPO.items.map((poItem) => {
+                    const input = receiveItemInputs[poItem.itemId] || {
+                      receivedQuantity: 0,
+                      damagedQuantity: 0,
+                      batchNumber: "",
+                      expiryDate: "",
+                    };
+                    return (
+                      <div key={poItem.id} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 space-y-3 shadow-2xs">
+                        <div className="flex flex-wrap justify-between items-center gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-zinc-900 text-sm">{poItem.item?.name || "Ingredient"}</span>
+                            {poItem.dispatchedQuantity ? (
+                              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                Dispatched: {poItem.dispatchedQuantity}
+                              </span>
+                            ) : null}
+                          </div>
+                          <span className="text-xs text-zinc-500 font-medium">
+                            Ordered: <strong className="text-zinc-800">{poItem.orderedQuantity}</strong> | Prev Received: <strong className="text-zinc-800">{poItem.receivedQuantity || 0}</strong>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-zinc-700 mb-1">Accepted Qty</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={input.receivedQuantity}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
+                                })
+                              }
+                              className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-bold text-emerald-800 shadow-2xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-zinc-700 mb-1">Damaged Qty</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={input.damagedQuantity || 0}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, damagedQuantity: Number(e.target.value) },
+                                })
+                              }
+                              className="w-full rounded-xl border border-rose-300 px-3 py-2 text-xs bg-rose-50/40 focus:border-rose-500 focus:outline-none font-bold text-rose-800 shadow-2xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-zinc-700 mb-1">Batch Number</label>
+                            <input
+                              type="text"
+                              value={input.batchNumber}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, batchNumber: e.target.value },
+                                })
+                              }
+                              className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-xs bg-white focus:border-[#D3232A] focus:outline-none shadow-2xs font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-zinc-700 mb-1">Expiry Date</label>
+                            <input
+                              type="date"
+                              value={input.expiryDate}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, expiryDate: e.target.value },
+                                })
+                              }
+                              className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-xs bg-white focus:border-[#D3232A] focus:outline-none shadow-2xs font-medium"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-4 bg-zinc-50/90 border-t border-zinc-100 flex items-center justify-end gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setReceivingPO(null)}
+                  className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
                   onClick={handleConfirmReceive}
                   disabled={isReceiving}
-                  className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors mt-4 flex items-center justify-center gap-2"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50"
                 >
-                  {isReceiving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Stock Arrival"}
+                  {isReceiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />}
+                  Confirm Stock Arrival
                 </button>
               </div>
             </div>
@@ -1260,6 +1597,15 @@ export default function ProcurementPage() {
                     <span className="rounded-full bg-red-50 text-[#D3232A] border border-red-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
                       {viewingSupplier.category || "General"}
                     </span>
+                    {viewingSupplier.type === "ONLINE" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-800 border border-emerald-200">
+                        <Zap className="h-3 w-3 fill-current text-emerald-600" /> ONLINE Vendor (Portal Account)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
+                        <User className="h-3 w-3 text-slate-500" /> OFFLINE Vendor (Manual)
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">
                     Registered Vendor Details & Order History

@@ -29,7 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/redux/store/hooks";
 
-type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN";
+type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN" | "SUPPLIER";
 
 interface NavItem {
   name: string;
@@ -87,6 +87,11 @@ const kitchenNavItems: NavItem[] = [
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen" },
   { name: "Support & Queries", icon: MessageSquare, href: "/support" },
   { name: "Attendance Logs", icon: Clock, href: "/workforce/attendance" },
+];
+
+const supplierNavItems: NavItem[] = [
+  { name: "Supplier Portal", icon: Package, href: "/supplier" },
+  { name: "Account Profile", icon: Users, href: "/profile" },
 ];
 
 // Memoized nav link item
@@ -147,6 +152,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
     if (role === "MANAGER") return managerNavItems;
     if (role === "STAFF") return staffNavItems;
     if (role === "KITCHEN") return kitchenNavItems;
+    if (role === "SUPPLIER") return supplierNavItems;
     return ownerNavItems;
   }, [role]);
 
@@ -196,7 +202,12 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               alt="Alayn AI"
               width={160}
               height={44}
-              onClick={() => router.push("/")}
+              onClick={() => {
+                if (role === "SUPPLIER") router.push("/supplier");
+                else if (role === "STAFF") router.push("/pos");
+                else if (role === "KITCHEN") router.push("/kitchen");
+                else router.push("/dashboard");
+              }}
               className="w-[130px] h-auto object-contain cursor-pointer"
               priority
             />
