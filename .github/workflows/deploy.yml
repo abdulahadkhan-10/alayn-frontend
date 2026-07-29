@@ -52,13 +52,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            echo "==> Logging in to GitHub Container Registry on VPS..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "==> Updating frontend repository..."
+            cd /opt/apps/projects/ALAYN/frontend
+            git pull origin main || true
 
-            echo "==> Navigating to project directory..."
+            echo "==> Navigating to root project directory..."
             cd /opt/apps/projects/ALAYN
 
-            echo "==> Pulling latest frontend image..."
+            echo "==> Pulling latest frontend image from GHCR..."
             docker compose pull alayn-frontend
 
             echo "==> Recreating frontend container..."
