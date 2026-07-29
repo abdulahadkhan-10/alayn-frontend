@@ -31,6 +31,7 @@ import {
   ChevronRight,
   AlertCircle,
   FileText,
+  ChefHat,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
@@ -79,25 +80,30 @@ export default function PosTerminalComponent() {
 
   useEffect(() => {
     async function loadTables() {
-      if (!currentOutletId || !isStaffRole) {
+      if (!currentOutletId) {
         setAssignedTables([]);
         setSelectedTableNo("");
         return;
       }
       const res = await fetchTables(currentOutletId);
       if (res.ok && res.tables) {
-        const userId = user?.id;
-        const empId = myEmployee?.id;
-        const assigned = res.tables.filter(
-          (t) =>
-            (t.assignedStaffId && (t.assignedStaffId === userId || t.assignedStaffId === empId)) ||
-            ((t as any).staffId && ((t as any).staffId === userId || (t as any).staffId === empId))
-        );
-        setAssignedTables(assigned);
-        if (assigned.length > 0) {
-          setSelectedTableNo(String(assigned[0].tableNumber));
+        if (isStaffRole) {
+          const userId = user?.id;
+          const empId = myEmployee?.id;
+          const assigned = res.tables.filter(
+            (t) =>
+              (t.assignedStaffId && (t.assignedStaffId === userId || t.assignedStaffId === empId)) ||
+              ((t as any).staffId && ((t as any).staffId === userId || (t as any).staffId === empId))
+          );
+          setAssignedTables(assigned);
+          if (assigned.length > 0) {
+            setSelectedTableNo(String(assigned[0].tableNumber));
+          } else {
+            setSelectedTableNo("");
+          }
         } else {
-          setSelectedTableNo("");
+          // For Manager, Business Owner, Super Admin: allow selecting ANY table in the outlet
+          setAssignedTables(res.tables);
         }
       }
     }
@@ -239,6 +245,46 @@ export default function PosTerminalComponent() {
     return Math.max(0, subtotal + taxAmount - discount);
   }, [subtotal, taxAmount, discount]);
 
+  // Send to Kitchen Handler — Directly dispatches order ticket to Kitchen (KDS)
+  const handleSendToKitchen = async () => {
+    if (cart.length === 0) return;
+
+    if (isAllOutletsSelected) {
+      setIsOutletSelectModalOpen(true);
+      return;
+    }
+
+    const finalOrderSource = selectedTableNo ? "TABLE" : "COUNTER";
+    if (isStaffRole && finalOrderSource === "TABLE" && !selectedTableNo) {
+      alert("No assigned table selected. Please select an assigned table.");
+      return;
+    }
+
+    const payload: CreateOrderPayload = {
+      orderSource: finalOrderSource,
+      tableNo: finalOrderSource === "TABLE" ? selectedTableNo : undefined,
+      outletId: currentOutletId || undefined,
+      items: cart.map((ci) => ({
+        menuItemId: ci.menuItem.id,
+        quantity: ci.quantity,
+        notes: ci.notes,
+      })),
+      discountAmount: discount,
+      taxAmount: taxAmount,
+    };
+
+    try {
+      const result = await createOrder(payload).unwrap();
+      setCompletedOrder(result);
+      setCart([]);
+      setIsCheckoutOpen(false);
+      setIsMobileCartOpen(false);
+    } catch (err: any) {
+      console.error("Sending to kitchen failed:", err);
+      alert(err?.data?.message || "Failed to send order to kitchen. Please try again.");
+    }
+  };
+
   // Checkout Initiation Handler — Checks if 'All Outlets' is selected
   const handleInitiateCheckout = () => {
     if (isAllOutletsSelected) {
@@ -262,8 +308,8 @@ export default function PosTerminalComponent() {
       return;
     }
 
-    const finalOrderSource = isStaffRole ? "TABLE" : "COUNTER";
-    if (finalOrderSource === "TABLE" && !selectedTableNo) {
+    const finalOrderSource = selectedTableNo ? "TABLE" : "COUNTER";
+    if (isStaffRole && finalOrderSource === "TABLE" && !selectedTableNo) {
       alert("No assigned table selected. You are only allowed to take orders for your assigned tables.");
       return;
     }
@@ -310,29 +356,48 @@ export default function PosTerminalComponent() {
               </div>
             </div>
 
-            {/* Table Selection Bar for Staff */}
-            {!isAllOutletsSelected && isStaffRole && (
+            {/* Table Selection Bar for All Roles (Staff, Manager, Business Owner) */}
+            {!isAllOutletsSelected && (
               <div className="flex items-center gap-2">
-                {assignedTables.length > 0 ? (
-                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-xl text-xs font-bold text-emerald-900 shadow-2xs">
-                    <Utensils className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Assigned Table:</span>
+                {isStaffRole ? (
+                  assignedTables.length > 0 ? (
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-xl text-xs font-bold text-emerald-900 shadow-2xs">
+                      <Utensils className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Assigned Table:</span>
+                      <select
+                        value={selectedTableNo}
+                        onChange={(e) => setSelectedTableNo(e.target.value)}
+                        className="bg-white border border-emerald-300 text-emerald-900 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                      >
+                        {assignedTables.map((t) => (
+                          <option key={t.id} value={String(t.tableNumber)}>
+                            Table #{t.tableNumber} ({t.tableType})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>No tables currently assigned to you at this outlet</span>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 px-3 py-1 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
+                    <Utensils className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Table Selection:</span>
                     <select
                       value={selectedTableNo}
                       onChange={(e) => setSelectedTableNo(e.target.value)}
-                      className="bg-white border border-emerald-300 text-emerald-900 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                      className="bg-white border border-slate-300 text-slate-900 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-slate-500 cursor-pointer"
                     >
+                      <option value="">Counter / Direct (No Table)</option>
                       {assignedTables.map((t) => (
                         <option key={t.id} value={String(t.tableNumber)}>
-                          Table #{t.tableNumber} ({t.tableType})
+                          Table #{t.tableNumber} ({t.tableType} - {t.status})
                         </option>
                       ))}
                     </select>
-                  </div>
-                ) : (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>No tables currently assigned to you at this outlet</span>
                   </div>
                 )}
               </div>
@@ -376,11 +441,10 @@ export default function PosTerminalComponent() {
                       setDietaryFilter("ALL");
                       setCurrentPage(1);
                     }}
-                    className={`px-3 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer ${
-                      dietaryFilter === "ALL"
+                    className={`px-3 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer ${dietaryFilter === "ALL"
                         ? "bg-white text-[#1B2A4A] shadow-xs"
                         : "text-gray-500 hover:text-gray-800"
-                    }`}
+                      }`}
                   >
                     All
                   </button>
@@ -390,11 +454,10 @@ export default function PosTerminalComponent() {
                       setCurrentPage(1);
                     }}
                     title="Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${
-                      dietaryFilter === "VEG"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
                         ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
                         : "text-gray-500 hover:text-gray-800"
-                    }`}
+                      }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>Veg</span>
@@ -405,11 +468,10 @@ export default function PosTerminalComponent() {
                       setCurrentPage(1);
                     }}
                     title="Non-Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${
-                      dietaryFilter === "NON_VEG"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
                         ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
                         : "text-gray-500 hover:text-gray-800"
-                    }`}
+                      }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
                     <span>Non-Veg</span>
@@ -422,22 +484,20 @@ export default function PosTerminalComponent() {
                 <button
                   onClick={() => setViewMode("GRID")}
                   title="Grid View"
-                  className={`p-1.5 rounded-lg transition ${
-                    viewMode === "GRID"
+                  className={`p-1.5 rounded-lg transition ${viewMode === "GRID"
                       ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("LIST")}
                   title="Fast List View"
-                  className={`p-1.5 rounded-lg transition ${
-                    viewMode === "LIST"
+                  className={`p-1.5 rounded-lg transition ${viewMode === "LIST"
                       ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
                       : "text-gray-500 hover:text-gray-800"
-                  }`}
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -453,11 +513,10 @@ export default function PosTerminalComponent() {
                   setSelectedCategoryId("ALL");
                   setCurrentPage(1);
                 }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${
-                  selectedCategoryId === "ALL"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${selectedCategoryId === "ALL"
                     ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                     : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 All Items ({menuItems.length})
               </button>
@@ -473,11 +532,10 @@ export default function PosTerminalComponent() {
                       setSelectedCategoryId(cat.id);
                       setCurrentPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${
-                      isSelected
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${isSelected
                         ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                    }`}
+                      }`}
                   >
                     {cat.imageUrl && (
                       <img
@@ -491,11 +549,10 @@ export default function PosTerminalComponent() {
                     )}
                     {cat.name}
                     <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-md font-black ${
-                        isSelected
+                      className={`text-[9px] px-1.5 py-0.2 rounded-md font-black ${isSelected
                           ? "bg-white/20 text-white"
                           : "bg-gray-200 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {count}
                     </span>
@@ -567,11 +624,10 @@ export default function PosTerminalComponent() {
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${
-                          isSelected
+                        className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${isSelected
                             ? "border-[#D3232A] bg-rose-50/20 ring-2 ring-[#D3232A]/20"
                             : "border-gray-200/90 hover:border-gray-300"
-                        }`}
+                          }`}
                       >
                         {/* Top Media Thumbnail Container */}
                         <div className="relative w-full h-24 rounded-xl overflow-hidden mb-2.5 bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
@@ -597,15 +653,13 @@ export default function PosTerminalComponent() {
 
                           {/* Top Right: Veg / Non-Veg Dot Indicator */}
                           <span
-                            className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${
-                              item.isVeg !== false ? "border-emerald-600" : "border-rose-600"
-                            }`}
+                            className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${item.isVeg !== false ? "border-emerald-600" : "border-rose-600"
+                              }`}
                             title={item.isVeg !== false ? "Vegetarian" : "Non-Vegetarian"}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                item.isVeg !== false ? "bg-emerald-600" : "bg-rose-600"
-                              }`}
+                              className={`w-1.5 h-1.5 rounded-full ${item.isVeg !== false ? "bg-emerald-600" : "bg-rose-600"
+                                }`}
                             />
                           </span>
                         </div>
@@ -678,17 +732,15 @@ export default function PosTerminalComponent() {
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-xl p-3 flex items-center justify-between gap-3 transition shadow-2xs ${
-                          isSelected
+                        className={`bg-white border rounded-xl p-3 flex items-center justify-between gap-3 transition shadow-2xs ${isSelected
                             ? "border-[#D3232A] bg-rose-50/20"
                             : "border-gray-200 hover:border-gray-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                              item.isVeg !== false ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.isVeg !== false ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
                           />
                           <div>
                             <div className="flex items-center gap-2">
@@ -875,8 +927,8 @@ export default function PosTerminalComponent() {
                           setEditingNoteItemId(isEditingNote ? null : ci.menuItem.id)
                         }
                         className={`text-[10px] font-bold flex items-center gap-1 ${ci.notes
-                            ? "text-[#D3232A]"
-                            : "text-gray-400 hover:text-gray-600"
+                          ? "text-[#D3232A]"
+                          : "text-gray-400 hover:text-gray-600"
                           }`}
                       >
                         <FileText className="w-3 h-3" />
@@ -978,22 +1030,21 @@ export default function PosTerminalComponent() {
               </div>
             </div>
 
-            {/* Primary Order Action Button */}
+            {/* Primary Order Action Button: Send to Kitchen */}
             <button
               disabled={isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)}
-              onClick={handleInitiateCheckout}
-              className={`w-full py-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)
+              onClick={handleSendToKitchen}
+              className={`w-full py-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                  : "bg-[#D3232A] hover:bg-[#b01e23] text-white shadow-md hover:shadow-lg hover:scale-[1.01]"
-              }`}
+                  : "bg-[#1B2A4A] hover:bg-[#2d4272] text-white shadow-md hover:shadow-lg hover:scale-[1.01]"
+                }`}
             >
-              <Receipt className="w-4 h-4" />
+              <ChefHat className="w-4 h-4 text-emerald-400" />
               {isAllOutletsSelected
                 ? "Select Outlet to Proceed"
                 : cart.length === 0
-                ? "Ticket Empty"
-                : `Proceed to Payment (₹${grandTotal.toFixed(2)})`}
+                  ? "Ticket Empty"
+                  : `Send to Kitchen (${totalItemCount} items)`}
             </button>
           </div>
         </div>
@@ -1007,16 +1058,21 @@ export default function PosTerminalComponent() {
                 {totalItemCount} Items • ₹{grandTotal.toFixed(2)}
               </p>
               <p className="text-[10px] text-gray-300">
-                {isAllOutletsSelected ? "⚠️ Select Outlet First" : "Counter Direct Order"}
+                {isAllOutletsSelected
+                  ? "⚠️ Select Outlet First"
+                  : selectedTableNo
+                  ? `Table #${selectedTableNo}`
+                  : "Counter Direct"}
               </p>
             </div>
 
             <button
-              onClick={() => setIsMobileCartOpen(true)}
-              className="px-4 py-2 bg-[#D3232A] hover:bg-[#b91c23] text-white text-xs font-black rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer"
+              disabled={isAllOutletsSelected || isSubmitting || (isStaffRole && !selectedTableNo)}
+              onClick={handleSendToKitchen}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              <span>View Ticket & Pay</span>
-              <ChevronRight className="w-4 h-4" />
+              <ChefHat className="w-4 h-4" />
+              <span>Send to Kitchen</span>
             </button>
           </div>
         )}
@@ -1082,14 +1138,15 @@ export default function PosTerminalComponent() {
                 </div>
 
                 <button
-                  disabled={cart.length === 0 || isSubmitting || isAllOutletsSelected}
+                  disabled={cart.length === 0 || isSubmitting || isAllOutletsSelected || (isStaffRole && !selectedTableNo)}
                   onClick={() => {
                     setIsMobileCartOpen(false);
-                    handleInitiateCheckout();
+                    handleSendToKitchen();
                   }}
-                  className="w-full py-3 bg-[#D3232A] text-white text-xs font-black rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 bg-[#1B2A4A] text-white text-xs font-black rounded-xl shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Proceed to Payment
+                  <ChefHat className="w-4 h-4 text-emerald-400" />
+                  <span>Send to Kitchen</span>
                 </button>
               </div>
             </div>
@@ -1213,8 +1270,8 @@ export default function PosTerminalComponent() {
                       type="button"
                       onClick={() => setPaymentMethod(method)}
                       className={`py-3 rounded-xl border text-xs font-black transition flex flex-col items-center gap-1 cursor-pointer ${paymentMethod === method
-                          ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md"
-                          : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                        ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md"
+                        : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                         }`}
                     >
                       {method === "UPI" && <QrCode className="w-4 h-4" />}
@@ -1281,7 +1338,7 @@ export default function PosTerminalComponent() {
 
                 <div>
                   <h3 className="text-lg font-black text-[#1B2A4A]">
-                    Order Placed Successfully!
+                    Order Sent to Kitchen!
                   </h3>
                   <p className="text-xs text-gray-500 font-medium mt-1">
                     Ticket ID:{" "}
@@ -1292,7 +1349,7 @@ export default function PosTerminalComponent() {
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl">
-                  Order dispatched live to Kitchen Dispatch (KDS).
+                  Order dispatched live to Kitchen Dispatch (KDS). You can settle the bill anytime from Live Orders.
                 </div>
 
                 <button
