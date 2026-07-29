@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: aquib2502/alayn-frontend
+  IMAGE_NAME: abdulahadkhan-10/alayn-frontend
 
 jobs:
   build-and-deploy:
