@@ -271,6 +271,7 @@ export default function PosTerminalComponent() {
       })),
       discountAmount: discount,
       taxAmount: taxAmount,
+      paymentMethod,
     };
 
     try {
