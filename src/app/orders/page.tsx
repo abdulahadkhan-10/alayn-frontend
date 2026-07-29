@@ -629,6 +629,15 @@ export default function LiveOrdersPage() {
                       </span>
                     </div>
 
+                    {/* Placer Info Badge */}
+                    <div className="flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">Placed by: <strong className="font-black text-[#1B2A4A]">{order.placedByName || (isCounter ? "Counter Staff" : "Staff")}</strong></span>
+                      </div>
+                      <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[9px] font-black uppercase tracking-wider shrink-0">{order.placedByRole || (isCounter ? "COUNTER" : "STAFF")}</span>
+                    </div>
+
                     {/* Items list */}
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5 max-h-28 overflow-y-auto scrollbar-none flex-1">
                       {items.length > 0 ? (

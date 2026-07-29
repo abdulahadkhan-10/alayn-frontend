@@ -80,24 +80,24 @@ export const showToast = {
   success: (title: string, message?: string, options?: ToastOptions) =>
     toast.success(
       <ToastContent title={title} message={message} type="success" />,
-      { ...defaultOptions, ...options }
+      { toastId: options?.toastId || `success-${title}-${message || ""}`, ...defaultOptions, ...options }
     ),
 
   error: (title: string, message?: string, options?: ToastOptions) =>
     toast.error(
       <ToastContent title={title} message={message} type="error" />,
-      { ...defaultOptions, ...options }
+      { toastId: options?.toastId || `error-${title}-${message || ""}`, ...defaultOptions, ...options }
     ),
 
   info: (title: string, message?: string, options?: ToastOptions) =>
     toast.info(
       <ToastContent title={title} message={message} type="info" />,
-      { ...defaultOptions, ...options }
+      { toastId: options?.toastId || `info-${title}-${message || ""}`, ...defaultOptions, ...options }
     ),
 
   warning: (title: string, message?: string, options?: ToastOptions) =>
     toast.warning(
       <ToastContent title={title} message={message} type="warning" />,
-      { ...defaultOptions, ...options }
+      { toastId: options?.toastId || `warning-${title}-${message || ""}`, ...defaultOptions, ...options }
     ),
 };

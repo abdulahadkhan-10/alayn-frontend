@@ -150,6 +150,12 @@ export default function KitchenDispatchBoardComponent() {
                           </span>
                         </div>
 
+                        {/* Placer Info Badge */}
+                        <div className="flex items-center justify-between text-[10.5px] bg-white border border-gray-200 px-2 py-1 rounded-lg">
+                          <span className="text-gray-600">Placed by: <strong className="text-[#1B2A4A] font-bold">{ticket.placedByName || (ticketSource === "COUNTER" ? "Counter Staff" : "Staff")}</strong></span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 bg-gray-100 rounded text-gray-700 uppercase tracking-wider">{ticket.placedByRole || (ticketSource === "COUNTER" ? "COUNTER" : "STAFF")}</span>
+                        </div>
+
                         {/* Ticket Items List */}
                         <div className="space-y-1 py-1">
                           {ticketItems.map((item: any, idx: number) => (

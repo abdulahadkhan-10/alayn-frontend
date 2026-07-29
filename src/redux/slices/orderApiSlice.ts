@@ -41,6 +41,8 @@ export interface Order {
   discountAmount: number;
   paymentMethod: "CASH" | "CARD" | "UPI";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
+  placedByName?: string;
+  placedByRole?: string;
   orderItems: OrderItem[];
   createdAt: string;
   updatedAt: string;

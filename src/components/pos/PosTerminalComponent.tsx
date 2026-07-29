@@ -35,6 +35,9 @@ import {
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { useBranch } from "@/lib/BranchContext";
+import { useAppSelector } from "@/redux/store/hooks";
+import { fetchTables, TableItem } from "@/lib/api";
+import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 
 interface CartItem {
   menuItem: MenuItem;
@@ -43,6 +46,9 @@ interface CartItem {
 }
 
 export default function PosTerminalComponent() {
+  const user = useAppSelector((state) => state.auth.user);
+  const isStaffRole = user?.role === "STAFF";
+
   const { activeBranch, setActiveBranch, branches } = useBranch();
   const currentOutletId =
     activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
@@ -53,6 +59,51 @@ export default function PosTerminalComponent() {
     return branches.filter((b) => b.id !== "all");
   }, [branches]);
 
+  // Employee data for staff matching (only fetched for STAFF role)
+  const { data: employeesRaw } = useGetEmployeesQuery(
+    currentOutletId ? { outletId: currentOutletId, limit: 200, offset: 0 } : undefined,
+    { skip: !currentOutletId || !isStaffRole }
+  );
+
+  const allEmployees: any[] = useMemo(() => {
+    if (!employeesRaw) return [];
+    return Array.isArray(employeesRaw) ? employeesRaw : (employeesRaw as any)?.data || [];
+  }, [employeesRaw]);
+
+  const myEmployee = useMemo(() => {
+    return allEmployees.find((e: any) => e.userId === user?.id);
+  }, [allEmployees, user?.id]);
+
+  const [assignedTables, setAssignedTables] = useState<TableItem[]>([]);
+  const [selectedTableNo, setSelectedTableNo] = useState<string>("");
+
+  useEffect(() => {
+    async function loadTables() {
+      if (!currentOutletId || !isStaffRole) {
+        setAssignedTables([]);
+        setSelectedTableNo("");
+        return;
+      }
+      const res = await fetchTables(currentOutletId);
+      if (res.ok && res.tables) {
+        const userId = user?.id;
+        const empId = myEmployee?.id;
+        const assigned = res.tables.filter(
+          (t) =>
+            (t.assignedStaffId && (t.assignedStaffId === userId || t.assignedStaffId === empId)) ||
+            ((t as any).staffId && ((t as any).staffId === userId || (t as any).staffId === empId))
+        );
+        setAssignedTables(assigned);
+        if (assigned.length > 0) {
+          setSelectedTableNo(String(assigned[0].tableNumber));
+        } else {
+          setSelectedTableNo("");
+        }
+      }
+    }
+    loadTables();
+  }, [currentOutletId, myEmployee?.id, user?.id, isStaffRole]);
+
   // Filtering & Display States
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,9 +112,8 @@ export default function PosTerminalComponent() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 24;
 
-  // Cart & Order Configuration States — Fixed to Counter Direct
+  // Cart & Order Configuration States
   const [cart, setCart] = useState<CartItem[]>([]);
-  const orderSource = "COUNTER" as const;
   const [discount, setDiscount] = useState<number>(0);
   const [taxPercent, setTaxPercent] = useState<number>(5);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("UPI");
@@ -212,8 +262,15 @@ export default function PosTerminalComponent() {
       return;
     }
 
+    const finalOrderSource = isStaffRole ? "TABLE" : "COUNTER";
+    if (finalOrderSource === "TABLE" && !selectedTableNo) {
+      alert("No assigned table selected. You are only allowed to take orders for your assigned tables.");
+      return;
+    }
+
     const payload: CreateOrderPayload = {
-      orderSource: "COUNTER",
+      orderSource: finalOrderSource,
+      tableNo: finalOrderSource === "TABLE" ? selectedTableNo : undefined,
       outletId: currentOutletId || undefined,
       items: cart.map((ci) => ({
         menuItemId: ci.menuItem.id,
@@ -245,13 +302,41 @@ export default function PosTerminalComponent() {
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-3 lg:p-4 gap-3">
 
           {/* Top Title Bar Above Controls */}
-          <div className="flex items-center justify-between px-1 shrink-0">
+          <div className="flex items-center justify-between px-1 shrink-0 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 bg-[#1B2A4A] text-white px-3.5 py-1.5 rounded-xl font-black text-xs shadow-xs shrink-0">
                 <CreditCard className="w-4 h-4 text-rose-400" />
-                <span>Counter Direct POS</span>
+                <span>{isStaffRole ? "Staff Table Order POS" : "Counter Direct POS"}</span>
               </div>
             </div>
+
+            {/* Table Selection Bar for Staff */}
+            {!isAllOutletsSelected && isStaffRole && (
+              <div className="flex items-center gap-2">
+                {assignedTables.length > 0 ? (
+                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-xl text-xs font-bold text-emerald-900 shadow-2xs">
+                    <Utensils className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Assigned Table:</span>
+                    <select
+                      value={selectedTableNo}
+                      onChange={(e) => setSelectedTableNo(e.target.value)}
+                      className="bg-white border border-emerald-300 text-emerald-900 text-xs font-extrabold rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                    >
+                      {assignedTables.map((t) => (
+                        <option key={t.id} value={String(t.tableNumber)}>
+                          Table #{t.tableNumber} ({t.tableType})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>No tables currently assigned to you at this outlet</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Controls Card: Search Bar + Dietary Filter + View Mode Switcher */}
@@ -711,7 +796,9 @@ export default function PosTerminalComponent() {
                 <p className="text-[10px] text-gray-500 font-medium">
                   {isAllOutletsSelected
                     ? "Select an outlet location"
-                    : "Counter Direct Order"}
+                    : isStaffRole
+                      ? (selectedTableNo ? `Dine-in Table #${selectedTableNo}` : "Assigned Table Required")
+                      : "Counter Direct Billing"}
                 </p>
               </div>
             </div>
@@ -893,10 +980,10 @@ export default function PosTerminalComponent() {
 
             {/* Primary Order Action Button */}
             <button
-              disabled={isAllOutletsSelected || cart.length === 0 || isSubmitting}
+              disabled={isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)}
               onClick={handleInitiateCheckout}
               className={`w-full py-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isAllOutletsSelected || cart.length === 0 || isSubmitting
+                isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
                   : "bg-[#D3232A] hover:bg-[#b01e23] text-white shadow-md hover:shadow-lg hover:scale-[1.01]"
               }`}
