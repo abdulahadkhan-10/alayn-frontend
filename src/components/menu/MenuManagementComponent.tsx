@@ -467,7 +467,7 @@ export default function MenuManagementComponent() {
             </button>
             <button
               onClick={() => setIsAddItemOpen(true)}
-              className="btn-primary flex justify-center items-center gap-2 w-full sm:w-auto"
+              className="bg-[#D3232A] hover:bg-[#b01e23] text-white shadow-xs font-semibold px-4 py-2.5 rounded-xl transition duration-200 flex justify-center items-center gap-2 w-full sm:w-auto cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add Menu Item
@@ -1042,7 +1042,7 @@ export default function MenuManagementComponent() {
                   <button
                     type="submit"
                     disabled={isCreatingItem}
-                    className="btn-primary"
+                    className="bg-[#D3232A] hover:bg-[#b01e23] text-white font-semibold px-4 py-2 rounded-xl transition duration-200 cursor-pointer disabled:opacity-50 text-xs"
                   >
                     {isCreatingItem ? "Creating..." : "Save Item"}
                   </button>
@@ -1117,7 +1117,7 @@ export default function MenuManagementComponent() {
                   <button
                     type="submit"
                     disabled={isCreatingCat}
-                    className="btn-primary"
+                    className="bg-[#D3232A] hover:bg-[#b01e23] text-white font-semibold px-4 py-2 rounded-xl transition duration-200 cursor-pointer disabled:opacity-50 text-xs"
                   >
                     {isCreatingCat ? "Saving..." : "Create Category"}
                   </button>
@@ -1304,7 +1304,7 @@ export default function MenuManagementComponent() {
                   <button
                     type="submit"
                     disabled={isUpdatingItem}
-                    className="btn-primary"
+                    className="bg-[#D3232A] hover:bg-[#b01e23] text-white font-semibold px-4 py-2 rounded-xl transition duration-200 cursor-pointer disabled:opacity-50 text-xs"
                   >
                     {isUpdatingItem ? "Updating..." : "Update Item"}
                   </button>

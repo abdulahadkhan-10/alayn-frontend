@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/alayn-frontend
+  IMAGE_NAME: aquib2502/alayn-frontend
 
 jobs:
   build-and-deploy:
@@ -51,8 +51,19 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            mkdir -p /opt/apps/projects/ALAYN
+            set -e
+            echo "==> Logging in to GitHub Container Registry on VPS..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "==> Navigating to project directory..."
             cd /opt/apps/projects/ALAYN
-            docker compose pull alayn-frontend || docker-compose pull alayn-frontend || true
-            docker compose up -d --no-deps alayn-frontend || docker-compose up -d --no-deps alayn-frontend || true
-            docker image prune -f
+
+            echo "==> Pulling latest frontend image..."
+            docker compose pull alayn-frontend
+
+            echo "==> Recreating frontend container..."
+            docker compose up -d --force-recreate --remove-orphans alayn-frontend
+
+            echo "==> Pruning unused Docker images..."
+            docker image prune -af
+
