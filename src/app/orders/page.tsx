@@ -190,7 +190,7 @@ export default function LiveOrdersPage() {
 
   // Real-time WebSocket connection for live orders (replaces aggressive HTTP polling)
   useEffect(() => {
-    const rawApiUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const rawApiUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000" || "https://api.alaynai.com";
     const socketUrl = rawApiUrl.replace(/\/api\/v\d+\/?$/, "").replace(/\/$/, "");
     const socket: Socket = io(socketUrl, {
       transports: ["websocket", "polling"],
