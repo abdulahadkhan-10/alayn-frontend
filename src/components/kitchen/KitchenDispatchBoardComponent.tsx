@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { io, Socket } from "socket.io-client";
 import {
   useGetKitchenTicketsQuery,
   useUpdateOrderStatusMutation,
@@ -15,18 +14,26 @@ export default function KitchenDispatchBoardComponent() {
 
   useEffect(() => {
     // Realtime Socket.IO WebSocket Connection for Zero-Polling KDS Feed
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
-    const socket: Socket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-      withCredentials: true,
-    });
+    let socket: any = null;
+    try {
+      const io = require("socket.io-client").io;
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+      socket = io(socketUrl, {
+        transports: ["websocket", "polling"],
+        withCredentials: true,
+      });
 
-    socket.on("kds_update", () => {
-      refetch();
-    });
+      socket.on("kds_update", () => {
+        refetch();
+      });
+    } catch (_e) {
+      // Fallback auto sync if socket.io-client package is not installed
+    }
 
     return () => {
-      socket.disconnect();
+      if (socket && typeof socket.disconnect === "function") {
+        socket.disconnect();
+      }
     };
   }, [refetch]);
 

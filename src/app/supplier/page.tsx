@@ -160,28 +160,27 @@ export default function SupplierPortalPage() {
   return (
     <DashboardLayout>
       <div className="flex flex-col h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-12">
-        {/* Banner Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 rounded-2xl text-white shadow-md border border-slate-700/50">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 rounded-2xl border border-zinc-200 bg-white shadow-sm">
           <div>
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30">
-                <Truck className="h-6 w-6" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-[#D3232A]/10 flex items-center justify-center text-[#D3232A] shrink-0">
+                <Truck className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-zinc-900">
                   Supplier Fulfillment Portal
                 </h1>
-                <p className="text-xs text-slate-300 font-medium mt-0.5">
-                  Welcome back, <span className="text-red-400 font-bold">{user?.name}</span>. Manage incoming purchase orders, update dispatch quantities & delivery dates.
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                  Welcome, <span className="font-semibold text-zinc-700">{user?.name}</span>. Manage orders, dispatch quantities &amp; delivery dates.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-1.5 text-xs font-bold backdrop-blur-md border border-white/10 text-slate-200">
-              <Building2 className="h-4 w-4 text-emerald-400" />
-              ONLINE Verified Vendor
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 border border-emerald-200">
+              Verified Vendor
             </span>
           </div>
         </div>
@@ -282,13 +281,13 @@ export default function SupplierPortalPage() {
                 <tbody className="divide-y divide-zinc-100 font-medium">
                   {filteredPOs.map((po) => {
                     const statusBadgeConfig: Record<string, { label: string; cls: string }> = {
-                      SENT: { label: "New Order", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+                      SENT: { label: "New Order", cls: "bg-sky-50 text-sky-700 border-sky-200" },
                       PACKING: { label: "Packing", cls: "bg-amber-50 text-amber-700 border-amber-200" },
                       DISPATCHED: { label: "Dispatched", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-                      PARTIALLY_DISPATCHED: { label: "Partial Dispatch", cls: "bg-purple-50 text-purple-700 border-purple-200" },
+                      PARTIALLY_DISPATCHED: { label: "Partial", cls: "bg-purple-50 text-purple-700 border-purple-200" },
                       RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
                       OUT_OF_STOCK: { label: "Out of Stock", cls: "bg-rose-50 text-rose-700 border-rose-200" },
-                      CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+                      CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
                     };
 
                     const badge = statusBadgeConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
@@ -386,25 +385,25 @@ export default function SupplierPortalPage() {
 
         {/* MODAL 1: DISPATCH / PARTIAL ORDER MODAL */}
         {actionModalType === "DISPATCH" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
               <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-[#D3232A] to-rose-500 text-white flex items-center justify-center shadow-xs">
-                    <Truck className="h-5 w-5" />
+                  <div className="h-9 w-9 rounded-xl bg-[#D3232A]/10 text-[#D3232A] flex items-center justify-center">
+                    <Truck className="h-4.5 w-4.5" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
                       Dispatch Order #{formatOrderNo(selectedPO)}
                     </h3>
                     <p className="text-xs text-zinc-500 font-medium">
-                      Store: <span className="font-bold text-zinc-800">{selectedPO.outlet?.name}</span>
+                      Store: <span className="font-semibold text-zinc-700">{selectedPO.outlet?.name}</span>
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setActionModalType(null)}
-                  className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
                 >
                   <XCircle className="h-5 w-5" />
                 </button>
@@ -519,14 +518,14 @@ export default function SupplierPortalPage() {
 
         {/* MODAL 2: OUT OF STOCK REJECTION MODAL */}
         {actionModalType === "OUT_OF_STOCK" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
               <div className="flex items-center gap-3 px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
-                <div className="h-10 w-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-zinc-900 tracking-tight">
+                  <h3 className="text-base font-bold text-zinc-900 tracking-tight">
                     Out of Stock Notice
                   </h3>
                   <p className="text-xs text-zinc-500 font-medium">Order #{formatOrderNo(selectedPO)}</p>
@@ -569,25 +568,25 @@ export default function SupplierPortalPage() {
 
         {/* MODAL 3: VIEW ORDER DETAILS */}
         {actionModalType === "VIEW" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-zinc-200/80 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
               <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-zinc-50/80 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <FileText className="h-5 w-5" />
+                  <div className="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <FileText className="h-4.5 w-4.5" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
                       Order Details #{formatOrderNo(selectedPO)}
                     </h3>
                     <p className="text-xs text-zinc-500 font-medium">
-                      Store: <span className="font-bold text-zinc-800">{selectedPO.outlet?.name}</span>
+                      Store: <span className="font-semibold text-zinc-700">{selectedPO.outlet?.name}</span>
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setActionModalType(null)}
-                  className="rounded-xl p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
                 >
                   <XCircle className="h-5 w-5" />
                 </button>
