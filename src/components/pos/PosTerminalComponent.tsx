@@ -140,7 +140,7 @@ export default function PosTerminalComponent() {
 
   // Fetch API Queries
   const { data: categories = [] } = useGetCategoriesQuery();
-  const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery();
+  const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery({ isAvailable: true });
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
 
   // Deduplicate categories by name / ID
@@ -523,8 +523,12 @@ export default function PosTerminalComponent() {
               </button>
               {categoriesDeduplicated.map((cat) => {
                 const isSelected = selectedCategoryId === cat.id;
+                const catNameKey = cat.name.trim().toLowerCase();
                 const count = menuItems.filter(
-                  (item) => item.categoryId === cat.id
+                  (item) =>
+                    item.isAvailable !== false &&
+                    (item.categoryId === cat.id ||
+                      (item.category?.name && item.category.name.trim().toLowerCase() === catNameKey))
                 ).length;
                 return (
                   <button
