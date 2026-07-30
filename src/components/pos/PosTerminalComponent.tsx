@@ -538,16 +538,6 @@ export default function PosTerminalComponent() {
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                       }`}
                   >
-                    {cat.imageUrl && (
-                      <img
-                        src={getImageUrl(cat.imageUrl)}
-                        alt=""
-                        className="w-3.5 h-3.5 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    )}
                     {cat.name}
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded-md font-black ${isSelected

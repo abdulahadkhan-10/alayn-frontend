@@ -23,7 +23,6 @@ export interface MenuCategory {
   id: string;
   name: string;
   description?: string;
-  imageUrl?: string;
   outletId?: string;
   items?: MenuItem[];
 }
@@ -49,7 +48,7 @@ export const menuApi = baseApi.injectEndpoints({
       providesTags: ["MenuCategories"],
     }),
 
-    createCategory: builder.mutation<MenuCategory, { name: string; description?: string; imageUrl?: string; outletId?: string }>({
+    createCategory: builder.mutation<MenuCategory, { name: string; description?: string; outletId?: string }>({
       query: ({ outletId, ...body }) => ({
         url: "/menu/categories",
         method: "POST",
