@@ -115,7 +115,7 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
       role="dialog"
       aria-modal="true"
       aria-labelledby="update-stock-title"
-      className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-zinc-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 bg-zinc-50/80">
@@ -141,10 +141,10 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
         {/* Step 1: Option Selection */}
         {!selectedFlow ? (
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-zinc-600 mb-3">
-              What happened?
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-widest mb-4">
+              Select an action
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Option 1: Stock Received */}
               <button
                 type="button"
@@ -152,14 +152,14 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   setSelectedFlow("RECEIVED");
                   setError(null);
                 }}
-                className="flex items-start gap-3 rounded-2xl border border-zinc-200 p-4 text-left hover:border-zinc-900 hover:shadow-xs transition-all group bg-white"
+                className="flex items-center gap-3.5 rounded-xl border border-zinc-200 bg-white p-4 text-left hover:border-emerald-300 hover:bg-emerald-50/40 transition-all group"
               >
-                <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700 shrink-0 group-hover:bg-emerald-100">
-                  <Truck className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                  <Truck className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-zinc-900">Stock received</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Supplier delivered new stock</p>
+                  <p className="text-sm font-semibold text-zinc-900">Stock received</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Supplier delivered new stock</p>
                 </div>
               </button>
 
@@ -170,14 +170,14 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   setSelectedFlow("USED");
                   setError(null);
                 }}
-                className="flex items-start gap-3 rounded-2xl border border-zinc-200 p-4 text-left hover:border-zinc-900 hover:shadow-xs transition-all group bg-white"
+                className="flex items-center gap-3.5 rounded-xl border border-zinc-200 bg-white p-4 text-left hover:border-blue-300 hover:bg-blue-50/40 transition-all group"
               >
-                <div className="rounded-xl bg-blue-50 p-2.5 text-blue-700 shrink-0 group-hover:bg-blue-100">
-                  <Utensils className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+                  <Utensils className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-zinc-900">Stock used</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Used during operations</p>
+                  <p className="text-sm font-semibold text-zinc-900">Stock used</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Used during operations</p>
                 </div>
               </button>
 
@@ -188,14 +188,14 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   setSelectedFlow("WASTE");
                   setError(null);
                 }}
-                className="flex items-start gap-3 rounded-2xl border border-zinc-200 p-4 text-left hover:border-zinc-900 hover:shadow-xs transition-all group bg-white"
+                className="flex items-center gap-3.5 rounded-xl border border-zinc-200 bg-white p-4 text-left hover:border-rose-300 hover:bg-rose-50/40 transition-all group"
               >
-                <div className="rounded-xl bg-red-50 p-2.5 text-red-700 shrink-0 group-hover:bg-red-100">
-                  <Trash2 className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                  <Trash2 className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-zinc-900">Waste / damaged</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Expired, damaged or spilled</p>
+                  <p className="text-sm font-semibold text-zinc-900">Waste / damaged</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Expired, damaged or spilled</p>
                 </div>
               </button>
 
@@ -206,14 +206,14 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   setSelectedFlow("CORRECT");
                   setError(null);
                 }}
-                className="flex items-start gap-3 rounded-2xl border border-zinc-200 p-4 text-left hover:border-zinc-900 hover:shadow-xs transition-all group bg-white"
+                className="flex items-center gap-3.5 rounded-xl border border-zinc-200 bg-white p-4 text-left hover:border-amber-300 hover:bg-amber-50/40 transition-all group"
               >
-                <div className="rounded-xl bg-amber-50 p-2.5 text-amber-700 shrink-0 group-hover:bg-amber-100">
-                  <RefreshCw className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                  <RefreshCw className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-zinc-900">Correct stock count</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Fix incorrect quantity</p>
+                  <p className="text-sm font-semibold text-zinc-900">Correct stock count</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Fix incorrect quantity</p>
                 </div>
               </button>
             </div>
@@ -396,10 +396,16 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
             )}
 
             {/* Simple Result Summary Box */}
-            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3.5 flex items-center justify-between text-xs font-medium text-zinc-700">
-              <span>Current stock: <strong>{currentStock} {item.unit}</strong></span>
-              <span className="text-zinc-400">→</span>
-              <span>After update: <strong className="text-zinc-900">{afterUpdate} {item.unit}</strong></span>
+            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3.5 grid grid-cols-3 items-center text-xs text-zinc-500">
+              <div>
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-0.5">Current</span>
+                <span className="font-bold text-zinc-800 text-sm">{currentStock} <span className="text-zinc-400 font-normal">{item.unit}</span></span>
+              </div>
+              <div className="text-center text-zinc-300 text-base">→</div>
+              <div className="text-right">
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-zinc-400 mb-0.5">After Update</span>
+                <span className="font-bold text-zinc-900 text-sm">{afterUpdate} <span className="text-zinc-400 font-normal">{item.unit}</span></span>
+              </div>
             </div>
 
             {error && (
