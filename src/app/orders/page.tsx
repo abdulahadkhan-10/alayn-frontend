@@ -678,22 +678,38 @@ export default function LiveOrdersPage() {
                     {/* Items list */}
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5 max-h-28 overflow-y-auto scrollbar-none flex-1">
                       {items.length > 0 ? (
-                        items.map((item: any, idx: number) => (
-                          <div
-                            key={item.id || idx}
-                            className="flex justify-between items-center text-xs gap-2"
-                          >
-                            <span className="font-semibold text-[#1B2A4A] truncate">
-                              <span className="text-[#D3232A] font-black mr-1">
-                                {item.quantity}×
+                        (() => {
+                          const consolidatedMap = new Map<string, { item: any; totalQty: number; totalPrice: number }>();
+                          items.forEach((item: any) => {
+                            const key = item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
+                            const qty = item.quantity || 1;
+                            const price = getItemPrice(item);
+                            if (consolidatedMap.has(key)) {
+                              const existing = consolidatedMap.get(key)!;
+                              existing.totalQty += qty;
+                              existing.totalPrice += price;
+                            } else {
+                              consolidatedMap.set(key, { item, totalQty: qty, totalPrice: price });
+                            }
+                          });
+
+                          return Array.from(consolidatedMap.values()).map(({ item, totalQty, totalPrice }, idx: number) => (
+                            <div
+                              key={item.id || idx}
+                              className="flex justify-between items-center text-xs gap-2"
+                            >
+                              <span className="font-semibold text-[#1B2A4A] truncate">
+                                <span className="text-[#D3232A] font-black mr-1">
+                                  {totalQty}×
+                                </span>
+                                {item.menuItem?.name || item.name || "Dish Item"}
                               </span>
-                              {item.menuItem?.name || "Dish Item"}
-                            </span>
-                            <span className="text-gray-500 font-semibold shrink-0">
-                              ₹{getItemPrice(item).toFixed(2)}
-                            </span>
-                          </div>
-                        ))
+                              <span className="text-gray-500 font-semibold shrink-0">
+                                ₹{totalPrice.toFixed(2)}
+                              </span>
+                            </div>
+                          ));
+                        })()
                       ) : (
                         <p className="text-[11px] text-gray-400 italic">
                           No item details
@@ -846,33 +862,49 @@ export default function LiveOrdersPage() {
                     Ordered Items
                   </p>
                   <div className="space-y-2">
-                    {(
-                      selectedOrder.orderItems ||
-                      (selectedOrder as any).items ||
-                      []
-                    ).map((item: any, idx: number) => (
-                      <div
-                        key={item.id || idx}
-                        className="flex justify-between items-start p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs"
-                      >
-                        <div>
-                          <span className="font-bold text-[#1B2A4A] block">
-                            <span className="text-[#D3232A] mr-1">
-                              {item.quantity}×
+                    {(() => {
+                      const modalItems = selectedOrder.orderItems || (selectedOrder as any).items || [];
+                      const modalConsolidated = new Map<string, { item: any; totalQty: number; totalPrice: number; notes: string[] }>();
+                      modalItems.forEach((item: any) => {
+                        const key = item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
+                        const qty = item.quantity || 1;
+                        const price = getItemPrice(item);
+                        if (modalConsolidated.has(key)) {
+                          const existing = modalConsolidated.get(key)!;
+                          existing.totalQty += qty;
+                          existing.totalPrice += price;
+                          if (item.notes && !existing.notes.includes(item.notes)) {
+                            existing.notes.push(item.notes);
+                          }
+                        } else {
+                          modalConsolidated.set(key, { item, totalQty: qty, totalPrice: price, notes: item.notes ? [item.notes] : [] });
+                        }
+                      });
+
+                      return Array.from(modalConsolidated.values()).map(({ item, totalQty, totalPrice, notes }, idx: number) => (
+                        <div
+                          key={item.id || idx}
+                          className="flex justify-between items-start p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-[#1B2A4A] block">
+                              <span className="text-[#D3232A] mr-1 font-black">
+                                {totalQty}×
+                              </span>
+                              {item.menuItem?.name || item.name || "Dish Item"}
                             </span>
-                            {item.menuItem?.name || "Dish Item"}
+                            {notes.length > 0 && (
+                              <span className="text-[10px] text-gray-400 italic mt-0.5 block">
+                                {notes.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-bold text-gray-700">
+                            ₹{totalPrice.toFixed(2)}
                           </span>
-                          {item.notes && (
-                            <span className="text-[10px] text-gray-400 italic mt-0.5 block">
-                              {item.notes}
-                            </span>
-                          )}
                         </div>
-                        <span className="font-bold text-gray-700">
-                          ₹{getItemPrice(item).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
 
