@@ -117,7 +117,7 @@ const getStatusMeta = (status: string) =>
 
 export default function LiveOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
-  const { activeBranch } = useBranch();
+  const { activeBranch, branches = [] } = useBranch();
   const currentOutletId =
     activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
   const isStaffRole = user?.role === "STAFF";
@@ -666,13 +666,22 @@ export default function LiveOrdersPage() {
                       </span>
                     </div>
 
-                    {/* Placer Info Badge */}
-                    <div className="flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="truncate">Placed by: <strong className="font-black text-[#1B2A4A]">{order.placedByName || (isCounter ? "Counter Staff" : "Staff")}</strong></span>
+                    {/* Placer Info & Branch Location Badge */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          <span className="truncate">Placed by: <strong className="font-black text-[#1B2A4A]">{order.placedByName || (isCounter ? "Counter Staff" : "Staff")}</strong></span>
+                        </div>
+                        <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[9px] font-black uppercase tracking-wider shrink-0">{order.placedByRole || (isCounter ? "COUNTER" : "STAFF")}</span>
                       </div>
-                      <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[9px] font-black uppercase tracking-wider shrink-0">{order.placedByRole || (isCounter ? "COUNTER" : "STAFF")}</span>
+
+                      {order.outletId && (
+                        <div className="flex items-center gap-1.5 text-[10.5px] bg-indigo-50/70 border border-indigo-100 px-2.5 py-1 rounded-lg text-indigo-900 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                          <span className="truncate">Branch: <strong className="font-black text-indigo-950">{branches.find((b) => b.id === order.outletId)?.name || order.outletId}</strong></span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Items list */}
