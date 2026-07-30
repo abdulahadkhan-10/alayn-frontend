@@ -140,7 +140,7 @@ export default function PosTerminalComponent() {
 
   // Fetch API Queries
   const { data: categories = [] } = useGetCategoriesQuery();
-  const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery();
+  const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery({ isAvailable: true });
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
 
   // Deduplicate categories by name / ID
@@ -523,8 +523,12 @@ export default function PosTerminalComponent() {
               </button>
               {categoriesDeduplicated.map((cat) => {
                 const isSelected = selectedCategoryId === cat.id;
+                const catNameKey = cat.name.trim().toLowerCase();
                 const count = menuItems.filter(
-                  (item) => item.categoryId === cat.id
+                  (item) =>
+                    item.isAvailable !== false &&
+                    (item.categoryId === cat.id ||
+                      (item.category?.name && item.category.name.trim().toLowerCase() === catNameKey))
                 ).length;
                 return (
                   <button
@@ -538,16 +542,6 @@ export default function PosTerminalComponent() {
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                       }`}
                   >
-                    {cat.imageUrl && (
-                      <img
-                        src={getImageUrl(cat.imageUrl)}
-                        alt=""
-                        className="w-3.5 h-3.5 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    )}
                     {cat.name}
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded-md font-black ${isSelected

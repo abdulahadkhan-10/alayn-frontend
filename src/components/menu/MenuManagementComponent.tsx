@@ -85,7 +85,6 @@ export default function MenuManagementComponent() {
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
-    imageUrl: "",
   });
 
   // RTK Query Hooks
@@ -153,8 +152,6 @@ export default function MenuManagementComponent() {
         const result = reader.result as string;
         if (target === "ITEM") {
           setNewItem((prev) => ({ ...prev, imageUrl: result }));
-        } else if (target === "CATEGORY") {
-          setNewCategory((prev) => ({ ...prev, imageUrl: result }));
         } else if (target === "EDIT_ITEM") {
           setEditItem((prev) => ({ ...prev, imageUrl: result }));
         }
@@ -232,21 +229,32 @@ export default function MenuManagementComponent() {
     const map = new Map<string, { primaryItem: MenuItem; outletIds: string[]; allRelatedItems: MenuItem[] }>();
 
     processedItems.forEach((item) => {
+      const key = item.name.trim().toLowerCase();
       const itemOutletIds = item.outletIds && item.outletIds.length > 0
         ? item.outletIds
         : (item.outletId ? [item.outletId] : []);
 
-      map.set(item.id, {
-        primaryItem: item,
-        outletIds: itemOutletIds,
-        allRelatedItems: [item],
-      });
+      if (!map.has(key)) {
+        map.set(key, {
+          primaryItem: item,
+          outletIds: [...itemOutletIds],
+          allRelatedItems: [item],
+        });
+      } else {
+        const existing = map.get(key)!;
+        existing.allRelatedItems.push(item);
+        itemOutletIds.forEach((id) => {
+          if (!existing.outletIds.includes(id)) {
+            existing.outletIds.push(id);
+          }
+        });
+      }
     });
 
     const grouped = Array.from(map.values()).map((group) => {
       return {
         ...group,
-        isGroupActive: group.primaryItem.isAvailable,
+        isGroupActive: group.allRelatedItems.every((i) => i.isAvailable),
       };
     });
 
@@ -305,7 +313,7 @@ export default function MenuManagementComponent() {
       } else {
         await createCategory(newCategory).unwrap();
       }
-      setNewCategory({ name: "", description: "", imageUrl: "" });
+      setNewCategory({ name: "", description: "" });
       setIsAddCategoryOpen(false);
       setPendingConfirmAction(null);
     } catch (err) {
@@ -337,16 +345,45 @@ export default function MenuManagementComponent() {
       : (currentOutletId ? [currentOutletId] : specificBranches.map((b) => b.id));
 
     try {
-      await createMenuItem({
-        name: newItem.name,
-        description: newItem.description,
-        price: parseFloat(newItem.price),
-        categoryId: newItem.categoryId,
-        imageUrl: newItem.imageUrl,
-        isVeg: newItem.isVeg,
-        isAvailable: true,
-        outletIds: targetOutletIds,
-      }).unwrap();
+      // Find the selected category name to locate corresponding category IDs for each target outlet
+      const selectedCat = (Array.isArray(rawCategories) ? rawCategories : []).find(
+        (c) => c.id === newItem.categoryId
+      );
+      const catNameKey = selectedCat ? selectedCat.name.trim().toLowerCase() : null;
+
+      // Group target outlets by their category ID (if available)
+      const outletToCatMap = new Map<string, string>();
+      if (catNameKey) {
+        (Array.isArray(rawCategories) ? rawCategories : []).forEach((c) => {
+          if (c && c.name && c.name.trim().toLowerCase() === catNameKey && c.outletId) {
+            outletToCatMap.set(c.outletId, c.id);
+          }
+        });
+      }
+
+      // Group targetOutletIds by categoryId
+      const catToOutletsMap = new Map<string, string[]>();
+      targetOutletIds.forEach((outId) => {
+        const catId = outletToCatMap.get(outId) || newItem.categoryId;
+        if (!catToOutletsMap.has(catId)) {
+          catToOutletsMap.set(catId, []);
+        }
+        catToOutletsMap.get(catId)!.push(outId);
+      });
+
+      // Create a menuItem for each category & target outlet group
+      for (const [catId, outIds] of catToOutletsMap.entries()) {
+        await createMenuItem({
+          name: newItem.name,
+          description: newItem.description,
+          price: parseFloat(newItem.price),
+          categoryId: catId,
+          imageUrl: newItem.imageUrl,
+          isVeg: newItem.isVeg,
+          isAvailable: true,
+          outletIds: outIds,
+        }).unwrap();
+      }
 
       setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, outletIds: [] });
       setIsAddItemOpen(false);
@@ -637,16 +674,6 @@ export default function MenuManagementComponent() {
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  {cat.imageUrl && (
-                    <img
-                      src={getImageUrl(cat.imageUrl)}
-                      alt=""
-                      className="w-4 h-4 rounded-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
-                      }}
-                    />
-                  )}
                   {cat.name} ({count})
                 </button>
               );
@@ -971,8 +998,8 @@ export default function MenuManagementComponent() {
                   </div>
                 </div>
 
-                {/* Outlet Assignment Selection */}
-                {specificBranches.length > 0 && (
+                {/* Outlet Assignment Selection - Only shown when 'All Outlets' is selected */}
+                {isAllOutletsSelected && specificBranches.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-semibold text-gray-700">Assigned Outlets / Locations *</label>
@@ -1070,30 +1097,6 @@ export default function MenuManagementComponent() {
                     onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                     className="input"
                   />
-                </div>
-
-                {/* Upload Category Photo */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category Icon/Photo (Optional)</label>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 text-xs font-semibold cursor-pointer hover:bg-gray-100 transition">
-                      <Upload className="w-4 h-4 text-[#D3232A]" /> Upload Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, "CATEGORY")}
-                        className="hidden"
-                      />
-                    </label>
-                    {newCategory.imageUrl ? (
-                      <div className="flex items-center gap-2">
-                        <img src={newCategory.imageUrl} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-gray-200" />
-                        <span className="text-[11px] text-emerald-600 font-bold">Image Uploaded</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-gray-400">No image chosen</span>
-                    )}
-                  </div>
                 </div>
 
                 <div>
