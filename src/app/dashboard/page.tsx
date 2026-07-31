@@ -8,49 +8,18 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
-import {
-  useGetKpisQuery,
-  useGetSalesForecastQuery,
-  useGetInventoryForecastQuery,
-} from "@/redux/slices/dashboardApiSlice";
+import { useGetKpisQuery } from "@/redux/slices/dashboardApiSlice";
 
 import { DashboardFilterState, ExecutiveKpiMetric, OutletPerformanceRecord } from "@/types/dashboard";
 import { GlobalFilterBar } from "@/components/dashboard/GlobalFilterBar";
 import { ExecutiveKpiGrid } from "@/components/dashboard/ExecutiveKpiGrid";
-import { ExecutiveSummaryCard } from "@/components/dashboard/ExecutiveSummaryCard";
 import { OutletPerformanceTable } from "@/components/dashboard/OutletPerformanceTable";
 import { SalesAnalyticsChart } from "@/components/dashboard/SalesAnalyticsChart";
 import { SalesDistributionCard } from "@/components/dashboard/SalesDistributionCard";
-import { MenuAnalyticsSection } from "@/components/dashboard/MenuAnalyticsSection";
-import { InventoryAnalyticsSection } from "@/components/dashboard/InventoryAnalyticsSection";
-import { PurchaseAnalyticsSection } from "@/components/dashboard/PurchaseAnalyticsSection";
-import { FoodCostAnalyticsSection } from "@/components/dashboard/FoodCostAnalyticsSection";
-import { WasteAnalyticsSection } from "@/components/dashboard/WasteAnalyticsSection";
-import { CustomerAnalyticsSection } from "@/components/dashboard/CustomerAnalyticsSection";
-import { OrderAnalyticsSection } from "@/components/dashboard/OrderAnalyticsSection";
-import { StaffAnalyticsSection } from "@/components/dashboard/StaffAnalyticsSection";
-import { LiveOperationsPanel } from "@/components/dashboard/LiveOperationsPanel";
-import { ForecastingModule } from "@/components/dashboard/ForecastingModule";
 import { AiActionableInsights } from "@/components/dashboard/AiActionableInsights";
-import { HeatmapsSection } from "@/components/dashboard/HeatmapsSection";
 import { AlertCenterCard } from "@/components/dashboard/AlertCenterCard";
-import { MultiOutletComparisonMatrix } from "@/components/dashboard/MultiOutletComparisonMatrix";
 
-import {
-  Store,
-  MapPin,
-  Landmark,
-  Map,
-  Globe,
-  Loader2,
-  ArrowRight,
-  ShieldCheck,
-  Zap,
-  Sparkles,
-  SlidersHorizontal,
-  BarChart3,
-  Layers,
-} from "lucide-react";
+import { Store, Loader2, ShieldCheck } from "lucide-react";
 
 interface PageProps {
   params?: Promise<Record<string, string | string[] | undefined>>;
@@ -84,15 +53,10 @@ export default function MasterDashboardPage(props?: PageProps) {
     compareMode: "PREVIOUS_PERIOD",
   });
 
-  const [activeTab, setActiveTab] = useState<"ALL" | "SALES" | "INVENTORY" | "OPERATIONS" | "INTELLIGENCE">("ALL");
-
   const { data: kpiData, isLoading: isKpiLoading, refetch } = useGetKpisQuery(
     { outletId: filterState.selectedOutletIds.length === 1 ? filterState.selectedOutletIds[0] : outletId },
     { skip: false }
   );
-
-  const { data: salesData } = useGetSalesForecastQuery({ outletId }, { skip: !outletId });
-  const { data: inventoryData } = useGetInventoryForecastQuery({ outletId }, { skip: !outletId });
 
   const [createOutlet, { isLoading: isSubmitting }] = useCreateOutletMutation();
 
@@ -119,12 +83,10 @@ export default function MasterDashboardPage(props?: PageProps) {
     }));
   }, [branches]);
 
-  // Memoized 12 Executive KPI Metrics
+  // Memoized 6 Executive KPI Metrics — the daily-glance set only.
+  // Everything else (waste, staff, inventory valuation, ratings...) lives on its own dedicated page.
   const executiveKpis = useMemo<ExecutiveKpiMetric[]>(() => {
     const revVal = kpiData?.totalRevenue?.value || "₹4,85,000";
-    const cogsVal = kpiData?.cogs?.value || "₹1,37,740";
-    const gpVal = kpiData?.grossProfit?.value || "₹3,47,260";
-    const laborVal = kpiData?.laborCosts?.value || "₹82,400";
     const netVal = kpiData?.netMargin?.value || "28.4%";
 
     return [
@@ -142,36 +104,6 @@ export default function MasterDashboardPage(props?: PageProps) {
         prevPeriodValue: "₹4,10,000",
         insightSentence: "Highest weekend growth across all active branches.",
         iconName: "revenue",
-      },
-      {
-        id: "kpi-net",
-        title: "Net Sales",
-        value: "₹4,42,000",
-        rawValue: 442000,
-        unit: "currency",
-        change: "+16.8%",
-        isPositive: true,
-        sparkline: [38, 44, 49, 52, 70, 88, 76],
-        tooltip: "Revenue minus discounts, refunds and tax deductions",
-        category: "FINANCIAL",
-        prevPeriodValue: "₹3,78,000",
-        insightSentence: "Refund rate reduced to 0.2% of total sales.",
-        iconName: "sales",
-      },
-      {
-        id: "kpi-gp",
-        title: "Gross Profit",
-        value: gpVal,
-        rawValue: 347260,
-        unit: "currency",
-        change: "+19.2%",
-        isPositive: true,
-        sparkline: [30, 34, 38, 41, 58, 71, 62],
-        tooltip: "Sales revenue minus raw ingredient cost (COGS)",
-        category: "FINANCIAL",
-        prevPeriodValue: "₹2,91,000",
-        insightSentence: "Gross margin expanded +2.4% this month.",
-        iconName: "profit",
       },
       {
         id: "kpi-gm",
@@ -219,21 +151,6 @@ export default function MasterDashboardPage(props?: PageProps) {
         iconName: "aov",
       },
       {
-        id: "kpi-guests",
-        title: "Guests Served",
-        value: "6,420",
-        rawValue: 6420,
-        unit: "number",
-        change: "+15.6%",
-        isPositive: true,
-        sparkline: [720, 780, 810, 890, 1100, 1180, 940],
-        tooltip: "Total covers / guest count served in dining room & takeaway",
-        category: "CUSTOMER",
-        prevPeriodValue: "5,550",
-        insightSentence: "Peak dining room occupancy reached 70%.",
-        iconName: "guests",
-      },
-      {
         id: "kpi-foodcost",
         title: "Food Cost %",
         value: "28.4%",
@@ -247,51 +164,6 @@ export default function MasterDashboardPage(props?: PageProps) {
         prevPeriodValue: "29.3%",
         insightSentence: "Target is 27.5% (Variance: +0.9%).",
         iconName: "foodcost",
-      },
-      {
-        id: "kpi-invval",
-        title: "Inventory Valuation",
-        value: "₹8,45,000",
-        rawValue: 845000,
-        unit: "currency",
-        change: "+4.2%",
-        isPositive: true,
-        sparkline: [810, 815, 820, 830, 835, 840, 845],
-        tooltip: "Total monetary valuation of raw stock currently on hand",
-        category: "INVENTORY",
-        prevPeriodValue: "₹8,11,000",
-        insightSentence: "Inventory turnover speed at 4.8x monthly.",
-        iconName: "inventory",
-      },
-      {
-        id: "kpi-waste",
-        title: "Waste Cost",
-        value: "₹43,600",
-        rawValue: 43600,
-        unit: "currency",
-        change: "-12.0%",
-        isPositive: true, // Lower waste is good
-        sparkline: [52, 49, 48, 46, 45, 44, 43.6],
-        tooltip: "Financial impact of food spoilage, prep loss & damaged stock",
-        category: "INVENTORY",
-        prevPeriodValue: "₹49,500",
-        insightSentence: "Dairy prep batch size adjustment saved ₹5,900.",
-        iconName: "waste",
-      },
-      {
-        id: "kpi-rating",
-        title: "Customer Rating",
-        value: "4.75 / 5.0",
-        rawValue: 4.75,
-        unit: "rating",
-        change: "+0.15",
-        isPositive: true,
-        sparkline: [4.6, 4.6, 4.65, 4.7, 4.7, 4.72, 4.75],
-        tooltip: "Aggregate guest review rating across QR feedback & platforms",
-        category: "CUSTOMER",
-        prevPeriodValue: "4.60 / 5.0",
-        insightSentence: "82% of total guest reviews were 5-Star.",
-        iconName: "rating",
       },
       {
         id: "kpi-labor",
@@ -508,93 +380,27 @@ export default function MasterDashboardPage(props?: PageProps) {
               isRefreshing={isKpiLoading}
             />
 
-            {/* Executive Summary Banner & Takeaways */}
-            <ExecutiveSummaryCard />
-
-            {/* 12 Executive KPI Cards Grid */}
+            {/* 6 Executive KPI Cards — the daily-glance set */}
             <ExecutiveKpiGrid metrics={executiveKpis} />
 
-            {/* Module View Navigation Tabs */}
-            <div className="flex items-center justify-between border-b border-zinc-200/80 pb-3 overflow-x-auto">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider mr-2">Module View:</span>
-                {(["ALL", "SALES", "INVENTORY", "OPERATIONS", "INTELLIGENCE"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                      activeTab === tab
-                        ? "bg-zinc-900 text-white shadow-2xs"
-                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                    }`}
-                  >
-                    {tab === "ALL"
-                      ? "All 20 Modules"
-                      : tab === "SALES"
-                      ? "Sales & Revenue"
-                      : tab === "INVENTORY"
-                      ? "Stock & Food Cost"
-                      : tab === "OPERATIONS"
-                      ? "Kitchen & Staff"
-                      : "Forecasting & AI"}
-                  </button>
-                ))}
+            {/* Sales trend + channel mix */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <SalesAnalyticsChart />
+              </div>
+              <div>
+                <SalesDistributionCard />
               </div>
             </div>
 
-            {/* SECTION: Sales & Revenue Analytics */}
-            {(activeTab === "ALL" || activeTab === "SALES") && (
-              <div className="space-y-8 animate-in fade-in duration-200">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <SalesAnalyticsChart />
-                  </div>
-                  <div>
-                    <SalesDistributionCard />
-                  </div>
-                </div>
-                <OutletPerformanceTable outlets={outletRecords} />
-              </div>
-            )}
+            {/* Per-outlet performance — full breakdown lives on /performance */}
+            <OutletPerformanceTable outlets={outletRecords} />
 
-            {/* SECTION: Inventory, Purchase, Food Cost & Waste Analytics */}
-            {(activeTab === "ALL" || activeTab === "INVENTORY") && (
-              <div className="space-y-8 animate-in fade-in duration-200">
-                <InventoryAnalyticsSection />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <PurchaseAnalyticsSection />
-                  <FoodCostAnalyticsSection />
-                </div>
-                <WasteAnalyticsSection />
-              </div>
-            )}
-
-            {/* SECTION: Menu, Customer, Order & Staff Analytics */}
-            {(activeTab === "ALL" || activeTab === "OPERATIONS") && (
-              <div className="space-y-8 animate-in fade-in duration-200">
-                <LiveOperationsPanel />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <MenuAnalyticsSection />
-                  <CustomerAnalyticsSection />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <OrderAnalyticsSection />
-                  <StaffAnalyticsSection />
-                </div>
-              </div>
-            )}
-
-            {/* SECTION: Predictive Forecasting, AI Recommendations, Heatmaps & Alerts */}
-            {(activeTab === "ALL" || activeTab === "INTELLIGENCE") && (
-              <div className="space-y-8 animate-in fade-in duration-200">
-                <ForecastingModule />
-                <AiActionableInsights />
-                <AlertCenterCard />
-                <HeatmapsSection />
-                <MultiOutletComparisonMatrix outlets={outletRecords} />
-              </div>
-            )}
+            {/* Time-sensitive alerts & AI recommendations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AlertCenterCard />
+              <AiActionableInsights />
+            </div>
           </div>
         )}
       </DashboardLayout>

@@ -148,7 +148,7 @@ export const GlobalFilterBar = memo(function GlobalFilterBar({
             <button
               type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 transition-colors shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl bg-[#1B2A4A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#243556] transition-colors shadow-2xs cursor-pointer"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Export Report</span>

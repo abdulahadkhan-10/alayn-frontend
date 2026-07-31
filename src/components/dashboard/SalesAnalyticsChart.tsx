@@ -58,7 +58,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-[#0B1221] tracking-tight">Sales &amp; Financial Telemetry</h2>
+            <h2 className="text-base font-extrabold text-[#1B2A4A] tracking-tight">Sales &amp; Financial Telemetry</h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
               <TrendingUp className="h-3 w-3" /> +{pctDiff}% vs prev
             </span>
@@ -77,7 +77,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
                 onClick={() => setActiveMetric(m)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#0B1221] text-white shadow-2xs"
+                    ? "bg-[#1B2A4A] text-white shadow-2xs"
                     : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
@@ -97,7 +97,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
               type="button"
               onClick={() => setGranularity(g)}
               className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                granularity === g ? "bg-[#0B1221] text-white" : "text-zinc-500 hover:text-zinc-900"
+                granularity === g ? "bg-[#1B2A4A] text-white" : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               {g}
@@ -116,7 +116,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
             <span>Compare Previous Period</span>
           </label>
           <div className="flex items-center gap-3 font-semibold text-[11px]">
-            <span className="flex items-center gap-1.5 text-[#0B1221]">
+            <span className="flex items-center gap-1.5 text-[#1B2A4A]">
               <span className="h-2.5 w-2.5 rounded-full bg-[#D3232A]" /> Current Period
             </span>
             {showComparison && (
@@ -147,7 +147,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
             <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
             <Tooltip
               formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Amount"]}
-              contentStyle={{ backgroundColor: "#0B1221", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
+              contentStyle={{ backgroundColor: "#1B2A4A", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
             />
             {showComparison && (
               <Area

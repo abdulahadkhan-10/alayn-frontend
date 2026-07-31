@@ -28,7 +28,7 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
       <div className="p-5 sm:p-6 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-[#0B1221] tracking-tight">Outlet Performance &amp; Health Ranking</h2>
+            <h2 className="text-base font-extrabold text-[#1B2A4A] tracking-tight">Outlet Performance &amp; Health Ranking</h2>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#D3232A] bg-red-50 px-2.5 py-0.5 rounded-md border border-red-100">
               Centerpiece Matrix
             </span>
@@ -80,18 +80,18 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
                   {/* Pinned Outlet Column */}
                   <td className="px-5 py-4 sticky left-0 z-10 bg-white border-r border-zinc-200/80">
                     <div className="flex items-center gap-3">
-                      <span className="h-6 w-6 rounded-lg bg-zinc-100 text-[#0B1221] flex items-center justify-center text-xs font-bold shrink-0">
+                      <span className="h-6 w-6 rounded-lg bg-zinc-100 text-[#1B2A4A] flex items-center justify-center text-xs font-bold shrink-0">
                         #{idx + 1}
                       </span>
                       <div>
-                        <p className="font-bold text-[#0B1221] text-sm leading-snug">{outlet.name}</p>
+                        <p className="font-bold text-[#1B2A4A] text-sm leading-snug">{outlet.name}</p>
                         <p className="text-[11px] text-zinc-400 font-medium">{outlet.city} · {outlet.code}</p>
                       </div>
                     </div>
                   </td>
 
                   {/* Revenue */}
-                  <td className="px-4 py-4 text-right font-extrabold text-[#0B1221] tabular-nums text-sm">
+                  <td className="px-4 py-4 text-right font-extrabold text-[#1B2A4A] tabular-nums text-sm">
                     ₹{outlet.revenue.toLocaleString("en-IN")}
                   </td>
 
@@ -184,7 +184,7 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
                         e.stopPropagation();
                         if (onSelectOutlet) onSelectOutlet(outlet.id);
                       }}
-                      className="p-1.5 text-zinc-400 hover:text-[#0B1221] hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-zinc-400 hover:text-[#1B2A4A] hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
                       title="View Detailed Outlet Intelligence"
                     >
                       <Eye className="h-4 w-4" />

@@ -117,7 +117,7 @@ export const KpiDrillDownDrawer = memo(function KpiDrillDownDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-xs font-semibold hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-[#1B2A4A] text-white rounded-xl text-xs font-semibold hover:bg-[#243556] transition-colors cursor-pointer"
           >
             Close Panel
           </button>
