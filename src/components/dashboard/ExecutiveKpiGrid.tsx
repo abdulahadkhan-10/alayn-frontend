@@ -51,11 +51,11 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
     <section aria-label="Executive KPIs" className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-[#0B1221] tracking-tight">Executive Telemetry</h2>
+          <h2 className="text-base font-bold text-[#1B2A4A] tracking-tight">Executive Telemetry</h2>
           <p className="text-xs text-zinc-400 font-medium">Click any metric card for instant historical drill-down telemetry</p>
         </div>
         <span className="text-xs font-bold text-zinc-600 bg-zinc-100 px-3 py-1 rounded-xl border border-zinc-200/80">
-          12 Active Metrics
+          {metrics.length} Active Metrics
         </span>
       </div>
 
@@ -74,8 +74,8 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
                 {/* Header Row: Premium Icon Container & Title */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-[#0B1221] shrink-0 group-hover:bg-zinc-100 transition-colors">
-                      <IconComp className="h-4.5 w-4.5 text-[#0B1221]" />
+                    <div className="h-9 w-9 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-center text-[#1B2A4A] shrink-0 group-hover:bg-zinc-100 transition-colors">
+                      <IconComp className="h-4.5 w-4.5 text-[#1B2A4A]" />
                     </div>
                     <span className="text-xs font-bold text-zinc-600 truncate">{metric.title}</span>
                   </div>
@@ -85,7 +85,7 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <HelpCircle className="h-3.5 w-3.5 text-zinc-300 hover:text-zinc-500 transition-colors" />
-                    <div className="absolute right-0 top-5 hidden group-hover/tooltip:block w-48 p-2.5 bg-[#0B1221] text-white text-[11px] rounded-xl shadow-xl z-30 pointer-events-none">
+                    <div className="absolute right-0 top-5 hidden group-hover/tooltip:block w-48 p-2.5 bg-[#1B2A4A] text-white text-[11px] rounded-xl shadow-xl z-30 pointer-events-none">
                       {metric.tooltip}
                     </div>
                   </div>
@@ -93,7 +93,7 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
 
                 {/* Primary Metric Value & Trend Badge */}
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-2xl font-extrabold text-[#0B1221] tracking-tight leading-none">
+                  <span className="text-2xl font-extrabold text-[#1B2A4A] tracking-tight leading-none">
                     {metric.value}
                   </span>
                   <span
@@ -134,7 +134,7 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
                     })}
                   </div>
 
-                  <span className="text-[10.5px] font-semibold text-zinc-400 group-hover:text-[#0B1221] flex items-center gap-0.5 transition-colors">
+                  <span className="text-[10.5px] font-semibold text-zinc-400 group-hover:text-[#1B2A4A] flex items-center gap-0.5 transition-colors">
                     Details <ArrowUpRight className="h-3.5 w-3.5" />
                   </span>
                 </div>

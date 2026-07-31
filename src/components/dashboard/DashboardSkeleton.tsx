@@ -9,7 +9,7 @@ export default function DashboardSkeleton() {
     <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
       <div className="space-y-6 pb-12 animate-in fade-in duration-200">
         {/* Top Header Banner Skeleton */}
-        <div className="bg-[#0B1221] p-6 lg:p-7 rounded-2xl border border-slate-800 shadow-sm flex flex-col md:flex-row justify-between gap-4">
+        <div className="bg-[#1B2A4A] p-6 lg:p-7 rounded-2xl border border-slate-800 shadow-sm flex flex-col md:flex-row justify-between gap-4">
           <div className="w-full max-w-xl space-y-3">
             <div className="flex items-center gap-2">
               <Skeleton width={110} height={20} borderRadius={6} baseColor="#1E293B" highlightColor="#334155" />
