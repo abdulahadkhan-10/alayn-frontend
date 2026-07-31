@@ -25,9 +25,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   QrCode,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAppSelector } from "@/redux/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
+import { logout } from "@/redux/slices/authSlice";
+import { useLogoutMutation } from "@/redux/slices/authApiSlice";
 
 type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN" | "SUPPLIER";
 
@@ -148,6 +151,20 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
 
   useEffect(() => { setMounted(true); }, []);
 
+  const dispatch = useAppDispatch();
+  const [logoutApi] = useLogoutMutation();
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi(undefined).unwrap();
+    } catch {
+      // ignore network errors on logout
+    } finally {
+      dispatch(logout());
+      window.location.href = "/login";
+    }
+  };
+
   const navItems = useMemo(() => {
     if (role === "MANAGER") return managerNavItems;
     if (role === "STAFF") return staffNavItems;
@@ -263,32 +280,64 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
         </nav>
       </div>
 
-      {/* ── User Badge (pinned at bottom) ─────────── */}
+      {/* ── User Badge & Log Out (pinned at bottom) ─────────── */}
       <div
         className={cn(
-          "shrink-0 border-t border-white/[0.05] p-3",
+          "shrink-0 border-t border-white/[0.05] p-3 flex flex-col gap-2 bg-[#080d18]"
         )}
       >
-        <div
-          className={cn(
-            "flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.05]",
-            isCollapsed ? "h-11 w-11 justify-center" : "px-3 py-2.5"
-          )}
-        >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm" suppressHydrationWarning>
-            {displayInitial}
-          </div>
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-zinc-200 leading-tight" suppressHydrationWarning>
-                {displayName}
-              </p>
-              <p className="truncate text-[10px] text-zinc-500 font-medium leading-tight mt-0.5" suppressHydrationWarning>
-                {displayRole}
-              </p>
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.05]"
+              title={`${displayName} (${displayRole})`}
+            >
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm"
+                suppressHydrationWarning
+              >
+                {displayInitial}
+              </div>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Log Out"
+              aria-label="Log Out"
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-colors duration-150 cursor-pointer"
+            >
+              <LogOut className="h-[18px] w-[18px]" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.05] px-3 py-2.5">
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm"
+                suppressHydrationWarning
+              >
+                {displayInitial}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-zinc-200 leading-tight" suppressHydrationWarning>
+                  {displayName}
+                </p>
+                <p className="truncate text-[10px] text-zinc-500 font-medium leading-tight mt-0.5" suppressHydrationWarning>
+                  {displayRole}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="group flex h-10 w-full items-center rounded-xl px-3.5 text-[13px] font-medium text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-colors duration-150 cursor-pointer"
+            >
+              <LogOut className="h-[18px] w-[18px] shrink-0 mr-3 text-zinc-500 group-hover:text-red-400 transition-colors" />
+              <span className="truncate leading-normal py-0.5">Log Out</span>
+            </button>
+          </>
+        )}
       </div>
     </aside>
   );
