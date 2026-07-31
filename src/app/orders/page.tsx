@@ -918,34 +918,107 @@ export default function LiveOrdersPage() {
                 </div>
 
                 {/* Bill summary */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
-                  <div className="flex justify-between text-gray-500 font-medium">
-                    <span>Subtotal</span>
-                    <span>
-                      ₹
-                      {(
-                        selectedOrder.subtotal !== undefined
-                          ? selectedOrder.subtotal
-                          : (selectedOrder as any).subtotalPaise !== undefined
-                            ? (selectedOrder as any).subtotalPaise / 100
-                            : 0
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-black text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
-                    <span>Total</span>
-                    <span className="text-[#D3232A]">
-                      ₹
-                      {(
-                        selectedOrder.totalAmount !== undefined
-                          ? selectedOrder.totalAmount
-                          : (selectedOrder as any).totalPaise !== undefined
-                            ? (selectedOrder as any).totalPaise / 100
-                            : 0
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                {(() => {
+                  const subtotalVal =
+                    selectedOrder.subtotal !== undefined
+                      ? selectedOrder.subtotal
+                      : (selectedOrder as any).subtotalPaise !== undefined
+                        ? (selectedOrder as any).subtotalPaise / 100
+                        : 0;
+
+                  const totalVal =
+                    selectedOrder.totalAmount !== undefined
+                      ? selectedOrder.totalAmount
+                      : (selectedOrder as any).totalPaise !== undefined
+                        ? (selectedOrder as any).totalPaise / 100
+                        : 0;
+
+                  const discountVal =
+                    selectedOrder.discountAmount !== undefined
+                      ? selectedOrder.discountAmount
+                      : (selectedOrder as any).discountPaise !== undefined
+                        ? (selectedOrder as any).discountPaise / 100
+                        : 0;
+
+                  let taxVal =
+                    selectedOrder.taxAmount !== undefined
+                      ? selectedOrder.taxAmount
+                      : (selectedOrder as any).taxPaise !== undefined
+                        ? (selectedOrder as any).taxPaise / 100
+                        : 0;
+
+                  // Fallback for tax calculation if subtotal and total are present but taxVal is 0
+                  if (taxVal === 0 && totalVal > 0 && subtotalVal > 0 && totalVal >= (subtotalVal - discountVal)) {
+                    taxVal = Math.max(0, totalVal - (subtotalVal - discountVal));
+                  }
+
+                  const cgstVal =
+                    selectedOrder.cgstAmount !== undefined
+                      ? selectedOrder.cgstAmount
+                      : (selectedOrder as any).cgstPaise !== undefined
+                        ? (selectedOrder as any).cgstPaise / 100
+                        : 0;
+
+                  const sgstVal =
+                    selectedOrder.sgstAmount !== undefined
+                      ? selectedOrder.sgstAmount
+                      : (selectedOrder as any).sgstPaise !== undefined
+                        ? (selectedOrder as any).sgstPaise / 100
+                        : 0;
+
+                  return (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
+                      <div className="flex justify-between text-gray-600 font-medium">
+                        <span>Actual Amount (Subtotal)</span>
+                        <span className="font-semibold text-gray-800">
+                          ₹{subtotalVal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {discountVal > 0 && (
+                        <div className="flex justify-between text-emerald-600 font-medium">
+                          <span>Discount</span>
+                          <span className="font-semibold">
+                            - ₹{discountVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-gray-600 font-medium items-baseline">
+                        <div className="flex flex-col">
+                          <span>Tax Amount (GST)</span>
+                          {cgstVal > 0 && sgstVal > 0 && (
+                            <span className="text-[10px] text-gray-400 font-normal">
+                              (CGST: ₹{cgstVal.toFixed(2)} + SGST: ₹{sgstVal.toFixed(2)})
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-800">
+                          ₹{taxVal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between font-black text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
+                        <span>Overall Total</span>
+                        <span className="text-[#D3232A]">
+                          ₹{totalVal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {selectedOrder.paymentMethod && (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Payment Method</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                            {selectedOrder.paymentMethod}
+                            {selectedOrder.status === "COMPLETED" && (
+                              <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Modal footer */}

@@ -38,6 +38,8 @@ export interface Order {
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
   discountAmount: number;
   paymentMethod: "CASH" | "CARD" | "UPI";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
