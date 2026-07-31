@@ -42,7 +42,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       {/* ─── Mobile backdrop ─────────────────── */}
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-260 ease-out"
           onClick={closeMobileSidebar}
           aria-hidden="true"
         />
@@ -55,13 +55,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           "fixed inset-y-0 left-0 z-30",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
           "lg:static lg:translate-x-0 lg:inset-auto",
-          "shrink-0",
+          "shrink-0 overflow-hidden",
         ].join(" ")}
         style={{
           width: sidebarW,
           contain: "layout style",
-          willChange: "width",
-          transition: mounted ? "width 180ms cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+          willChange: "width, transform",
+          transition: mounted
+            ? "width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+            : "none",
         }}
       >
         <Sidebar
