@@ -175,6 +175,7 @@ export default function LiveOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [settlingOrder, setSettlingOrder] = useState<Order | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">(
     "CASH"
   );
@@ -737,6 +738,18 @@ export default function LiveOrdersPage() {
                       </button>
 
                       <div className="flex items-center gap-1.5">
+                        {order.status !== "COMPLETED" &&
+                          order.status !== "CANCELLED" && (
+                            <button
+                              onClick={() => setCancellingOrder(order)}
+                              disabled={isUpdating}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60 cursor-pointer"
+                              title="Cancel Order"
+                            >
+                              <XCircle className="w-3 h-3" />
+                              Cancel
+                            </button>
+                          )}
                         {!isStaffRole &&
                           (order.status === "SENT_TO_KITCHEN" ||
                             order.status === "RECEIVED") && (
@@ -1025,16 +1038,28 @@ export default function LiveOrdersPage() {
               <div className="p-4 border-t border-gray-100 flex gap-2">
                 {selectedOrder.status !== "COMPLETED" &&
                   selectedOrder.status !== "CANCELLED" && (
-                    <button
-                      onClick={() => {
-                        setSettlingOrder(selectedOrder);
-                        setSelectedOrder(null);
-                      }}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white font-bold py-2.5 px-3 text-xs rounded-xl transition shadow-xs"
-                    >
-                      <IndianRupee className="w-3.5 h-3.5" />
-                      Settle Bill
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setCancellingOrder(selectedOrder);
+                          setSelectedOrder(null);
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4 text-rose-600" />
+                        Cancel Order
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSettlingOrder(selectedOrder);
+                          setSelectedOrder(null);
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white font-bold py-2.5 px-3 text-xs rounded-xl transition shadow-xs"
+                      >
+                        <IndianRupee className="w-3.5 h-3.5" />
+                        Settle Bill
+                      </button>
+                    </>
                   )}
                 <button
                   onClick={() => setSelectedOrder(null)}
@@ -1151,6 +1176,59 @@ export default function LiveOrdersPage() {
                   className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Cancel Order Confirmation ── */}
+        {cancellingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <XCircle className="w-6 h-6 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#1B2A4A]">
+                    Cancel Order
+                  </h3>
+                  <p className="text-xs text-gray-500 font-bold font-mono">
+                    {cancellingOrder.orderNo ||
+                      (cancellingOrder as any).orderNumber ||
+                      `#${cancellingOrder.id.slice(0, 8)}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-rose-50/80 border border-rose-100 rounded-xl p-3.5 text-xs text-rose-900 space-y-1">
+                <p className="font-bold">
+                  Are you sure you want to cancel this order?
+                </p>
+                <p className="text-[11px] text-rose-700 font-medium">
+                  The order status will be updated to <strong className="font-extrabold uppercase">CANCELLED</strong> and any linked table will be marked as available.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={async () => {
+                    const idToCancel = cancellingOrder.id;
+                    setCancellingOrder(null);
+                    await handleStatusChange(idToCancel, "CANCELLED");
+                  }}
+                  disabled={isUpdating}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition shadow-xs disabled:opacity-60 cursor-pointer"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Yes, Cancel Order
+                </button>
+                <button
+                  onClick={() => setCancellingOrder(null)}
+                  className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Keep Order
                 </button>
               </div>
             </div>
