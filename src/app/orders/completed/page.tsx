@@ -372,7 +372,7 @@ export default function CompletedOrdersPage() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search order #, table, staff..."
+                placeholder="Search order ID, table, staff..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-xs font-medium bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#1B2A4A] transition"
@@ -520,7 +520,7 @@ export default function CompletedOrdersPage() {
                       <tr key={order.id} className="hover:bg-gray-50/60 transition group">
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-[#1B2A4A]">
-                            #{displayNo}
+                            {displayNo}
                           </div>
                           <div className="text-[10px] font-medium text-gray-400 flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-gray-400" />
@@ -672,7 +672,7 @@ export default function CompletedOrdersPage() {
                   <div className="flex items-center gap-2">
                     <Receipt className="w-5 h-5 text-emerald-400" />
                     <h3 className="text-lg font-black">
-                      Order #{selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.slice(0, 8)}
+                      Order {selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.slice(0, 8)}
                     </h3>
                   </div>
                   <p className="text-xs text-gray-300 mt-0.5">
