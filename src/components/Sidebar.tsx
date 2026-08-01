@@ -57,7 +57,6 @@ const ownerNavItems: NavItem[] = [
   { name: "Table Management", icon: QrCode, href: "/tables" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders" },
-  { name: "Completed Orders", icon: CheckCircle2, href: "/orders/completed" },
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen" },
   { name: "Support & Tickets", icon: MessageSquare, href: "/support" },
   { name: "Waste Management", icon: Trash2, href: "/waste" },
@@ -72,7 +71,6 @@ const managerNavItems: NavItem[] = [
   { name: "Table Management", icon: QrCode, href: "/tables" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders" },
-  { name: "Completed Orders", icon: CheckCircle2, href: "/orders/completed" },
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen" },
   { name: "Support Tickets", icon: MessageSquare, href: "/support" },
   { name: "Waste Logs", icon: Trash2, href: "/waste" },
@@ -83,7 +81,6 @@ const staffNavItems: NavItem[] = [
   { name: "Leave Request", icon: FileText, href: "/workforce/leaves" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders" },
-  { name: "Completed Orders", icon: CheckCircle2, href: "/orders/completed" },
   { name: "Support & Queries", icon: MessageSquare, href: "/support" },
   { name: "Attendance Logs", icon: Clock, href: "/workforce/attendance" },
 ];
