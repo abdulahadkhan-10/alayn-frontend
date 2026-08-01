@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   useGetOrdersQuery,
@@ -186,7 +187,9 @@ export default function LiveOrdersPage() {
     isFetching,
     refetch,
   } = useGetOrdersQuery(
-    selectedStatusFilter !== "ALL" ? { status: selectedStatusFilter } : undefined
+    selectedStatusFilter !== "ALL"
+      ? { status: selectedStatusFilter }
+      : { excludeCompleted: true }
   );
 
   // Real-time WebSocket connection for live orders (replaces aggressive HTTP polling)
@@ -254,11 +257,16 @@ export default function LiveOrdersPage() {
     }
   };
 
-  const orderList = Array.isArray(orders)
+  const rawList = Array.isArray(orders)
     ? orders
     : (orders as any)?.data && Array.isArray((orders as any).data)
       ? (orders as any).data
       : [];
+
+  // Strictly exclude COMPLETED orders from Live Orders when status filter is "ALL"
+  const orderList = selectedStatusFilter === "ALL"
+    ? rawList.filter((o: Order) => o.status !== "COMPLETED")
+    : rawList;
 
   const getOrderSource = (order: Order) => {
     const tableNum =
@@ -281,6 +289,9 @@ export default function LiveOrdersPage() {
   ).length;
 
   const filteredOrders = orderList.filter((order: Order) => {
+    // If viewing ALL live orders, exclude COMPLETED
+    if (selectedStatusFilter === "ALL" && order.status === "COMPLETED") return false;
+
     const tableNum =
       order.tableNo !== undefined && order.tableNo !== null
         ? Number(order.tableNo)
@@ -355,7 +366,6 @@ export default function LiveOrdersPage() {
     { id: "PREPARING", label: "Preparing" },
     { id: "READY", label: "Ready" },
     { id: "SERVED", label: "Served" },
-    { id: "COMPLETED", label: "Completed" },
     { id: "CANCELLED", label: "Cancelled" },
   ];
 
@@ -385,6 +395,14 @@ export default function LiveOrdersPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Link
+              href="/orders/completed"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs hover:shadow"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Completed Orders</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
             {isFetching && (
               <span className="flex items-center gap-1.5 text-[11px] text-[#D3232A] font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#D3232A] animate-pulse" />

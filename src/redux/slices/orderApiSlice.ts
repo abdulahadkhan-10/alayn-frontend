@@ -52,7 +52,19 @@ export interface Order {
 
 export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getOrders: builder.query<Order[], { status?: string; outletId?: string } | void>({
+    getOrders: builder.query<
+      Order[],
+      {
+        status?: string;
+        outletId?: string;
+        excludeCompleted?: boolean;
+        startDate?: string;
+        endDate?: string;
+        placedByName?: string;
+        source?: string;
+        paymentMethod?: string;
+      } | void
+    >({
       query: (params) => ({
         url: "/orders",
         method: "GET",
