@@ -22,6 +22,8 @@ import {
   useGetOutletRostersQuery,
   useSetWeeklyRosterMutation,
 } from "@/redux/slices/rosterApiSlice";
+import { CustomDatePicker } from "../ui/custom-date-picker";
+import { CustomTimePicker } from "../ui/custom-time-picker";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -1063,8 +1065,8 @@ export default function ShiftSchedulerPage() {
         {/* Modal 1: Create Shift Slot */}
         {showCreateShiftModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
                 <h3 className="text-lg font-bold text-gray-900">Create Shift Slot</h3>
                 <button onClick={() => setShowCreateShiftModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400" />
@@ -1089,26 +1091,20 @@ export default function ShiftSchedulerPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Start Time (HH:MM)
                     </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="08:00"
+                    <CustomTimePicker
                       value={shiftForm.startTime}
-                      onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      onChange={(time) => setShiftForm({ ...shiftForm, startTime: time })}
+                      placeholder="08:00"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       End Time (HH:MM)
                     </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="16:00"
+                    <CustomTimePicker
                       value={shiftForm.endTime}
-                      onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      onChange={(time) => setShiftForm({ ...shiftForm, endTime: time })}
+                      placeholder="16:00"
                     />
                   </div>
                 </div>
@@ -1136,8 +1132,8 @@ export default function ShiftSchedulerPage() {
         {/* Modal 2: Assign Shift */}
         {showAssignModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <span>
@@ -1174,9 +1170,7 @@ export default function ShiftSchedulerPage() {
                         </span>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-[#D3232A] bg-red-100/60 px-2.5 py-1 rounded-lg border border-red-200/60">
-                      Target Employee
-                    </span>
+                   
                   </div>
                 ) : (
                   <div>
@@ -1348,28 +1342,24 @@ export default function ShiftSchedulerPage() {
                           <label className="block text-xs font-semibold text-gray-700 mb-1">
                             Start Time
                           </label>
-                          <input
-                            type="time"
-                            required
+                          <CustomTimePicker
                             value={assignForm.customStartTime || "09:00"}
-                            onChange={(e) =>
-                              setAssignForm({ ...assignForm, customStartTime: e.target.value })
+                            onChange={(time) =>
+                              setAssignForm({ ...assignForm, customStartTime: time })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white text-gray-900"
+                            placeholder="09:00"
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-gray-700 mb-1">
                             End Time
                           </label>
-                          <input
-                            type="time"
-                            required
+                          <CustomTimePicker
                             value={assignForm.customEndTime || "17:00"}
-                            onChange={(e) =>
-                              setAssignForm({ ...assignForm, customEndTime: e.target.value })
+                            onChange={(time) =>
+                              setAssignForm({ ...assignForm, customEndTime: time })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white text-gray-900"
+                            placeholder="17:00"
                           />
                         </div>
                       </div>
@@ -1385,12 +1375,9 @@ export default function ShiftSchedulerPage() {
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Shift Date
                   </label>
-                  <input
-                    type="date"
-                    required
+                  <CustomDatePicker
                     value={assignForm.date}
-                    onChange={(e) => setAssignForm({ ...assignForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    onChange={(date) => setAssignForm({ ...assignForm, date })}
                   />
                 </div>
 
@@ -1429,8 +1416,8 @@ export default function ShiftSchedulerPage() {
         {/* Modal 3: Request Swap */}
         {showSwapModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
                 <h3 className="text-lg font-bold text-gray-900">Request Shift Swap</h3>
                 <button onClick={() => setShowSwapModal(false)} className="cursor-pointer">
                   <X className="h-5 w-5 text-gray-400" />

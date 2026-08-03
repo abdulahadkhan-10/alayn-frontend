@@ -23,10 +23,13 @@ export interface InventoryForecastPoint {
 
 export const dashboardApiSlice = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getKpis: builder.query<KpiResponse, { outletId?: string }>({
-      query: ({ outletId }) => ({
+    getKpis: builder.query<KpiResponse, { outletId?: string; range?: string }>({
+      query: ({ outletId, range }) => ({
         url: "/dashboard/kpi",
-        params: outletId ? { outletId } : undefined,
+        params: {
+          ...(outletId ? { outletId } : {}),
+          ...(range ? { range } : {}),
+        },
       }),
       transformResponse: (response: { data?: KpiResponse } | KpiResponse) => {
         if ("data" in response && response.data) return response.data;

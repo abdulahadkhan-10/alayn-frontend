@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState, useMemo } from "react";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Clock, Sparkles } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -53,123 +53,137 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
   const pctDiff = totalPrevious ? (((totalCurrent - totalPrevious) / totalPrevious) * 100).toFixed(1) : "0.0";
 
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs space-y-4">
-      {/* Top Header & Metric Toggles */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-[#1B2A4A] tracking-tight">Sales &amp; Financial Telemetry</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-              <TrendingUp className="h-3 w-3" /> +{pctDiff}% vs prev
-            </span>
+    <div className="rounded-2xl bg-[#F8FAFC] p-1.5 ring-1 ring-zinc-950/5 shadow-2xs h-full flex flex-col justify-between">
+      <div className="rounded-xl bg-white p-5 sm:p-6 border border-zinc-200/60 h-full flex flex-col justify-between space-y-4">
+        
+        {/* Top Header & Metric Toggles */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-[#1B2A4A] tracking-tight">Sales &amp; Revenue Telemetry</h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                <TrendingUp className="h-3 w-3" /> +{pctDiff}% vs prev period
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 font-medium mt-0.5">Realtime POS billing revenue vs benchmark comparative trend</p>
           </div>
-          <p className="text-xs text-zinc-400 font-medium">Linear-styled financial area charts with multi-period comparative overlays</p>
+
+          {/* Metric Selector Toggles */}
+          <div className="flex flex-wrap items-center gap-1 bg-zinc-100/90 p-1 rounded-xl border border-zinc-200/80">
+            {(["REVENUE", "ORDERS", "GUESTS", "AOV", "PROFIT"] as MetricToggle[]).map((m) => {
+              const isActive = activeMetric === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setActiveMetric(m)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-[#1B2A4A] text-white shadow-2xs"
+                      : "text-zinc-600 hover:text-zinc-900"
+                  }`}
+                >
+                  {m === "REVENUE" ? "Revenue" : m === "ORDERS" ? "Orders" : m === "GUESTS" ? "Covers" : m === "AOV" ? "AOV" : "Margin"}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Metric Selector Toggles */}
-        <div className="flex flex-wrap items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200/80">
-          {(["REVENUE", "ORDERS", "GUESTS", "AOV", "PROFIT"] as MetricToggle[]).map((m) => {
-            const isActive = activeMetric === m;
-            return (
+        {/* Control Bar: Time Granularity & Compare Toggle */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-1 bg-zinc-50 p-1 rounded-lg border border-zinc-200/80">
+            {(["HOUR", "DAY", "WEEK", "MONTH", "YEAR"] as TimeGranularity[]).map((g) => (
               <button
-                key={m}
+                key={g}
                 type="button"
-                onClick={() => setActiveMetric(m)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-[#1B2A4A] text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
+                onClick={() => setGranularity(g)}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                  granularity === g ? "bg-[#1B2A4A] text-white" : "text-zinc-500 hover:text-zinc-900"
                 }`}
               >
-                {m === "REVENUE" ? "Revenue" : m === "ORDERS" ? "Orders" : m === "GUESTS" ? "Guests" : m === "AOV" ? "AOV" : "Profit"}
+                {g}
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* Control Bar: Time Granularity & Compare Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-1 bg-zinc-50 p-1 rounded-lg border border-zinc-200">
-          {(["HOUR", "DAY", "WEEK", "MONTH", "YEAR"] as TimeGranularity[]).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setGranularity(g)}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                granularity === g ? "bg-[#1B2A4A] text-white" : "text-zinc-500 hover:text-zinc-900"
-              }`}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-zinc-600 text-xs select-none">
+              <input
+                type="checkbox"
+                checked={showComparison}
+                onChange={(e) => setShowComparison(e.target.checked)}
+                className="rounded text-[#D3232A] focus:ring-[#D3232A]"
+              />
+              <span>Compare Previous Period</span>
+            </label>
 
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer font-semibold text-zinc-600">
-            <input
-              type="checkbox"
-              checked={showComparison}
-              onChange={(e) => setShowComparison(e.target.checked)}
-              className="rounded text-[#D3232A] focus:ring-[#D3232A]"
-            />
-            <span>Compare Previous Period</span>
-          </label>
-          <div className="flex items-center gap-3 font-semibold text-[11px]">
-            <span className="flex items-center gap-1.5 text-[#1B2A4A]">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#D3232A]" /> Current Period
-            </span>
-            {showComparison && (
-              <span className="flex items-center gap-1.5 text-zinc-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-zinc-300" /> Previous Period
+            <div className="flex items-center gap-3 font-semibold text-[11px]">
+              <span className="flex items-center gap-1.5 text-[#1B2A4A]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#D3232A]" /> Current Period
               </span>
-            )}
+              {showComparison && (
+                <span className="flex items-center gap-1.5 text-zinc-400">
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-300" /> Prev Period
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Linear-Styled Recharts Area Chart */}
-      <div className="h-64 w-full pt-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#D3232A" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#D3232A" stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="prevGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#71717a" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#71717a" stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#f4f4f5" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa", fontWeight: 600 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
-            <Tooltip
-              formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Amount"]}
-              contentStyle={{ backgroundColor: "#1B2A4A", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
-            />
-            {showComparison && (
+        {/* Linear-Styled Recharts Area Chart */}
+        <div className="h-64 w-full pt-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#D3232A" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#D3232A" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="prevGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#71717a" stopOpacity={0.12} />
+                  <stop offset="95%" stopColor="#71717a" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#f4f4f5" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa", fontWeight: 600 }} />
+              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
+              <Tooltip
+                formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, activeMetric === "REVENUE" ? "Revenue" : "Value"]}
+                contentStyle={{ backgroundColor: "#1B2A4A", borderRadius: "12px", color: "#fff", fontSize: "12px", border: "none", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
+              />
+              {showComparison && (
+                <Area
+                  type="monotone"
+                  dataKey="previous"
+                  stroke="#a1a1aa"
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  fillOpacity={1}
+                  fill="url(#prevGradient)"
+                />
+              )}
               <Area
                 type="monotone"
-                dataKey="previous"
-                stroke="#a1a1aa"
-                strokeWidth={2}
-                strokeDasharray="4 4"
+                dataKey="current"
+                stroke="#D3232A"
+                strokeWidth={2.5}
                 fillOpacity={1}
-                fill="url(#prevGradient)"
+                fill="url(#currentGradient)"
               />
-            )}
-            <Area
-              type="monotone"
-              dataKey="current"
-              stroke="#D3232A"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#currentGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Peak Rush Info Strip */}
+        <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-medium">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-zinc-400" />
+            <span>Peak Rush Hours: <strong className="text-zinc-800">1:00 PM – 3:00 PM &amp; 8:30 PM – 10:30 PM</strong></span>
+          </div>
+          <span className="text-[11px] font-bold text-[#1B2A4A] hidden sm:inline">Highest Day: Saturday (₹95,000)</span>
+        </div>
+
       </div>
     </div>
   );
