@@ -17,7 +17,7 @@ export default function Loading() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsMinLoading(false);
-    }, 800); // 800ms display time
+    }, 500); // 500ms (0.5s) display time
 
     return () => clearTimeout(timer);
   }, []);

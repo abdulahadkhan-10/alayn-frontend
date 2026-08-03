@@ -3,11 +3,15 @@ import { baseApi } from "../store/baseApi";
 export const employeeApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getEmployees: builder.query({
-      query: (params) => ({
-        url: "/employees",
-        method: "GET",
-        params,
-      }),
+      query: (params) => {
+        const { outletId, ...restParams } = params || {};
+        return {
+          url: "/employees",
+          method: "GET",
+          params: restParams,
+          headers: outletId ? { "x-outlet-id": outletId } : undefined,
+        };
+      },
       providesTags: ["Employee"],
     }),
     createEmployee: builder.mutation({
