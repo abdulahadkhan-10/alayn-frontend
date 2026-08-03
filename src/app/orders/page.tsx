@@ -974,9 +974,17 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).sgstPaise / 100
                         : 0;
 
+                  const serviceTaxVal =
+                    (selectedOrder as any).serviceTaxAmount !== undefined
+                      ? (selectedOrder as any).serviceTaxAmount
+                      : (selectedOrder as any).serviceTaxPaise !== undefined
+                        ? (selectedOrder as any).serviceTaxPaise / 100
+                        : 0;
+
                   const cgstPct = subtotalVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(2)) : 0;
                   const sgstPct = subtotalVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const totalTaxPct = Number((cgstPct + sgstPct).toFixed(2));
+                  const serviceTaxPct = subtotalVal > 0 ? Number(((serviceTaxVal / subtotalVal) * 100).toFixed(2)) : 0;
+                  const totalTaxPct = Number((cgstPct + sgstPct + serviceTaxPct).toFixed(2));
 
                   return (
                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
@@ -998,10 +1006,14 @@ export default function LiveOrdersPage() {
 
                       <div className="flex justify-between text-gray-600 font-medium items-baseline">
                         <div className="flex flex-col">
-                          <span>Tax Amount (GST{totalTaxPct > 0 ? ` ${totalTaxPct}%` : ""})</span>
-                          {cgstVal > 0 && sgstVal > 0 && (
+                          <span>Tax Amount ({serviceTaxVal > 0 ? "GST & Taxes" : "GST"}{totalTaxPct > 0 ? ` ${totalTaxPct}%` : ""})</span>
+                          {(cgstVal > 0 || sgstVal > 0 || serviceTaxVal > 0) && (
                             <span className="text-[10px] text-gray-400 font-normal">
-                              (CGST{cgstPct > 0 ? ` ${cgstPct}%` : ""}: ₹{cgstVal.toFixed(2)} + SGST{sgstPct > 0 ? ` ${sgstPct}%` : ""}: ₹{sgstVal.toFixed(2)})
+                              ({[
+                                cgstVal > 0 ? `CGST${cgstPct > 0 ? ` ${cgstPct}%` : ""}: ₹${cgstVal.toFixed(2)}` : null,
+                                sgstVal > 0 ? `SGST${sgstPct > 0 ? ` ${sgstPct}%` : ""}: ₹${sgstVal.toFixed(2)}` : null,
+                                serviceTaxVal > 0 ? `Service Tax${serviceTaxPct > 0 ? ` ${serviceTaxPct}%` : ""}: ₹${serviceTaxVal.toFixed(2)}` : null,
+                              ].filter(Boolean).join(" + ")})
                             </span>
                           )}
                         </div>

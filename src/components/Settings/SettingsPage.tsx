@@ -59,14 +59,16 @@ export default function SettingsPage() {
   const { data: outletsData = [] } = useGetOutletsQuery();
   const currentOutlet = outletsData.find((o) => o.id === activeBranch?.id) || outletsData[0];
 
-  const [cgstInput, setCgstInput] = useState<string>("9.0");
-  const [sgstInput, setSgstInput] = useState<string>("9.0");
+  const [cgstInput, setCgstInput] = useState<string>("2.5");
+  const [sgstInput, setSgstInput] = useState<string>("2.5");
+  const [serviceTaxInput, setServiceTaxInput] = useState<string>("0.0");
   const [updateTaxRates, { isLoading: isUpdatingTax }] = useUpdateTaxRatesMutation();
 
   useEffect(() => {
     if (currentOutlet) {
-      setCgstInput(String(currentOutlet.cgstRateDecimal ?? 9.0));
-      setSgstInput(String(currentOutlet.sgstRateDecimal ?? 9.0));
+      setCgstInput(String(currentOutlet.cgstRateDecimal ?? 2.5));
+      setSgstInput(String(currentOutlet.sgstRateDecimal ?? 2.5));
+      setServiceTaxInput(String(currentOutlet.serviceTaxRateDecimal ?? 0.0));
     }
   }, [currentOutlet]);
 
@@ -102,14 +104,16 @@ export default function SettingsPage() {
     const targetOutletId = activeBranch?.id || "all";
     const cgst = parseFloat(cgstInput);
     const sgst = parseFloat(sgstInput);
-    if (isNaN(cgst) || isNaN(sgst) || cgst < 0 || sgst < 0) {
+    const serviceTax = parseFloat(serviceTaxInput) || 0;
+    if (isNaN(cgst) || isNaN(sgst) || cgst < 0 || sgst < 0 || serviceTax < 0) {
       setFeedbackMsg("Please enter valid positive tax percentage values.");
       return;
     }
     try {
-      await updateTaxRates({ outletId: targetOutletId, cgstRate: cgst, sgstRate: sgst }).unwrap();
+      await updateTaxRates({ outletId: targetOutletId, cgstRate: cgst, sgstRate: sgst, serviceTaxRate: serviceTax }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
-      setFeedbackMsg(`GST Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST = ${(cgst + sgst).toFixed(2)}% Total GST)`);
+      const totalCombined = (cgst + sgst + serviceTax).toFixed(2);
+      setFeedbackMsg(`Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST + ${serviceTax}% Service Tax = ${totalCombined}% Total Tax)`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
     }
@@ -338,10 +342,10 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleSaveTaxRates} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      CGST Rate (%) <span className="text-red-500">*</span>
+                      CGST (%) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -352,7 +356,7 @@ export default function SettingsPage() {
                         value={cgstInput}
                         onChange={(e) => setCgstInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="9.0"
+                        placeholder="2.5"
                         required
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
@@ -361,7 +365,7 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      SGST Rate (%) <span className="text-red-500">*</span>
+                      SGST (%) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -372,8 +376,27 @@ export default function SettingsPage() {
                         value={sgstInput}
                         onChange={(e) => setSgstInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="9.0"
+                        placeholder="2.5"
                         required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Service Tax (%)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="50"
+                        value={serviceTaxInput}
+                        onChange={(e) => setServiceTaxInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="0.0"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
@@ -381,9 +404,9 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-600">Total Combined GST:</span>
+                  <span className="text-xs font-bold text-gray-600">Total Combined Tax:</span>
                   <span className="text-sm font-black text-[#D3232A]">
-                    {((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% GST
+                    {((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0) + (parseFloat(serviceTaxInput) || 0)).toFixed(2)}% Total Tax
                   </span>
                 </div>
 

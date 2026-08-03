@@ -151,7 +151,8 @@ export default function PosTerminalComponent() {
     if (currentOutlet) {
       const cgst = Number(currentOutlet.cgstRateDecimal ?? 2.5);
       const sgst = Number(currentOutlet.sgstRateDecimal ?? 2.5);
-      setTaxPercent(cgst + sgst);
+      const serviceTax = Number(currentOutlet.serviceTaxRateDecimal ?? 0);
+      setTaxPercent(cgst + sgst + serviceTax);
     } else {
       setTaxPercent(5);
     }
