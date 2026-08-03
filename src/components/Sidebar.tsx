@@ -315,13 +315,13 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
       >
         <div
           className={cn(
-            "flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.05] transition-all duration-200 ease-out min-w-0 overflow-hidden",
-            isCollapsed ? "h-11 w-11 justify-center px-0" : "w-full px-3 py-2.5"
+            "flex items-center rounded-xl bg-white/[0.04] border border-white/[0.05] transition-all duration-200 ease-out min-w-0 overflow-hidden",
+            isCollapsed ? "h-11 w-11 justify-center px-0 gap-0" : "w-full px-3 py-2.5 gap-3"
           )}
           title={isCollapsed ? `${displayName} (${displayRole})` : undefined}
         >
           <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm leading-none"
             suppressHydrationWarning
           >
             {displayInitial}
