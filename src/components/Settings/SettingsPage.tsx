@@ -99,11 +99,7 @@ export default function SettingsPage() {
 
   const handleSaveTaxRates = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetOutletId = activeBranch?.id === "all" ? currentOutlet?.id : activeBranch?.id;
-    if (!targetOutletId) {
-      setFeedbackMsg("Please select a specific branch location to update tax rates.");
-      return;
-    }
+    const targetOutletId = activeBranch?.id || "all";
     const cgst = parseFloat(cgstInput);
     const sgst = parseFloat(sgstInput);
     if (isNaN(cgst) || isNaN(sgst) || cgst < 0 || sgst < 0) {
@@ -112,7 +108,8 @@ export default function SettingsPage() {
     }
     try {
       await updateTaxRates({ outletId: targetOutletId, cgstRate: cgst, sgstRate: sgst }).unwrap();
-      setFeedbackMsg(`GST Tax Rates updated successfully! (${cgst}% CGST + ${sgst}% SGST = ${(cgst + sgst).toFixed(2)}% Total GST)`);
+      const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
+      setFeedbackMsg(`GST Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST = ${(cgst + sgst).toFixed(2)}% Total GST)`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
     }
@@ -336,7 +333,7 @@ export default function SettingsPage() {
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Configure CGST & SGST percentages applied to POS orders, billing receipts, and QR ordering for{" "}
-                  <span className="font-bold text-gray-800">{currentOutlet?.name || activeBranch?.name || "selected branch"}</span>.
+                  <span className="font-bold text-gray-800">{activeBranch?.id === "all" ? "All Outlets (Business-wide)" : (currentOutlet?.name || activeBranch?.name || "selected branch")}</span>.
                 </p>
               </div>
 
