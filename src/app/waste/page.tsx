@@ -90,6 +90,15 @@ export default function WasteManagementPage() {
   const [wastePage, setWastePage] = useState(1);
   const [wastePageSize, setWastePageSize] = useState(10);
 
+  const toggleSort = (field: "createdAt" | "costAtLoggingPaise" | "quantity") => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+    }
+  };
+
   const selectedItem = items.find((i) => i.id === selectedItemId);
   const numQty = Number(quantity) || 0;
   const calculatedCostRupees =
