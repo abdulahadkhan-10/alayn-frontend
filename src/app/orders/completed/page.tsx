@@ -22,7 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   IndianRupee,
-  Receipt,
+  ReceiptIndianRupeeIcon,
   Eye,
   FileSpreadsheet,
   Clock,
@@ -113,8 +113,8 @@ export default function CompletedOrdersPage() {
   const rawList: Order[] = Array.isArray(orders)
     ? orders
     : (orders as any)?.data && Array.isArray((orders as any).data)
-    ? (orders as any).data
-    : [];
+      ? (orders as any).data
+      : [];
 
   // Filter completed orders on frontend for staff & advanced criteria
   const filteredCompletedOrders = useMemo(() => {
@@ -127,8 +127,8 @@ export default function CompletedOrdersPage() {
           ? Number(order.tableNo)
           : (order as any).tableNumber !== undefined &&
             (order as any).tableNumber !== null
-          ? Number((order as any).tableNumber)
-          : null;
+            ? Number((order as any).tableNumber)
+            : null;
 
       // 2. Role-based scoping for Staff
       if (isStaffRole) {
@@ -241,8 +241,8 @@ export default function CompletedOrdersPage() {
     ((item.unitPricePaise !== undefined
       ? item.unitPricePaise
       : item.menuItem?.price
-      ? item.menuItem.price * 100
-      : 0) / 100) * item.quantity;
+        ? item.menuItem.price * 100
+        : 0) / 100) * item.quantity;
 
   return (
     <DashboardLayout>
@@ -311,7 +311,7 @@ export default function CompletedOrdersPage() {
 
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs relative">
             <div className="absolute right-3 top-3 bg-blue-50 p-2.5 rounded-xl text-blue-600">
-              <Receipt className="w-6 h-6" />
+              <ReceiptIndianRupeeIcon className="w-6 h-6" />
             </div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               Total Completed Tickets
@@ -481,7 +481,7 @@ export default function CompletedOrdersPage() {
             </div>
           ) : paginatedOrders.length === 0 ? (
             <div className="py-16 text-center text-gray-400">
-              <Receipt className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+              <ReceiptIndianRupeeIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
               <h3 className="text-base font-bold text-gray-700">No completed orders found</h3>
               <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
                 No completed orders match your current filters or search criteria. Try adjusting the filters above.
@@ -508,8 +508,8 @@ export default function CompletedOrdersPage() {
                         ? Number(order.tableNo)
                         : (order as any).tableNumber !== undefined &&
                           (order as any).tableNumber !== null
-                        ? Number((order as any).tableNumber)
-                        : null;
+                          ? Number((order as any).tableNumber)
+                          : null;
 
                     const displayNo =
                       order.orderNo ||
@@ -562,8 +562,8 @@ export default function CompletedOrdersPage() {
                           <div className="truncate font-medium text-gray-800">
                             {order.orderItems && order.orderItems.length > 0
                               ? order.orderItems
-                                  .map((i) => `${i.quantity}x ${i.menuItem?.name || "Item"}`)
-                                  .join(", ")
+                                .map((i) => `${i.quantity}x ${i.menuItem?.name || "Item"}`)
+                                .join(", ")
                               : "No items"}
                           </div>
                           <div className="text-[10px] text-gray-400">
@@ -670,7 +670,7 @@ export default function CompletedOrdersPage() {
               <div className="bg-[#1B2A4A] text-white p-5 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-5 h-5 text-emerald-400" />
+                    <ReceiptIndianRupeeIcon className="w-5 h-5 text-emerald-400" />
                     <h3 className="text-lg font-black">
                       Order {selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.slice(0, 8)}
                     </h3>
