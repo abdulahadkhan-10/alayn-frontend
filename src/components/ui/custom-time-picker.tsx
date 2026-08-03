@@ -226,14 +226,14 @@ export function CustomTimePicker({ value, onChange, placeholder = 'Select time' 
               <div className="w-full flex justify-between items-center px-1">
                 <button 
                     type="button" 
-                    onClick={() => onChange(tempTime) || setIsOpen(false)} 
+                    onClick={() => { if (value) setTempTime(value); setIsOpen(false); }} 
                     className="text-xs font-bold text-gray-500 px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                 >
                     Cancel
                 </button>
                 <button 
                     type="button" 
-                    onClick={() => onChange(tempTime) || setIsOpen(false)} 
+                    onClick={() => { onChange(tempTime); setIsOpen(false); }} 
                     className="text-xs font-bold text-white bg-[#D3232A] px-4 py-1.5 hover:bg-[#b01e23] rounded-lg transition-colors cursor-pointer shadow-xs"
                 >
                     OK
