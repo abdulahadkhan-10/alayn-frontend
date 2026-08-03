@@ -56,8 +56,15 @@ export function useSocket(
       optionsRef.current.onDisconnect?.();
     };
 
+    const debounceTimerRef = { current: null as any };
+
     const handleKDSUpdate = (data: any) => {
-      optionsRef.current.onKDSUpdate?.(data);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        optionsRef.current.onKDSUpdate?.(data);
+      }, 250);
     };
 
     socket.on("connect", handleConnect);
