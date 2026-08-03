@@ -64,13 +64,13 @@ export default function FullDashboardSkeleton({ children }: Props) {
             ) : (
               <>
                 {/* Banner Skeleton */}
-                <div className="bg-[#0B1221] p-6 rounded-2xl border border-slate-800 flex justify-between items-center">
-                  <div className="space-y-2">
-                    <Skeleton width={120} height={18} borderRadius={6} baseColor="#1E293B" highlightColor="#334155" />
-                    <Skeleton width={240} height={26} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
-                    <Skeleton width={340} height={14} borderRadius={4} baseColor="#1E293B" highlightColor="#334155" />
+                <div className="bg-[#0B1221] p-6 rounded-2xl border border-slate-800 flex justify-between items-center overflow-hidden gap-4">
+                  <div className="space-y-2 min-w-0 flex-1">
+                    <Skeleton width={120} height={18} borderRadius={6} baseColor="#1E293B" highlightColor="#334155" containerClassName="block max-w-full" className="max-w-full" />
+                    <Skeleton width={240} height={26} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" containerClassName="block max-w-full" className="max-w-full" />
+                    <Skeleton width={340} height={14} borderRadius={4} baseColor="#1E293B" highlightColor="#334155" containerClassName="block max-w-full" className="max-w-full" />
                   </div>
-                  <Skeleton width={110} height={36} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" />
+                  <Skeleton width={110} height={36} borderRadius={8} baseColor="#1E293B" highlightColor="#334155" containerClassName="shrink-0 hidden sm:block" />
                 </div>
 
                 {/* KPI Cards Grid Skeleton */}
