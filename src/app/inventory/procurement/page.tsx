@@ -190,7 +190,9 @@ export default function ProcurementPage() {
         s.name.toLowerCase().includes(q) ||
         s.contactPerson.toLowerCase().includes(q) ||
         s.phone.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q);
+        s.email.toLowerCase().includes(q) ||
+        (s.user?.name && s.user.name.toLowerCase().includes(q)) ||
+        (s.user?.email && s.user.email.toLowerCase().includes(q));
 
       const matchesCategory =
         selectedSupplierCategoryFilter === "ALL" ||
@@ -200,15 +202,13 @@ export default function ProcurementPage() {
         selectedSupplierTypeFilter === "ALL" ||
         (s.type || "OFFLINE") === selectedSupplierTypeFilter;
 
-      const matchesOutlet =
-        !isAllOutlets ||
-        procurementOutletFilter === "ALL" ||
-        s.outlet?.id === procurementOutletFilter ||
-        s.outletId === procurementOutletFilter;
+      const matchesOutlet = isAllOutlets
+        ? (procurementOutletFilter === "ALL" || s.outlet?.id === procurementOutletFilter || s.outletId === procurementOutletFilter)
+        : (!s.outletId || s.outletId === activeBranch?.id || s.outlet?.id === activeBranch?.id);
 
       return matchesSearch && matchesCategory && matchesType && matchesOutlet;
     });
-  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, isAllOutlets, procurementOutletFilter]);
+  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, isAllOutlets, activeBranch, procurementOutletFilter]);
 
   // Form states
   const [supplierForm, setSupplierForm] = useState<{
@@ -707,29 +707,53 @@ export default function ProcurementPage() {
                 </div>
               </div>
 
-              {/* Category Filter Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Category:</span>
-                <select
-                  id="vendor-category-select"
-                  value={selectedSupplierCategoryFilter}
-                  onChange={(e) => {
-                    setSelectedSupplierCategoryFilter(e.target.value);
-                    setSupPage(1);
-                  }}
-                  className="rounded-xl border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 bg-white focus:border-[#D3232A] focus:outline-none cursor-pointer shadow-2xs"
-                >
-                  <option value="ALL">All Categories</option>
-                  <option value="Dairy">Dairy</option>
-                  <option value="Frozen Goods">Frozen Goods</option>
-                  <option value="Meat & Poultry">Meat & Poultry</option>
-                  <option value="Produce">Produce</option>
-                  <option value="Beverages">Beverages</option>
-                  <option value="Bakery">Bakery</option>
-                  <option value="Syrups & Sauces">Syrups & Sauces</option>
-                  <option value="Packaging">Packaging</option>
-                  <option value="General">General</option>
-                </select>
+              {/* Category & Outlet Filter Dropdowns */}
+              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                {availableOutlets.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Outlet:</span>
+                    <select
+                      id="vendor-outlet-select"
+                      value={procurementOutletFilter}
+                      onChange={(e) => {
+                        setProcurementOutletFilter(e.target.value);
+                        setSupPage(1);
+                      }}
+                      className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 bg-white focus:border-[#D3232A] focus:outline-none cursor-pointer shadow-2xs"
+                    >
+                      <option value="ALL">All Outlets</option>
+                      {availableOutlets.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Category:</span>
+                  <select
+                    id="vendor-category-select"
+                    value={selectedSupplierCategoryFilter}
+                    onChange={(e) => {
+                      setSelectedSupplierCategoryFilter(e.target.value);
+                      setSupPage(1);
+                    }}
+                    className="rounded-xl border border-zinc-200 px-3.5 py-2 text-xs font-bold text-zinc-800 bg-white focus:border-[#D3232A] focus:outline-none cursor-pointer shadow-2xs"
+                  >
+                    <option value="ALL">All Categories</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Frozen Goods">Frozen Goods</option>
+                    <option value="Meat & Poultry">Meat & Poultry</option>
+                    <option value="Produce">Produce</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Bakery">Bakery</option>
+                    <option value="Syrups & Sauces">Syrups & Sauces</option>
+                    <option value="Packaging">Packaging</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
               </div>
             </div>
 
