@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -8,6 +8,10 @@ import {
   useGetHolidaysQuery,
   useCreateHolidayMutation,
 } from "@/redux/slices/holidayApiSlice";
+import {
+  useGetOutletsQuery,
+  useUpdateTaxRatesMutation,
+} from "@/redux/slices/outletApiSlice";
 import {
   Palmtree,
   Calendar,
@@ -21,6 +25,8 @@ import {
   Settings as SettingsIcon,
   Store,
   ShieldCheck,
+  Percent,
+  Receipt,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -50,6 +56,20 @@ export default function SettingsPage() {
   const { data: holidaysData, isLoading } = useGetHolidaysQuery(outletId ? { outletId } : undefined);
   const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
 
+  const { data: outletsData = [] } = useGetOutletsQuery();
+  const currentOutlet = outletsData.find((o) => o.id === activeBranch?.id) || outletsData[0];
+
+  const [cgstInput, setCgstInput] = useState<string>("9.0");
+  const [sgstInput, setSgstInput] = useState<string>("9.0");
+  const [updateTaxRates, { isLoading: isUpdatingTax }] = useUpdateTaxRatesMutation();
+
+  useEffect(() => {
+    if (currentOutlet) {
+      setCgstInput(String(currentOutlet.cgstRateDecimal ?? 9.0));
+      setSgstInput(String(currentOutlet.sgstRateDecimal ?? 9.0));
+    }
+  }, [currentOutlet]);
+
   const holidays = holidaysData?.data || [];
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -74,6 +94,24 @@ export default function SettingsPage() {
       });
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to add outlet holiday");
+    }
+  };
+
+  const handleSaveTaxRates = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetOutletId = activeBranch?.id || "all";
+    const cgst = parseFloat(cgstInput);
+    const sgst = parseFloat(sgstInput);
+    if (isNaN(cgst) || isNaN(sgst) || cgst < 0 || sgst < 0) {
+      setFeedbackMsg("Please enter valid positive tax percentage values.");
+      return;
+    }
+    try {
+      await updateTaxRates({ outletId: targetOutletId, cgstRate: cgst, sgstRate: sgst }).unwrap();
+      const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
+      setFeedbackMsg(`GST Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST = ${(cgst + sgst).toFixed(2)}% Total GST)`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
     }
   };
 
@@ -285,81 +323,158 @@ export default function SettingsPage() {
           </div>
         ) : (
           /* General Store Preferences View */
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm max-w-2xl space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Store className="h-5 w-5 text-indigo-600" />
-                Branch Configuration & Policies
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">General store operating parameters and attendance rules.</p>
-            </div>
-
-            <div className="space-y-4 text-sm">
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Current Branch Context</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{activeBranch?.name || "All Branches Selected"}</div>
-                </div>
-                <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200">
-                  ACTIVE
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Tax & GST Configuration Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 h-fit">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <Percent className="h-5 w-5 text-[#D3232A]" />
+                  GST & Tax Rate Configuration
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Configure CGST & SGST percentages applied to POS orders, billing receipts, and QR ordering for{" "}
+                  <span className="font-bold text-gray-800">{activeBranch?.id === "all" ? "All Outlets (Business-wide)" : (currentOutlet?.name || activeBranch?.name || "selected branch")}</span>.
+                </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Early Clock-in Window (Prior to Shift)</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    Maximum allowed early punch-in window before scheduled shift start time.
+              <form onSubmit={handleSaveTaxRates} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      CGST Rate (%) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="50"
+                        value={cgstInput}
+                        onChange={(e) => setCgstInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="9.0"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      SGST Rate (%) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="50"
+                        value={sgstInput}
+                        onChange={(e) => setSgstInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="9.0"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                    </div>
                   </div>
                 </div>
-                <select
-                  value={earlyBufferMins}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setEarlyBufferMins(val);
-                    localStorage.setItem("alayn_early_buffer_mins", String(val));
-                    setFeedbackMsg(`Early Clock-In Window updated to ${val} minutes prior to shift!`);
-                  }}
-                  className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-600">Total Combined GST:</span>
+                  <span className="text-sm font-black text-[#D3232A]">
+                    {((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% GST
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUpdatingTax}
+                  className="w-full flex items-center justify-center gap-2 bg-[#D3232A] hover:bg-[#b01e23] text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
                 >
-                  <option value={15}>15 Mins Prior</option>
-                  <option value={20}>20 Mins Prior</option>
-                  <option value={25}>25 Mins Prior</option>
-                  <option value={30}>30 Mins Prior (Default)</option>
-                  <option value={45}>45 Mins Prior</option>
-                  <option value={60}>60 Mins Prior</option>
-                </select>
+                  <Percent className="h-4 w-4" />
+                  {isUpdatingTax ? "Saving Tax Rates..." : "Save Tax Rates"}
+                </button>
+              </form>
+            </div>
+
+            {/* General Policy Parameters */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-6 h-fit">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Store className="h-5 w-5 text-indigo-600" />
+                  Branch Configuration & Policies
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">General store operating parameters and attendance rules.</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Late Arrival Grace Period</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Automatic LATE status tag if employee punches in after grace period</div>
+              <div className="space-y-4 text-sm">
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Current Branch Context</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{activeBranch?.name || "All Branches Selected"}</div>
+                  </div>
+                  <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200">
+                    ACTIVE
+                  </span>
                 </div>
-                <select
-                  value={lateGraceMins}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setLateGraceMins(val);
-                    localStorage.setItem("alayn_late_grace_mins", String(val));
-                    setFeedbackMsg(`Late Arrival Grace Period updated to ${val} minutes after shift start!`);
-                  }}
-                  className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                >
-                  <option value={5}>5 Mins Grace</option>
-                  <option value={10}>10 Mins Grace</option>
-                  <option value={15}>15 Mins Grace (Default)</option>
-                  <option value={20}>20 Mins Grace</option>
-                  <option value={30}>30 Mins Grace</option>
-                </select>
-              </div>
 
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Workforce Security & Role Access</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Staff & Kitchen restricted to personal shift calendars & leaves</div>
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Early Clock-in Window (Prior to Shift)</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Maximum allowed early punch-in window before scheduled shift start time.
+                    </div>
+                  </div>
+                  <select
+                    value={earlyBufferMins}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setEarlyBufferMins(val);
+                      localStorage.setItem("alayn_early_buffer_mins", String(val));
+                      setFeedbackMsg(`Early Clock-In Window updated to ${val} minutes prior to shift!`);
+                    }}
+                    className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                  >
+                    <option value={15}>15 Mins Prior</option>
+                    <option value={20}>20 Mins Prior</option>
+                    <option value={25}>25 Mins Prior</option>
+                    <option value={30}>30 Mins Prior (Default)</option>
+                    <option value={45}>45 Mins Prior</option>
+                    <option value={60}>60 Mins Prior</option>
+                  </select>
                 </div>
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Late Arrival Grace Period</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Automatic LATE status tag if employee punches in after grace period</div>
+                  </div>
+                  <select
+                    value={lateGraceMins}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setLateGraceMins(val);
+                      localStorage.setItem("alayn_late_grace_mins", String(val));
+                      setFeedbackMsg(`Late Arrival Grace Period updated to ${val} minutes after shift start!`);
+                    }}
+                    className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                  >
+                    <option value={5}>5 Mins Grace</option>
+                    <option value={10}>10 Mins Grace</option>
+                    <option value={15}>15 Mins Grace (Default)</option>
+                    <option value={20}>20 Mins Grace</option>
+                    <option value={30}>30 Mins Grace</option>
+                  </select>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-gray-900">Workforce Security & Role Access</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Staff & Kitchen restricted to personal shift calendars & leaves</div>
+                  </div>
+                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                </div>
               </div>
             </div>
           </div>

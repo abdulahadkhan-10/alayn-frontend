@@ -39,6 +39,7 @@ import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import { fetchTables, TableItem } from "@/lib/api";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 
 interface CartItem {
   menuItem: MenuItem;
@@ -139,9 +140,22 @@ export default function PosTerminalComponent() {
   }, [isAllOutletsSelected]);
 
   // Fetch API Queries
+  const { data: outletsData = [] } = useGetOutletsQuery();
   const { data: categories = [] } = useGetCategoriesQuery();
   const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery({ isAvailable: true });
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
+
+  const currentOutlet = outletsData.find((o) => o.id === currentOutletId);
+
+  useEffect(() => {
+    if (currentOutlet) {
+      const cgst = Number(currentOutlet.cgstRateDecimal ?? 2.5);
+      const sgst = Number(currentOutlet.sgstRateDecimal ?? 2.5);
+      setTaxPercent(cgst + sgst);
+    } else {
+      setTaxPercent(5);
+    }
+  }, [currentOutlet]);
 
   // Deduplicate categories by name / ID
   const categoriesDeduplicated = useMemo(() => {
@@ -443,8 +457,8 @@ export default function PosTerminalComponent() {
                       setCurrentPage(1);
                     }}
                     className={`px-3 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer ${dietaryFilter === "ALL"
-                        ? "bg-white text-[#1B2A4A] shadow-xs"
-                        : "text-gray-500 hover:text-gray-800"
+                      ? "bg-white text-[#1B2A4A] shadow-xs"
+                      : "text-gray-500 hover:text-gray-800"
                       }`}
                   >
                     All
@@ -456,8 +470,8 @@ export default function PosTerminalComponent() {
                     }}
                     title="Veg Only"
                     className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
-                        ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
-                        : "text-gray-500 hover:text-gray-800"
+                      ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
+                      : "text-gray-500 hover:text-gray-800"
                       }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -470,8 +484,8 @@ export default function PosTerminalComponent() {
                     }}
                     title="Non-Veg Only"
                     className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
-                        ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
-                        : "text-gray-500 hover:text-gray-800"
+                      ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
+                      : "text-gray-500 hover:text-gray-800"
                       }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
@@ -486,8 +500,8 @@ export default function PosTerminalComponent() {
                   onClick={() => setViewMode("GRID")}
                   title="Grid View"
                   className={`p-1.5 rounded-lg transition ${viewMode === "GRID"
-                      ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
-                      : "text-gray-500 hover:text-gray-800"
+                    ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
+                    : "text-gray-500 hover:text-gray-800"
                     }`}
                 >
                   <LayoutGrid className="w-4 h-4" />
@@ -496,8 +510,8 @@ export default function PosTerminalComponent() {
                   onClick={() => setViewMode("LIST")}
                   title="Fast List View"
                   className={`p-1.5 rounded-lg transition ${viewMode === "LIST"
-                      ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
-                      : "text-gray-500 hover:text-gray-800"
+                    ? "bg-white text-[#1B2A4A] shadow-xs font-bold"
+                    : "text-gray-500 hover:text-gray-800"
                     }`}
                 >
                   <List className="w-4 h-4" />
@@ -515,8 +529,8 @@ export default function PosTerminalComponent() {
                   setCurrentPage(1);
                 }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${selectedCategoryId === "ALL"
-                    ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                    : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                  ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
+                  : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                   }`}
               >
                 All Items ({menuItems.length})
@@ -538,15 +552,15 @@ export default function PosTerminalComponent() {
                       setCurrentPage(1);
                     }}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${isSelected
-                        ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                        : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                      ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
+                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                       }`}
                   >
                     {cat.name}
                     <span
                       className={`text-[9px] px-1.5 py-0.2 rounded-md font-black ${isSelected
-                          ? "bg-white/20 text-white"
-                          : "bg-gray-200 text-gray-600"
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-200 text-gray-600"
                         }`}
                     >
                       {count}
@@ -620,8 +634,8 @@ export default function PosTerminalComponent() {
                       <div
                         key={item.id}
                         className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${isSelected
-                            ? "border-[#D3232A] bg-rose-50/20 ring-2 ring-[#D3232A]/20"
-                            : "border-gray-200/90 hover:border-gray-300"
+                          ? "border-[#D3232A] bg-rose-50/20 ring-2 ring-[#D3232A]/20"
+                          : "border-gray-200/90 hover:border-gray-300"
                           }`}
                       >
                         {/* Top Media Thumbnail Container */}
@@ -728,8 +742,8 @@ export default function PosTerminalComponent() {
                       <div
                         key={item.id}
                         className={`bg-white border rounded-xl p-3 flex items-center justify-between gap-3 transition shadow-2xs ${isSelected
-                            ? "border-[#D3232A] bg-rose-50/20"
-                            : "border-gray-200 hover:border-gray-300"
+                          ? "border-[#D3232A] bg-rose-50/20"
+                          : "border-gray-200 hover:border-gray-300"
                           }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -1010,7 +1024,7 @@ export default function PosTerminalComponent() {
                 <span className="font-bold text-gray-900">₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600 font-medium">
-                <span>GST Tax ({taxPercent}%)</span>
+                <span>Tax ({taxPercent}%)</span>
                 <span className="font-bold text-gray-900">₹{taxAmount.toFixed(2)}</span>
               </div>
               {discount > 0 && (
@@ -1030,8 +1044,8 @@ export default function PosTerminalComponent() {
               disabled={isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)}
               onClick={handleSendToKitchen}
               className={`w-full py-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${isAllOutletsSelected || cart.length === 0 || isSubmitting || (isStaffRole && !selectedTableNo)
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                  : "bg-[#1B2A4A] hover:bg-[#2d4272] text-white shadow-md hover:shadow-lg hover:scale-[1.01]"
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                : "bg-[#1B2A4A] hover:bg-[#2d4272] text-white shadow-md hover:shadow-lg hover:scale-[1.01]"
                 }`}
             >
               <ChefHat className="w-4 h-4 text-emerald-400" />
@@ -1056,8 +1070,8 @@ export default function PosTerminalComponent() {
                 {isAllOutletsSelected
                   ? "⚠️ Select Outlet First"
                   : selectedTableNo
-                  ? `Table #${selectedTableNo}`
-                  : "Counter Direct"}
+                    ? `Table #${selectedTableNo}`
+                    : "Counter Direct"}
               </p>
             </div>
 
@@ -1285,7 +1299,7 @@ export default function PosTerminalComponent() {
                   <span className="font-bold text-gray-900">₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 font-medium">
-                  <span>Tax ({taxPercent}% GST)</span>
+                  <span>Tax ({taxPercent}%)</span>
                   <span className="font-bold text-gray-900">₹{taxAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-[#1B2A4A] pt-2 border-t border-gray-200">

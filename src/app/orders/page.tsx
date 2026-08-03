@@ -579,7 +579,7 @@ export default function LiveOrdersPage() {
               const orderNumDisplay =
                 order.orderNo ||
                 order.orderNumber ||
-                `#${order.id.slice(0, 8)}`;
+                `#${order.id.slice(0, 8).toUpperCase()}`;
               const tableNumDisplay =
                 order.tableNo !== undefined && order.tableNo !== null
                   ? order.tableNo
@@ -827,7 +827,7 @@ export default function LiveOrdersPage() {
                     <h3 className="text-base font-black text-[#1B2A4A]">
                       {selectedOrder.orderNo ||
                         (selectedOrder as any).orderNumber ||
-                        `#${selectedOrder.id.slice(0, 8)}`}
+                        `#${selectedOrder.id.slice(0, 8).toUpperCase()}`}
                     </h3>
                     <p className="text-xs text-gray-500 font-medium">
                       {selectedOrder.tableNo ||
@@ -974,6 +974,10 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).sgstPaise / 100
                         : 0;
 
+                  const cgstPct = subtotalVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(2)) : 0;
+                  const sgstPct = subtotalVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(2)) : 0;
+                  const totalTaxPct = Number((cgstPct + sgstPct).toFixed(2));
+
                   return (
                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
                       <div className="flex justify-between text-gray-600 font-medium">
@@ -994,10 +998,10 @@ export default function LiveOrdersPage() {
 
                       <div className="flex justify-between text-gray-600 font-medium items-baseline">
                         <div className="flex flex-col">
-                          <span>Tax Amount (GST)</span>
+                          <span>Tax Amount (GST{totalTaxPct > 0 ? ` ${totalTaxPct}%` : ""})</span>
                           {cgstVal > 0 && sgstVal > 0 && (
                             <span className="text-[10px] text-gray-400 font-normal">
-                              (CGST: ₹{cgstVal.toFixed(2)} + SGST: ₹{sgstVal.toFixed(2)})
+                              (CGST{cgstPct > 0 ? ` ${cgstPct}%` : ""}: ₹{cgstVal.toFixed(2)} + SGST{sgstPct > 0 ? ` ${sgstPct}%` : ""}: ₹{sgstVal.toFixed(2)})
                             </span>
                           )}
                         </div>
