@@ -37,7 +37,7 @@ import {
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
-import { io, Socket } from "socket.io-client";
+import { useSocket } from "@/lib/useSocket";
 
 type StatusKey =
   | "SENT_TO_KITCHEN"
@@ -192,40 +192,17 @@ export default function LiveOrdersPage() {
       : { excludeCompleted: true }
   );
 
-  // Real-time WebSocket connection for live orders (replaces aggressive HTTP polling)
-  useEffect(() => {
-    const rawApiUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000" || "https://api.alaynai.com";
-    const socketUrl = rawApiUrl.replace(/\/api\/v\d+\/?$/, "").replace(/\/$/, "");
-    const socket: Socket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-    });
-
-    socket.on("connect", () => {
-      if (currentOutletId) {
-        socket.emit("join_outlet", currentOutletId);
-      }
-    });
-
-    if (currentOutletId) {
-      socket.emit("join_outlet", currentOutletId);
-    }
-
-    socket.on("kds_update", (data: any) => {
+  // Real-time WebSocket connection for live orders
+  useSocket(currentOutletId, {
+    onKDSUpdate: (data: any) => {
       refetch();
       if (data && data.orderId && data.status) {
         setSelectedOrder((prev) =>
           prev && prev.id === data.orderId ? { ...prev, status: data.status } : prev
         );
       }
-    });
-
-    return () => {
-      if (currentOutletId) {
-        socket.emit("leave_outlet", currentOutletId);
-      }
-      socket.disconnect();
-    };
-  }, [currentOutletId, refetch]);
+    },
+  });
 
   const [updateOrderStatus, { isLoading: isUpdating }] =
     useUpdateOrderStatusMutation();

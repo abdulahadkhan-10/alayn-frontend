@@ -1,41 +1,28 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import {
   useGetKitchenTicketsQuery,
   useUpdateOrderStatusMutation,
   Order,
 } from "@/redux/slices/orderApiSlice";
-import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight, RefreshCw, Utensils } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Flame, ArrowRight, RefreshCw, Utensils, Wifi, WifiOff } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
+import { useBranch } from "@/lib/BranchContext";
+import { useSocket } from "@/lib/useSocket";
 
 export default function KitchenDispatchBoardComponent() {
+  const { activeBranch } = useBranch();
+  const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
+
   const { data: tickets = [], isLoading, refetch, isFetching } = useGetKitchenTicketsQuery(undefined);
 
-  useEffect(() => {
-    // Realtime Socket.IO WebSocket Connection for Zero-Polling KDS Feed
-    let socket: any = null;
-    try {
-      const io = require("socket.io-client").io;
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
-      socket = io(socketUrl, {
-        transports: ["websocket", "polling"],
-        withCredentials: true,
-      });
-
-      socket.on("kds_update", () => {
-        refetch();
-      });
-    } catch (_e) {
-      // Fallback auto sync if socket.io-client package is not installed
-    }
-
-    return () => {
-      if (socket && typeof socket.disconnect === "function") {
-        socket.disconnect();
-      }
-    };
-  }, [refetch]);
+  // Real-time WebSocket connection using centralized useSocket hook
+  const { isConnected } = useSocket(currentOutletId, {
+    onKDSUpdate: () => {
+      refetch();
+    },
+  });
 
   const [updateStatus] = useUpdateOrderStatusMutation();
 
@@ -72,13 +59,21 @@ export default function KitchenDispatchBoardComponent() {
             Real-time kitchen order ticket dispatch. Auto-syncs every 4 seconds.
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="btn-ghost flex items-center gap-2 text-xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-[#D3232A]" : ""}`} />
-          {isFetching ? "Syncing..." : "Refresh Feed"}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+            isConnected ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+            {isConnected ? "Live WebSocket Sync" : "Connecting..."}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="btn-ghost flex items-center gap-2 text-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-[#D3232A]" : ""}`} />
+            {isFetching ? "Syncing..." : "Refresh Feed"}
+          </button>
+        </div>
       </div>
 
       {/* Kanban Board Columns */}
