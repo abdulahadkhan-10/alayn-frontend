@@ -1,5 +1,5 @@
 import { baseApi } from "../store/baseApi";
-import { InventoryItemApi } from "./inventoryApiSlice";
+import type { InventoryItemApi } from "./inventoryApiSlice";
 
 export interface WasteLogApi {
   id: string;

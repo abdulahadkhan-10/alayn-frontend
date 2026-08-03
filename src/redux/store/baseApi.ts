@@ -1,10 +1,13 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
-import { logout, setCredentials } from "../slices/authSlice";
 
 const RAW_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export const API_VERSION = "v1";
 const BASE_DOMAIN = RAW_URL.replace(/\/$/, "").replace(/\/api\/v\d+$/, "");
 export const BASE_URL = `${BASE_DOMAIN}/api/${API_VERSION}`;
+
+/** Action creators defined locally to prevent circular dependencies with authSlice */
+const setCredentialsAction = (payload: { user: any }) => ({ type: "auth/setCredentials", payload });
+const logoutAction = () => ({ type: "auth/logout" });
 
 /** Normalizes endpoint paths by stripping any redundant leading /api/vX or /api/v1 */
 const normalizePath = (url: string): string => {
@@ -90,7 +93,7 @@ const baseQueryWithReauth: BaseQueryFn<
                 console.info(`[AUTH REFRESH FRONTEND SUCCESS] Token refresh succeeded for user: "${user?.name || user?.email || 'Authenticated User'}"`);
 
                 if (user) {
-                    api.dispatch(setCredentials({ user }));
+                    api.dispatch(setCredentialsAction({ user }));
                 }
 
                 isRefreshing = false;
@@ -103,13 +106,13 @@ const baseQueryWithReauth: BaseQueryFn<
                 isRefreshing = false;
                 refreshSubscribers = [];
                 // Refresh failed - log out user
-                api.dispatch(logout());
+                api.dispatch(logoutAction());
             }
         } catch (err) {
             console.error('[AUTH REFRESH FRONTEND ERROR] Unexpected error during refresh:', err);
             isRefreshing = false;
             refreshSubscribers = [];
-            api.dispatch(logout());
+            api.dispatch(logoutAction());
         }
     }
 
@@ -137,16 +140,11 @@ export const baseApi = createApi({
         "MenuCategories",
         "Orders",
         "KitchenTickets",
-        "MenuItems",
-        "MenuCategories",
-        "Orders",
-        "KitchenTickets",
         "Roster",
         "Holidays",
         "Tickets",
         "StaffQueries",
     ],
 
-
     endpoints: () => ({}),
-});
+});
