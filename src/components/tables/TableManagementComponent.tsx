@@ -17,6 +17,7 @@ import {
   Store,
   UtensilsCrossed,
 } from "lucide-react";
+import { skipToken } from "@reduxjs/toolkit/query/react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
@@ -44,14 +45,6 @@ export default function TableManagementComponent() {
     return branches.filter((b) => b.id !== "all");
   }, [branches]);
 
-  // RTK Query staff employees
-  const { data: rawEmployees } = useGetEmployeesQuery(undefined);
-  const staffList = useMemo(() => {
-    if (!rawEmployees) return [];
-    const list = Array.isArray(rawEmployees) ? rawEmployees : (rawEmployees as any)?.data || [];
-    return list;
-  }, [rawEmployees]);
-
   // Data state
   const [tables, setTables] = useState<TableItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +69,32 @@ export default function TableManagementComponent() {
   const [assignStaffTable, setAssignStaffTable] = useState<TableItem | null>(null);
   const [staffSearch, setStaffSearch] = useState("");
 
+  // Helper to determine target outlet ID for table operations
+  const getTargetOutletId = useCallback((table: TableItem) => {
+    return (
+      table.outletId ||
+      currentOutletId ||
+      (specificBranches.length > 0 ? specificBranches[0].id : null)
+    );
+  }, [currentOutletId, specificBranches]);
+
+  // RTK Query staff employees: fetch explicitly for the selected table's outlet if modal is active
+  const activeAssignOutletId = assignStaffTable ? getTargetOutletId(assignStaffTable) : null;
+  const { data: assignOutletEmployees, isLoading: assignStaffLoading } = useGetEmployeesQuery(
+    activeAssignOutletId ? { outletId: activeAssignOutletId, limit: 1000 } : skipToken
+  );
+
+  const { data: rawEmployees } = useGetEmployeesQuery(
+    currentOutletId ? { outletId: currentOutletId, limit: 1000 } : { limit: 1000 }
+  );
+
+  const staffList = useMemo(() => {
+    const source = assignOutletEmployees || rawEmployees;
+    if (!source) return [];
+    const list = Array.isArray(source) ? source : (source as any)?.data || [];
+    return list;
+  }, [assignOutletEmployees, rawEmployees]);
+
   // Per-table action loading
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -87,15 +106,6 @@ export default function TableManagementComponent() {
       setTargetAddOutletId(specificBranches[0].id);
     }
   }, [currentOutletId, specificBranches]);
-
-  // Helper to determine target outlet ID for table operations
-  const getTargetOutletId = (table: TableItem) => {
-    return (
-      table.outletId ||
-      currentOutletId ||
-      (specificBranches.length > 0 ? specificBranches[0].id : null)
-    );
-  };
 
   const loadTables = useCallback(async () => {
     setLoading(true);
@@ -500,11 +510,10 @@ export default function TableManagementComponent() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  filter === f
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${filter === f
                     ? "bg-[#1B2A4A] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                  }`}
               >
                 {f === "ALL" && "All Tables"}
                 {f === "AVAILABLE" && "Available"}
@@ -738,33 +747,59 @@ export default function TableManagementComponent() {
                   {!assignStaffTable.assignedStaff && <CheckCircle2 className="w-3.5 h-3.5 text-[#D3232A]" />}
                 </button>
 
-                {staffList
-                  .filter((s: any) => s.name?.toLowerCase().includes(staffSearch.toLowerCase()))
-                  .map((staff: any) => {
-                    const isSelected = assignStaffTable.assignedStaff?.id === staff.id;
-                    return (
-                      <button
-                        key={staff.id}
-                        type="button"
-                        onClick={() => {
-                          handleAssignStaff(assignStaffTable, staff.id);
-                          setAssignStaffTable(null);
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border cursor-pointer",
-                          isSelected
-                            ? "bg-[#1B2A4A] text-white border-[#1B2A4A] font-bold"
-                            : "text-gray-700 hover:bg-gray-50 border-transparent"
-                        )}
-                      >
-                        <div>
-                          <p className="font-bold">{staff.name}</p>
-                          <p className="text-[10px] text-gray-400 font-normal">{staff.designation || staff.role || "Staff"}</p>
-                        </div>
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                      </button>
-                    );
-                  })}
+                {assignStaffLoading ? (
+                  <p className="text-xs text-gray-400 text-center py-4">
+                    Loading staff members...
+                  </p>
+                ) : (
+                  staffList
+                    .filter((s: any) => {
+                      const matchesSearch = s.name?.toLowerCase().includes(staffSearch.toLowerCase());
+                      const targetOutletId = getTargetOutletId(assignStaffTable);
+                      const staffOutletId = s.outletId || s.outlet?.id;
+                      const matchesOutlet = !targetOutletId || staffOutletId === targetOutletId;
+                      const isEligibleRole = s.role === "STAFF" || s.role === "MANAGER";
+                      return matchesSearch && matchesOutlet && isEligibleRole;
+                    })
+                    .map((staff: any) => {
+                      const isSelected = assignStaffTable.assignedStaff?.id === staff.id;
+                      return (
+                        <button
+                          key={staff.id}
+                          type="button"
+                          onClick={() => {
+                            handleAssignStaff(assignStaffTable, staff.id);
+                            setAssignStaffTable(null);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-between border cursor-pointer",
+                            isSelected
+                              ? "bg-[#1B2A4A] text-white border-[#1B2A4A] font-bold"
+                              : "text-gray-700 hover:bg-gray-50 border-transparent"
+                          )}
+                        >
+                          <div>
+                            <p className="font-bold">{staff.name}</p>
+                            <p className="text-[10px] text-gray-400 font-normal">{staff.designation || staff.role || "Staff"}</p>
+                          </div>
+                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                        </button>
+                      );
+                    })
+                )}
+
+                {!assignStaffLoading &&
+                  staffList.filter((s: any) => {
+                    const targetOutletId = getTargetOutletId(assignStaffTable);
+                    const staffOutletId = s.outletId || s.outlet?.id;
+                    const matchesOutlet = !targetOutletId || staffOutletId === targetOutletId;
+                    const isEligibleRole = s.role === "STAFF" || s.role === "MANAGER";
+                    return matchesOutlet && isEligibleRole;
+                  }).length === 0 && (
+                    <p className="text-xs text-gray-400 text-center py-4">
+                      No staff members found for this outlet.
+                    </p>
+                  )}
               </div>
             </div>
           </div>
