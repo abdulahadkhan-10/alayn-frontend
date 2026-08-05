@@ -124,6 +124,11 @@ export const baseApi = createApi({
 
     baseQuery: baseQueryWithReauth,
 
+    // Caching configuration: Keep cached data in Redux store for 5 minutes (300s)
+    keepUnusedDataFor: 300,
+    // Do not re-fetch network request on mount/tab change if same query ran within last 30s
+    refetchOnMountOrArgChange: 30,
+
     tagTypes: [
         "Auth",
         "Employee",
@@ -144,6 +149,7 @@ export const baseApi = createApi({
         "Holidays",
         "Tickets",
         "StaffQueries",
+        "Notifications",
     ],
 
     endpoints: () => ({}),

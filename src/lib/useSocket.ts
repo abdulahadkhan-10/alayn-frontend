@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { useAppSelector } from "@/redux/store/hooks";
 
 export function getSocketUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -15,6 +16,7 @@ export function getSocketUrl(): string {
 
 interface UseSocketOptions {
   onKDSUpdate?: (data: any) => void;
+  onNotification?: (data: any) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
 }
@@ -25,6 +27,7 @@ export function useSocket(
 ) {
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const user = useAppSelector((state) => state.auth.user);
 
   // Store options in refs so callbacks don't cause unnecessary reconnects
   const optionsRef = useRef(options);
@@ -39,15 +42,28 @@ export function useSocket(
       withCredentials: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      query: {
+        userId: user?.id || "",
+        role: user?.role || "",
+        businessId: user?.businessId || "",
+        outletId: outletId && outletId !== "all" ? outletId : "",
+      },
+      auth: {
+        userId: user?.id || "",
+        role: user?.role || "",
+        businessId: user?.businessId || "",
+        outletId: outletId && outletId !== "all" ? outletId : "",
+      },
     });
 
     socketRef.current = socket;
 
     const handleConnect = () => {
       setIsConnected(true);
-      if (outletId && outletId !== "all") {
-        socket.emit("join_outlet", outletId);
-      }
+      if (user?.id) socket.emit("join_user", user.id);
+      if (user?.role) socket.emit("join_role", { role: user.role, businessId: user?.businessId, outletId });
+      if (outletId && outletId !== "all") socket.emit("join_outlet", outletId);
+      if (user?.businessId) socket.emit("join_business", user.businessId);
       optionsRef.current.onConnect?.();
     };
 
@@ -67,11 +83,15 @@ export function useSocket(
       }, 250);
     };
 
+    const handleNotification = (data: any) => {
+      optionsRef.current.onNotification?.(data);
+    };
+
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("kds_update", handleKDSUpdate);
+    socket.on("notification", handleNotification);
 
-    // If socket is already connected immediately
     if (socket.connected) {
       handleConnect();
     }
@@ -83,10 +103,11 @@ export function useSocket(
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("kds_update", handleKDSUpdate);
+      socket.off("notification", handleNotification);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [outletId]);
+  }, [outletId, user?.id, user?.role, user?.businessId]);
 
   const emit = useCallback((event: string, data?: any) => {
     if (socketRef.current && socketRef.current.connected) {
@@ -100,3 +121,4 @@ export function useSocket(
     emit,
   };
 }
+

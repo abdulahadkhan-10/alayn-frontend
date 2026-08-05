@@ -9,6 +9,8 @@ import { useBranch } from "@/lib/BranchContext";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
+import NotificationDropdown from "./common/NotificationDropdown";
+
 interface HeaderProps {
   onMenuClick: () => void;
   onOpenCreateOutlet?: () => void;
@@ -127,10 +129,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             />
           </div>
 
-          <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500">
-            <span className="sr-only">View notifications</span>
-            <Bell className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <NotificationDropdown />
 
           {/* Profile Dropdown */}
           <div className="relative" ref={profileRef}>
