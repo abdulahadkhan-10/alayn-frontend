@@ -19,19 +19,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   const hasUser = !!user || isAuthenticated;
 
-  // Enforce a minimum 0.5-second loader time on initial load / refresh
-  const [isMinLoading, setIsMinLoading] = useState(true);
-
-  // Execute getMe query in background to validate HTTP-Only cookie session
+  // Execute getMe query in background to validate session
   const { data: meData, isLoading, isError } = useGetMeQuery(undefined);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsMinLoading(false);
-    }, 300); // 500ms (0.5s) snappy display time
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // Sync user state on getMe success
   useEffect(() => {
@@ -43,25 +32,29 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [meData, dispatch]);
 
-  // Handle unauthorized session -> logout Redux state and redirect to /login after min loader
+  // Handle unauthorized session -> logout Redux state and redirect to /login
   useEffect(() => {
-    if (!isMinLoading && (isError || (!isLoading && !hasUser))) {
+    if (isError || (!isLoading && !hasUser)) {
       console.warn("AuthGuard: Unauthenticated session. Redirecting to /login...");
       dispatch(logout());
       router.replace("/login");
     }
-  }, [isError, isLoading, hasUser, isMinLoading, dispatch, router]);
+  }, [isError, isLoading, hasUser, dispatch, router]);
 
-  // Show FullDashboardSkeleton for at least 0.5 seconds or while querying session
-  if (isMinLoading || isLoading) {
+  // If we already have a cached user in Redux store / localStorage, render immediately without blocking on network query
+  if (hasUser) {
+    return <>{children}</>;
+  }
+
+  // Show FullDashboardSkeleton only on cold boot when no cached user exists and session is being verified
+  if (isLoading) {
     return <FullDashboardSkeleton />;
   }
 
-  // If session validation failed or unauthenticated after min loading time, show FullDashboardSkeleton while redirecting
+  // If session validation failed or unauthenticated, show FullDashboardSkeleton while redirecting
   if (isError || !hasUser) {
     return <FullDashboardSkeleton />;
   }
 
-  // Render protected children only once authenticated and min loader time has elapsed
   return <>{children}</>;
 }
