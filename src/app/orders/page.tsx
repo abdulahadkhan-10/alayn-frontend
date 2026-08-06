@@ -1108,55 +1108,42 @@ export default function LiveOrdersPage() {
         {/* ── Modal: Settle Payment & Generate Thermal Invoice ── */}
         {settlingOrder && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
             onClick={(e) => { if (e.target === e.currentTarget) setSettlingOrder(null); }}
           >
-            <div className="bg-white rounded-3xl border border-slate-200/80 max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-              {/* Header */}
-              <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-[#0f1f3d] via-[#1B2A4A] to-[#253966] text-white shrink-0">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 rounded-md bg-emerald-500/20 border border-emerald-400/30 text-emerald-400">
-                      <Receipt className="w-4 h-4" />
-                    </span>
-                    <h3 className="text-base font-black tracking-tight">
-                      Settle Bill & Invoice
-                    </h3>
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]">
+              {/* Clean Modal Header */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+                    <Receipt className="w-4.5 h-4.5" />
                   </div>
-                  <p className="text-[11.5px] text-slate-300 font-medium flex items-center gap-2">
-                    <span>
-                      Bill No:{" "}
-                      <strong className="font-mono text-emerald-400 font-black">
-                        {settlingOrder.orderNo ||
-                          (settlingOrder as any).orderNumber ||
-                          `#${settlingOrder.id.slice(0, 8)}`}
-                      </strong>
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-200 font-semibold">
-                      {settlingOrder.tableNo ||
-                        (settlingOrder as any).tableNumber
-                        ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}`
-                        : "Counter Direct"}
-                    </span>
-                  </p>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                      Checkout & Settle Bill
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Bill #{settlingOrder.orderNo || (settlingOrder as any).orderNumber || settlingOrder.id.slice(0, 8).toUpperCase()} • {settlingOrder.tableNo || (settlingOrder as any).tableNumber ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}` : "Counter"}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setSettlingOrder(null)}
-                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer"
+                  className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
                 >
-                  <X className="w-4.5 h-4.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
-                {/* Total Amount Hero Card */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-50 border border-emerald-500/20 rounded-2xl p-4 flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">
-                      Total Amount Payable
-                    </p>
-                    <p className="text-3xl font-black text-slate-900 tracking-tight">
+              {/* Modal Body */}
+              <div className="p-5 space-y-4 overflow-y-auto flex-1">
+                {/* Total Amount Summary Box */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500 block uppercase tracking-wider">
+                      Amount Due
+                    </span>
+                    <span className="text-2xl font-bold text-slate-900 tracking-tight">
                       ₹
                       {(
                         settlingOrder.totalAmount !== undefined
@@ -1165,71 +1152,64 @@ export default function LiveOrdersPage() {
                             ? (settlingOrder as any).totalPaise / 100
                             : 0
                       ).toFixed(2)}
-                    </p>
+                    </span>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 shrink-0">
-                    <IndianRupee className="w-6 h-6" />
-                  </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Unpaid
+                  </span>
                 </div>
 
-                {/* Customer Details Input (Optional) */}
-                <div className="space-y-2 bg-slate-50 border border-slate-200/70 p-3.5 rounded-2xl">
-                  <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-500" />
-                    Customer Branding (Optional)
+                {/* Customer Details Form */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    Customer Details (Optional)
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       type="text"
-                      placeholder="Customer Name (e.g. aquib)"
+                      placeholder="Customer Name"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                      className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
                     />
                     <input
                       type="tel"
-                      placeholder="Mobile No. (e.g. 9167838311)"
+                      placeholder="Mobile Number"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                      className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
                     />
                   </div>
                 </div>
 
                 {/* Payment Method Selector */}
                 <div className="space-y-2">
-                  <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                    Select Payment Channel
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Payment Method
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {(
                       [
-                        { value: "UPI", label: "UPI / QR", icon: QrCode, badge: "Instant" },
-                        { value: "CASH", label: "Cash", icon: Banknote, badge: "Counter" },
-                        { value: "CARD", label: "Card / POS", icon: CreditCard, badge: "Terminal" },
+                        { value: "UPI", label: "UPI / QR", icon: QrCode },
+                        { value: "CASH", label: "Cash", icon: Banknote },
+                        { value: "CARD", label: "Card", icon: CreditCard },
                       ] as const
-                    ).map(({ value, label, icon: Icon, badge }) => {
+                    ).map(({ value, label, icon: Icon }) => {
                       const isSelected = paymentMethod === value;
                       return (
                         <button
                           key={value}
                           type="button"
                           onClick={() => setPaymentMethod(value)}
-                          className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-xs font-bold relative cursor-pointer ${
+                          className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md shadow-[#1B2A4A]/20 scale-[1.02]"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                              ? "bg-slate-900 text-white border-slate-900"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                           }`}
                         >
-                          <Icon className={`w-5 h-5 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                          <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
                           <span>{label}</span>
-                          <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded-full font-black uppercase tracking-wider ${
-                              isSelected ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 text-slate-500"
-                            }`}
-                          >
-                            {badge}
-                          </span>
                         </button>
                       );
                     })}
@@ -1237,8 +1217,24 @@ export default function LiveOrdersPage() {
                 </div>
               </div>
 
-              {/* Footer Actions */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 shrink-0">
+              {/* Clean Footer Actions */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    setPrintingOrder({
+                      ...settlingOrder,
+                      customerName: customerName.trim() || settlingOrder.customerName,
+                      customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
+                      paymentMethod,
+                      outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
+                    });
+                  }}
+                  className="px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                  Pre-Bill
+                </button>
+
                 <button
                   onClick={async () => {
                     const orderId = settlingOrder.id;
@@ -1267,36 +1263,11 @@ export default function LiveOrdersPage() {
                     }
                   }}
                   disabled={isUpdating}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black py-3 px-4 text-xs rounded-2xl transition shadow-md shadow-emerald-700/20 disabled:opacity-60 cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer"
                 >
-                  <Printer className="w-4 h-4 text-emerald-200" />
-                  Settle & Print Thermal Bill
+                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                  Settle & Print Receipt
                 </button>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setPrintingOrder({
-                        ...settlingOrder,
-                        customerName: customerName.trim() || settlingOrder.customerName,
-                        customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
-                        paymentMethod,
-                        outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
-                      });
-                    }}
-                    className="flex-1 border border-slate-200 hover:bg-white text-slate-700 py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <Receipt className="w-3.5 h-3.5 text-slate-500" />
-                    Preview Pre-Bill
-                  </button>
-
-                  <button
-                    onClick={() => setSettlingOrder(null)}
-                    className="px-4 border border-slate-200 hover:bg-white text-slate-600 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
               </div>
             </div>
           </div>
