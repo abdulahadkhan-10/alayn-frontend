@@ -807,11 +807,11 @@ export default function LiveOrdersPage() {
                               setSettlingOrder(order);
                             }}
                             disabled={isUpdating}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                             title="Generate Petpooja Bill & Settle Order"
                           >
                             <Printer className="w-3.5 h-3.5 text-emerald-200" />
-                            Generate Invoice & Settle
+                            Settle & Print
                           </button>
                         )}
                       </div>
@@ -1087,10 +1087,10 @@ export default function LiveOrdersPage() {
                           setSettlingOrder(selectedOrder);
                           setSelectedOrder(null);
                         }}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition shadow-xs cursor-pointer"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] shadow-xs cursor-pointer"
                       >
                         <Printer className="w-4 h-4 text-emerald-200" />
-                        Generate Invoice & Settle
+                        Settle & Print Bill
                       </button>
                     </>
                   )}
@@ -1107,45 +1107,56 @@ export default function LiveOrdersPage() {
 
         {/* ── Modal: Settle Payment & Generate Thermal Invoice ── */}
         {settlingOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full shadow-2xl overflow-hidden">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget) setSettlingOrder(null); }}
+          >
+            <div className="bg-white rounded-3xl border border-slate-200/80 max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
               {/* Header */}
-              <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-[#1B2A4A] text-white">
-                <div>
-                  <h3 className="text-base font-black flex items-center gap-2">
-                    <Printer className="w-5 h-5 text-emerald-400" />
-                    Generate Invoice & Settle Bill
-                  </h3>
-                  <p className="text-xs text-gray-300 font-medium mt-1">
-                    Bill No:{" "}
-                    <span className="font-mono text-emerald-400 font-bold">
-                      {settlingOrder.orderNo ||
-                        (settlingOrder as any).orderNumber ||
-                        `#${settlingOrder.id.slice(0, 8)}`}
-                    </span>{" "}
-                    ·{" "}
-                    {settlingOrder.tableNo ||
-                      (settlingOrder as any).tableNumber
-                      ? `Dine In: Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}`
-                      : "Counter Direct"}
+              <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-start bg-gradient-to-r from-[#0f1f3d] via-[#1B2A4A] to-[#253966] text-white shrink-0">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-md bg-emerald-500/20 border border-emerald-400/30 text-emerald-400">
+                      <Receipt className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-base font-black tracking-tight">
+                      Settle Bill & Invoice
+                    </h3>
+                  </div>
+                  <p className="text-[11.5px] text-slate-300 font-medium flex items-center gap-2">
+                    <span>
+                      Bill No:{" "}
+                      <strong className="font-mono text-emerald-400 font-black">
+                        {settlingOrder.orderNo ||
+                          (settlingOrder as any).orderNumber ||
+                          `#${settlingOrder.id.slice(0, 8)}`}
+                      </strong>
+                    </span>
+                    <span className="text-slate-500">•</span>
+                    <span className="text-slate-200 font-semibold">
+                      {settlingOrder.tableNo ||
+                        (settlingOrder as any).tableNumber
+                        ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}`
+                        : "Counter Direct"}
+                    </span>
                   </p>
                 </div>
                 <button
                   onClick={() => setSettlingOrder(null)}
-                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4.5 h-4.5" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
-                {/* Bill amount hero */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
-                      Grand Total Amount Due
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 scrollbar-thin">
+                {/* Total Amount Hero Card */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-slate-50 border border-emerald-500/20 rounded-2xl p-4 flex justify-between items-center">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">
+                      Total Amount Payable
                     </p>
-                    <p className="text-3xl font-black text-emerald-950 mt-0.5">
+                    <p className="text-3xl font-black text-slate-900 tracking-tight">
                       ₹
                       {(
                         settlingOrder.totalAmount !== undefined
@@ -1156,71 +1167,78 @@ export default function LiveOrdersPage() {
                       ).toFixed(2)}
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-emerald-200/60 text-emerald-800">
-                    <Receipt className="w-7 h-7" />
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 shrink-0">
+                    <IndianRupee className="w-6 h-6" />
                   </div>
                 </div>
 
                 {/* Customer Details Input (Optional) */}
-                <div className="space-y-2 bg-gray-50 border border-gray-200 p-3.5 rounded-2xl">
-                  <label className="block text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-gray-500" />
-                    Customer Details (For Printed Bill)
+                <div className="space-y-2 bg-slate-50 border border-slate-200/70 p-3.5 rounded-2xl">
+                  <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    Customer Branding (Optional)
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Customer Name (e.g. aquib)"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#1B2A4A]"
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="tel"
-                        placeholder="Mobile No. (e.g. 9167838311)"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#1B2A4A]"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Customer Name (e.g. aquib)"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Mobile No. (e.g. 9167838311)"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                    />
                   </div>
                 </div>
 
-                {/* Payment method selection */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
-                    Select Payment Method
-                  </p>
+                {/* Payment Method Selector */}
+                <div className="space-y-2">
+                  <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                    Select Payment Channel
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
                     {(
                       [
-                        { value: "UPI", label: "UPI / QR", icon: QrCode },
-                        { value: "CASH", label: "Cash", icon: Banknote },
-                        { value: "CARD", label: "Card / POS", icon: CreditCard },
+                        { value: "UPI", label: "UPI / QR", icon: QrCode, badge: "Instant" },
+                        { value: "CASH", label: "Cash", icon: Banknote, badge: "Counter" },
+                        { value: "CARD", label: "Card / POS", icon: CreditCard, badge: "Terminal" },
                       ] as const
-                    ).map(({ value, label, icon: Icon }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setPaymentMethod(value)}
-                        className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition font-bold text-xs cursor-pointer ${paymentMethod === value
-                          ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md"
-                          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                    ).map(({ value, label, icon: Icon, badge }) => {
+                      const isSelected = paymentMethod === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setPaymentMethod(value)}
+                          className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all text-xs font-bold relative cursor-pointer ${
+                            isSelected
+                              ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-md shadow-[#1B2A4A]/20 scale-[1.02]"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
                           }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        {label}
-                      </button>
-                    ))}
+                        >
+                          <Icon className={`w-5 h-5 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                          <span>{label}</span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.2 rounded-full font-black uppercase tracking-wider ${
+                              isSelected ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {badge}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-2">
+              <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-2 shrink-0">
                 <button
                   onClick={async () => {
                     const orderId = settlingOrder.id;
@@ -1228,7 +1246,6 @@ export default function LiveOrdersPage() {
                     const cPhone = customerPhone.trim() || undefined;
                     const targetOrder = settlingOrder;
 
-                    setSettlingOrder(null);
                     const updatedResult = await handleStatusChange(
                       orderId,
                       "COMPLETED",
@@ -1237,21 +1254,23 @@ export default function LiveOrdersPage() {
                       cPhone
                     );
 
-                    // Show Petpooja thermal receipt preview & trigger print
-                    setPrintingOrder({
-                      ...(updatedResult || targetOrder),
-                      status: "COMPLETED",
-                      paymentMethod,
-                      customerName: cName || targetOrder.customerName,
-                      customerPhone: cPhone || targetOrder.customerPhone,
-                      outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
-                    });
+                    if (updatedResult) {
+                      setSettlingOrder(null);
+                      setPrintingOrder({
+                        ...updatedResult,
+                        status: "COMPLETED",
+                        paymentMethod,
+                        customerName: cName || targetOrder.customerName,
+                        customerPhone: cPhone || targetOrder.customerPhone,
+                        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
+                      });
+                    }
                   }}
                   disabled={isUpdating}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 text-xs rounded-xl transition shadow-md disabled:opacity-60 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black py-3 px-4 text-xs rounded-2xl transition shadow-md shadow-emerald-700/20 disabled:opacity-60 cursor-pointer"
                 >
                   <Printer className="w-4 h-4 text-emerald-200" />
-                  Print Petpooja Thermal Bill & Complete
+                  Settle & Print Thermal Bill
                 </button>
 
                 <div className="flex gap-2">
@@ -1265,15 +1284,15 @@ export default function LiveOrdersPage() {
                         outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
                       });
                     }}
-                    className="flex-1 border border-gray-300 hover:bg-gray-100 text-gray-700 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 border border-slate-200 hover:bg-white text-slate-700 py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
-                    <Receipt className="w-3.5 h-3.5 text-gray-600" />
+                    <Receipt className="w-3.5 h-3.5 text-slate-500" />
                     Preview Pre-Bill
                   </button>
 
                   <button
                     onClick={() => setSettlingOrder(null)}
-                    className="px-4 border border-gray-200 hover:bg-gray-100 text-gray-600 py-2 text-xs font-bold rounded-xl transition cursor-pointer"
+                    className="px-4 border border-slate-200 hover:bg-white text-slate-600 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
                   >
                     Cancel
                   </button>

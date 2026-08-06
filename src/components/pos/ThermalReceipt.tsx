@@ -27,6 +27,7 @@ export interface ThermalReceiptProps {
     discountPaise?: number;
     cgstAmount?: number;
     sgstAmount?: number;
+    serviceTaxAmount?: number;
     placedByName?: string;
     customerName?: string;
     customerPhone?: string;
@@ -61,6 +62,7 @@ export interface ThermalReceiptProps {
       upiId?: string;
       cgstRateDecimal?: number | string;
       sgstRateDecimal?: number | string;
+      serviceTaxRateDecimal?: number | string;
     };
   };
   onClose?: () => void;
@@ -143,6 +145,24 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
     : actualOrder.sgstAmount !== undefined
       ? Number(actualOrder.sgstAmount)
       : (subtotalRupees * 0.025);
+
+  const serviceTaxRupees = actualOrder.serviceTaxPaise !== undefined
+    ? actualOrder.serviceTaxPaise / 100
+    : actualOrder.serviceTaxAmount !== undefined
+      ? Number(actualOrder.serviceTaxAmount)
+      : 0;
+
+  const cgstRate = actualOrder.outlet?.cgstRateDecimal !== undefined
+    ? Number(actualOrder.outlet.cgstRateDecimal)
+    : subtotalRupees > 0 ? Number(((cgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+
+  const sgstRate = actualOrder.outlet?.sgstRateDecimal !== undefined
+    ? Number(actualOrder.outlet.sgstRateDecimal)
+    : subtotalRupees > 0 ? Number(((sgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+
+  const serviceTaxRate = actualOrder.outlet?.serviceTaxRateDecimal !== undefined
+    ? Number(actualOrder.outlet.serviceTaxRateDecimal)
+    : subtotalRupees > 0 && serviceTaxRupees > 0 ? Number(((serviceTaxRupees / subtotalRupees) * 100).toFixed(1)) : 0;
 
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
@@ -405,13 +425,19 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
               )}
 
               <div className="flex justify-between text-gray-600">
-                <span className="pl-3">CGST @ 2.5%</span>
+                <span className="pl-3">CGST @ {cgstRate}%</span>
                 <span>₹{cgstRupees.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
-                <span className="pl-3">SGST @ 2.5%</span>
+                <span className="pl-3">SGST @ {sgstRate}%</span>
                 <span>₹{sgstRupees.toFixed(2)}</span>
               </div>
+              {serviceTaxRupees > 0 && (
+                <div className="flex justify-between text-gray-600">
+                  <span className="pl-3">Service Tax {serviceTaxRate > 0 ? `@ ${serviceTaxRate}%` : ""}</span>
+                  <span>₹{serviceTaxRupees.toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             {/* ── SOLID DIVIDER ── */}
