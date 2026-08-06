@@ -32,7 +32,10 @@ import {
   AlertCircle,
   FileText,
   ChefHat,
+  Printer,
+  User,
 } from "lucide-react";
+import ThermalReceipt from "./ThermalReceipt";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { useBranch } from "@/lib/BranchContext";
@@ -125,6 +128,11 @@ export default function PosTerminalComponent() {
   const [taxPercent, setTaxPercent] = useState<number>(5);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("UPI");
   const [editingNoteItemId, setEditingNoteItemId] = useState<string | null>(null);
+
+  // Customer & Receipt Printing States
+  const [customerName, setCustomerName] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [printingOrder, setPrintingOrder] = useState<any>(null);
 
   // Mobile & Modal UI States
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
@@ -334,6 +342,8 @@ export default function PosTerminalComponent() {
       orderSource: finalOrderSource,
       tableNo: finalOrderSource === "TABLE" ? selectedTableNo : undefined,
       outletId: currentOutletId || undefined,
+      customerName: customerName.trim() || undefined,
+      customerPhone: customerPhone.trim() || undefined,
       items: cart.map((ci) => ({
         menuItemId: ci.menuItem.id,
         quantity: ci.quantity,
@@ -348,6 +358,8 @@ export default function PosTerminalComponent() {
       const result = await createOrder(payload).unwrap();
       setCompletedOrder(result);
       setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
       setIsCheckoutOpen(false);
       setIsMobileCartOpen(false);
     } catch (err: any) {
@@ -1268,6 +1280,29 @@ export default function PosTerminalComponent() {
                 </div>
               )}
 
+              {/* Customer Details (Optional) */}
+              <div className="space-y-2 border-t border-b border-gray-100 py-3">
+                <label className="block text-xs font-bold text-gray-700">
+                  Customer Details (Optional)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Customer Name (e.g. Aquib)"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-medium bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#1B2A4A]"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Mobile No. (e.g. 9876543210)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-medium bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#1B2A4A]"
+                  />
+                </div>
+              </div>
+
               {/* Payment Method Selector */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-2">
@@ -1314,7 +1349,7 @@ export default function PosTerminalComponent() {
                 <button
                   type="button"
                   onClick={() => setIsCheckoutOpen(false)}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
                 >
                   Back to Ticket
                 </button>
@@ -1348,10 +1383,10 @@ export default function PosTerminalComponent() {
 
                 <div>
                   <h3 className="text-lg font-black text-[#1B2A4A]">
-                    Order Sent to Kitchen!
+                    Order Created Successfully!
                   </h3>
                   <p className="text-xs text-gray-500 font-medium mt-1">
-                    Ticket ID:{" "}
+                    Bill / Ticket ID:{" "}
                     <span className="font-mono text-[#D3232A] font-extrabold">
                       {displayOrderId}
                     </span>
@@ -1359,13 +1394,48 @@ export default function PosTerminalComponent() {
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl">
-                  Order dispatched live to Kitchen Dispatch (KDS). You can settle the bill anytime from Live Orders.
+                  Order saved & sent live to Kitchen (KDS).
                 </div>
 
-                <button
-                  onClick={() => setCompletedOrder(null)}
-                  className="w-full py-3 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
-                >
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      setPrintingOrder({
+                        ...orderObj,
+                        outlet: currentOutlet || activeBranch,
+                        customerName: orderObj?.customerName || customerName,
+                        customerPhone: orderObj?.customerPhone || customerPhone,
+                      });
+                    }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Petpooja Thermal Bill
+                  </button>
+
+                  <button
+                    onClick={() => setCompletedOrder(null)}
+                    className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
+                  >
+                    Start Next Order Ticket
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Printable Thermal Receipt Modal ── */}
+        {printingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">
+              <ThermalReceipt
+                order={printingOrder}
+                onClose={() => setPrintingOrder(null)}
+              />
+            </div>
+          </div>
+        )}
                   Start Next Order Ticket
                 </button>
               </div>

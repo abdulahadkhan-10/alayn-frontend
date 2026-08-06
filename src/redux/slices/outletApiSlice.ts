@@ -11,6 +11,11 @@ export interface Outlet {
   cgstRateDecimal?: number | string;
   sgstRateDecimal?: number | string;
   serviceTaxRateDecimal?: number | string;
+  phone?: string;
+  gstin?: string;
+  receiptTagline?: string;
+  receiptFooter?: string;
+  upiId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -57,6 +62,16 @@ export const outletApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Outlet"],
     }),
+
+    updateReceiptDetails: builder.mutation<any, { outletId?: string; phone?: string; gstin?: string; receiptTagline?: string; receiptFooter?: string; upiId?: string }>({
+      query: ({ outletId, phone, gstin, receiptTagline, receiptFooter, upiId }) => ({
+        url: "/outlets/receipt-details",
+        method: "PATCH",
+        body: { phone, gstin, receiptTagline, receiptFooter, upiId },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
   }),
 });
 
@@ -64,4 +79,5 @@ export const {
   useGetOutletsQuery,
   useCreateOutletMutation,
   useUpdateTaxRatesMutation,
+  useUpdateReceiptDetailsMutation,
 } = outletApi;

@@ -31,7 +31,9 @@ import {
   X,
   ChefHat,
   Check,
+  Printer,
 } from "lucide-react";
+import ThermalReceipt from "@/components/pos/ThermalReceipt";
 
 export default function CompletedOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -93,8 +95,9 @@ export default function CompletedOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  // Detail Modal state
+  // Detail & Print Modal state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [printingOrder, setPrintingOrder] = useState<any>(null);
 
   // Fetch completed orders from backend
   const {
@@ -585,13 +588,24 @@ export default function CompletedOrdersPage() {
                         </td>
 
                         <td className="py-3.5 px-4 text-center">
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-[#1B2A4A] hover:text-white text-gray-700 text-xs font-bold transition"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => setSelectedOrder(order)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-[#1B2A4A] hover:text-white text-gray-700 text-xs font-bold transition cursor-pointer"
+                              title="View Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </button>
+                            <button
+                              onClick={() => setPrintingOrder(order)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 text-xs font-bold transition border border-emerald-200 cursor-pointer"
+                              title="Print Thermal Bill"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              Bill
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -785,14 +799,36 @@ export default function CompletedOrdersPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setPrintingOrder(selectedOrder);
+                    setSelectedOrder(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Thermal Bill
+                </button>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="px-5 py-2 rounded-xl bg-[#1B2A4A] text-white text-xs font-bold hover:bg-[#283d6a] transition"
+                  className="px-5 py-2 rounded-xl bg-[#1B2A4A] text-white text-xs font-bold hover:bg-[#283d6a] transition cursor-pointer"
                 >
                   Close Receipt
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Printable Thermal Receipt Modal ── */}
+        {printingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">
+              <ThermalReceipt
+                order={printingOrder}
+                onClose={() => setPrintingOrder(null)}
+              />
             </div>
           </div>
         )}

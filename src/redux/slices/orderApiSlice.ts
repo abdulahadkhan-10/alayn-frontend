@@ -17,6 +17,8 @@ export interface CreateOrderPayload {
   outletId?: string;
   orderSource: "TABLE" | "COUNTER" | "QR" | "DELIVERY";
   tableNo?: string;
+  customerName?: string;
+  customerPhone?: string;
   items: {
     menuItemId: string;
     quantity: number;
@@ -31,6 +33,7 @@ export interface CreateOrderPayload {
 export interface Order {
   id: string;
   orderNo: string;
+  orderNumber?: string;
   outletId: string;
   orderSource: "TABLE" | "COUNTER" | "QR" | "DELIVERY";
   tableNo?: string;
@@ -45,9 +48,22 @@ export interface Order {
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   placedByName?: string;
   placedByRole?: string;
+  customerName?: string;
+  customerPhone?: string;
   orderItems: OrderItem[];
   createdAt: string;
   updatedAt: string;
+  outlet?: {
+    name?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    phone?: string;
+    gstin?: string;
+    receiptTagline?: string;
+    receiptFooter?: string;
+    upiId?: string;
+  };
 }
 
 export const orderApi = baseApi.injectEndpoints({
@@ -93,11 +109,11 @@ export const orderApi = baseApi.injectEndpoints({
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),
 
-    updateOrderStatus: builder.mutation<Order, { id: string; status: Order["status"]; comment?: string; paymentMethod?: "CASH" | "CARD" | "UPI" }>({
-      query: ({ id, status, comment, paymentMethod }) => ({
+    updateOrderStatus: builder.mutation<Order, { id: string; status: Order["status"]; comment?: string; paymentMethod?: "CASH" | "CARD" | "UPI"; customerName?: string; customerPhone?: string }>({
+      query: ({ id, status, comment, paymentMethod, customerName, customerPhone }) => ({
         url: `/orders/${id}/status`,
         method: "PATCH",
-        body: { status, comment, paymentMethod },
+        body: { status, comment, paymentMethod, customerName, customerPhone },
       }),
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),

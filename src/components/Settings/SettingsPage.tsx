@@ -11,6 +11,7 @@ import {
 import {
   useGetOutletsQuery,
   useUpdateTaxRatesMutation,
+  useUpdateReceiptDetailsMutation,
 } from "@/redux/slices/outletApiSlice";
 import {
   Palmtree,
@@ -27,6 +28,9 @@ import {
   ShieldCheck,
   Percent,
   Receipt,
+  FileText,
+  Phone,
+  QrCode,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -64,11 +68,24 @@ export default function SettingsPage() {
   const [serviceTaxInput, setServiceTaxInput] = useState<string>("0.0");
   const [updateTaxRates, { isLoading: isUpdatingTax }] = useUpdateTaxRatesMutation();
 
+  // Receipt Details State
+  const [gstinInput, setGstinInput] = useState<string>("");
+  const [outletPhoneInput, setOutletPhoneInput] = useState<string>("");
+  const [taglineInput, setTaglineInput] = useState<string>("");
+  const [footerInput, setFooterInput] = useState<string>("");
+  const [upiIdInput, setUpiIdInput] = useState<string>("");
+  const [updateReceiptDetails, { isLoading: isUpdatingReceipt }] = useUpdateReceiptDetailsMutation();
+
   useEffect(() => {
     if (currentOutlet) {
       setCgstInput(String(currentOutlet.cgstRateDecimal ?? 2.5));
       setSgstInput(String(currentOutlet.sgstRateDecimal ?? 2.5));
       setServiceTaxInput(String(currentOutlet.serviceTaxRateDecimal ?? 0.0));
+      setGstinInput(currentOutlet.gstin || "");
+      setOutletPhoneInput(currentOutlet.phone || "");
+      setTaglineInput(currentOutlet.receiptTagline || "Small joys are Not Far.");
+      setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nYour next dessert is Not Far ;)");
+      setUpiIdInput(currentOutlet.upiId || "");
     }
   }, [currentOutlet]);
 
@@ -116,6 +133,25 @@ export default function SettingsPage() {
       setFeedbackMsg(`Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST + ${serviceTax}% Service Tax = ${totalCombined}% Total Tax)`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
+    }
+  };
+
+  const handleSaveReceiptDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetOutletId = activeBranch?.id || "all";
+    try {
+      await updateReceiptDetails({
+        outletId: targetOutletId,
+        gstin: gstinInput.trim() || undefined,
+        phone: outletPhoneInput.trim() || undefined,
+        receiptTagline: taglineInput.trim() || undefined,
+        receiptFooter: footerInput.trim() || undefined,
+        upiId: upiIdInput.trim() || undefined,
+      }).unwrap();
+      const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
+      setFeedbackMsg(`Petpooja Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update receipt details.");
     }
   };
 
@@ -419,6 +455,97 @@ export default function SettingsPage() {
                   {isUpdatingTax ? "Saving Tax Rates..." : "Save Tax Rates"}
                 </button>
               </form>
+
+              {/* ── Petpooja Thermal Receipt & GST Details Card ── */}
+              <div className="pt-6 border-t border-gray-100 space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Receipt className="h-5 w-5 text-emerald-600" />
+                    Petpooja Receipt & GST Branding
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Configure GSTIN, outlet phone number, custom header tagline, footer message, and UPI payment QR ID printed on thermal bills.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveReceiptDetails} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        GSTIN Number
+                      </label>
+                      <input
+                        type="text"
+                        value={gstinInput}
+                        onChange={(e) => setGstinInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="27AAZFN6174F1ZL"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Outlet Contact Phone
+                      </label>
+                      <input
+                        type="text"
+                        value={outletPhoneInput}
+                        onChange={(e) => setOutletPhoneInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="8104484386"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        UPI VPA / QR ID
+                      </label>
+                      <input
+                        type="text"
+                        value={upiIdInput}
+                        onChange={(e) => setUpiIdInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="notfar@upi"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Receipt Header Tagline
+                      </label>
+                      <input
+                        type="text"
+                        value={taglineInput}
+                        onChange={(e) => setTaglineInput(e.target.value)}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        placeholder="Small joys are Not Far."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Receipt Footer Note / Greeting
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={footerInput}
+                      onChange={(e) => setFooterInput(e.target.value)}
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      placeholder="Thanks for stopping by! Your next dessert is Not Far ;)"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingReceipt}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    {isUpdatingReceipt ? "Saving Receipt Details..." : "Save Thermal Receipt Details"}
+                  </button>
+                </form>
+              </div>
             </div>
 
             {/* General Policy Parameters */}
