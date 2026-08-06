@@ -1436,12 +1436,6 @@ export default function PosTerminalComponent() {
             </div>
           </div>
         )}
-                  Start Next Order Ticket
-                </button>
-              </div>
-            </div>
-          );
-        })()}
 
       </div>
     </DashboardLayout>
