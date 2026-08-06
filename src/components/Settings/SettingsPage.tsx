@@ -149,7 +149,7 @@ export default function SettingsPage() {
         upiId: upiIdInput.trim() || undefined,
       }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
-      setFeedbackMsg(`Petpooja Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
+      setFeedbackMsg(`AlaynAI Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update receipt details.");
     }
@@ -456,12 +456,12 @@ export default function SettingsPage() {
                 </button>
               </form>
 
-              {/* ── Petpooja Thermal Receipt & GST Details Card ── */}
+              {/* ── AlaynAI Thermal Receipt & GST Details Card ── */}
               <div className="pt-6 border-t border-gray-100 space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <Receipt className="h-5 w-5 text-emerald-600" />
-                    Petpooja Receipt & GST Branding
+                    AlaynAI Receipt & GST Branding
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Configure GSTIN, outlet phone number, custom header tagline, footer message, and UPI payment QR ID printed on thermal bills.

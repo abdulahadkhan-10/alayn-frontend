@@ -1410,7 +1410,7 @@ export default function PosTerminalComponent() {
                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Printer className="w-4 h-4" />
-                    Print Petpooja Thermal Bill
+                    Print Alayn AI Thermal Bill
                   </button>
 
                   <button

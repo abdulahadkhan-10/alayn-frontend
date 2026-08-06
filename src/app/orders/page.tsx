@@ -808,7 +808,7 @@ export default function LiveOrdersPage() {
                             }}
                             disabled={isUpdating}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-                            title="Generate Petpooja Bill & Settle Order"
+                            title="Generate Alayn AI Bill & Settle Order"
                           >
                             <Printer className="w-3.5 h-3.5 text-emerald-200" />
                             Settle & Print
