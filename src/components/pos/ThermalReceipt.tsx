@@ -265,13 +265,6 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
               PAID · {paymentMethodLabel}
             </div>
           )}
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-900/30 cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            Print
-          </button>
           {onClose && (
             <button
               onClick={onClose}
@@ -517,7 +510,7 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
           )}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-5 py-2 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl transition shadow-md shadow-[#1B2A4A]/20 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-black rounded-xl transition-all shadow-md shadow-emerald-700/20 cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             Print Receipt
