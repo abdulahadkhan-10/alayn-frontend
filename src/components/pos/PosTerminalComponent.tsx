@@ -34,6 +34,7 @@ import {
   ChefHat,
   Printer,
   User,
+  Leaf,
 } from "lucide-react";
 import ThermalReceipt from "./ThermalReceipt";
 import DashboardLayout from "../layout/DashboardLayout";
@@ -117,7 +118,7 @@ export default function PosTerminalComponent() {
   // Filtering & Display States
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG">("ALL");
+  const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG" | "VEGAN">("ALL");
   const [viewMode, setViewMode] = useState<"GRID" | "LIST">("GRID");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 24;
@@ -181,6 +182,20 @@ export default function PosTerminalComponent() {
     return Array.from(map.values());
   }, [categories]);
 
+  // Dynamically detect available dietary types in current outlet menu
+  const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
+    let veg = false;
+    let nonVeg = false;
+    let vegan = false;
+    (menuItems || []).forEach((item) => {
+      const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+      if (dType === "VEGAN") vegan = true;
+      else if (dType === "NON_VEG") nonVeg = true;
+      else veg = true;
+    });
+    return { hasVegItems: veg, hasNonVegItems: nonVeg, hasVeganItems: vegan };
+  }, [menuItems]);
+
   // Filter menu items by category, search term, and dietary choice
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
@@ -190,10 +205,12 @@ export default function PosTerminalComponent() {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.category?.name &&
           item.category.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      const itemDietary = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
       const matchesDietary =
         dietaryFilter === "ALL" ||
-        (dietaryFilter === "VEG" && item.isVeg !== false) ||
-        (dietaryFilter === "NON_VEG" && item.isVeg === false);
+        (dietaryFilter === "VEG" && itemDietary === "VEG") ||
+        (dietaryFilter === "NON_VEG" && itemDietary === "NON_VEG") ||
+        (dietaryFilter === "VEGAN" && itemDietary === "VEGAN");
 
       return matchesCategory && matchesSearch && matchesDietary && item.isAvailable;
     });
@@ -461,8 +478,8 @@ export default function PosTerminalComponent() {
 
             {/* Right Group: Dietary Filters + View Toggle */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Veg / Non-Veg Dietary Filters */}
-              {!isAllOutletsSelected && (
+              {/* Veg / Non-Veg / Vegan Dietary Filters */}
+              {!isAllOutletsSelected && (hasNonVegItems || hasVeganItems) && (
                 <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
                   <button
                     onClick={() => {
@@ -476,36 +493,57 @@ export default function PosTerminalComponent() {
                   >
                     All
                   </button>
-                  <button
-                    onClick={() => {
-                      setDietaryFilter("VEG");
-                      setCurrentPage(1);
-                    }}
-                    title="Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
-                      ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
-                      : "text-gray-500 hover:text-gray-800"
-                      }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Veg</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDietaryFilter("NON_VEG");
-                      setCurrentPage(1);
-                    }}
-                    title="Non-Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
-                      ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
-                      : "text-gray-500 hover:text-gray-800"
-                      }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Non-Veg</span>
-                  </button>
+                  {hasVegItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("VEG");
+                        setCurrentPage(1);
+                      }}
+                      title="Veg Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
+                        ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Veg</span>
+                    </button>
+                  )}
+                  {hasNonVegItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("NON_VEG");
+                        setCurrentPage(1);
+                      }}
+                      title="Non-Veg Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
+                        ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>Non-Veg</span>
+                    </button>
+                  )}
+                  {hasVeganItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("VEGAN");
+                        setCurrentPage(1);
+                      }}
+                      title="Vegan Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEGAN"
+                        ? "bg-teal-50 text-teal-700 shadow-xs border border-teal-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <Leaf className="w-3 h-3 text-teal-600" />
+                      <span>Vegan</span>
+                    </button>
+                  )}
                 </div>
               )}
+
 
               {/* View Switcher */}
               <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
@@ -673,17 +711,38 @@ export default function PosTerminalComponent() {
                             {item.category?.name || "General"}
                           </span>
 
-                          {/* Top Right: Veg / Non-Veg Dot Indicator */}
-                          <span
-                            className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${item.isVeg !== false ? "border-emerald-600" : "border-rose-600"
-                              }`}
-                            title={item.isVeg !== false ? "Vegetarian" : "Non-Vegetarian"}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${item.isVeg !== false ? "bg-emerald-600" : "bg-rose-600"
+                          {/* Top Right: Dietary Dot Indicator */}
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${
+                                  dType === "VEGAN"
+                                    ? "border-teal-600"
+                                    : dType === "VEG"
+                                    ? "border-emerald-600"
+                                    : "border-rose-600"
                                 }`}
-                            />
-                          </span>
+                                title={
+                                  dType === "VEGAN"
+                                    ? "Vegan (100% Plant-Based)"
+                                    : dType === "VEG"
+                                    ? "Vegetarian"
+                                    : "Non-Vegetarian"
+                                }
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    dType === "VEGAN"
+                                      ? "bg-teal-600"
+                                      : dType === "VEG"
+                                      ? "bg-emerald-600"
+                                      : "bg-rose-600"
+                                  }`}
+                                />
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         {/* Title & Description */}
@@ -760,10 +819,27 @@ export default function PosTerminalComponent() {
                           }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.isVeg !== false ? "bg-emerald-500" : "bg-rose-500"
-                              }`}
-                          />
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                  dType === "VEGAN"
+                                    ? "bg-teal-500"
+                                    : dType === "VEG"
+                                    ? "bg-emerald-500"
+                                    : "bg-rose-500"
+                                }`}
+                                title={
+                                  dType === "VEGAN"
+                                    ? "Vegan"
+                                    : dType === "VEG"
+                                    ? "Veg"
+                                    : "Non-Veg"
+                                }
+                              />
+                            );
+                          })()}
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="text-xs font-extrabold text-[#1B2A4A]">

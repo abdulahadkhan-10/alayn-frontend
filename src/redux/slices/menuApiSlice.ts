@@ -7,6 +7,7 @@ export interface MenuItem {
   price: number;
   imageUrl?: string;
   isVeg?: boolean;
+  dietaryType?: "VEG" | "NON_VEG" | "VEGAN";
   isAvailable: boolean;
   categoryId: string;
   outletId?: string;
@@ -29,7 +30,7 @@ export interface MenuCategory {
 
 export const menuApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getMenuItems: builder.query<MenuItem[], { categoryId?: string; search?: string; isAvailable?: boolean | string; isVeg?: boolean | string } | void>({
+    getMenuItems: builder.query<MenuItem[], { categoryId?: string; search?: string; isAvailable?: boolean | string; isVeg?: boolean | string; dietaryType?: string } | void>({
       query: (params) => ({
         url: "/menu/items",
         method: "GET",
