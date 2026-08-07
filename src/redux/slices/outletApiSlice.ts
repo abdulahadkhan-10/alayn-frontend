@@ -16,6 +16,9 @@ export interface Outlet {
   receiptTagline?: string;
   receiptFooter?: string;
   upiId?: string;
+  latitude?: number;
+  longitude?: number;
+  geofenceRadius?: number;
   createdAt?: string;
   updatedAt?: string;
 }
