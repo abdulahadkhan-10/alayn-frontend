@@ -138,6 +138,19 @@ export default function AttendanceLogsPage() {
     return logs;
   }, [logs, isManagerOrOwner, currentEmployee, user]);
 
+  useEffect(() => {
+    if (!userLogs || userLogs.length === 0) {
+      setIsShiftActive(false);
+      return;
+    }
+    const hasOpen = userLogs.some((log: any) => {
+      const inTime = log.clockIn || log.checkInTime;
+      const outTime = log.clockOut || log.checkOutTime;
+      return inTime && (!outTime || outTime === "-- : --" || outTime === "--:--");
+    });
+    setIsShiftActive(hasOpen);
+  }, [userLogs]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -176,7 +189,21 @@ export default function AttendanceLogsPage() {
         if (match) totalHours += parseInt(match[1], 10);
         else totalHours += 8;
       } else {
-        totalHours += 8;
+        const inStr = l.clockIn || l.checkInTime;
+        const outStr = l.clockOut || l.checkOutTime;
+        if (inStr && outStr && outStr !== "-- : --" && outStr !== "--:--") {
+          const inDate = new Date(inStr);
+          const outDate = new Date(outStr);
+          if (!isNaN(inDate.getTime()) && !isNaN(outDate.getTime())) {
+            totalHours += Math.max(0, (outDate.getTime() - inDate.getTime()) / 3600000);
+          } else {
+            totalHours += 8;
+          }
+        } else if (!outStr || outStr === "-- : --" || outStr === "--:--") {
+          totalHours += 0;
+        } else {
+          totalHours += 8;
+        }
       }
     });
 
@@ -187,7 +214,7 @@ export default function AttendanceLogsPage() {
       subtext: isManagerOrOwner
         ? `${presentCount} Present records out of ${totalLogs}`
         : `${presentCount} Shifts Present out of ${totalLogs}`,
-      totalHoursStr: `${totalHours} hrs`,
+      totalHoursStr: `${Math.round(totalHours)} hrs`,
       avgHoursSubtext: `Average ${avgHours} hrs / shift`,
     };
   }, [userLogs, isManagerOrOwner]);
@@ -195,27 +222,60 @@ export default function AttendanceLogsPage() {
   const handleClockIn = async () => {
     setFeedbackMsg(null);
     setErrorMsg(null);
-    try {
-      await clockIn({ timestamp: new Date().toISOString() }).unwrap();
-      setIsShiftActive(true);
-      setFeedbackMsg("Clock In successful! Have a great shift.");
-    } catch (err: any) {
-      const message = err?.data?.message || err?.message || "Failed to clock in";
-      setErrorMsg(message);
-      setIsShiftActive(false);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            await clockIn({
+              timestamp: new Date().toISOString(),
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }).unwrap();
+            setIsShiftActive(true);
+            setFeedbackMsg("Clock In successful! Have a great shift.");
+          } catch (err: any) {
+            const message = err?.data?.message || err?.message || "Failed to clock in";
+            setErrorMsg(message);
+            setIsShiftActive(false);
+          }
+        },
+        (error) => {
+          setErrorMsg("Location access is required to clock in. Please enable location permissions.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setErrorMsg("Geolocation is not supported by your browser.");
     }
   };
 
   const handleClockOut = async () => {
     setFeedbackMsg(null);
     setErrorMsg(null);
-    try {
-      await clockOut({ timestamp: new Date().toISOString() }).unwrap();
-      setIsShiftActive(false);
-      setFeedbackMsg("Clock Out successful! Shift record saved.");
-    } catch (err: any) {
-      setIsShiftActive(false);
-      setFeedbackMsg("Clocked Out successfully.");
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            await clockOut({
+              timestamp: new Date().toISOString(),
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }).unwrap();
+            setIsShiftActive(false);
+            setFeedbackMsg("Clock Out successful! Shift record saved.");
+          } catch (err: any) {
+            const message = err?.data?.message || err?.message || "Failed to clock out";
+            setErrorMsg(message);
+            setIsShiftActive(false);
+          }
+        },
+        (error) => {
+          setErrorMsg("Location access is required to clock out. Please enable location permissions.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setErrorMsg("Geolocation is not supported by your browser.");
     }
   };
 
@@ -423,10 +483,32 @@ export default function AttendanceLogsPage() {
                       )}
                       <td className="px-6 py-4 text-gray-700 font-medium">{formatAttendanceTime(log.clockIn || log.checkInTime)}</td>
                       <td className="px-6 py-4 text-gray-700 font-medium">{formatAttendanceTime(log.clockOut || log.checkOutTime)}</td>
-                      <td className="px-6 py-4 font-mono text-xs text-gray-700">{log.totalHours || "8 hrs"}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-700">
+                        {(() => {
+                          if (log.totalHours) return log.totalHours;
+                          const inStr = log.clockIn || log.checkInTime;
+                          const outStr = log.clockOut || log.checkOutTime;
+                          if (!inStr || !outStr || outStr === "-- : --" || outStr === "--:--") return "Working...";
+                          const inDate = new Date(inStr);
+                          const outDate = new Date(outStr);
+                          if (isNaN(inDate.getTime()) || isNaN(outDate.getTime())) return "8 hrs";
+                          const diffMs = outDate.getTime() - inDate.getTime();
+                          if (diffMs <= 0) return "8 hrs";
+                          const totalMins = Math.floor(diffMs / 60000);
+                          const h = Math.floor(totalMins / 60);
+                          const m = totalMins % 60;
+                          if (h === 0) return `${m} mins`;
+                          return `${h} hrs ${m} mins`;
+                        })()}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${log.status === "PRESENT" ? "bg-emerald-100 text-emerald-800" : log.status === "LATE" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800"}`}>
-                          {log.status || "PRESENT"}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          log.status === "PRESENT" ? "bg-emerald-100 text-emerald-800" : 
+                          log.status === "LATE" ? "bg-amber-100 text-amber-800" :
+                          log.status === "EARLY_DEPARTURE" ? "bg-orange-100 text-orange-800" : 
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                          {log.status ? log.status.replace('_', ' ') : "PRESENT"}
                         </span>
                       </td>
                     </tr>
