@@ -111,7 +111,7 @@ export default function SettingsPage() {
       setIsSearchingAddress(false);
       return;
     }
-    
+
     const timer = setTimeout(async () => {
       setIsSearchingAddress(true);
       try {
@@ -139,7 +139,7 @@ export default function SettingsPage() {
       } catch (err) {
         setAddressSearchResults([]);
         if (addressSearchQuery.includes('google.com') || addressSearchQuery.includes('goo.gl')) {
-           setFeedbackMsg("Failed to resolve Google Maps link.");
+          setFeedbackMsg("Failed to resolve Google Maps link.");
         }
       } finally {
         setIsSearchingAddress(false);
@@ -290,22 +290,20 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
             <button
               onClick={() => setActiveTab("HOLIDAYS")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "HOLIDAYS"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "HOLIDAYS"
                   ? "bg-white text-[#D3232A] shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               <Palmtree className="h-4 w-4" />
               Outlet Holidays & Closures
             </button>
             <button
               onClick={() => setActiveTab("GENERAL")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "GENERAL"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "GENERAL"
                   ? "bg-white text-[#D3232A] shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               <Store className="h-4 w-4" />
               General Preferences
@@ -656,7 +654,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isUpdatingReceipt}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-[#D3232A] hover:bg-[#b01e23] text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
                   >
                     <Receipt className="h-4 w-4" />
                     {isUpdatingReceipt ? "Saving Receipt Details..." : "Save Thermal Receipt Details"}
@@ -765,7 +763,7 @@ export default function SettingsPage() {
                       <li><strong>Click "Capture My Location"</strong> if you are physically present at the outlet.</li>
                     </ul>
                   </div>
-                  
+
                   <div className="flex flex-col gap-2">
                     <div className="flex gap-2">
                       <div className="relative flex-1">
