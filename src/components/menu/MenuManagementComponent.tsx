@@ -25,13 +25,14 @@ import {
   Store,
   X,
   AlertCircle,
+  Leaf,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { useBranch } from "@/lib/BranchContext";
 
 type StatusFilter = "ALL" | "ACTIVE";
-type DietaryFilter = "ALL" | "VEG" | "NON_VEG";
+type DietaryFilter = "ALL" | "VEG" | "NON_VEG" | "VEGAN";
 type SortOption = "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC";
 
 export default function MenuManagementComponent() {
@@ -68,6 +69,7 @@ export default function MenuManagementComponent() {
     categoryId: "",
     imageUrl: "",
     isVeg: true,
+    dietaryType: "VEG" as "VEG" | "NON_VEG" | "VEGAN",
     outletIds: [] as string[],
   });
 
@@ -79,7 +81,9 @@ export default function MenuManagementComponent() {
     categoryId: "",
     imageUrl: "",
     isVeg: true,
+    dietaryType: "VEG" as "VEG" | "NON_VEG" | "VEGAN",
     outletIds: [] as string[],
+    allRelatedItemIds: [] as string[],
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -92,8 +96,24 @@ export default function MenuManagementComponent() {
   const { data: rawMenuItems = [], isLoading: isItemsLoading } = useGetMenuItemsQuery({
     search: searchQuery.trim() || undefined,
     isAvailable: statusFilter === "ACTIVE" ? true : undefined,
-    isVeg: dietaryFilter === "VEG" ? true : dietaryFilter === "NON_VEG" ? false : undefined,
   });
+
+  // Dynamically detect which dietary types exist in current menu
+  const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
+    const items = Array.isArray(rawMenuItems) ? rawMenuItems : [];
+    let veg = false;
+    let nonVeg = false;
+    let vegan = false;
+
+    items.forEach((item) => {
+      const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+      if (dType === "VEGAN") vegan = true;
+      else if (dType === "NON_VEG") nonVeg = true;
+      else veg = true;
+    });
+
+    return { hasVegItems: veg, hasNonVegItems: nonVeg, hasVeganItems: vegan };
+  }, [rawMenuItems]);
 
   // Deduplicate categories by lowercase trimmed name
   const categories = useMemo(() => {
@@ -206,13 +226,20 @@ export default function MenuManagementComponent() {
       items = items.filter((i) => i.categoryId && activeCategoryIds.includes(i.categoryId));
     }
 
+    if (dietaryFilter !== "ALL") {
+      items = items.filter((i) => {
+        const dType = i.dietaryType || (i.isVeg !== false ? "VEG" : "NON_VEG");
+        return dType === dietaryFilter;
+      });
+    }
+
     return [...items].sort((a, b) => {
       if (sortBy === "NAME_ASC") return a.name.localeCompare(b.name);
       if (sortBy === "PRICE_ASC") return Number(a.price) - Number(b.price);
       if (sortBy === "PRICE_DESC") return Number(b.price) - Number(a.price);
       return 0;
     });
-  }, [menuItems, activeCategoryIds, sortBy]);
+  }, [menuItems, activeCategoryIds, dietaryFilter, sortBy]);
 
   // Group processed items by dish name for clean non-redundant rows when viewing All Outlets
   const displayItems = useMemo(() => {
@@ -263,11 +290,11 @@ export default function MenuManagementComponent() {
   }, [isAllOutletsSelected, processedItems, currentPage, pageSize]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(
-    (isAllOutletsSelected
-      ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
-      : processedItems.length) / pageSize
-  ) || 1;
+  const totalDisplayedItems = isAllOutletsSelected
+    ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
+    : processedItems.length;
+
+  const totalPages = Math.ceil(totalDisplayedItems / pageSize) || 1;
 
   // Reset page when filters change
   const handleCategoryChange = (catId: string) => {
@@ -332,6 +359,7 @@ export default function MenuManagementComponent() {
       categoryId: selectedCategory !== "ALL" ? selectedCategory : "",
       imageUrl: "",
       isVeg: true,
+      dietaryType: "VEG",
       outletIds: defaultIds,
     });
     setIsAddItemOpen(true);
@@ -379,13 +407,14 @@ export default function MenuManagementComponent() {
           price: parseFloat(newItem.price),
           categoryId: catId,
           imageUrl: newItem.imageUrl,
-          isVeg: newItem.isVeg,
+          isVeg: newItem.dietaryType !== "NON_VEG",
+          dietaryType: newItem.dietaryType,
           isAvailable: true,
           outletIds: outIds,
         }).unwrap();
       }
 
-      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, outletIds: [] });
+      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, dietaryType: "VEG", outletIds: [] });
       setIsAddItemOpen(false);
       setPendingConfirmAction(null);
     } catch (err) {
@@ -440,20 +469,58 @@ export default function MenuManagementComponent() {
     }
   };
 
-  const handleOpenEditModal = (item: MenuItem) => {
-    const itemOutletIds = item.outletIds && item.outletIds.length > 0
-      ? item.outletIds
-      : (item.outletId ? [item.outletId] : specificBranches.map((b) => b.id));
+  const handleOpenEditModal = (item: MenuItem, groupOutletIds?: string[], relatedItems?: MenuItem[]) => {
+    let itemOutletIds: string[] = [];
+    if (groupOutletIds && groupOutletIds.length > 0) {
+      itemOutletIds = [...groupOutletIds];
+    } else if (item.outletIds && item.outletIds.length > 0) {
+      itemOutletIds = [...item.outletIds];
+    } else if (item.outletId) {
+      itemOutletIds = [item.outletId];
+    }
+
+    if (relatedItems && relatedItems.length > 0) {
+      relatedItems.forEach((rel) => {
+        if (rel.outletId && !itemOutletIds.includes(rel.outletId)) {
+          itemOutletIds.push(rel.outletId);
+        }
+        if (Array.isArray(rel.outletIds)) {
+          rel.outletIds.forEach((id) => {
+            if (id && !itemOutletIds.includes(id)) {
+              itemOutletIds.push(id);
+            }
+          });
+        }
+      });
+    }
+
+    if (itemOutletIds.length === 0) {
+      itemOutletIds = specificBranches.map((b) => b.id);
+    }
+
+    const itemDietaryType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+
+    // Match category by name in deduplicated categories array for clean dropdown selection
+    const targetCat = (Array.isArray(rawCategories) ? rawCategories : []).find((c) => c.id === item.categoryId);
+    const catNameKey = targetCat
+      ? targetCat.name.trim().toLowerCase()
+      : (item.category?.name ? item.category.name.trim().toLowerCase() : null);
+    const matchedCategory = catNameKey
+      ? categories.find((c) => c.name.trim().toLowerCase() === catNameKey)
+      : null;
+    const finalCategoryId = matchedCategory ? matchedCategory.id : (item.categoryId || "");
 
     setEditItem({
       id: item.id,
       name: item.name,
       description: item.description || "",
       price: item.price !== undefined ? item.price.toString() : "",
-      categoryId: item.categoryId || "",
+      categoryId: finalCategoryId,
       imageUrl: item.imageUrl || "",
-      isVeg: item.isVeg !== false,
+      isVeg: itemDietaryType !== "NON_VEG",
+      dietaryType: itemDietaryType,
       outletIds: itemOutletIds,
+      allRelatedItemIds: relatedItems ? relatedItems.map((r) => r.id) : [item.id],
     });
     setIsEditItemOpen(true);
   };
@@ -462,23 +529,53 @@ export default function MenuManagementComponent() {
     e.preventDefault();
     if (!editItem.name || !editItem.price || !editItem.categoryId) return;
     try {
-      await updateMenuItem({
-        id: editItem.id,
-        data: {
-          name: editItem.name,
-          description: editItem.description,
-          price: parseFloat(editItem.price),
-          categoryId: editItem.categoryId,
-          imageUrl: editItem.imageUrl,
-          isVeg: editItem.isVeg,
-          outletIds: editItem.outletIds,
-        },
-      }).unwrap();
+      // Find category name key from selected categoryId
+      const selectedCat = (Array.isArray(rawCategories) ? rawCategories : []).find(
+        (c) => c.id === editItem.categoryId
+      );
+      const catNameKey = selectedCat ? selectedCat.name.trim().toLowerCase() : null;
+
+      // Map outletId -> categoryId for each target outlet
+      const outletToCatMap = new Map<string, string>();
+      if (catNameKey) {
+        (Array.isArray(rawCategories) ? rawCategories : []).forEach((c) => {
+          if (c && c.name && c.name.trim().toLowerCase() === catNameKey && c.outletId) {
+            outletToCatMap.set(c.outletId, c.id);
+          }
+        });
+      }
+
+      const relatedIds = editItem.allRelatedItemIds && editItem.allRelatedItemIds.length > 0
+        ? editItem.allRelatedItemIds
+        : [editItem.id];
+
+      for (const itemId of relatedIds) {
+        const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
+        const itemOutletId = targetItem?.outletId || currentOutletId || null;
+        const targetCatId = itemOutletId && outletToCatMap.has(itemOutletId)
+          ? outletToCatMap.get(itemOutletId)!
+          : editItem.categoryId;
+
+        await updateMenuItem({
+          id: itemId,
+          data: {
+            name: editItem.name,
+            description: editItem.description,
+            price: parseFloat(editItem.price),
+            categoryId: targetCatId,
+            imageUrl: editItem.imageUrl,
+            isVeg: editItem.dietaryType !== "NON_VEG",
+            dietaryType: editItem.dietaryType,
+            outletIds: editItem.outletIds,
+          },
+        }).unwrap();
+      }
       setIsEditItemOpen(false);
     } catch (err) {
       console.error("Failed to update menu item:", err);
     }
   };
+
 
   return (
     <DashboardLayout>
@@ -586,40 +683,59 @@ export default function MenuManagementComponent() {
               </div>
 
               {/* Dietary Filter */}
-              <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-200 text-xs font-medium">
-                <button
-                  onClick={() => handleDietaryFilterChange("ALL")}
-                  className={`px-3 py-1.5 rounded-md transition ${
-                    dietaryFilter === "ALL"
-                      ? "bg-white text-[#1B2A4A] font-bold shadow-xs border border-gray-200"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  All Types
-                </button>
-                <button
-                  onClick={() => handleDietaryFilterChange("VEG")}
-                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
-                    dietaryFilter === "VEG"
-                      ? "bg-emerald-600 text-white font-bold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  Veg
-                </button>
-                <button
-                  onClick={() => handleDietaryFilterChange("NON_VEG")}
-                  className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
-                    dietaryFilter === "NON_VEG"
-                      ? "bg-rose-600 text-white font-bold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-rose-400" />
-                  Non-Veg
-                </button>
-              </div>
+              {(hasNonVegItems || hasVeganItems) && (
+                <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-200 text-xs font-medium">
+                  <button
+                    onClick={() => handleDietaryFilterChange("ALL")}
+                    className={`px-3 py-1.5 rounded-md transition ${
+                      dietaryFilter === "ALL"
+                        ? "bg-white text-[#1B2A4A] font-bold shadow-xs border border-gray-200"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    All Types
+                  </button>
+                  {hasVegItems && (
+                    <button
+                      onClick={() => handleDietaryFilterChange("VEG")}
+                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
+                        dietaryFilter === "VEG"
+                          ? "bg-emerald-600 text-white font-bold shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Veg
+                    </button>
+                  )}
+                  {hasNonVegItems && (
+                    <button
+                      onClick={() => handleDietaryFilterChange("NON_VEG")}
+                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
+                        dietaryFilter === "NON_VEG"
+                          ? "bg-rose-600 text-white font-bold shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-400" />
+                      Non-Veg
+                    </button>
+                  )}
+                  {hasVeganItems && (
+                    <button
+                      onClick={() => handleDietaryFilterChange("VEGAN")}
+                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
+                        dietaryFilter === "VEGAN"
+                          ? "bg-teal-600 text-white font-bold shadow-xs"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      <Leaf className="w-3 h-3 text-teal-300" />
+                      Vegan
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Sort Selector */}
               <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
@@ -688,7 +804,7 @@ export default function MenuManagementComponent() {
               <div key={n} className="h-12 bg-gray-100 animate-pulse rounded-lg" />
             ))}
           </div>
-        ) : processedItems.length === 0 ? (
+        ) : totalDisplayedItems === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-xs">
             <UtensilsCrossed className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-gray-800">No menu items found</h3>
@@ -730,19 +846,39 @@ export default function MenuManagementComponent() {
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-xs border p-0.5 shrink-0 ${
-                                  item.isVeg !== false ? "border-emerald-600" : "border-rose-600"
-                                }`}
-                                title={item.isVeg !== false ? "Vegetarian" : "Non-Vegetarian"}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    item.isVeg !== false ? "bg-emerald-600" : "bg-rose-600"
-                                  }`}
-                                />
-                              </span>
+                              {(() => {
+                                const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                                if (dType === "VEGAN") {
+                                  return (
+                                    <span
+                                      className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-xs border border-teal-600 p-0.5 shrink-0"
+                                      title="Vegan (100% Plant-Based)"
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span
+                                    className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-xs border p-0.5 shrink-0 ${
+                                      dType === "VEG" ? "border-emerald-600" : "border-rose-600"
+                                    }`}
+                                    title={dType === "VEG" ? "Vegetarian" : "Non-Vegetarian"}
+                                  >
+                                    <span
+                                      className={`w-1.5 h-1.5 rounded-full ${
+                                        dType === "VEG" ? "bg-emerald-600" : "bg-rose-600"
+                                      }`}
+                                    />
+                                  </span>
+                                );
+                              })()}
                               <p className="font-bold text-[#1B2A4A]">{item.name}</p>
+                              {(item.dietaryType === "VEGAN") && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-teal-50 text-teal-700 border border-teal-200">
+                                  <Leaf className="w-2.5 h-2.5" /> Vegan
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-gray-400 max-w-xs truncate">
                               {item.description || "No description"}
@@ -815,7 +951,7 @@ export default function MenuManagementComponent() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
-                          onClick={() => handleOpenEditModal(item)}
+                          onClick={() => handleOpenEditModal(item, outletIds, allRelatedItems)}
                           className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#D3232A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
                         >
                           <Pencil className="w-3.5 h-3.5 text-gray-500" />
@@ -831,19 +967,19 @@ export default function MenuManagementComponent() {
         )}
 
         {/* Scalable Pagination Footer */}
-        {processedItems.length > 0 && (
+        {totalDisplayedItems > 0 && (
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
             {/* Range info */}
             <div className="text-xs text-gray-500 font-medium">
               Showing{" "}
               <span className="font-bold text-gray-900">
-                {Math.min((currentPage - 1) * pageSize + 1, processedItems.length)}
+                {Math.min((currentPage - 1) * pageSize + 1, totalDisplayedItems)}
               </span>{" "}
               to{" "}
               <span className="font-bold text-gray-900">
-                {Math.min(currentPage * pageSize, processedItems.length)}
+                {Math.min(currentPage * pageSize, totalDisplayedItems)}
               </span>{" "}
-              of <span className="font-bold text-gray-900">{processedItems.length}</span> items
+              of <span className="font-bold text-gray-900">{totalDisplayedItems}</span> items
             </div>
 
             {/* Pagination Controls */}
@@ -915,30 +1051,42 @@ export default function MenuManagementComponent() {
                 {/* Dietary Type Selection */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Dietary Type *</label>
-                  <div className="flex items-center gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setNewItem({ ...newItem, isVeg: true })}
-                      className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                        newItem.isVeg
+                      onClick={() => setNewItem({ ...newItem, dietaryType: "VEG", isVeg: true })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        newItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      Veg (Vegetarian)
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                      Veg
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNewItem({ ...newItem, isVeg: false })}
-                      className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                        !newItem.isVeg
+                      onClick={() => setNewItem({ ...newItem, dietaryType: "NON_VEG", isVeg: false })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        newItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                       Non-Veg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewItem({ ...newItem, dietaryType: "VEGAN", isVeg: true })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        newItem.dietaryType === "VEGAN"
+                          ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
+                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                      Vegan
                     </button>
                   </div>
                 </div>
@@ -1153,30 +1301,42 @@ export default function MenuManagementComponent() {
                 {/* Dietary Type Selection */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Dietary Type *</label>
-                  <div className="flex items-center gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setEditItem({ ...editItem, isVeg: true })}
-                      className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                        editItem.isVeg
+                      onClick={() => setEditItem({ ...editItem, dietaryType: "VEG", isVeg: true })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        editItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      Veg (Vegetarian)
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                      Veg
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditItem({ ...editItem, isVeg: false })}
-                      className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 transition ${
-                        !editItem.isVeg
+                      onClick={() => setEditItem({ ...editItem, dietaryType: "NON_VEG", isVeg: false })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        editItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                       }`}
                     >
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                       Non-Veg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditItem({ ...editItem, dietaryType: "VEGAN", isVeg: true })}
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        editItem.dietaryType === "VEGAN"
+                          ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
+                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                      Vegan
                     </button>
                   </div>
                 </div>

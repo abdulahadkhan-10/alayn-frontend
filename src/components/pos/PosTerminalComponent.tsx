@@ -34,6 +34,7 @@ import {
   ChefHat,
   Printer,
   User,
+  Leaf,
 } from "lucide-react";
 import ThermalReceipt from "./ThermalReceipt";
 import DashboardLayout from "../layout/DashboardLayout";
@@ -117,7 +118,7 @@ export default function PosTerminalComponent() {
   // Filtering & Display States
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG">("ALL");
+  const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG" | "VEGAN">("ALL");
   const [viewMode, setViewMode] = useState<"GRID" | "LIST">("GRID");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 24;
@@ -181,6 +182,20 @@ export default function PosTerminalComponent() {
     return Array.from(map.values());
   }, [categories]);
 
+  // Dynamically detect available dietary types in current outlet menu
+  const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
+    let veg = false;
+    let nonVeg = false;
+    let vegan = false;
+    (menuItems || []).forEach((item) => {
+      const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+      if (dType === "VEGAN") vegan = true;
+      else if (dType === "NON_VEG") nonVeg = true;
+      else veg = true;
+    });
+    return { hasVegItems: veg, hasNonVegItems: nonVeg, hasVeganItems: vegan };
+  }, [menuItems]);
+
   // Filter menu items by category, search term, and dietary choice
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
@@ -190,10 +205,12 @@ export default function PosTerminalComponent() {
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.category?.name &&
           item.category.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      const itemDietary = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
       const matchesDietary =
         dietaryFilter === "ALL" ||
-        (dietaryFilter === "VEG" && item.isVeg !== false) ||
-        (dietaryFilter === "NON_VEG" && item.isVeg === false);
+        (dietaryFilter === "VEG" && itemDietary === "VEG") ||
+        (dietaryFilter === "NON_VEG" && itemDietary === "NON_VEG") ||
+        (dietaryFilter === "VEGAN" && itemDietary === "VEGAN");
 
       return matchesCategory && matchesSearch && matchesDietary && item.isAvailable;
     });
@@ -370,7 +387,7 @@ export default function PosTerminalComponent() {
 
   return (
     <DashboardLayout>
-      <div className="h-[calc(100vh-4.5rem)] flex flex-col lg:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
+      <div className="h-[calc(100vh-4.5rem)] flex flex-col md:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
 
         {/* ── LEFT CONTAINER: Menu Catalog & Controls ───────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-3 lg:p-4 gap-3">
@@ -461,8 +478,8 @@ export default function PosTerminalComponent() {
 
             {/* Right Group: Dietary Filters + View Toggle */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Veg / Non-Veg Dietary Filters */}
-              {!isAllOutletsSelected && (
+              {/* Veg / Non-Veg / Vegan Dietary Filters */}
+              {!isAllOutletsSelected && (hasNonVegItems || hasVeganItems) && (
                 <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
                   <button
                     onClick={() => {
@@ -476,36 +493,57 @@ export default function PosTerminalComponent() {
                   >
                     All
                   </button>
-                  <button
-                    onClick={() => {
-                      setDietaryFilter("VEG");
-                      setCurrentPage(1);
-                    }}
-                    title="Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
-                      ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
-                      : "text-gray-500 hover:text-gray-800"
-                      }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Veg</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDietaryFilter("NON_VEG");
-                      setCurrentPage(1);
-                    }}
-                    title="Non-Veg Only"
-                    className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
-                      ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
-                      : "text-gray-500 hover:text-gray-800"
-                      }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Non-Veg</span>
-                  </button>
+                  {hasVegItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("VEG");
+                        setCurrentPage(1);
+                      }}
+                      title="Veg Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEG"
+                        ? "bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Veg</span>
+                    </button>
+                  )}
+                  {hasNonVegItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("NON_VEG");
+                        setCurrentPage(1);
+                      }}
+                      title="Non-Veg Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "NON_VEG"
+                        ? "bg-rose-50 text-rose-700 shadow-xs border border-rose-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>Non-Veg</span>
+                    </button>
+                  )}
+                  {hasVeganItems && (
+                    <button
+                      onClick={() => {
+                        setDietaryFilter("VEGAN");
+                        setCurrentPage(1);
+                      }}
+                      title="Vegan Only"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center gap-1.5 ${dietaryFilter === "VEGAN"
+                        ? "bg-teal-50 text-teal-700 shadow-xs border border-teal-200"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
+                    >
+                      <Leaf className="w-3 h-3 text-teal-600" />
+                      <span>Vegan</span>
+                    </button>
+                  )}
                 </div>
               )}
+
 
               {/* View Switcher */}
               <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
@@ -673,17 +711,38 @@ export default function PosTerminalComponent() {
                             {item.category?.name || "General"}
                           </span>
 
-                          {/* Top Right: Veg / Non-Veg Dot Indicator */}
-                          <span
-                            className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${item.isVeg !== false ? "border-emerald-600" : "border-rose-600"
-                              }`}
-                            title={item.isVeg !== false ? "Vegetarian" : "Non-Vegetarian"}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${item.isVeg !== false ? "bg-emerald-600" : "bg-rose-600"
+                          {/* Top Right: Dietary Dot Indicator */}
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${
+                                  dType === "VEGAN"
+                                    ? "border-teal-600"
+                                    : dType === "VEG"
+                                    ? "border-emerald-600"
+                                    : "border-rose-600"
                                 }`}
-                            />
-                          </span>
+                                title={
+                                  dType === "VEGAN"
+                                    ? "Vegan (100% Plant-Based)"
+                                    : dType === "VEG"
+                                    ? "Vegetarian"
+                                    : "Non-Vegetarian"
+                                }
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    dType === "VEGAN"
+                                      ? "bg-teal-600"
+                                      : dType === "VEG"
+                                      ? "bg-emerald-600"
+                                      : "bg-rose-600"
+                                  }`}
+                                />
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         {/* Title & Description */}
@@ -760,10 +819,27 @@ export default function PosTerminalComponent() {
                           }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.isVeg !== false ? "bg-emerald-500" : "bg-rose-500"
-                              }`}
-                          />
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                  dType === "VEGAN"
+                                    ? "bg-teal-500"
+                                    : dType === "VEG"
+                                    ? "bg-emerald-500"
+                                    : "bg-rose-500"
+                                }`}
+                                title={
+                                  dType === "VEGAN"
+                                    ? "Vegan"
+                                    : dType === "VEG"
+                                    ? "Veg"
+                                    : "Non-Veg"
+                                }
+                              />
+                            );
+                          })()}
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 className="text-xs font-extrabold text-[#1B2A4A]">
@@ -854,8 +930,8 @@ export default function PosTerminalComponent() {
           )}
         </div>
 
-        {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (ALWAYS Visible on Desktop) ── */}
-        <div className="hidden lg:flex w-full lg:w-[380px] xl:w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
+        {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (Visible on Tablet and Desktop) ── */}
+        <div className="hidden md:flex w-[35%] min-w-[280px] max-w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
 
           {/* Cart Ticket Header */}
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
@@ -1071,15 +1147,18 @@ export default function PosTerminalComponent() {
           </div>
         </div>
 
-        {/* ── MOBILE / TABLET STICKY BOTTOM BAR (< lg screen) ────────────────── */}
+        {/* ── MOBILE STICKY BOTTOM BAR (< md screen) ────────────────── */}
         {cart.length > 0 && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#1B2A4A] text-white flex items-center justify-between shadow-2xl z-40 border-t border-slate-700">
-            <div>
-              <p className="text-xs font-black flex items-center gap-1.5">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#1B2A4A] text-white flex items-center justify-between shadow-2xl z-40 border-t border-slate-700">
+            <div 
+              className="cursor-pointer flex-1" 
+              onClick={() => setIsMobileCartOpen(true)}
+            >
+              <p className="text-xs font-black flex items-center gap-1.5 hover:text-gray-300 transition-colors">
                 <ShoppingCart className="w-4 h-4 text-[#D3232A]" />
-                {totalItemCount} Items • ₹{grandTotal.toFixed(2)}
+                {totalItemCount} Items • ₹{grandTotal.toFixed(2)} <span className="text-[10px] ml-1 bg-white/20 px-2 py-0.5 rounded-full">View Cart</span>
               </p>
-              <p className="text-[10px] text-gray-300">
+              <p className="text-[10px] text-gray-300 mt-0.5">
                 {isAllOutletsSelected
                   ? "⚠️ Select Outlet First"
                   : selectedTableNo
@@ -1099,9 +1178,9 @@ export default function PosTerminalComponent() {
           </div>
         )}
 
-        {/* ── MOBILE CART DRAWER OVERLAY (< lg screen) ────────────────────────── */}
+        {/* ── MOBILE CART DRAWER OVERLAY (< md screen) ────────────────────────── */}
         {isMobileCartOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-gray-900/60 backdrop-blur-sm">
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-gray-900/60 backdrop-blur-sm">
             <div className="mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1398,21 +1477,6 @@ export default function PosTerminalComponent() {
                 </div>
 
                 <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      setPrintingOrder({
-                        ...orderObj,
-                        outlet: currentOutlet || activeBranch,
-                        customerName: orderObj?.customerName || customerName,
-                        customerPhone: orderObj?.customerPhone || customerPhone,
-                      });
-                    }}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Alayn AI Thermal Bill
-                  </button>
-
                   <button
                     onClick={() => setCompletedOrder(null)}
                     className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"

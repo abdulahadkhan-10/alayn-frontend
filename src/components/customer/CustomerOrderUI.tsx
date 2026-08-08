@@ -25,7 +25,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [search, setSearch] = useState("");
-  const [vegOnly, setVegOnly] = useState(false);
+  const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG" | "VEGAN">("ALL");
   // const [callWaiterNotified, setCallWaiterNotified] = useState(false); // Call Waiter — commented out for now
 
   // Image lightbox
@@ -52,17 +52,32 @@ export default function CustomerOrderUI({ token }: { token: string }) {
     loadMenu();
   }, [token]);
 
-  // const handleCallWaiter = () => {
-  //   setCallWaiterNotified(true);
-  //   setTimeout(() => setCallWaiterNotified(false), 4000);
-  // };
+  // Dynamically detect available dietary types in table categories
+  const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
+    let veg = false;
+    let nonVeg = false;
+    let vegan = false;
+    categories.forEach((cat) => {
+      cat.menuItems?.forEach((item) => {
+        const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
+        if (dType === "VEGAN") vegan = true;
+        else if (dType === "NON_VEG") nonVeg = true;
+        else veg = true;
+      });
+    });
+    return { hasVegItems: veg, hasNonVegItems: nonVeg, hasVeganItems: vegan };
+  }, [categories]);
 
   // Flattened & filtered items
   const displayCategories = useMemo(() => {
     return categories
       .map((cat) => {
         const filteredItems = cat.menuItems.filter((item) => {
-          if (vegOnly && !item.isVeg) return false;
+          const itemDietary = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
+          if (dietaryFilter === "VEG" && itemDietary !== "VEG") return false;
+          if (dietaryFilter === "NON_VEG" && itemDietary !== "NON_VEG") return false;
+          if (dietaryFilter === "VEGAN" && itemDietary !== "VEGAN") return false;
+
           if (search.trim()) {
             const query = search.toLowerCase();
             return (
@@ -74,10 +89,11 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         });
         return { ...cat, menuItems: filteredItems };
       })
-      .filter((cat) =>
-        selectedCategory === "ALL" ? cat.menuItems.length > 0 : cat.id === selectedCategory
-      );
-  }, [categories, selectedCategory, search, vegOnly]);
+      .filter((cat) => {
+        if (selectedCategory !== "ALL" && cat.id !== selectedCategory) return false;
+        return cat.menuItems.length > 0;
+      });
+  }, [categories, selectedCategory, search, dietaryFilter]);
 
   if (loading) {
     return (
@@ -153,8 +169,8 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       {/* ── Main Content ───────────────────────────────────────────────── */}
       <main className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
 
-        {/* Search & Veg Filter */}
-        <div className="flex items-center gap-3">
+        {/* Search & Dietary Filter */}
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -166,18 +182,64 @@ export default function CustomerOrderUI({ token }: { token: string }) {
             />
           </div>
 
-          <button
-            onClick={() => setVegOnly(!vegOnly)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all shrink-0",
-              vegOnly
-                ? "bg-emerald-50 text-emerald-700 border-emerald-300 shadow-sm"
-                : "bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
-            )}
-          >
-            <Leaf className={cn("h-3.5 w-3.5", vegOnly ? "text-emerald-600" : "text-gray-400")} />
-            <span>Veg</span>
-          </button>
+          {(hasNonVegItems || hasVeganItems) && (
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shrink-0 self-start sm:self-auto">
+              <button
+                onClick={() => setDietaryFilter("ALL")}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                  dietaryFilter === "ALL"
+                    ? "bg-gray-100 text-[#1B2A4A]"
+                    : "text-gray-500 hover:text-gray-800"
+                )}
+              >
+                All
+              </button>
+              {hasVegItems && (
+                <button
+                  onClick={() => setDietaryFilter("VEG")}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    dietaryFilter === "VEG"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "text-gray-500 hover:text-gray-800"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Veg
+                </button>
+              )}
+              {hasNonVegItems && (
+                <button
+                  onClick={() => setDietaryFilter("NON_VEG")}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    dietaryFilter === "NON_VEG"
+                      ? "bg-rose-50 text-rose-700 border border-rose-200"
+                      : "text-gray-500 hover:text-gray-800"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Non-Veg
+                </button>
+              )}
+              {hasVeganItems && (
+                <button
+                  onClick={() => setDietaryFilter("VEGAN")}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    dietaryFilter === "VEGAN"
+                      ? "bg-teal-50 text-teal-700 border border-teal-200"
+                      : "text-gray-500 hover:text-gray-800"
+                  )}
+                >
+                  <Leaf className="w-3 h-3 text-teal-600" />
+                  Vegan
+                </button>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Category horizontal scrolling bar */}
@@ -272,23 +334,40 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                       {/* Item Info */}
                       <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
                         <div className="flex items-start gap-2">
-                          {/* Veg / Non-Veg dot */}
-                          <span
-                            className={cn(
-                              "mt-0.5 shrink-0 h-4 w-4 rounded-sm border-2 flex items-center justify-center",
-                              item.isVeg
-                                ? "border-emerald-500"
-                                : "border-[#D3232A]"
-                            )}
-                            title={item.isVeg ? "Vegetarian" : "Non-Vegetarian"}
-                          >
-                            <span
-                              className={cn(
-                                "h-2 w-2 rounded-full",
-                                item.isVeg ? "bg-emerald-500" : "bg-[#D3232A]"
-                              )}
-                            />
-                          </span>
+                          {/* Dietary dot */}
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={cn(
+                                  "mt-0.5 shrink-0 h-4 w-4 rounded-sm border-2 flex items-center justify-center",
+                                  dType === "VEGAN"
+                                    ? "border-teal-600"
+                                    : dType === "VEG"
+                                    ? "border-emerald-500"
+                                    : "border-[#D3232A]"
+                                )}
+                                title={
+                                  dType === "VEGAN"
+                                    ? "Vegan (Plant-Based)"
+                                    : dType === "VEG"
+                                    ? "Vegetarian"
+                                    : "Non-Vegetarian"
+                                }
+                              >
+                                <span
+                                  className={cn(
+                                    "h-2 w-2 rounded-full",
+                                    dType === "VEGAN"
+                                      ? "bg-teal-600"
+                                      : dType === "VEG"
+                                      ? "bg-emerald-500"
+                                      : "bg-[#D3232A]"
+                                  )}
+                                />
+                              </span>
+                            );
+                          })()}
 
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sm font-bold text-[#1B2A4A] leading-tight line-clamp-1">
@@ -307,16 +386,24 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                           <p className="text-base font-black text-[#D3232A] tracking-tight">
                             ₹{priceRupees}
                           </p>
-                          <span
-                            className={cn(
-                              "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide",
-                              item.isVeg
-                                ? "bg-emerald-50 text-emerald-600"
-                                : "bg-red-50 text-red-500"
-                            )}
-                          >
-                            {item.isVeg ? "Veg" : "Non-Veg"}
-                          </span>
+                          {(() => {
+                            const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
+                            return (
+                              <span
+                                className={cn(
+                                  "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1",
+                                  dType === "VEGAN"
+                                    ? "bg-teal-50 text-teal-700 border border-teal-200"
+                                    : dType === "VEG"
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : "bg-red-50 text-red-500"
+                                )}
+                              >
+                                {dType === "VEGAN" && <Leaf className="w-2.5 h-2.5 text-teal-600" />}
+                                {dType === "VEGAN" ? "Vegan" : dType === "VEG" ? "Veg" : "Non-Veg"}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
