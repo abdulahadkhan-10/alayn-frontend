@@ -387,7 +387,7 @@ export default function PosTerminalComponent() {
 
   return (
     <DashboardLayout>
-      <div className="h-[calc(100vh-4.5rem)] flex flex-col lg:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
+      <div className="h-[calc(100vh-4.5rem)] flex flex-col md:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
 
         {/* ── LEFT CONTAINER: Menu Catalog & Controls ───────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-3 lg:p-4 gap-3">
@@ -930,8 +930,8 @@ export default function PosTerminalComponent() {
           )}
         </div>
 
-        {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (ALWAYS Visible on Desktop) ── */}
-        <div className="hidden lg:flex w-full lg:w-[380px] xl:w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
+        {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (Visible on Tablet and Desktop) ── */}
+        <div className="hidden md:flex w-[35%] min-w-[280px] max-w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
 
           {/* Cart Ticket Header */}
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
@@ -1147,15 +1147,18 @@ export default function PosTerminalComponent() {
           </div>
         </div>
 
-        {/* ── MOBILE / TABLET STICKY BOTTOM BAR (< lg screen) ────────────────── */}
+        {/* ── MOBILE STICKY BOTTOM BAR (< md screen) ────────────────── */}
         {cart.length > 0 && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#1B2A4A] text-white flex items-center justify-between shadow-2xl z-40 border-t border-slate-700">
-            <div>
-              <p className="text-xs font-black flex items-center gap-1.5">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#1B2A4A] text-white flex items-center justify-between shadow-2xl z-40 border-t border-slate-700">
+            <div 
+              className="cursor-pointer flex-1" 
+              onClick={() => setIsMobileCartOpen(true)}
+            >
+              <p className="text-xs font-black flex items-center gap-1.5 hover:text-gray-300 transition-colors">
                 <ShoppingCart className="w-4 h-4 text-[#D3232A]" />
-                {totalItemCount} Items • ₹{grandTotal.toFixed(2)}
+                {totalItemCount} Items • ₹{grandTotal.toFixed(2)} <span className="text-[10px] ml-1 bg-white/20 px-2 py-0.5 rounded-full">View Cart</span>
               </p>
-              <p className="text-[10px] text-gray-300">
+              <p className="text-[10px] text-gray-300 mt-0.5">
                 {isAllOutletsSelected
                   ? "⚠️ Select Outlet First"
                   : selectedTableNo
@@ -1175,9 +1178,9 @@ export default function PosTerminalComponent() {
           </div>
         )}
 
-        {/* ── MOBILE CART DRAWER OVERLAY (< lg screen) ────────────────────────── */}
+        {/* ── MOBILE CART DRAWER OVERLAY (< md screen) ────────────────────────── */}
         {isMobileCartOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-gray-900/60 backdrop-blur-sm">
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-gray-900/60 backdrop-blur-sm">
             <div className="mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
