@@ -290,11 +290,11 @@ export default function MenuManagementComponent() {
   }, [isAllOutletsSelected, processedItems, currentPage, pageSize]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(
-    (isAllOutletsSelected
-      ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
-      : processedItems.length) / pageSize
-  ) || 1;
+  const totalDisplayedItems = isAllOutletsSelected
+    ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
+    : processedItems.length;
+
+  const totalPages = Math.ceil(totalDisplayedItems / pageSize) || 1;
 
   // Reset page when filters change
   const handleCategoryChange = (catId: string) => {
@@ -804,7 +804,7 @@ export default function MenuManagementComponent() {
               <div key={n} className="h-12 bg-gray-100 animate-pulse rounded-lg" />
             ))}
           </div>
-        ) : processedItems.length === 0 ? (
+        ) : totalDisplayedItems === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-xs">
             <UtensilsCrossed className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-gray-800">No menu items found</h3>
@@ -967,19 +967,19 @@ export default function MenuManagementComponent() {
         )}
 
         {/* Scalable Pagination Footer */}
-        {processedItems.length > 0 && (
+        {totalDisplayedItems > 0 && (
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
             {/* Range info */}
             <div className="text-xs text-gray-500 font-medium">
               Showing{" "}
               <span className="font-bold text-gray-900">
-                {Math.min((currentPage - 1) * pageSize + 1, processedItems.length)}
+                {Math.min((currentPage - 1) * pageSize + 1, totalDisplayedItems)}
               </span>{" "}
               to{" "}
               <span className="font-bold text-gray-900">
-                {Math.min(currentPage * pageSize, processedItems.length)}
+                {Math.min(currentPage * pageSize, totalDisplayedItems)}
               </span>{" "}
-              of <span className="font-bold text-gray-900">{processedItems.length}</span> items
+              of <span className="font-bold text-gray-900">{totalDisplayedItems}</span> items
             </div>
 
             {/* Pagination Controls */}

@@ -1478,21 +1478,6 @@ export default function PosTerminalComponent() {
 
                 <div className="space-y-2">
                   <button
-                    onClick={() => {
-                      setPrintingOrder({
-                        ...orderObj,
-                        outlet: currentOutlet || activeBranch,
-                        customerName: orderObj?.customerName || customerName,
-                        customerPhone: orderObj?.customerPhone || customerPhone,
-                      });
-                    }}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Alayn AI Thermal Bill
-                  </button>
-
-                  <button
                     onClick={() => setCompletedOrder(null)}
                     className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
                   >
