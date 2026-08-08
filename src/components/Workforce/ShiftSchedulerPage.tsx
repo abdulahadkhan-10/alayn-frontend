@@ -193,10 +193,10 @@ export default function ShiftSchedulerPage() {
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
   const [applyToAllShiftId, setApplyToAllShiftId] = useState("");
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({
-    MONDAY: "", TUESDAY: "", WEDNESDAY: "", THURSDAY: "", FRIDAY: "", SATURDAY: "", SUNDAY: "OFF",
+    MONDAY: "", TUESDAY: "", WEDNESDAY: "", THURSDAY: "", FRIDAY: "", SATURDAY: "", SUNDAY: "",
   });
 
-  const [operatingDays] = useState<string[]>(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]);
+  const [operatingDays] = useState<string[]>(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]);
 
   // Pre-fill employee's existing saved weekly roster when selected in modal
   useEffect(() => {

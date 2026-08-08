@@ -174,7 +174,8 @@ export default function SettingsPage() {
   // Holiday Form State
   const [holidayForm, setHolidayForm] = useState({
     name: "",
-    date: new Date().toISOString().split("T")[0],
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
     type: "FESTIVAL", // FESTIVAL | WEEKLY_CLOSED | MAINTENANCE
     description: "",
   });
@@ -186,7 +187,8 @@ export default function SettingsPage() {
       setFeedbackMsg("Outlet Holiday / Closure saved successfully!");
       setHolidayForm({
         name: "",
-        date: new Date().toISOString().split("T")[0],
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date().toISOString().split("T")[0],
         type: "FESTIVAL",
         description: "",
       });
@@ -353,17 +355,32 @@ export default function SettingsPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Closure Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={holidayForm.date}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={holidayForm.startDate}
+                      onChange={(e) => setHolidayForm({ ...holidayForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      min={holidayForm.startDate}
+                      value={holidayForm.endDate}
+                      onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
                 </div>
 
                 <div>
