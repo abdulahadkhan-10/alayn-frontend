@@ -130,9 +130,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       {/* ── Top Header ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-100 px-4 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-[#D3232A] flex items-center justify-center text-white font-black text-lg shadow-md shadow-red-100">
-            A
-          </div>
+          <img src="/justlogo.png" alt="Alayn Logo" className="h-10 w-10 object-contain drop-shadow-sm" />
           <div>
             <h1 className="text-base font-black text-[#1B2A4A] leading-none tracking-tight">Alayn Dining</h1>
             <p className="text-[11px] text-emerald-600 font-semibold leading-none mt-1 flex items-center gap-1">
@@ -344,15 +342,15 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                                   dType === "VEGAN"
                                     ? "border-teal-600"
                                     : dType === "VEG"
-                                    ? "border-emerald-500"
-                                    : "border-[#D3232A]"
+                                      ? "border-emerald-500"
+                                      : "border-[#D3232A]"
                                 )}
                                 title={
                                   dType === "VEGAN"
                                     ? "Vegan (Plant-Based)"
                                     : dType === "VEG"
-                                    ? "Vegetarian"
-                                    : "Non-Vegetarian"
+                                      ? "Vegetarian"
+                                      : "Non-Vegetarian"
                                 }
                               >
                                 <span
@@ -361,8 +359,8 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                                     dType === "VEGAN"
                                       ? "bg-teal-600"
                                       : dType === "VEG"
-                                      ? "bg-emerald-500"
-                                      : "bg-[#D3232A]"
+                                        ? "bg-emerald-500"
+                                        : "bg-[#D3232A]"
                                   )}
                                 />
                               </span>
@@ -374,7 +372,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                               {item.name}
                             </h3>
                             {item.description && (
-                              <p className="text-xs text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">
+                              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
                                 {item.description}
                               </p>
                             )}
@@ -395,8 +393,8 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                                   dType === "VEGAN"
                                     ? "bg-teal-50 text-teal-700 border border-teal-200"
                                     : dType === "VEG"
-                                    ? "bg-emerald-50 text-emerald-600"
-                                    : "bg-red-50 text-red-500"
+                                      ? "bg-emerald-50 text-emerald-600"
+                                      : "bg-red-50 text-red-500"
                                 )}
                               >
                                 {dType === "VEGAN" && <Leaf className="w-2.5 h-2.5 text-teal-600" />}
@@ -414,12 +412,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           ))
         )}
 
-        {/* Footer note */}
-        <div className="pt-4 pb-4 text-center">
-          <p className="text-[11px] text-[#1B2A4A]/40 font-medium">
-            Prices are inclusive of all taxes. Please inform staff of any allergies.
-          </p>
-        </div>
       </main>
 
       {/* ── Image Lightbox ──────────────────────────────────────────────── */}
