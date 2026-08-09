@@ -304,11 +304,11 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                       {(() => {
                         const imgUrl = resolveUploadUrl(item.imageUrl);
                         return imgUrl ? (
-                          <div className="shrink-0 w-[100px] h-[100px] overflow-hidden relative bg-gray-100 group">
+                          <div className="shrink-0 w-[110px] relative overflow-hidden bg-gray-100 group">
                             <img
                               src={imgUrl}
                               alt={item.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                               onClick={() => setLightboxImage({ url: imgUrl, name: item.name })}
                               title="Tap to view full image"
                               onError={(e) => {
@@ -316,15 +316,17 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                                 img.style.display = "none";
                                 const parent = img.parentElement;
                                 if (parent) {
-                                  parent.innerHTML = `<div class="w-full h-full flex items-center justify-center"><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='#e5e7eb' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6l3 3 4-4 4 4 3-3'/><rect x='2' y='3' width='20' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/></svg></div>`;
+                                  parent.innerHTML = `<div class="absolute inset-0 flex items-center justify-center"><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='#e5e7eb' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6l3 3 4-4 4 4 3-3'/><rect x='2' y='3' width='20' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/></svg></div>`;
                                 }
                               }}
                             />
                           </div>
                         ) : (
                           /* Placeholder when no image */
-                          <div className="shrink-0 w-[100px] h-[100px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                            <Utensils className="w-8 h-8 text-gray-200" />
+                          <div className="shrink-0 w-[110px] relative bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Utensils className="w-8 h-8 text-gray-200" />
+                            </div>
                           </div>
                         );
                       })()}
