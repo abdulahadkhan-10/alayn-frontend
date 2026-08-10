@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   useGetMenuItemsQuery,
   useGetCategoriesQuery,
@@ -31,7 +31,7 @@ import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { useBranch } from "@/lib/BranchContext";
 
-type StatusFilter = "ALL" | "ACTIVE";
+type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type DietaryFilter = "ALL" | "VEG" | "NON_VEG" | "VEGAN";
 type SortOption = "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC";
 
@@ -93,10 +93,7 @@ export default function MenuManagementComponent() {
 
   // RTK Query Hooks
   const { data: rawCategories = [], isLoading: isCatLoading } = useGetCategoriesQuery();
-  const { data: rawMenuItems = [], isLoading: isItemsLoading } = useGetMenuItemsQuery({
-    search: searchQuery.trim() || undefined,
-    isAvailable: statusFilter === "ACTIVE" ? true : undefined,
-  });
+  const { data: rawMenuItems = [], isLoading: isItemsLoading } = useGetMenuItemsQuery({});
 
   // Dynamically detect which dietary types exist in current menu
   const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
@@ -129,6 +126,35 @@ export default function MenuManagementComponent() {
     });
     return Array.from(map.values());
   }, [rawCategories]);
+
+  // Category Scrolling
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftScroll, setShowLeftScroll] = useState(false);
+  const [showRightScroll, setShowRightScroll] = useState(false);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftScroll(scrollLeft > 0);
+      setShowRightScroll(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    // Small delay to ensure DOM is fully painted before checking scroll
+    const timer = setTimeout(checkScroll, 100);
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [categories]);
+
+  const scrollByAmount = (offset: number) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
 
   const menuItems = useMemo(() => (Array.isArray(rawMenuItems) ? rawMenuItems : []), [rawMenuItems]);
 
@@ -221,6 +247,20 @@ export default function MenuManagementComponent() {
   // Filtered & Sorted items
   const processedItems = useMemo(() => {
     let items = menuItems;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      items = items.filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          (i.description && i.description.toLowerCase().includes(q))
+      );
+    }
+
+    if (statusFilter !== "ALL") {
+      const wantActive = statusFilter === "ACTIVE";
+      items = items.filter((i) => (i.isAvailable === true) === wantActive);
+    }
 
     if (activeCategoryIds && activeCategoryIds.length > 0) {
       items = items.filter((i) => i.categoryId && activeCategoryIds.includes(i.categoryId));
@@ -428,14 +468,15 @@ export default function MenuManagementComponent() {
     isGroupActive: boolean
   ) => {
     const nextStatus = !isGroupActive;
-    if (isAllOutletsSelected) {
+    if (isAllOutletsSelected && relatedItems.length > 1) {
       setPendingStatusToggle({
         item: primaryItem,
         targetStatus: nextStatus,
         relatedItems,
       });
     } else {
-      handleExecuteToggle(primaryItem, nextStatus);
+      const itemToToggle = relatedItems.length === 1 ? relatedItems[0] : primaryItem;
+      handleExecuteToggle(itemToToggle, nextStatus);
     }
   };
 
@@ -680,6 +721,16 @@ export default function MenuManagementComponent() {
                 >
                   Active
                 </button>
+                <button
+                  onClick={() => handleStatusFilterChange("INACTIVE")}
+                  className={`px-3 py-1.5 rounded-md transition ${
+                    statusFilter === "INACTIVE"
+                      ? "bg-rose-500 text-white font-bold shadow-xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Deactivated
+                </button>
               </div>
 
               {/* Dietary Filter */}
@@ -755,8 +806,21 @@ export default function MenuManagementComponent() {
           </div>
 
           {/* Category Tabs Pill Row */}
-          <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 scrollbar-none border-t border-gray-100">
-            <button
+          <div className="relative border-t border-gray-100 pt-2 pb-1 group/scroll">
+            {showLeftScroll && (
+              <button
+                onClick={() => scrollByAmount(-200)}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] transition-opacity"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+            <div
+              ref={scrollContainerRef}
+              onScroll={checkScroll}
+              className="flex items-center gap-2 overflow-x-auto scrollbar-none px-1"
+            >
+              <button
               onClick={() => handleCategoryChange("ALL")}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
                 selectedCategory === "ALL"
@@ -794,6 +858,15 @@ export default function MenuManagementComponent() {
                 </button>
               );
             })}
+            </div>
+            {showRightScroll && (
+              <button
+                onClick={() => scrollByAmount(200)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] transition-opacity"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1187,7 +1260,7 @@ export default function MenuManagementComponent() {
                               className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
                             />
                             <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                            <span className="truncate">{b.name}</span>
+                            <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
                           </label>
                         );
                       })}
@@ -1437,7 +1510,7 @@ export default function MenuManagementComponent() {
                               className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
                             />
                             <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                            <span className="truncate">{b.name}</span>
+                            <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
                           </label>
                         );
                       })}
@@ -1563,7 +1636,7 @@ export default function MenuManagementComponent() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-[#1B2A4A]">
-                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across All Outlets?
+                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across assigned outlets?
                     </h3>
                     <p className="text-xs text-gray-500 font-medium">
                       'All Outlets' filter is currently selected.
@@ -1599,7 +1672,7 @@ export default function MenuManagementComponent() {
                     {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"}
                   </strong>{" "}
                   dish <strong>"{pendingStatusToggle.item.name}"</strong> across{" "}
-                  <strong>ALL {specificBranches.length} outlet locations</strong>?
+                  <strong>all {pendingStatusToggle.relatedItems.length} assigned outlet location(s)</strong>?
                 </p>
               </div>
 
