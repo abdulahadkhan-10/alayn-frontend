@@ -12,6 +12,8 @@ import {
   useGetOutletsQuery,
   useUpdateTaxRatesMutation,
   useUpdateReceiptDetailsMutation,
+  useUpdateLocationMutation,
+  useResolveMapLinkMutation,
 } from "@/redux/slices/outletApiSlice";
 import {
   Palmtree,
@@ -31,6 +33,7 @@ import {
   FileText,
   Phone,
   QrCode,
+  MapPin,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -76,6 +79,76 @@ export default function SettingsPage() {
   const [upiIdInput, setUpiIdInput] = useState<string>("");
   const [updateReceiptDetails, { isLoading: isUpdatingReceipt }] = useUpdateReceiptDetailsMutation();
 
+  // Geofence State
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
+  const [addressSearchQuery, setAddressSearchQuery] = useState("");
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressSearchResults, setAddressSearchResults] = useState<any[]>([]);
+  const [geofenceRadius, setGeofenceRadius] = useState<number>(100);
+  const [updateLocation, { isLoading: isUpdatingLocation }] = useUpdateLocationMutation();
+  const [resolveMapLink] = useResolveMapLinkMutation();
+
+  const fetchLocationName = async (lat: number, lng: number) => {
+    try {
+      setLocationName("Resolving address...");
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=en`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        setLocationName(data.display_name);
+      } else {
+        setLocationName("Address not found");
+      }
+    } catch (err) {
+      setLocationName("Could not resolve address");
+    }
+  };
+
+  useEffect(() => {
+    if (!addressSearchQuery.trim()) {
+      setAddressSearchResults([]);
+      setIsSearchingAddress(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingAddress(true);
+      try {
+        if (addressSearchQuery.includes('google.com') || addressSearchQuery.includes('goo.gl')) {
+          const res = await resolveMapLink({ url: addressSearchQuery, outletId: currentOutlet?.id }).unwrap();
+          if (res && res.lat && res.lng) {
+            setLatitude(res.lat);
+            setLongitude(res.lng);
+            setLocationName(res.name || "Location from Google Maps");
+            setAddressSearchResults([]);
+            setAddressSearchQuery("");
+            setFeedbackMsg("Location extracted from Google Maps!");
+          } else {
+            setFeedbackMsg("Could not extract coordinates from link.");
+          }
+        } else {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressSearchQuery)}&limit=5&addressdetails=1&accept-language=en`);
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setAddressSearchResults(data);
+          } else {
+            setAddressSearchResults([]);
+          }
+        }
+      } catch (err) {
+        setAddressSearchResults([]);
+        if (addressSearchQuery.includes('google.com') || addressSearchQuery.includes('goo.gl')) {
+          setFeedbackMsg("Failed to resolve Google Maps link.");
+        }
+      } finally {
+        setIsSearchingAddress(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [addressSearchQuery]);
+
   useEffect(() => {
     if (currentOutlet) {
       setCgstInput(String(currentOutlet.cgstRateDecimal ?? 2.5));
@@ -86,6 +159,12 @@ export default function SettingsPage() {
       setTaglineInput(currentOutlet.receiptTagline || "Small joys are Not Far.");
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nYour next dessert is Not Far ;)");
       setUpiIdInput(currentOutlet.upiId || "");
+      if (currentOutlet.latitude && currentOutlet.longitude) {
+        setLatitude(Number(currentOutlet.latitude));
+        setLongitude(Number(currentOutlet.longitude));
+        fetchLocationName(Number(currentOutlet.latitude), Number(currentOutlet.longitude));
+      }
+      if (currentOutlet.geofenceRadius) setGeofenceRadius(Number(currentOutlet.geofenceRadius));
     }
   }, [currentOutlet]);
 
@@ -95,7 +174,8 @@ export default function SettingsPage() {
   // Holiday Form State
   const [holidayForm, setHolidayForm] = useState({
     name: "",
-    date: new Date().toISOString().split("T")[0],
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
     type: "FESTIVAL", // FESTIVAL | WEEKLY_CLOSED | MAINTENANCE
     description: "",
   });
@@ -107,7 +187,8 @@ export default function SettingsPage() {
       setFeedbackMsg("Outlet Holiday / Closure saved successfully!");
       setHolidayForm({
         name: "",
-        date: new Date().toISOString().split("T")[0],
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date().toISOString().split("T")[0],
         type: "FESTIVAL",
         description: "",
       });
@@ -155,6 +236,44 @@ export default function SettingsPage() {
     }
   };
 
+  const handleGetLocation = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude);
+          setLongitude(position.coords.longitude);
+          fetchLocationName(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          setFeedbackMsg("Location access denied or unavailable.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setFeedbackMsg("Geolocation is not supported by your browser.");
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    const targetOutletId = activeBranch?.id || "all";
+    if (latitude === null || longitude === null) {
+      setFeedbackMsg("Please capture location first.");
+      return;
+    }
+    try {
+      await updateLocation({
+        outletId: targetOutletId,
+        latitude,
+        longitude,
+        geofenceRadius,
+      }).unwrap();
+      const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
+      setFeedbackMsg(`Geofence Location updated successfully for ${scopeLabel}!`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update location details.");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -173,22 +292,20 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
             <button
               onClick={() => setActiveTab("HOLIDAYS")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "HOLIDAYS"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "HOLIDAYS"
                   ? "bg-white text-[#D3232A] shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               <Palmtree className="h-4 w-4" />
               Outlet Holidays & Closures
             </button>
             <button
               onClick={() => setActiveTab("GENERAL")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "GENERAL"
+              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "GENERAL"
                   ? "bg-white text-[#D3232A] shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               <Store className="h-4 w-4" />
               General Preferences
@@ -236,17 +353,32 @@ export default function SettingsPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Closure Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={holidayForm.date}
-                    onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Start Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={holidayForm.startDate}
+                      onChange={(e) => setHolidayForm({ ...holidayForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      End Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      min={holidayForm.startDate}
+                      value={holidayForm.endDate}
+                      onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -539,7 +671,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isUpdatingReceipt}
-                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-[#D3232A] hover:bg-[#b01e23] text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
                   >
                     <Receipt className="h-4 w-4" />
                     {isUpdatingReceipt ? "Saving Receipt Details..." : "Save Thermal Receipt Details"}
@@ -616,6 +748,106 @@ export default function SettingsPage() {
                     <option value={20}>20 Mins Grace</option>
                     <option value={30}>30 Mins Grace</option>
                   </select>
+                </div>
+
+                {/* Geofence Configuration */}
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-gray-900 flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4 text-[#D3232A]" />
+                        Geofenced Clock-In Area
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">Employees can only clock in if their device is within this radius of the outlet.</div>
+                    </div>
+                    <select
+                      value={geofenceRadius}
+                      onChange={(e) => setGeofenceRadius(Number(e.target.value))}
+                      className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    >
+                      <option value={50}>50 Meters</option>
+                      <option value={100}>100 Meters (Standard)</option>
+                      <option value={200}>200 Meters</option>
+                      <option value={500}>500 Meters</option>
+                    </select>
+                  </div>
+                  {/* Manual Address Search */}
+                  <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 space-y-1">
+                    <p className="font-semibold">How to set your location:</p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      <li><strong>Type an address</strong> to search for nearby places.</li>
+                      <li><strong>Paste a Google Maps link</strong> (e.g. maps.app.goo.gl/...) for exact pinpoint accuracy.</li>
+                      <li><strong>Click "Capture My Location"</strong> if you are physically present at the outlet.</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Search address remotely (e.g. Veena Beena, Bandra)"
+                          value={addressSearchQuery}
+                          onChange={(e) => setAddressSearchQuery(e.target.value)}
+                          className="w-full text-sm bg-white border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        />
+                        {isSearchingAddress && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-[#D3232A] rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {addressSearchResults.length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-lg shadow-sm max-h-48 overflow-y-auto">
+                        {addressSearchResults.map((result: any, idx: number) => (
+                          <div
+                            key={idx}
+                            onClick={() => {
+                              setLatitude(Number(result.lat));
+                              setLongitude(Number(result.lon));
+                              setLocationName(result.display_name);
+                              setAddressSearchResults([]);
+                              setAddressSearchQuery("");
+                              setFeedbackMsg("Address selected! Coordinates updated.");
+                            }}
+                            className="px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100 cursor-pointer transition-colors"
+                          >
+                            <div className="font-semibold">{result.name || "Location"}</div>
+                            <div className="text-gray-500 truncate" title={result.display_name}>{result.display_name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
+                    <div className="text-xs font-medium text-gray-700 font-mono overflow-hidden">
+                      {latitude && longitude ? (
+                        <div className="flex flex-col">
+                          <span>Lat: {latitude.toFixed(6)}, Lng: {longitude.toFixed(6)}</span>
+                          {locationName && <span className="text-gray-500 mt-1 truncate max-w-[300px]" title={locationName}>{locationName}</span>}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Location not captured</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={handleGetLocation}
+                        className="px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                      >
+                        Capture My Location
+                      </button>
+                      <button
+                        onClick={handleSaveLocation}
+                        disabled={isUpdatingLocation || !latitude}
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-md transition-colors disabled:opacity-50"
+                      >
+                        {isUpdatingLocation ? "Saving..." : "Save Config"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">

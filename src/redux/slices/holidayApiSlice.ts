@@ -10,7 +10,7 @@ export const holidayApi = baseApi.injectEndpoints({
       providesTags: ["Holidays"],
     }),
     createHoliday: builder.mutation({
-      query: (body: { name: string; date: string; applyToAllOutlets?: boolean }) => ({
+      query: (body: { name: string; startDate: string; endDate: string; type?: string; description?: string; applyToAllOutlets?: boolean }) => ({
         url: "/outlets/holidays",
         method: "POST",
         body,

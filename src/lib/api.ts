@@ -510,6 +510,7 @@ export interface CustomerMenuItem {
   imageUrl: string | null;
   pricePaise: number;
   isVeg: boolean;
+  dietaryType?: 'VEG' | 'NON_VEG' | 'VEGAN';
   isActive: boolean;
 }
 

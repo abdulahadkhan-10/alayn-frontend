@@ -16,6 +16,9 @@ export interface Outlet {
   receiptTagline?: string;
   receiptFooter?: string;
   upiId?: string;
+  latitude?: number;
+  longitude?: number;
+  geofenceRadius?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -72,6 +75,29 @@ export const outletApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Outlet"],
     }),
+
+    updateLocation: builder.mutation<any, { outletId?: string; latitude: number; longitude: number; geofenceRadius: number }>({
+      query: ({ outletId, latitude, longitude, geofenceRadius }) => ({
+        url: "/outlets/location",
+        method: "PATCH",
+        body: { latitude, longitude, geofenceRadius },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
+
+    resolveMapLink: builder.mutation<{ lat: number; lng: number; name?: string }, { url: string; outletId?: string }>({
+      query: ({ url, outletId }) => ({
+        url: "/outlets/resolve-map-link",
+        method: "POST",
+        body: { url },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: { data?: { lat: number; lng: number; name?: string } } | { lat: number; lng: number; name?: string }) => {
+        if ("data" in response && response.data) return response.data;
+        return response as { lat: number; lng: number; name?: string };
+      },
+    }),
   }),
 });
 
@@ -80,4 +106,6 @@ export const {
   useCreateOutletMutation,
   useUpdateTaxRatesMutation,
   useUpdateReceiptDetailsMutation,
+  useUpdateLocationMutation,
+  useResolveMapLinkMutation,
 } = outletApi;

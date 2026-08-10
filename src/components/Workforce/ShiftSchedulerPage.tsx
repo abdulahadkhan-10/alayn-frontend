@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
+import { useAppSelector } from "@/redux/store/hooks";
 
 const DEMO_SHIFTS = [
   {
@@ -126,6 +127,12 @@ export default function ShiftSchedulerPage() {
   const { data: holidaysData } = useGetHolidaysQuery(undefined);
   const { data: outletRostersData } = useGetOutletRostersQuery(undefined);
 
+  const user = useAppSelector((state: any) => state.auth?.user);
+  const isManagerOrOwner =
+    user?.role === "BUSINESS_OWNER" ||
+    user?.role === "MANAGER" ||
+    user?.role === "SUPER_ADMIN";
+
   const [createShift, { isLoading: isCreatingShift }] = useCreateShiftMutation();
   const [assignShift, { isLoading: isAssigning }] = useAssignShiftMutation();
   const [requestSwap, { isLoading: isSwapping }] = useRequestSwapMutation();
@@ -186,10 +193,10 @@ export default function ShiftSchedulerPage() {
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
   const [applyToAllShiftId, setApplyToAllShiftId] = useState("");
   const [weeklySchedule, setWeeklySchedule] = useState<Record<string, string>>({
-    MONDAY: "", TUESDAY: "", WEDNESDAY: "", THURSDAY: "", FRIDAY: "", SATURDAY: "", SUNDAY: "OFF",
+    MONDAY: "", TUESDAY: "", WEDNESDAY: "", THURSDAY: "", FRIDAY: "", SATURDAY: "", SUNDAY: "",
   });
 
-  const [operatingDays] = useState<string[]>(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]);
+  const [operatingDays] = useState<string[]>(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]);
 
   // Pre-fill employee's existing saved weekly roster when selected in modal
   useEffect(() => {
@@ -213,8 +220,17 @@ export default function ShiftSchedulerPage() {
     return Array.from(set);
   }, [shifts]);
 
+  const currentEmployee = useMemo(() => {
+    return employees.find(
+      (e: any) => e.userId === user?.id || (user?.email && e.email === user?.email)
+    );
+  }, [employees, user]);
+
   // Filter Employees by Search Query & Selected Outlet
   const filteredEmployees = useMemo(() => {
+    if (!isManagerOrOwner) {
+      return currentEmployee ? [currentEmployee] : [];
+    }
     return employees.filter((e: any) => {
       // 1. Search Query Filter
       if (searchQuery) {
@@ -513,27 +529,31 @@ export default function ShiftSchedulerPage() {
             <p className="text-xs text-gray-500">Plan shifts, availability and weekly staffing.</p>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href="/settings"
-              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Outlet holidays
-            </a>
-            <button
-              onClick={() => {
-                setRosterEmployeeId(employees[0]?.id || "");
-                setShowRosterModal(true);
-              }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Weekly roster
-            </button>
-            <button
-              onClick={() => setShowCreateShiftModal(true)}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#D3232A] rounded-lg hover:bg-[#b01e23] transition-colors cursor-pointer"
-            >
-              New shift
-            </button>
+            {isManagerOrOwner && (
+              <>
+                <a
+                  href="/settings"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Outlet holidays
+                </a>
+                <button
+                  onClick={() => {
+                    setRosterEmployeeId(employees[0]?.id || "");
+                    setShowRosterModal(true);
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Weekly roster
+                </button>
+                <button
+                  onClick={() => setShowCreateShiftModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#D3232A] rounded-lg hover:bg-[#b01e23] transition-colors cursor-pointer"
+                >
+                  New shift
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -623,58 +643,61 @@ export default function ShiftSchedulerPage() {
               )}
 
               {/* Tab Switcher */}
-              <div className="flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
-                <button
-                  onClick={() => setActiveTab("roster")}
-                  className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                    activeTab === "roster" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Schedule
-                </button>
-                <button
-                  onClick={() => setActiveTab("templates")}
-                  className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                    activeTab === "templates" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Shift templates ({shifts.length})
-                </button>
-              </div>
+              {isManagerOrOwner && (
+                <div className="flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                  <button
+                    onClick={() => setActiveTab("roster")}
+                    className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                      activeTab === "roster" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Schedule
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("templates")}
+                    className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                      activeTab === "templates" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Shift templates ({shifts.length})
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* RIGHT: Outlet Selector & Search Staff */}
-            <div className="flex items-center gap-2">
-              {outletOptions.length > 0 && (
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
-                  <span className="text-gray-500 mr-1 font-medium text-[11px]">Outlet:</span>
-                  <select
-                    value={selectedOutlet}
-                    onChange={(e) => setSelectedOutlet(e.target.value)}
-                    className="bg-transparent font-medium text-gray-900 focus:outline-none cursor-pointer text-xs"
-                  >
-                    <option value="ALL">All outlets</option>
-                    {outletOptions.map((out) => (
-                      <option key={out} value={out}>
-                        {out}
-                      </option>
-                    ))}
-                  </select>
+            {isManagerOrOwner && (
+              <div className="flex items-center gap-2">
+                {outletOptions.length > 0 && (
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
+                    <span className="text-gray-500 mr-1 font-medium text-[11px]">Outlet:</span>
+                    <select
+                      value={selectedOutlet}
+                      onChange={(e) => setSelectedOutlet(e.target.value)}
+                      className="bg-transparent font-medium text-gray-900 focus:outline-none cursor-pointer text-xs"
+                    >
+                      <option value="ALL">All outlets</option>
+                      {outletOptions.map((out) => (
+                        <option key={out} value={out}>
+                          {out}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2 top-1.5" />
+                  <input
+                    type="text"
+                    placeholder="Search staff..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-7 pr-2 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-40 sm:w-44"
+                  />
                 </div>
-              )}
-
-              <div className="relative">
-                <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2 top-1.5" />
-                <input
-                  type="text"
-                  placeholder="Search staff..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-7 pr-2 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-40 sm:w-44"
-                />
               </div>
-            </div>
-
+            )}
           </div>
 
           {/* ================= TAB 1: EMPLOYEE SCHEDULE MATRIX ================= */}
@@ -804,29 +827,33 @@ export default function ShiftSchedulerPage() {
                                       ))}
                                     </div>
                                   ) : (
-                                    /* Unassigned Cell (Hover Quick Assign) */
+                                    /* Unassigned Cell (Hover Quick Assign for managers only) */
                                     <div className="h-full min-h-[34px] flex items-center justify-center">
-                                      <button
-                                        onClick={() => {
-                                          const defaultShift = shifts[0];
-                                          setAssignForm({
-                                            shiftId: defaultShift?.id || "",
-                                            employeeIds: [emp.id],
-                                            date: col.dateKey,
-                                            isSingleEmp: true,
-                                            singleEmpName: cleanName,
-                                            singleEmpRole: emp.role || "STAFF",
-                                            isCustomHours: false,
-                                            customStartTime: defaultShift?.startTime || "09:00",
-                                            customEndTime: defaultShift?.endTime || "17:00",
-                                          });
-                                          setShowAssignModal(true);
-                                        }}
-                                        className="w-full h-full py-1 text-[11px] text-gray-400 hover:text-[#D3232A] hover:bg-gray-50 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                        <span>Assign</span>
-                                      </button>
+                                      {isManagerOrOwner ? (
+                                        <button
+                                          onClick={() => {
+                                            const defaultShift = shifts[0];
+                                            setAssignForm({
+                                              shiftId: defaultShift?.id || "",
+                                              employeeIds: [emp.id],
+                                              date: col.dateKey,
+                                              isSingleEmp: true,
+                                              singleEmpName: cleanName,
+                                              singleEmpRole: emp.role || "STAFF",
+                                              isCustomHours: false,
+                                              customStartTime: defaultShift?.startTime || "09:00",
+                                              customEndTime: defaultShift?.endTime || "17:00",
+                                            });
+                                            setShowAssignModal(true);
+                                          }}
+                                          className="w-full h-full py-1 text-[11px] text-gray-400 hover:text-[#D3232A] hover:bg-gray-50 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                          <span>Assign</span>
+                                        </button>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-300">—</span>
+                                      )}
                                     </div>
                                   )}
                                 </td>

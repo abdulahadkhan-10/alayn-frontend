@@ -115,6 +115,7 @@ export const orderApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { status, comment, paymentMethod, customerName, customerPhone },
       }),
+      transformResponse: (response: any) => response?.data || response,
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),
   }),
