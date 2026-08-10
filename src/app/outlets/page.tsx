@@ -197,7 +197,6 @@ export default function OutletsLedgerPage() {
                             </div>
                             <div>
                               <p className="font-bold text-gray-900 text-xs sm:text-sm">{outlet.name}</p>
-                              <p className="text-[11px] text-gray-400 font-medium truncate max-w-[200px]">ID: {outlet.id}</p>
                             </div>
                           </div>
                         </td>
