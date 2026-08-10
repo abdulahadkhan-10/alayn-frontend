@@ -9,7 +9,6 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import { useBranch } from "@/lib/BranchContext";
-import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
 import {
   useGetKpisQuery,
   useGetSalesVelocityQuery,
@@ -97,6 +96,8 @@ export default function MasterDashboardPage(props?: PageProps) {
   const { activeBranch, branches, loading, isDemo, refreshBranches } = useBranch();
   const outletId = activeBranch?.id || undefined;
 
+
+
   // Date Range Controls
   const [dateRange, setDateRange] = useState<RangeType>("TODAY");
   const todayStr = new Date().toISOString().split("T")[0];
@@ -125,37 +126,15 @@ export default function MasterDashboardPage(props?: PageProps) {
     { skip: false }
   );
 
-  const [createOutlet, { isLoading: isSubmitting }] = useCreateOutletMutation();
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "India",
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [submitError, setSubmitError] = useState("");
-
-
   const isInitialLoading = loading || isKpiLoading;
 
   const hasNoOutlets = !isInitialLoading && !isDemo && branches.length === 0;
 
-  const handleFormChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    if (formErrors[field]) setFormErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  const handleCreateOutletSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitError("");
-    try {
-      await createOutlet(formData).unwrap();
-      await refreshBranches();
-    } catch (err: any) {
-      setSubmitError(err?.data?.message || "An error occurred while creating the outlet.");
+  useEffect(() => {
+    if (hasNoOutlets) {
+      router.replace("/outlets/create");
     }
-  };
+  }, [hasNoOutlets, router]);
 
   // Helper for 2-letter uppercase initials
   const getInitials = (name: string) => {
@@ -338,22 +317,8 @@ export default function MasterDashboardPage(props?: PageProps) {
   return (
     <AuthGuard>
       <DashboardLayout>
-        {isInitialLoading ? (
+        {isInitialLoading || hasNoOutlets ? (
           <DashboardSkeleton />
-        ) : hasNoOutlets ? (
-          <div className="max-w-3xl mx-auto py-8">
-            <div className="bg-white rounded-xl p-8 shadow-sm border border-zinc-200">
-              <h1 className="text-xl font-bold text-zinc-900 mb-2">Register Your First Outlet</h1>
-              <p className="text-sm text-zinc-500 mb-6">Complete setup to access real-time telemetry.</p>
-              <form onSubmit={handleCreateOutletSubmit} className="space-y-4">
-                {submitError && <div className="text-red-600 text-sm">{submitError}</div>}
-                <input type="text" placeholder="Outlet Name" value={formData.name} onChange={handleFormChange("name")} className="w-full border border-zinc-300 rounded-md p-2 text-sm" />
-                <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold">
-                  {isSubmitting ? "Saving..." : "Create Outlet"}
-                </button>
-              </form>
-            </div>
-          </div>
         ) : (
           <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-7 font-sans bg-[#F8FAFC]">
             

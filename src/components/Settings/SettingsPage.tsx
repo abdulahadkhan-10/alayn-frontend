@@ -156,8 +156,8 @@ export default function SettingsPage() {
       setServiceTaxInput(String(currentOutlet.serviceTaxRateDecimal ?? 0.0));
       setGstinInput(currentOutlet.gstin || "");
       setOutletPhoneInput(currentOutlet.phone || "");
-      setTaglineInput(currentOutlet.receiptTagline || "Small joys are Not Far.");
-      setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nYour next dessert is Not Far ;)");
+      setTaglineInput(currentOutlet.receiptTagline || "Serving joy every day.");
+      setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
       setUpiIdInput(currentOutlet.upiId || "");
       if (currentOutlet.latitude && currentOutlet.longitude) {
         setLatitude(Number(currentOutlet.latitude));
@@ -637,7 +637,7 @@ export default function SettingsPage() {
                         value={upiIdInput}
                         onChange={(e) => setUpiIdInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="notfar@upi"
+                        placeholder="merchant@upi"
                       />
                     </div>
 
@@ -650,7 +650,7 @@ export default function SettingsPage() {
                         value={taglineInput}
                         onChange={(e) => setTaglineInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="Small joys are Not Far."
+                        placeholder="Serving joy every day."
                       />
                     </div>
                   </div>
@@ -664,7 +664,7 @@ export default function SettingsPage() {
                       value={footerInput}
                       onChange={(e) => setFooterInput(e.target.value)}
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                      placeholder="Thanks for stopping by! Your next dessert is Not Far ;)"
+                      placeholder="Thanks for stopping by! We hope to see you again soon!"
                     />
                   </div>
 
@@ -773,10 +773,10 @@ export default function SettingsPage() {
                   </div>
                   {/* Manual Address Search */}
                   <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 space-y-1">
-                    <p className="font-semibold">How to set your location:</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      <li><strong>Type an address</strong> to search for nearby places.</li>
-                      <li><strong>Paste a Google Maps link</strong> (e.g. maps.app.goo.gl/...) for exact pinpoint accuracy.</li>
+                    <p className="font-semibold">Choose <span className="underline decoration-blue-300 decoration-2 underline-offset-2">one</span> of these ways to set your location:</p>
+                    <ul className="list-disc pl-4 space-y-0.5 mt-1">
+                      <li><strong>Type an address</strong> to search for nearby places, <span className="font-bold text-blue-900 ml-1">OR</span></li>
+                      <li><strong>Paste a Google Maps link</strong> (e.g. maps.app.goo.gl/...) for exact pinpoint accuracy, <span className="font-bold text-blue-900 ml-1">OR</span></li>
                       <li><strong>Click "Capture My Location"</strong> if you are physically present at the outlet.</li>
                     </ul>
                   </div>
