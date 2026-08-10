@@ -590,6 +590,28 @@ export default function MenuManagementComponent() {
         ? editItem.allRelatedItemIds
         : [editItem.id];
 
+      // Partition target outlets across related items to prevent duplicates
+      const remainingTargetOutlets = new Set(editItem.outletIds);
+      const itemToOutlets = new Map<string, string[]>();
+
+      for (const itemId of relatedIds) {
+        const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
+        const originalOutlets = targetItem?.outletIds?.length 
+            ? targetItem.outletIds 
+            : (targetItem?.outletId ? [targetItem.outletId] : []);
+        
+        const assignedOutlets = originalOutlets.filter((id: string) => remainingTargetOutlets.has(id));
+        assignedOutlets.forEach((id: string) => remainingTargetOutlets.delete(id));
+        
+        itemToOutlets.set(itemId, assignedOutlets);
+      }
+
+      if (remainingTargetOutlets.size > 0 && relatedIds.length > 0) {
+        const firstItemId = relatedIds[0];
+        const current = itemToOutlets.get(firstItemId) || [];
+        itemToOutlets.set(firstItemId, [...current, ...Array.from(remainingTargetOutlets)]);
+      }
+
       for (const itemId of relatedIds) {
         const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
         const itemOutletId = targetItem?.outletId || currentOutletId || null;
@@ -607,7 +629,7 @@ export default function MenuManagementComponent() {
             imageUrl: editItem.imageUrl,
             isVeg: editItem.dietaryType !== "NON_VEG",
             dietaryType: editItem.dietaryType,
-            outletIds: editItem.outletIds,
+            outletIds: itemToOutlets.get(itemId) || [],
           },
         }).unwrap();
       }
