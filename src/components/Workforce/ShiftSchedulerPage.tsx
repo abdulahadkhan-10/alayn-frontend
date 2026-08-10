@@ -33,6 +33,7 @@ import {
   Search,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
+import { useBranch } from "@/lib/BranchContext";
 
 const DEMO_SHIFTS = [
   {
@@ -121,8 +122,12 @@ function getInitials(name: string): string {
 
 export default function ShiftSchedulerPage() {
   // Queries & Mutations
-  const { data: shiftApiData, isLoading: isShiftsLoading } = useGetShiftsQuery(undefined);
-  const { data: empApiData, isLoading: isEmpLoading } = useGetEmployeesQuery(undefined);
+  const { activeBranch } = useBranch();
+  const outletId = activeBranch?.id === "all" ? undefined : activeBranch?.id;
+  const selectedOutlet = activeBranch?.id === "all" ? "ALL" : (activeBranch?.name || "ALL");
+
+  const { data: shiftApiData, isLoading: isShiftsLoading } = useGetShiftsQuery(outletId ? { outletId } : undefined);
+  const { data: empApiData, isLoading: isEmpLoading } = useGetEmployeesQuery(outletId ? { outletId } : undefined);
   const { data: leaveApiData } = useGetLeaveRequestsQuery(undefined);
   const { data: holidaysData } = useGetHolidaysQuery(undefined);
   const { data: outletRostersData } = useGetOutletRostersQuery(undefined);
@@ -151,9 +156,8 @@ export default function ShiftSchedulerPage() {
   const leaveRequests = leaveApiData?.data || [];
 
   // Matrix View State
-  const [selectedMonthDate, setSelectedMonthDate] = useState<Date>(new Date(2026, 6, 27)); // Default July 2026
+  const [selectedMonthDate, setSelectedMonthDate] = useState<Date>(() => new Date()); // Default Today
   const [viewRange, setViewRange] = useState<"7" | "14" | "30">("7");
-  const [selectedOutlet, setSelectedOutlet] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"roster" | "templates">("roster");
 
@@ -179,7 +183,7 @@ export default function ShiftSchedulerPage() {
   }>({
     shiftId: "",
     employeeIds: [],
-    date: parseDateKey(selectedMonthDate),
+    date: parseDateKey(new Date()),
     isSingleEmp: false,
     singleEmpName: "",
     singleEmpRole: "",
@@ -187,7 +191,7 @@ export default function ShiftSchedulerPage() {
     customStartTime: "09:00",
     customEndTime: "17:00",
   });
-  const [swapForm, setSwapForm] = useState({ fromEmployeeId: "", toEmployeeId: "", shiftId: "", date: parseDateKey(selectedMonthDate) });
+  const [swapForm, setSwapForm] = useState({ fromEmployeeId: "", toEmployeeId: "", shiftId: "", date: parseDateKey(new Date()) });
 
   // Roster Modal Form State
   const [rosterEmployeeId, setRosterEmployeeId] = useState("");
@@ -443,6 +447,12 @@ export default function ShiftSchedulerPage() {
     e.preventDefault();
     if (assignForm.employeeIds.length === 0) return;
 
+    const todayKey = parseDateKey(new Date());
+    if (assignForm.date < todayKey) {
+      setFeedbackMsg("Allocating duty for backdated dates is not allowed.");
+      return;
+    }
+
     try {
       let targetShiftId = assignForm.shiftId;
 
@@ -665,27 +675,9 @@ export default function ShiftSchedulerPage() {
               )}
             </div>
 
-            {/* RIGHT: Outlet Selector & Search Staff */}
+            {/* RIGHT: Search Staff */}
             {isManagerOrOwner && (
               <div className="flex items-center gap-2">
-                {outletOptions.length > 0 && (
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
-                    <span className="text-gray-500 mr-1 font-medium text-[11px]">Outlet:</span>
-                    <select
-                      value={selectedOutlet}
-                      onChange={(e) => setSelectedOutlet(e.target.value)}
-                      className="bg-transparent font-medium text-gray-900 focus:outline-none cursor-pointer text-xs"
-                    >
-                      <option value="ALL">All outlets</option>
-                      {outletOptions.map((out) => (
-                        <option key={out} value={out}>
-                          {out}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div className="relative">
                   <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2 top-1.5" />
                   <input
@@ -827,9 +819,9 @@ export default function ShiftSchedulerPage() {
                                       ))}
                                     </div>
                                   ) : (
-                                    /* Unassigned Cell (Hover Quick Assign for managers only) */
+                                    /* Unassigned Cell (Hover Quick Assign for managers only if date is not in the past) */
                                     <div className="h-full min-h-[34px] flex items-center justify-center">
-                                      {isManagerOrOwner ? (
+                                      {isManagerOrOwner && col.dateKey >= parseDateKey(new Date()) ? (
                                         <button
                                           onClick={() => {
                                             const defaultShift = shifts[0];
@@ -1254,6 +1246,7 @@ export default function ShiftSchedulerPage() {
                     <label className="block font-medium text-gray-700 mb-1">Shift date</label>
                     <CustomDatePicker
                       value={assignForm.date}
+                      minDate={parseDateKey(new Date())}
                       onChange={(date) => setAssignForm({ ...assignForm, date })}
                     />
                   </div>
