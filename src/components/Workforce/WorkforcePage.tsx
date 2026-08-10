@@ -211,6 +211,37 @@ export default function WorkforcePage() {
     }
   };
 
+  const handleBulkUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkFile) return;
+    try {
+      const fd = new FormData();
+      fd.append("file", bulkFile);
+      await bulkUpload(fd).unwrap();
+      setFeedbackMsg("Staff imported successfully!");
+      setShowBulkUploadModal(false);
+      setBulkFile(null);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to import staff");
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ["Full Name", "Email Address", "Phone Number", "Password", "Job Role", "Joining Date"];
+    const rows = [
+      ["John Doe", "john.doe@example.com", "9876543210", "Password123", "STAFF", "2024-01-15"],
+      ["Jane Smith", "jane.smith@example.com", "9876543211", "Password123", "MANAGER", "2024-02-01"]
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "employee_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -589,6 +620,90 @@ export default function WorkforcePage() {
           </>
         ) : null}
 
+        {/* Modal: Bulk CSV Import */}
+        {showBulkUploadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
+                <h3 className="text-lg font-bold text-gray-900">Bulk CSV Import</h3>
+                <button onClick={() => setShowBulkUploadModal(false)} className="cursor-pointer">
+                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                </button>
+              </div>
+              <form onSubmit={handleBulkUploadSubmit} className="flex flex-col">
+                <div className="p-6 space-y-5">
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+                        <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-blue-900">Format Requirements</h4>
+                        <p className="text-xs text-blue-700/80 mt-1 leading-relaxed">
+                          The CSV must include the following column headers exactly: 
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Full Name</span>,
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Email Address</span>,
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Password</span>,
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Phone Number</span>,
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Job Role</span>, and optionally
+                          <span className="font-mono bg-blue-100/50 px-1.5 py-0.5 rounded mx-1 text-[11px]">Joining Date</span>.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleDownloadTemplate}
+                          className="mt-3 text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download Sample Template
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CSV File <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      required
+                      onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
+                </div>
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkUploadModal(false)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isBulkUploading || !bulkFile}
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-2xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    {isBulkUploading ? (
+                      <>
+                        <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Upload & Import
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Modal: Create Employee */}
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -673,20 +788,7 @@ export default function WorkforcePage() {
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                    list="designation-suggestions"
                   />
-                  <datalist id="designation-suggestions">
-                    <option value="Senior Chef" />
-                    <option value="Executive Sous Chef" />
-                    <option value="Head Waiter" />
-                    <option value="Order Captain" />
-                    <option value="Barista" />
-                    <option value="Senior Cashier" />
-                    <option value="Junior Manager" />
-                    <option value="Floor Supervisor" />
-                    <option value="Sommelier" />
-                    <option value="Service Staff" />
-                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -904,20 +1006,7 @@ export default function WorkforcePage() {
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                    list="edit-designation-suggestions"
                   />
-                  <datalist id="edit-designation-suggestions">
-                    <option value="Senior Chef" />
-                    <option value="Executive Sous Chef" />
-                    <option value="Head Waiter" />
-                    <option value="Order Captain" />
-                    <option value="Barista" />
-                    <option value="Senior Cashier" />
-                    <option value="Junior Manager" />
-                    <option value="Floor Supervisor" />
-                    <option value="Sommelier" />
-                    <option value="Service Staff" />
-                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
