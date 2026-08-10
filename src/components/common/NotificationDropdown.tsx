@@ -46,7 +46,18 @@ export default function NotificationDropdown() {
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const rawNotifications = notificationsData?.data || [];
-  const notifications = rawNotifications.filter((n) => !hiddenIds.has(n.id));
+  const notifications = React.useMemo(() => {
+    const unhidden = rawNotifications.filter((n) => !hiddenIds.has(n.id));
+    const seenKeys = new Set<string>();
+    return unhidden.filter((n) => {
+      const key = n.entityType && n.entityId
+        ? `${n.entityType}_${n.entityId}`
+        : `${n.title}_${n.message}_${n.createdAt.slice(0, 16)}`;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+  }, [rawNotifications, hiddenIds]);
 
   const rawUnreadCount = unreadCountData?.data?.unreadCount || 0;
   const unreadCount = Math.max(0, rawUnreadCount - readIds.size);
