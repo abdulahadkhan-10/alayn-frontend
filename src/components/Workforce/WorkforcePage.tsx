@@ -788,20 +788,7 @@ export default function WorkforcePage() {
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                    list="designation-suggestions"
                   />
-                  <datalist id="designation-suggestions">
-                    <option value="Senior Chef" />
-                    <option value="Executive Sous Chef" />
-                    <option value="Head Waiter" />
-                    <option value="Order Captain" />
-                    <option value="Barista" />
-                    <option value="Senior Cashier" />
-                    <option value="Junior Manager" />
-                    <option value="Floor Supervisor" />
-                    <option value="Sommelier" />
-                    <option value="Service Staff" />
-                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1019,20 +1006,7 @@ export default function WorkforcePage() {
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                    list="edit-designation-suggestions"
                   />
-                  <datalist id="edit-designation-suggestions">
-                    <option value="Senior Chef" />
-                    <option value="Executive Sous Chef" />
-                    <option value="Head Waiter" />
-                    <option value="Order Captain" />
-                    <option value="Barista" />
-                    <option value="Senior Cashier" />
-                    <option value="Junior Manager" />
-                    <option value="Floor Supervisor" />
-                    <option value="Sommelier" />
-                    <option value="Service Staff" />
-                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
