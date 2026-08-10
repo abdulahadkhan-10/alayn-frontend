@@ -468,14 +468,15 @@ export default function MenuManagementComponent() {
     isGroupActive: boolean
   ) => {
     const nextStatus = !isGroupActive;
-    if (isAllOutletsSelected) {
+    if (isAllOutletsSelected && relatedItems.length > 1) {
       setPendingStatusToggle({
         item: primaryItem,
         targetStatus: nextStatus,
         relatedItems,
       });
     } else {
-      handleExecuteToggle(primaryItem, nextStatus);
+      const itemToToggle = relatedItems.length === 1 ? relatedItems[0] : primaryItem;
+      handleExecuteToggle(itemToToggle, nextStatus);
     }
   };
 
@@ -1635,7 +1636,7 @@ export default function MenuManagementComponent() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-[#1B2A4A]">
-                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across All Outlets?
+                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across assigned outlets?
                     </h3>
                     <p className="text-xs text-gray-500 font-medium">
                       'All Outlets' filter is currently selected.
@@ -1671,7 +1672,7 @@ export default function MenuManagementComponent() {
                     {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"}
                   </strong>{" "}
                   dish <strong>"{pendingStatusToggle.item.name}"</strong> across{" "}
-                  <strong>ALL {specificBranches.length} outlet locations</strong>?
+                  <strong>all {pendingStatusToggle.relatedItems.length} assigned outlet location(s)</strong>?
                 </p>
               </div>
 
