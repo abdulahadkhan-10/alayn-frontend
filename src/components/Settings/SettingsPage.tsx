@@ -773,10 +773,10 @@ export default function SettingsPage() {
                   </div>
                   {/* Manual Address Search */}
                   <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 space-y-1">
-                    <p className="font-semibold">How to set your location:</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      <li><strong>Type an address</strong> to search for nearby places.</li>
-                      <li><strong>Paste a Google Maps link</strong> (e.g. maps.app.goo.gl/...) for exact pinpoint accuracy.</li>
+                    <p className="font-semibold">Choose <span className="underline decoration-blue-300 decoration-2 underline-offset-2">one</span> of these ways to set your location:</p>
+                    <ul className="list-disc pl-4 space-y-0.5 mt-1">
+                      <li><strong>Type an address</strong> to search for nearby places, <span className="font-bold text-blue-900 ml-1">OR</span></li>
+                      <li><strong>Paste a Google Maps link</strong> (e.g. maps.app.goo.gl/...) for exact pinpoint accuracy, <span className="font-bold text-blue-900 ml-1">OR</span></li>
                       <li><strong>Click "Capture My Location"</strong> if you are physically present at the outlet.</li>
                     </ul>
                   </div>
