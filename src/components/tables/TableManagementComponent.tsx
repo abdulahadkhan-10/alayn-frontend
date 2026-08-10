@@ -758,7 +758,7 @@ export default function TableManagementComponent() {
                       const targetOutletId = getTargetOutletId(assignStaffTable);
                       const staffOutletId = s.outletId || s.outlet?.id;
                       const matchesOutlet = !targetOutletId || staffOutletId === targetOutletId;
-                      const isEligibleRole = s.role === "STAFF" || s.role === "MANAGER";
+                      const isEligibleRole = s.role === "STAFF";
                       return matchesSearch && matchesOutlet && isEligibleRole;
                     })
                     .map((staff: any) => {
@@ -793,7 +793,7 @@ export default function TableManagementComponent() {
                     const targetOutletId = getTargetOutletId(assignStaffTable);
                     const staffOutletId = s.outletId || s.outlet?.id;
                     const matchesOutlet = !targetOutletId || staffOutletId === targetOutletId;
-                    const isEligibleRole = s.role === "STAFF" || s.role === "MANAGER";
+                    const isEligibleRole = s.role === "STAFF";
                     return matchesOutlet && isEligibleRole;
                   }).length === 0 && (
                     <p className="text-xs text-gray-400 text-center py-4">
