@@ -26,7 +26,6 @@ export interface PurchaseOrderItemApi {
   orderedQuantity: number;
   dispatchedQuantity?: number;
   receivedQuantity?: number;
-  damagedQuantity?: number;
   unitCostPaise: number;
   item?: InventoryItemApi;
 }
@@ -111,7 +110,6 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         items: {
           itemId: string;
           receivedQuantity: number;
-          damagedQuantity?: number;
           batchNumber: string;
           expiryDate: string;
         }[];
