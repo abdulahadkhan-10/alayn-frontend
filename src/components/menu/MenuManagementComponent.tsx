@@ -279,7 +279,7 @@ export default function MenuManagementComponent() {
       if (sortBy === "PRICE_DESC") return Number(b.price) - Number(a.price);
       return 0;
     });
-  }, [menuItems, activeCategoryIds, dietaryFilter, sortBy]);
+  }, [menuItems, searchQuery, statusFilter, activeCategoryIds, dietaryFilter, sortBy]);
 
   // Group processed items by dish name for clean non-redundant rows when viewing All Outlets
   const displayItems = useMemo(() => {
