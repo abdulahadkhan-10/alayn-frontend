@@ -106,6 +106,23 @@ export default function NotificationDropdown() {
     }
   };
 
+  const [isClearingAll, setIsClearingAll] = useState(false);
+
+  const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+    setIsClearingAll(true);
+    try {
+      await Promise.all(notifications.map((item) => deleteNotification(item.id).unwrap()));
+      refetchUnreadCount();
+      refetch();
+    } catch (error) {
+      console.error("Failed to clear notifications", error);
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
+
   const getTargetRoute = (item: NotificationItem): string => {
     switch (item.entityType) {
       case "ORDER":
@@ -193,19 +210,35 @@ export default function NotificationDropdown() {
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100">
             <h3 className="text-base font-bold text-gray-900 tracking-tight">Notifications</h3>
 
-            <button
-              onClick={handleMarkAllRead}
-              disabled={isMarkingAll || unreadCount === 0}
-              className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-40 transition-colors"
-            >
-              {isMarkingAll ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4 stroke-[2.5]" />
-              )}
-              Mark all as read
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleMarkAllRead}
+                disabled={isMarkingAll || unreadCount === 0}
+                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-40 transition-colors"
+              >
+                {isMarkingAll ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                )}
+                Mark all as read
+              </button>
+
+              <button
+                onClick={handleClearAll}
+                disabled={isClearingAll || notifications.length === 0}
+                className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline disabled:opacity-40 transition-colors"
+              >
+                {isClearingAll ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Clear all
+              </button>
+            </div>
           </div>
+
 
           {/* List Content */}
           <div className="max-h-[380px] overflow-y-auto space-y-1 pr-1">

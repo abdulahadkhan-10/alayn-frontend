@@ -549,3 +549,22 @@ export async function createQROrder(
   return { ok: false, error: result.error };
 }
 
+// ── AlaynAI Executive Assistant API ───────────────────────────────────────
+
+export async function askAlaynAI(
+  prompt: string,
+  outletId?: string
+): Promise<{ ok: boolean; answer?: string; error?: string }> {
+  const result = await apiRequest<{ answer: string }>("/ai/assistant", {
+    method: "POST",
+    body: { prompt, outletId },
+    outletId,
+  });
+
+  if (result.ok) {
+    return { ok: true, answer: result.data.answer };
+  }
+  return { ok: false, error: result.error };
+}
+
+

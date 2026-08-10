@@ -2,17 +2,27 @@
 
 import React, { useState, use, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAppSelector } from "@/redux/store/hooks";
+
 import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
-import { useGetKpisQuery } from "@/redux/slices/dashboardApiSlice";
+import {
+  useGetKpisQuery,
+  useGetSalesVelocityQuery,
+  useGetChannelDistributionQuery,
+  useGetTopSellingItemsQuery,
+} from "@/redux/slices/dashboardApiSlice";
 import { useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetMenuItemsQuery } from "@/redux/slices/menuApiSlice";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import ElectricBorder from "@/components/ui/ElectricBorder";
+
+
 
 import {
   TrendingUp,
@@ -36,8 +46,11 @@ import {
   ShieldCheck,
   ArrowUpRight,
   ShoppingBag,
-  ExternalLink
+  ExternalLink,
+  Send,
 } from "lucide-react";
+
+
 
 import {
   AreaChart,
@@ -61,6 +74,8 @@ interface PageProps {
 }
 
 type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
+
+
 
 export default function MasterDashboardPage(props?: PageProps) {
   if (props?.params) use(props.params);
@@ -91,7 +106,7 @@ export default function MasterDashboardPage(props?: PageProps) {
 
   // Queries
   const { data: kpiData, isLoading: isKpiLoading } = useGetKpisQuery(
-    { outletId, range: dateRange },
+    { outletId, range: dateRange, startDate, endDate },
     { skip: false }
   );
 
@@ -121,11 +136,9 @@ export default function MasterDashboardPage(props?: PageProps) {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState("");
 
-  // AI Insights state
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
 
   const isInitialLoading = loading || isKpiLoading;
+
   const hasNoOutlets = !isInitialLoading && !isDemo && branches.length === 0;
 
   const handleFormChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -284,15 +297,25 @@ export default function MasterDashboardPage(props?: PageProps) {
     };
   }, [realOrders]);
 
-  // Top Selling Items Analytics
+  // Real DB Analytics Queries (with Date Range Filter)
+  const { data: velocityResponse = [] } = useGetSalesVelocityQuery(
+    { outletId, range: dateRange, startDate, endDate },
+    { skip: false }
+  );
+
+  const { data: channelResponse = [] } = useGetChannelDistributionQuery(
+    { outletId, range: dateRange, startDate, endDate },
+    { skip: false }
+  );
+
+  const { data: topSellingResponse = [] } = useGetTopSellingItemsQuery(
+    { outletId, range: dateRange, startDate, endDate },
+    { skip: false }
+  );
+
+  // Top Selling Items Analytics from DB
   const topItemsAnalytics = useMemo(() => {
-    const itemsArray = [
-      { name: "Butter Chicken", volume: 142, revenue: 59640, category: "Main Course" },
-      { name: "Garlic Naan", volume: 204, revenue: 16320, category: "Breads" },
-      { name: "Paneer Tikka", volume: 118, revenue: 37760, category: "Starters" },
-      { name: "Dal Makhani", volume: 98, revenue: 27440, category: "Main Course" },
-      { name: "Biryani", volume: 85, revenue: 29750, category: "Rice" },
-    ];
+    const itemsArray = Array.isArray(topSellingResponse) ? topSellingResponse : [];
 
     const totalVolume = itemsArray.reduce((acc, item) => acc + item.volume, 0);
     const totalRevenue = itemsArray.reduce((acc, item) => acc + item.revenue, 0);
@@ -302,23 +325,15 @@ export default function MasterDashboardPage(props?: PageProps) {
       totalVolume,
       totalRevenue,
     };
-  }, []);
+  }, [topSellingResponse]);
 
-  const revenueData = [
-    { time: "10 AM", revenue: 2400 },
-    { time: "12 PM", revenue: 8900 },
-    { time: "2 PM", revenue: 14200 },
-    { time: "4 PM", revenue: 6400 },
-    { time: "6 PM", revenue: 11000 },
-    { time: "8 PM", revenue: 23500 },
-    { time: "10 PM", revenue: 28400 },
-  ];
+  const revenueData = useMemo(() => {
+    return Array.isArray(velocityResponse) ? velocityResponse : [];
+  }, [velocityResponse]);
 
-  const channelData = [
-    { name: "Dine-in", value: 65, color: "#2563eb" },
-    { name: "Delivery", value: 20, color: "#3b82f6" },
-    { name: "Takeaway", value: 15, color: "#d97706" },
-  ];
+  const channelData = useMemo(() => {
+    return Array.isArray(channelResponse) ? channelResponse : [];
+  }, [channelResponse]);
 
   return (
     <AuthGuard>
@@ -412,7 +427,7 @@ export default function MasterDashboardPage(props?: PageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: "NET REVENUE", value: kpiData?.totalRevenue?.value || "₹1,24,500", prev: "₹1,18,200", trend: kpiData?.totalRevenue?.change || "+5.3%", positive: kpiData?.totalRevenue?.isPositive ?? true, route: "/performance" },
-                { label: "ACTIVE ORDERS", value: `${activeStats.activeCount}`, prev: "310", trend: "+10.3%", positive: true, route: "/pos" },
+                { label: "ACTIVE ORDERS", value: `${activeStats.activeCount}`, prev: "310", trend: "+10.3%", positive: true, route: "/orders" },
                 { label: "AVG ORDER VALUE", value: "₹364", prev: "₹381", trend: "-4.4%", positive: false, route: "/orders" },
                 { label: "GROSS MARGIN", value: kpiData?.netMargin?.value || "68.4%", prev: "67.2%", trend: kpiData?.netMargin?.change || "+1.2%", positive: kpiData?.netMargin?.isPositive ?? true, route: "/performance" },
               ].map((kpi, idx) => (
@@ -462,25 +477,33 @@ export default function MasterDashboardPage(props?: PageProps) {
                     Full Analytics <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="h-[240px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} tickFormatter={(val) => `₹${val / 1000}k`} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
-                        formatter={(val: any) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
-                      />
-                      <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="h-[240px] w-full flex items-center justify-center">
+                  {revenueData.length === 0 || revenueData.every(d => d.revenue === 0) ? (
+                    <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full h-full">
+                      <BarChart2 className="h-8 w-8 text-slate-300 mb-2" />
+                      <p className="text-xs font-bold text-slate-600">No Sales Telemetry Recorded Yet</p>
+                      <p className="text-[11px] text-slate-400 font-normal mt-0.5">Orders placed today will automatically populate sales velocity.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} tickFormatter={(val) => `₹${val / 1000}k`} />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
+                          formatter={(val: any) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
+                        />
+                        <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -505,43 +528,57 @@ export default function MasterDashboardPage(props?: PageProps) {
                   </button>
                 </div>
                 <div className="h-[180px] flex items-center justify-center relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={channelData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {channelData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
-                        formatter={(val: any) => [`${val}%`, 'Share']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-bold text-slate-800 tabular-nums">100<span className="text-xs text-slate-400">%</span></span>
-                    <span className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Total Share</span>
-                  </div>
+                  {channelData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full h-full">
+                      <PieChartIcon className="h-7 w-7 text-slate-300 mb-1" />
+                      <p className="text-xs font-bold text-slate-600">No Orders Recorded</p>
+                      <p className="text-[10px] text-slate-400">Channels will calculate on order placement.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={channelData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={3}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {channelData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
+                            formatter={(val: any) => [`${val}%`, 'Share']}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-2xl font-bold text-slate-800 tabular-nums">100<span className="text-xs text-slate-400">%</span></span>
+                        <span className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Total Share</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3">
-                  {channelData.map((ch, i) => (
-                    <div key={i} className="flex flex-col items-center text-center">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ch.color }} />
-                        <span className="text-[11px] font-semibold text-slate-600">{ch.name}</span>
+                  {channelData.length === 0 ? (
+                    <span className="col-span-3 text-center text-xs text-slate-400 py-1">No channel data</span>
+                  ) : (
+                    channelData.map((ch, i) => (
+                      <div key={i} className="flex flex-col items-center text-center">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ch.color }} />
+                          <span className="text-[11px] font-semibold text-slate-600">{ch.name}</span>
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 tabular-nums">{ch.value}%</span>
                       </div>
-                      <span className="text-xs font-bold text-slate-800 tabular-nums">{ch.value}%</span>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -568,7 +605,7 @@ export default function MasterDashboardPage(props?: PageProps) {
                       {activeOrdersList.length} Active
                     </span>
                     <button
-                      onClick={() => router.push("/pos")}
+                      onClick={() => router.push("/orders")}
                       className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50/60 px-3 py-1.5 rounded-xl border border-blue-200/60"
                     >
                       View All <ArrowRight className="h-3.5 w-3.5" />
@@ -710,269 +747,217 @@ export default function MasterDashboardPage(props?: PageProps) {
               </div>
 
               {/* Rich 2-Column Split: Chart (Left) + Top Performers Leaderboard (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                
-                {/* Left Side: Vertical Bar Graph with Data Labels */}
-                <div className="lg:col-span-7 h-[260px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topItemsAnalytics.topItems} margin={{ top: 25, right: 10, left: -10, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="blueBarGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#2563eb" stopOpacity={1}/>
-                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: "#334155", fontWeight: 600 }}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
-                      />
-                      <Tooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
-                        formatter={(val: any) => [`${val} units sold`, 'Volume']}
-                      />
-                      <Bar dataKey="volume" radius={[8, 8, 0, 0]} barSize={36} fill="url(#blueBarGrad)">
-                        <LabelList dataKey="volume" position="top" style={{ fontSize: '11px', fontWeight: '700', fill: '#1e293b' }} />
-                        {topItemsAnalytics.topItems.map((_, idx) => (
-                          <Cell key={`cell-${idx}`} fill={idx === 0 ? "#2563eb" : idx === 1 ? "#3b82f6" : idx === 2 ? "#60a5fa" : "#94a3b8"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+              {topItemsAnalytics.topItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full my-2">
+                  <ShoppingBag className="h-9 w-9 text-slate-300 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Item Sales Recorded Yet</p>
+                  <p className="text-[11px] text-slate-400 font-normal mt-0.5">As orders are completed, top menu performance will appear here.</p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                  
+                  {/* Left Side: Vertical Bar Graph with Data Labels */}
+                  <div className="lg:col-span-7 h-[260px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={topItemsAnalytics.topItems} margin={{ top: 25, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="blueBarGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#2563eb" stopOpacity={1}/>
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#334155", fontWeight: 600 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                        />
+                        <Tooltip 
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
+                          formatter={(val: any) => [`${val} units sold`, 'Volume']}
+                        />
+                        <Bar dataKey="volume" radius={[8, 8, 0, 0]} barSize={36} fill="url(#blueBarGrad)">
+                          <LabelList dataKey="volume" position="top" style={{ fontSize: '11px', fontWeight: '700', fill: '#1e293b' }} />
+                          {topItemsAnalytics.topItems.map((_, idx) => (
+                            <Cell key={`cell-${idx}`} fill={idx === 0 ? "#2563eb" : idx === 1 ? "#3b82f6" : idx === 2 ? "#60a5fa" : "#94a3b8"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
 
-                {/* Right Side: Leaderboard Ranking Cards */}
-                <div className="lg:col-span-5 space-y-2.5">
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Performance Matrix</div>
-                  {topItemsAnalytics.topItems.slice(0, 4).map((item, idx) => {
-                    const percent = Math.round((item.volume / (topItemsAnalytics.totalVolume || 1)) * 100);
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => router.push("/menu")}
-                        className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 hover:shadow-xs transition-all flex items-center justify-between gap-3 cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`h-7 w-7 rounded-lg text-xs font-bold flex items-center justify-center ${
-                              idx === 0
-                                ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                : idx === 1
-                                ? "bg-slate-200 text-slate-700"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            #{idx + 1}
-                          </span>
-                          <div>
-                            <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{item.name}</div>
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded">
-                              {item.category}
+                  {/* Right Side: Leaderboard Ranking Cards */}
+                  <div className="lg:col-span-5 space-y-2.5">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Performance Matrix</div>
+                    {topItemsAnalytics.topItems.slice(0, 4).map((item, idx) => {
+                      const percent = Math.round((item.volume / (topItemsAnalytics.totalVolume || 1)) * 100);
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => router.push("/menu")}
+                          className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 hover:shadow-xs transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`h-7 w-7 rounded-lg text-xs font-bold flex items-center justify-center ${
+                                idx === 0
+                                  ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                  : idx === 1
+                                  ? "bg-slate-200 text-slate-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              #{idx + 1}
                             </span>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{item.name}</div>
+                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded">
+                                {item.category}
+                              </span>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-3 text-right">
-                          <div>
-                            <div className="text-xs font-bold text-slate-800">{item.volume} sold</div>
-                            <div className="text-[11px] font-semibold text-emerald-600">₹{item.revenue.toLocaleString()}</div>
-                          </div>
-                          <div className="w-10 text-right font-bold text-xs text-blue-600">
-                            {percent}%
+                          <div className="flex items-center gap-3 text-right">
+                            <div>
+                              <div className="text-xs font-bold text-slate-800">{item.volume} sold</div>
+                              <div className="text-[11px] font-semibold text-emerald-600">₹{item.revenue.toLocaleString()}</div>
+                            </div>
+                            <div className="w-10 text-right font-bold text-xs text-blue-600">
+                              {percent}%
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
                 </div>
-
-              </div>
+              )}
             </section>
 
-
-
-                 {/* ========================================================================= */}
-            {/* FULL WIDTH SECTION 4: ALAYN AI OPERATIONAL INSIGHTS (PROFESSIONAL LIGHT THEME) */}
-            {/* ========================================================================= */}
-            <section className="w-full bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-6">
-              
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-100">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold tracking-tight text-slate-800">AlaynAI Executive Intelligence</h2>
-                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> ALAYN AI ACTIVE
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-normal">
-                      Real-time generative insights for revenue optimization, waste prevention &amp; staffing efficiency
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setIsAiGenerating(true);
-                    setTimeout(() => setIsAiGenerating(false), 1200);
+            {/* ── ALAYN AI TEASER CARD — Premium Light Modern SaaS Redesign ── */}
+            <div className="w-full">
+              <ElectricBorder color="#E5484D" speed={1} chaos={0.08} borderRadius={24}>
+                <section
+                  className="w-full rounded-[24px] overflow-hidden font-sans relative group transition-all duration-300"
+                  style={{
+                    background: "linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 50%, #FCFBFD 100%)",
+                    border: "1px solid rgba(229, 72, 77, 0.14)",
+                    boxShadow: "0 4px 20px -2px rgba(23, 32, 51, 0.04), 0 12px 32px -4px rgba(229, 72, 77, 0.06)",
                   }}
-                  disabled={isAiGenerating}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  <Zap className={`h-3.5 w-3.5 text-indigo-600 ${isAiGenerating ? "animate-spin" : ""}`} />
-                  {isAiGenerating ? "Running AlaynAI..." : "Refresh Intelligence"}
-                </button>
-              </div>
+                  {/* Subtle, soft ambient gradient accents */}
+                  <div
+                    style={{
+                      position: "absolute", top: "-60px", right: "-40px",
+                      width: "320px", height: "320px",
+                      borderRadius: "9999px",
+                      background: "radial-gradient(circle, rgba(244, 114, 138, 0.07) 0%, rgba(229, 72, 77, 0.02) 50%, transparent 70%)",
+                      filter: "blur(40px)", pointerEvents: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute", bottom: "-60px", left: "10%",
+                      width: "280px", height: "280px",
+                      borderRadius: "9999px",
+                      background: "radial-gradient(circle, rgba(245, 158, 108, 0.06) 0%, transparent 70%)",
+                      filter: "blur(45px)", pointerEvents: "none",
+                    }}
+                  />
 
-              {/* 2-Column Split: Strategic Directives (Left) + Quick AI Prompts & Assistant (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* Left Column: 4 Strategic Directives with Direct Module Actions */}
-                <div className="lg:col-span-7 space-y-3">
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Live AI Directives</div>
-                  
-                  {[
-                    {
-                      title: "Peak Evening Surge Forecast",
-                      badge: "ESTIMATED UPLIFT: +₹14,500",
-                      badgeColor: "bg-emerald-50 text-emerald-800 border-emerald-200",
-                      desc: "Predicting a 38% demand surge between 7:30 PM - 9:30 PM based on sales velocity.",
-                      actionLabel: "Open Kitchen Display",
-                      route: "/kitchen",
-                      icon: TrendingUp,
-                      iconColor: "text-emerald-600",
-                    },
-                    {
-                      title: "Stock & Inventory Threshold Alert",
-                      badge: "REORDER REQUIRED",
-                      badgeColor: "bg-amber-50 text-amber-800 border-amber-200",
-                      desc: "Dairy items (Milk & Oat Milk) moving 1.4x faster than benchmark. Threshold reached in 2 days.",
-                      actionLabel: "Draft Purchase Order",
-                      route: "/inventory",
-                      icon: AlertTriangle,
-                      iconColor: "text-amber-600",
-                    },
-                    {
-                      title: "Menu Item Pair Optimization",
-                      badge: "MARGIN UPLIFT: +14%",
-                      badgeColor: "bg-blue-50 text-blue-800 border-blue-200",
-                      desc: "Pairing Garlic Naan with Paneer Tikka increased ticket size by +₹48 over 24 hrs.",
-                      actionLabel: "Optimize Menu Combo",
-                      route: "/menu",
-                      icon: Sparkles,
-                      iconColor: "text-blue-600",
-                    },
-                    {
-                      title: "Shift Staffing Ratio",
-                      badge: "OPTIMAL COVERAGE",
-                      badgeColor: "bg-purple-50 text-purple-800 border-purple-200",
-                      desc: "Manager and Chef ratio is operating at 94% efficiency for active table capacity.",
-                      actionLabel: "View Staff Roster",
-                      route: "/workforce",
-                      icon: Users,
-                      iconColor: "text-purple-600",
-                    },
-                  ].map((card, i) => {
-                    const Icon = card.icon;
-                    return (
-                      <div
-                        key={i}
-                        className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-slate-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Icon className={`h-4 w-4 ${card.iconColor}`} />
-                            <span className="text-xs font-bold text-slate-800">{card.title}</span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${card.badgeColor}`}>
-                              {card.badge}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-600 font-normal leading-relaxed">{card.desc}</p>
+                  <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 px-6 py-6 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
+                    
+                    {/* Left/Center Content Stack */}
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left min-w-0 flex-1">
+                      
+                      {/* Crisp White Circular Logo Container with Soft Shadow */}
+                      <div className="shrink-0 relative">
+                        <div
+                          style={{
+                            width: "60px", height: "60px", borderRadius: "9999px",
+                            background: "#FFFFFF",
+                            boxShadow: "0 0 0 1px rgba(229, 72, 77, 0.12), 0 6px 16px -2px rgba(23, 32, 51, 0.08)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            position: "relative", overflow: "hidden",
+                          }}
+                        >
+                          <Image src="/justlogo.png" alt="Alayn AI" width={32} height={32}
+                            style={{ width: "54%", height: "54%", objectFit: "contain", position: "relative", zIndex: 1 }}
+                          />
                         </div>
-
-                        <button
-                          onClick={() => router.push(card.route)}
-                          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition-all flex items-center gap-1 shrink-0 self-start sm:self-center"
-                        >
-                          {card.actionLabel} <ArrowRight className="h-3 w-3 text-slate-500" />
-                        </button>
                       </div>
-                    );
-                  })}
-                </div>
 
-                {/* Right Column: AI Assistant & Prompt Trigger Shortcuts */}
-                <div className="lg:col-span-5 space-y-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-indigo-600" />
-                      <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">AlaynAI Executive Assistant</span>
-                    </div>
-
-                    <p className="text-xs text-slate-500 font-normal leading-relaxed">
-                      Ask AlaynAI to analyze margins, generate sales forecasts, or detect operational anomalies.
-                    </p>
-
-                    <div className="space-y-2 pt-1">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase">Suggested Prompts:</div>
-                      {[
-                        "Forecast weekend revenue surge",
-                        "Detect inventory waste anomalies",
-                        "Optimize peak shift roster",
-                      ].map((promptText, pIdx) => (
-                        <button
-                          key={pIdx}
-                          onClick={() => setAiPrompt(promptText)}
-                          className="w-full text-left px-3 py-2 bg-white hover:bg-blue-50/60 text-xs font-semibold text-slate-700 hover:text-blue-700 rounded-xl border border-slate-200/80 transition-all flex items-center justify-between group"
+                      {/* Typography Hierarchy */}
+                      <div className="flex flex-col justify-center min-w-0 space-y-1">
+                        <div className="flex items-center justify-center sm:justify-start gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#E5484D]" />
+                          <p style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.12em",
+                            textTransform: "uppercase", color: "#E5484D" }}>
+                            RESTAURANT INTELLIGENCE & ANALYTICS
+                          </p>
+                        </div>
+                        <h2 style={{ fontSize: "clamp(22px, 2.2vw, 26px)", fontWeight: 800,
+                          color: "#172033", letterSpacing: "-0.025em", lineHeight: 1.25 }}>
+                          Ask Alayn AI
+                        </h2>
+                        <p style={{ fontSize: "13.5px", color: "#64748B",
+                          lineHeight: 1.55, fontWeight: 400, maxWidth: "560px" }}
                         >
-                          <span>&quot;{promptText}&quot;</span>
-                          <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                        </button>
-                      ))}
+                          Forecast revenue surge, analyze inventory depletion, and optimize shift staffing — powered by live telemetry.
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="pt-3 border-t border-slate-200/80 space-y-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Ask AlaynAI for operational analysis..."
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        className="w-full pl-3 pr-16 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                      />
+                    {/* Right Side: Sophisticated Compact CTA Button */}
+                    <div className="shrink-0 w-full sm:w-auto flex justify-center sm:justify-end pt-2 md:pt-0">
                       <button
-                        onClick={() => {
-                          if (!aiPrompt) return;
-                          setIsAiGenerating(true);
-                          setTimeout(() => {
-                            setIsAiGenerating(false);
-                            setAiPrompt("");
-                          }, 1000);
+                        onClick={() => router.push("/dashboard/alayn-ai")}
+                        style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "7px",
+                          background: "linear-gradient(135deg, #E5484D 0%, #D3232A 100%)",
+                          border: "1px solid rgba(229, 72, 77, 0.2)",
+                          borderRadius: "12px",
+                          padding: "10.5px 20px",
+                          color: "#ffffff",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          boxShadow: "0 3px 12px rgba(229, 72, 77, 0.25)",
+                          transition: "all 0.2s ease",
+                          whiteSpace: "nowrap",
                         }}
-                        className="absolute right-1 top-1 px-3 py-1 bg-[#D3232A] hover:bg-[#b81d23] text-white font-semibold text-xs rounded-lg transition-all"
+                        onMouseEnter={(e) => {
+                          const el = e.currentTarget as HTMLElement;
+                          el.style.background = "linear-gradient(135deg, #EF5350 0%, #E5484D 100%)";
+                          el.style.boxShadow = "0 5px 18px rgba(229, 72, 77, 0.38)";
+                          el.style.transform = "translateY(-1px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          const el = e.currentTarget as HTMLElement;
+                          el.style.background = "linear-gradient(135deg, #E5484D 0%, #D3232A 100%)";
+                          el.style.boxShadow = "0 3px 12px rgba(229, 72, 77, 0.25)";
+                          el.style.transform = "translateY(0)";
+                        }}
                       >
-                        Ask
+                        Open Alayn AI
+                        <ArrowUpRight style={{ width: "15px", height: "15px" }} />
                       </button>
                     </div>
+
                   </div>
-                </div>
+                </section>
+              </ElectricBorder>
+            </div>
 
-              </div>
 
-            </section>
 
           </div>
         )}
