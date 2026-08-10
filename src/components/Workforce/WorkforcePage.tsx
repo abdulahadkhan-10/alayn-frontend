@@ -211,6 +211,21 @@ export default function WorkforcePage() {
     }
   };
 
+  const handleBulkUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkFile) return;
+    try {
+      const fd = new FormData();
+      fd.append("file", bulkFile);
+      await bulkUpload(fd).unwrap();
+      setFeedbackMsg("Staff imported successfully!");
+      setShowBulkUploadModal(false);
+      setBulkFile(null);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to import staff");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -588,6 +603,65 @@ export default function WorkforcePage() {
             </div>
           </>
         ) : null}
+
+        {/* Modal: Bulk CSV Import */}
+        {showBulkUploadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
+                <h3 className="text-lg font-bold text-gray-900">Bulk CSV Import</h3>
+                <button onClick={() => setShowBulkUploadModal(false)} className="cursor-pointer">
+                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                </button>
+              </div>
+              <form onSubmit={handleBulkUploadSubmit} className="flex flex-col">
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Upload a CSV file containing employee records. The CSV must include columns for Name, Email, Phone, Role, and Status.
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CSV File <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      required
+                      onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    />
+                  </div>
+                </div>
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkUploadModal(false)}
+                    className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isBulkUploading || !bulkFile}
+                    className="px-4 py-2 text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-2xs transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    {isBulkUploading ? (
+                      <>
+                        <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Upload & Import
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Modal: Create Employee */}
         {showCreateModal && (
