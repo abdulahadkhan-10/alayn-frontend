@@ -77,8 +77,9 @@ export const rtkQueryToastMiddleware: Middleware = () => (next) => (action: any)
   const isMutation = action?.meta?.arg?.type === "mutation";
   const endpointName = action?.meta?.arg?.endpointName;
 
-  // Ignore refreshToken internal background mutation to avoid spamming the user
-  if (endpointName === "refreshToken") {
+  // Ignore internal/silent background mutations to avoid spamming the user
+  const silentEndpoints = ["refreshToken", "markAsRead", "markAllAsRead", "deleteNotification"];
+  if (silentEndpoints.includes(endpointName)) {
     return next(action);
   }
 
