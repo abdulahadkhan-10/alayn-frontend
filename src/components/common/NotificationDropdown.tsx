@@ -42,43 +42,18 @@ export default function NotificationDropdown() {
   const [markAllAsRead, { isLoading: isMarkingAll }] = useMarkAllAsReadMutation();
   const [deleteNotification] = useDeleteNotificationMutation();
 
-  const unreadCount = unreadCountData?.data?.unreadCount || 0;
-  const notifications = notificationsData?.data || [];
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  // Socket real-time notification handler
-  const { isConnected } = useSocket(activeBranch?.id, {
-    onNotification: (data: NotificationItem) => {
-      refetch();
-      refetchUnreadCount();
+  const rawNotifications = notificationsData?.data || [];
+  const notifications = rawNotifications.filter((n) => !hiddenIds.has(n.id));
 
-      // Toast alert for incoming live notifications
-      toast.info(
-        <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-xs text-gray-900">{data.title}</span>
-          <span className="text-xs text-gray-600 line-clamp-2">{data.message}</span>
-        </div>,
-        {
-          autoClose: 5000,
-          hideProgressBar: false,
-          icon: <Sparkles className="h-4 w-4 text-[#D3232A]" />,
-        }
-      );
-    },
-  });
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const rawUnreadCount = unreadCountData?.data?.unreadCount || 0;
+  const unreadCount = Math.max(0, rawUnreadCount - readIds.size);
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    setReadIds((prev) => new Set(prev).add(id));
     try {
       await markAsRead(id).unwrap();
       refetchUnreadCount();
@@ -88,9 +63,12 @@ export default function NotificationDropdown() {
   };
 
   const handleMarkAllRead = async () => {
+    const allIds = notifications.map((n) => n.id);
+    setReadIds(new Set(allIds));
     try {
       await markAllAsRead().unwrap();
       refetchUnreadCount();
+      refetch();
     } catch (error) {
       console.error("Failed to mark all notifications read", error);
     }
@@ -98,9 +76,11 @@ export default function NotificationDropdown() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setHiddenIds((prev) => new Set(prev).add(id));
     try {
       await deleteNotification(id).unwrap();
       refetchUnreadCount();
+      refetch();
     } catch (error) {
       console.error("Failed to delete notification", error);
     }
@@ -110,9 +90,11 @@ export default function NotificationDropdown() {
 
   const handleClearAll = async () => {
     if (notifications.length === 0) return;
+    const idsToClear = notifications.map((n) => n.id);
+    setHiddenIds((prev) => new Set([...prev, ...idsToClear]));
     setIsClearingAll(true);
     try {
-      await Promise.all(notifications.map((item) => deleteNotification(item.id).unwrap()));
+      await Promise.all(idsToClear.map((id) => deleteNotification(id).unwrap()));
       refetchUnreadCount();
       refetch();
     } catch (error) {
@@ -258,16 +240,17 @@ export default function NotificationDropdown() {
             ) : (
               notifications.map((item) => {
                 const targetRoute = getTargetRoute(item);
+                const isItemRead = item.isRead || readIds.has(item.id);
                 return (
                   <div
                     key={item.id}
                     onClick={() => {
-                      if (!item.isRead) handleMarkAsRead(item.id);
+                      if (!isItemRead) handleMarkAsRead(item.id);
                       setIsOpen(false);
                       router.push(targetRoute);
                     }}
                     className={`group relative flex items-start gap-3.5 p-2.5 rounded-xl transition-all cursor-pointer hover:bg-gray-50/90 ${
-                      !item.isRead ? "bg-[#F8FAFC]" : ""
+                      !isItemRead ? "bg-[#F8FAFC]" : ""
                     }`}
                   >
                     {/* Icon Box with Blue Unread Dot on Top-Left */}
@@ -277,7 +260,7 @@ export default function NotificationDropdown() {
                       </div>
 
                       {/* Top-Left Blue Dot for Unread Items (as seen in screenshot) */}
-                      {!item.isRead && (
+                      {!isItemRead && (
                         <span className="absolute -top-1 -left-1 h-3 w-3 rounded-full bg-blue-500 ring-2 ring-white" />
                       )}
                     </div>

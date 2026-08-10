@@ -27,12 +27,10 @@ import {
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 
-function formatOrderNo(po: { id: string; createdAt?: string }): string {
-  const dateStr = po.createdAt
-    ? new Date(po.createdAt).toISOString().slice(0, 10).replace(/-/g, "")
-    : new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const shortHash = po.id.slice(0, 6).toUpperCase();
-  return `PO-${dateStr}-${shortHash}`;
+function formatOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
+  if (po.poNumber) return po.poNumber;
+  const shortHash = po.id.slice(0, 5).toUpperCase();
+  return `PO-${shortHash}`;
 }
 
 export default function SupplierPortalPage() {
@@ -72,7 +70,8 @@ export default function SupplierPortalPage() {
         !q ||
         po.id.toLowerCase().includes(q) ||
         formatOrderNo(po).toLowerCase().includes(q) ||
-        (po.outlet?.name && po.outlet.name.toLowerCase().includes(q));
+        (po.outlet?.name && po.outlet.name.toLowerCase().includes(q)) ||
+        (po.supplier?.name && po.supplier.name.toLowerCase().includes(q));
 
       let matchesTab = true;
       if (activeTab === "ACTION") {
@@ -138,21 +137,35 @@ export default function SupplierPortalPage() {
 
     const itemsPayload = Object.entries(dispatchInputs).map(([itemId, qty]) => ({
       itemId,
-      dispatchedQuantity: Number(qty) >= 0 ? Number(qty) : 0,
+      dispatchedQuantity: Math.max(0, Number(qty) || 0),
     }));
 
-    const targetStatus = isPartialOrder ? "PARTIALLY_DISPATCHED" : "DISPATCHED";
-
-    if (isPartialOrder && !expectedNextDeliveryDate) {
-      return alert("Please select an expected delivery date for remaining items.");
+    const totalDispatched = itemsPayload.reduce((sum, item) => sum + item.dispatchedQuantity, 0);
+    if (totalDispatched <= 0) {
+      return alert("Dispatched quantity must be greater than 0 for at least one item.");
     }
+
+    let isPartial = isPartialOrder;
+    selectedPO.items.forEach((poItem) => {
+      const dispatched = dispatchInputs[poItem.itemId] ?? poItem.orderedQuantity;
+      if (dispatched < poItem.orderedQuantity) {
+        isPartial = true;
+      }
+    });
+
+    if (isPartial && !expectedNextDeliveryDate) {
+      setIsPartialOrder(true);
+      return alert("This is a partial order. Please select an expected delivery date for remaining items.");
+    }
+
+    const targetStatus = isPartial ? "PARTIALLY_DISPATCHED" : "DISPATCHED";
 
     try {
       await updateStatus({
         id: selectedPO.id,
         status: targetStatus,
         supplierNotes,
-        expectedNextDeliveryDate: isPartialOrder ? expectedNextDeliveryDate : undefined,
+        expectedNextDeliveryDate: isPartial ? expectedNextDeliveryDate : undefined,
         items: itemsPayload,
       }).unwrap();
       setActionModalType(null);
@@ -290,13 +303,13 @@ export default function SupplierPortalPage() {
               <table className="w-full text-left text-xs border-collapse table-fixed min-w-[920px]">
                 <thead>
                   <tr className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[11px] border-b border-zinc-200">
-                    <th className="px-4 py-3 w-[20%]">Order #</th>
+                    <th className="px-4 py-3 w-[14%]">Order #</th>
                     <th className="px-4 py-3 w-[18%]">Store Branch</th>
                     <th className="px-3 py-3 text-center w-[10%]">Items</th>
-                    <th className="px-4 py-3 text-right w-[14%]">Total Cost</th>
+                    <th className="px-4 py-3 text-right w-[13%]">Total Cost</th>
                     <th className="px-3 py-3 text-center w-[12%]">Status</th>
-                    <th className="px-4 py-3 text-center w-[12%]">Date</th>
-                    <th className="px-4 py-3 text-right w-[14%]">Action</th>
+                    <th className="px-4 py-3 text-center w-[13%]">Date</th>
+                    <th className="px-4 py-3 text-right w-[20%]">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 font-medium">
@@ -325,7 +338,7 @@ export default function SupplierPortalPage() {
                         <td className="px-4 py-3.5 font-bold text-zinc-800 whitespace-nowrap overflow-hidden">
                           <span className="inline-flex items-center gap-1.5 truncate max-w-[170px]">
                             <Building2 className="h-3.5 w-3.5 text-[#D3232A] shrink-0" />
-                            {po.outlet?.name || "Main Outlet"}
+                            {po.supplier?.name || po.outlet?.name || "Main Branch"}
                           </span>
                         </td>
 

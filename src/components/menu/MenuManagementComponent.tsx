@@ -468,14 +468,15 @@ export default function MenuManagementComponent() {
     isGroupActive: boolean
   ) => {
     const nextStatus = !isGroupActive;
-    if (isAllOutletsSelected) {
+    if (isAllOutletsSelected && relatedItems.length > 1) {
       setPendingStatusToggle({
         item: primaryItem,
         targetStatus: nextStatus,
         relatedItems,
       });
     } else {
-      handleExecuteToggle(primaryItem, nextStatus);
+      const itemToToggle = relatedItems.length === 1 ? relatedItems[0] : primaryItem;
+      handleExecuteToggle(itemToToggle, nextStatus);
     }
   };
 
@@ -589,6 +590,28 @@ export default function MenuManagementComponent() {
         ? editItem.allRelatedItemIds
         : [editItem.id];
 
+      // Partition target outlets across related items to prevent duplicates
+      const remainingTargetOutlets = new Set(editItem.outletIds);
+      const itemToOutlets = new Map<string, string[]>();
+
+      for (const itemId of relatedIds) {
+        const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
+        const originalOutlets = targetItem?.outletIds?.length 
+            ? targetItem.outletIds 
+            : (targetItem?.outletId ? [targetItem.outletId] : []);
+        
+        const assignedOutlets = originalOutlets.filter((id: string) => remainingTargetOutlets.has(id));
+        assignedOutlets.forEach((id: string) => remainingTargetOutlets.delete(id));
+        
+        itemToOutlets.set(itemId, assignedOutlets);
+      }
+
+      if (remainingTargetOutlets.size > 0 && relatedIds.length > 0) {
+        const firstItemId = relatedIds[0];
+        const current = itemToOutlets.get(firstItemId) || [];
+        itemToOutlets.set(firstItemId, [...current, ...Array.from(remainingTargetOutlets)]);
+      }
+
       for (const itemId of relatedIds) {
         const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
         const itemOutletId = targetItem?.outletId || currentOutletId || null;
@@ -606,7 +629,7 @@ export default function MenuManagementComponent() {
             imageUrl: editItem.imageUrl,
             isVeg: editItem.dietaryType !== "NON_VEG",
             dietaryType: editItem.dietaryType,
-            outletIds: editItem.outletIds,
+            outletIds: itemToOutlets.get(itemId) || [],
           },
         }).unwrap();
       }
@@ -1635,7 +1658,7 @@ export default function MenuManagementComponent() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-[#1B2A4A]">
-                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across All Outlets?
+                      {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across assigned outlets?
                     </h3>
                     <p className="text-xs text-gray-500 font-medium">
                       'All Outlets' filter is currently selected.
@@ -1671,7 +1694,7 @@ export default function MenuManagementComponent() {
                     {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"}
                   </strong>{" "}
                   dish <strong>"{pendingStatusToggle.item.name}"</strong> across{" "}
-                  <strong>ALL {specificBranches.length} outlet locations</strong>?
+                  <strong>all {pendingStatusToggle.relatedItems.length} assigned outlet location(s)</strong>?
                 </p>
               </div>
 

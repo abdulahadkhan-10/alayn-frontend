@@ -63,10 +63,10 @@ function generateTimestampBatchNo(category?: string): string {
   return `${prefix}-${yyyy}${mm}${dd}-${hh}${min}-${rand}`;
 }
 
-// Helper for short, clean order numbers fetched from backend or generated compactly: e.g. PO-5F4591
+// Helper for short, clean order numbers fetched from backend or generated compactly: e.g. PO-5F459
 function formatUnderstandableOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
   if (po.poNumber) return po.poNumber;
-  const shortHash = po.id.slice(-6).toUpperCase();
+  const shortHash = po.id.slice(0, 5).toUpperCase();
   return `PO-${shortHash}`;
 }
 
@@ -84,6 +84,8 @@ export default function ProcurementPage() {
   useEffect(() => {
     if (tabParam === "suppliers") {
       setActiveTab("SUPPLIERS");
+    } else {
+      setActiveTab("POS");
     }
   }, [tabParam]);
 
@@ -234,7 +236,6 @@ export default function ProcurementPage() {
   const [receiveItemInputs, setReceiveItemInputs] = useState<{
     [itemId: string]: {
       receivedQuantity: number;
-      damagedQuantity: number;
       batchNumber: string;
       expiryDate: string;
     };
@@ -281,7 +282,6 @@ export default function ProcurementPage() {
     const initialInputs: {
       [itemId: string]: {
         receivedQuantity: number;
-        damagedQuantity: number;
         batchNumber: string;
         expiryDate: string;
       };
@@ -296,7 +296,6 @@ export default function ProcurementPage() {
 
       initialInputs[item.itemId] = {
         receivedQuantity: prefillQty,
-        damagedQuantity: 0,
         batchNumber: generateTimestampBatchNo(item.item?.category),
         expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       };
@@ -320,11 +319,10 @@ export default function ProcurementPage() {
     }
 
     const itemsPayload = Object.entries(receiveItemInputs)
-      .filter(([_, input]) => Number(input.receivedQuantity) > 0 || Number(input.damagedQuantity) > 0)
+      .filter(([_, input]) => Number(input.receivedQuantity) > 0)
       .map(([itemId, input]) => ({
         itemId,
         receivedQuantity: Number(input.receivedQuantity || 0),
-        damagedQuantity: Number(input.damagedQuantity || 0),
         batchNumber: input.batchNumber.trim(),
         expiryDate: input.expiryDate,
       }));
@@ -525,29 +523,34 @@ export default function ProcurementPage() {
                 return (
                   <div className="flex flex-col">
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[850px] text-sm border-collapse table-fixed">
+                      <table className="w-full min-w-[960px] text-sm border-collapse table-fixed">
                       <thead>
                         <tr className="bg-zinc-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[12%]" : "w-[15%]"}`}>Order #</th>
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[20%]" : "w-[28%]"}`}>Supplier</th>
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[11%]" : "w-[14%]"}`}>Order #</th>
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[18%]" : "w-[24%]"}`}>Supplier</th>
                           {showPoOutlet && (
-                            <th className="px-4 py-3.5 w-[16%]">Outlet</th>
+                            <th className="px-4 py-3.5 w-[14%]">Outlet</th>
                           )}
-                          <th className="px-4 py-3.5 text-center w-[8%]">Items</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[14%]"}`}>Total Cost</th>
-                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Status</th>
-                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Date Placed</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[7%]"}`}>Actions</th>
+                          <th className="px-3 py-3.5 text-center w-[6%]">Items</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[10%]" : "w-[12%]"}`}>Total Cost</th>
+                          <th className={`px-3 py-3.5 text-center ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Status</th>
+                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[13%]" : "w-[14%]"}`}>Date Placed</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
                         {paginatedPOs.map((po) => {
                           const statusConfig: Record<string, { label: string; cls: string }> = {
                             DRAFT: { label: "Draft", cls: "bg-zinc-100 text-zinc-700 border-zinc-300" },
-                            SENT: { label: "Placed", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-                            PARTIALLY_RECEIVED: { label: "Partial", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                            SENT: { label: "Placed", cls: "bg-sky-50 text-sky-700 border-sky-200" },
+                            PACKING: { label: "Packing", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                            PARTIALLY_DISPATCHED: { label: "Partial Dispatch", cls: "bg-purple-50 text-purple-700 border-purple-200" },
+                            DISPATCHED: { label: "Dispatched", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                            OUT_OF_STOCK: { label: "Out of Stock", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+                            PARTIALLY_RECEIVED: { label: "Partial Recv", cls: "bg-amber-50 text-amber-700 border-amber-200" },
                             RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
                             CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+                            CANCELLED: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border-rose-200" },
                           };
                           const statusInfo = statusConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
                           const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
@@ -571,14 +574,14 @@ export default function ProcurementPage() {
                               <td className="px-4 py-3.5 text-right font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
                                 ₹{(po.totalAmountPaise / 100).toFixed(2)}
                               </td>
-                              <td className="px-5 py-3 text-center whitespace-nowrap">
+                              <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span
                                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusInfo.cls}`}
                                 >
                                   {statusInfo.label}
                                 </span>
                               </td>
-                              <td className="px-5 py-3 text-center text-xs text-zinc-500 whitespace-nowrap">
+                              <td className="px-4 py-3 text-center text-xs text-zinc-500 whitespace-nowrap">
                                 {po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", {
                                   day: "2-digit",
                                   month: "short",
@@ -586,22 +589,10 @@ export default function ProcurementPage() {
                                   minute: "2-digit",
                                 }) : "N/A"}
                               </td>
-                              <td className="px-5 py-3 text-right whitespace-nowrap">
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
                                 {isReceivable ? (
                                   <button
-                                    onClick={() => {
-                                      setReceivingPO(po);
-                                      const init: Record<string, any> = {};
-                                      po.items?.forEach((pi) => {
-                                        init[pi.itemId] = {
-                                          receivedQuantity: pi.dispatchedQuantity || pi.orderedQuantity,
-                                          damagedQuantity: 0,
-                                          batchNumber: generateTimestampBatchNo(pi.item?.category),
-                                          expiryDate: "",
-                                        };
-                                      });
-                                      setReceiveItemInputs(init);
-                                    }}
+                                    onClick={() => handleOpenReceive(po)}
                                     className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
                                   >
                                     Receive Stock
@@ -707,30 +698,8 @@ export default function ProcurementPage() {
                 </div>
               </div>
 
-              {/* Category & Outlet Filter Dropdowns */}
+              {/* Category Filter Dropdown */}
               <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-                {availableOutlets.length > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Outlet:</span>
-                    <select
-                      id="vendor-outlet-select"
-                      value={procurementOutletFilter}
-                      onChange={(e) => {
-                        setProcurementOutletFilter(e.target.value);
-                        setSupPage(1);
-                      }}
-                      className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-800 bg-white focus:border-[#D3232A] focus:outline-none cursor-pointer shadow-2xs"
-                    >
-                      <option value="ALL">All Outlets</option>
-                      {availableOutlets.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-zinc-500 whitespace-nowrap">Category:</span>
                   <select
@@ -1369,7 +1338,6 @@ export default function ProcurementPage() {
                   {receivingPO.items.map((poItem) => {
                     const input = receiveItemInputs[poItem.itemId] || {
                       receivedQuantity: 0,
-                      damagedQuantity: 0,
                       batchNumber: "",
                       expiryDate: "",
                     };
@@ -1389,39 +1357,21 @@ export default function ProcurementPage() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Accepted Qty</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              value={input.receivedQuantity}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
-                                })
-                              }
-                              className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Damaged Qty</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              value={input.damagedQuantity || 0}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, damagedQuantity: Number(e.target.value) },
-                                })
-                              }
-                              className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-rose-500 focus:outline-none font-semibold text-rose-800 shadow-xs"
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Received Qty</label>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={input.receivedQuantity}
+                            onChange={(e) =>
+                              setReceiveItemInputs({
+                                ...receiveItemInputs,
+                                [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
+                              })
+                            }
+                            className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
+                          />
                         </div>
                       </div>
                     );
