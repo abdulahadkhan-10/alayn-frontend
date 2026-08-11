@@ -324,7 +324,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
         </p>
 
         <nav
-          className="flex-1 flex flex-col justify-around overflow-hidden gap-1"
+          className="flex-1 flex flex-col overflow-y-auto gap-1"
           role="navigation"
         >
           {navItems.map((item) => {

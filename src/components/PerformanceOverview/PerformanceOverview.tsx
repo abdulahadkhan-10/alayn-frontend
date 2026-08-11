@@ -8,9 +8,6 @@ interface LocationData {
   sales: string;
   variance: string;
   varianceType: "positive" | "negative" | "neutral";
-  labour: string;
-  labourWarning?: boolean;
-  gp: string;
   orders: string;
   status: "ON TRACK" | "ACTION NEEDED" | "WATCH";
 }
@@ -21,8 +18,6 @@ const locationsData: LocationData[] = [
     sales: "₹42,840",
     variance: "+2.4%",
     varianceType: "positive",
-    labour: "25.4%",
-    gp: "68.2%",
     orders: "1,204",
     status: "ON TRACK",
   },
@@ -31,9 +26,6 @@ const locationsData: LocationData[] = [
     sales: "₹31,200",
     variance: "-4.1%",
     varianceType: "negative",
-    labour: "30.2%",
-    labourWarning: true,
-    gp: "64.1%",
     orders: "948",
     status: "ACTION NEEDED",
   },
@@ -42,8 +34,6 @@ const locationsData: LocationData[] = [
     sales: "₹38,650",
     variance: "+12.4%",
     varianceType: "positive",
-    labour: "24.1%",
-    gp: "69.5%",
     orders: "1,120",
     status: "ON TRACK",
   },
@@ -52,8 +42,6 @@ const locationsData: LocationData[] = [
     sales: "₹28,400",
     variance: "--",
     varianceType: "neutral",
-    labour: "28.2%",
-    gp: "65.8%",
     orders: "812",
     status: "WATCH",
   },
@@ -84,8 +72,6 @@ export default function PerformanceOverview({ locations = locationsData }: { loc
             <tr className="bg-gray-50/75 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Sales vs Forecast</th>
-              <th className="px-6 py-4">Labour %</th>
-              <th className="px-6 py-4">GP %</th>
               <th className="px-6 py-4">Orders</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 w-10"></th>
@@ -109,12 +95,6 @@ export default function PerformanceOverview({ locations = locationsData }: { loc
                   >
                     {loc.variance}
                   </span>
-                </td>
-                <td className={`px-6 py-4 text-sm font-semibold ${loc.labourWarning ? "text-red-500" : "text-gray-600"}`}>
-                  {loc.labour}
-                </td>
-                <td className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  {loc.gp}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-gray-600">
                   {loc.orders}
