@@ -150,7 +150,9 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           <div className="flex items-center gap-2.5">
             <img src="/justlogo.png" alt="Alayn Logo" className="h-7 w-7 object-contain drop-shadow-sm" />
             <div>
-              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">{businessName}</h1>
+              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">
+                {businessName} <span className="font-semibold text-gray-500">Dining</span>
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-gray-100/80 px-2.5 py-1 rounded-full border border-gray-200">
@@ -160,11 +162,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         </div>
       </header>
 
-      {/* ── Banner ── */}
-      <div className="bg-[#1B2A4A]/5 border-b border-[#1B2A4A]/10 px-4 py-2 text-center shrink-0">
-        <p className="text-[11px] font-bold text-[#1B2A4A]">
-          ⚡ Powered by Alayn AI — Browse the digital menu & ask your waiter to order
-        </p>
+      {/* ── Premium Brand Banner ── */}
+      <div className="bg-[#1B2A4A]/[0.02] border-b border-[#1B2A4A]/5 px-4 py-2 flex justify-center shrink-0">
+        <div className="flex items-center gap-1.5 opacity-75">
+          <span className="text-[9px] font-bold text-gray-500 tracking-widest uppercase">Powered By</span>
+          <img src="/justlogo.png" alt="Alayn" className="h-3 w-3 object-contain drop-shadow-sm" />
+          <span className="text-[10px] font-black text-[#1B2A4A] tracking-widest uppercase">ALAYN</span>
+        </div>
       </div>
 
       {/* ── Search & Filters Bar ── */}
