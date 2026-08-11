@@ -527,17 +527,7 @@ export default function WorkforcePage() {
                                 <Eye className="h-4 w-4" />
                               </button>
 
-                              {/* Upload Document Icon */}
-                              <button
-                                onClick={() => {
-                                  setDocUploadItem(emp);
-                                  setSelectedFile(null);
-                                }}
-                                title="Upload Compliance Document"
-                                className="p-1.5 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer border border-gray-200 shadow-2xs"
-                              >
-                                <Upload className="h-4 w-4" />
-                              </button>
+                           
 
                               {/* Edit Profile Icon */}
                               <button
