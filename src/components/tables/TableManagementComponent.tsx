@@ -822,14 +822,19 @@ export default function TableManagementComponent() {
 
             <div className="p-6 space-y-4" id="table-print-single">
               <div className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
-                <div className="p-2.5 bg-[#1B2A4A] text-white rounded-xl inline-block">
-                  <UtensilsCrossed className="w-6 h-6 text-rose-400" />
+                <div className="flex justify-center mb-1">
+                  <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-12 object-contain mix-blend-multiply" />
                 </div>
                 <h2 className="text-xl font-extrabold text-[#1B2A4A]">Table #{printTable.tableNumber}</h2>
                 <div className="py-3 flex justify-center">
                   <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={160} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                 </div>
-                <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+                  <p className="text-[9px] font-medium text-gray-500">
+                    visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                  </p>
+                </div>
               </div>
             </div>
 
