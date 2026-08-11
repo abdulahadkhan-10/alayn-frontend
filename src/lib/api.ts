@@ -523,10 +523,22 @@ export interface CustomerMenuCategory {
 
 export async function fetchTableMenu(
   token: string
-): Promise<{ ok: boolean; categories?: CustomerMenuCategory[]; error?: string }> {
-  const result = await apiRequest<CustomerMenuCategory[]>(`/orders/tables/${token}/menu`);
-  if (result.ok) return { ok: true, categories: result.data };
-  return { ok: false, error: result.error };
+): Promise<{ ok: boolean; businessName?: string; categories?: CustomerMenuCategory[]; error?: string }> {
+  const result = await apiRequest<any>(`/orders/tables/${token}/menu`);
+  
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+  
+  if (result.data && Array.isArray(result.data)) {
+    return { ok: true, categories: result.data };
+  }
+  
+  return { 
+    ok: true, 
+    businessName: result.data?.businessName, 
+    categories: result.data?.categories || []
+  };
 }
 
 export async function createQROrder(

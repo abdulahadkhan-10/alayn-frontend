@@ -60,6 +60,25 @@ export const menuApi = baseApi.injectEndpoints({
       invalidatesTags: ["MenuCategories"],
     }),
 
+    updateCategory: builder.mutation<MenuCategory, { id: string; name: string }>({
+      query: ({ id, ...body }) => ({
+        url: `/menu/categories/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuCategories", "MenuItems"],
+    }),
+
+    deleteCategory: builder.mutation<{ success: boolean; message?: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/menu/categories/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuCategories", "MenuItems"],
+    }),
+
     createMenuItem: builder.mutation<MenuItem, Partial<MenuItem> & { outletId?: string }>({
       query: ({ outletId, ...body }) => ({
         url: "/menu/items",
@@ -91,6 +110,16 @@ export const menuApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuItems"],
     }),
+
+    deleteMenuItem: builder.mutation<{ success: boolean; message?: string }, { id: string; outletId?: string }>({
+      query: ({ id, outletId }) => ({
+        url: `/menu/items/${id}`,
+        method: "DELETE",
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
   }),
 });
 
@@ -99,7 +128,10 @@ export const {
   useGetMenuItemsQuery,
   useGetCategoriesQuery,
   useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
   useCreateMenuItemMutation,
   useUpdateMenuItemMutation,
   useToggleMenuItemStatusMutation,
+  useDeleteMenuItemMutation,
 } = menuApi;

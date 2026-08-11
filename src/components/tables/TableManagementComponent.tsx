@@ -806,6 +806,57 @@ export default function TableManagementComponent() {
         </div>
       )}
 
+      {/* Custom print stylesheet */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          /* Hide everything on the page */
+          body * {
+            visibility: hidden !important;
+          }
+          /* Show only the single print element if it exists */
+          #table-print-single-card, #table-print-single-card * {
+            visibility: visible !important;
+          }
+          #table-print-single-card {
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 380px !important;
+            border: 2px dashed #1B2A4A !important;
+            background-color: #F8FAFC !important;
+            padding: 24px !important;
+            border-radius: 16px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Show only the bulk print elements if they exist */
+          #table-print-bulk-cards, #table-print-bulk-cards * {
+            visibility: visible !important;
+          }
+          #table-print-bulk-cards {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 16px !important;
+            background: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          #table-print-bulk-cards > div {
+            border: 2px dashed #1B2A4A !important;
+            background-color: #F8FAFC !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      ` }} />
+
       {/* Print Single Table Sticker Modal */}
       {printTable && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -820,16 +871,21 @@ export default function TableManagementComponent() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4" id="table-print-single">
-              <div className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
-                <div className="p-2.5 bg-[#1B2A4A] text-white rounded-xl inline-block">
-                  <UtensilsCrossed className="w-6 h-6 text-rose-400" />
+            <div className="p-6 space-y-4">
+              <div id="table-print-single-card" className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
+                <div className="flex justify-center mb-1">
+                  <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-12 object-contain mix-blend-multiply" />
                 </div>
                 <h2 className="text-xl font-extrabold text-[#1B2A4A]">Table #{printTable.tableNumber}</h2>
                 <div className="py-3 flex justify-center">
                   <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={160} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                 </div>
-                <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+                  <p className="text-[9px] font-medium text-gray-500">
+                    visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -868,14 +924,22 @@ export default function TableManagementComponent() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div id="table-print-bulk-cards" className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {tables.map((t) => (
-                <div key={t.id} className="border-2 border-dashed border-[#1B2A4A]/20 p-4 rounded-xl bg-slate-50 text-center space-y-2">
-                  <h4 className="text-sm font-extrabold text-[#1B2A4A]">Table #{t.tableNumber}</h4>
-                  <div className="flex justify-center py-2">
-                    <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={110} fgColor="#1B2A4A" bgColor="#F8FAFC" />
+                <div key={t.id} className="border-2 border-dashed border-[#1B2A4A]/20 p-5 rounded-2xl bg-slate-50 text-center space-y-3">
+                  <div className="flex justify-center mb-1">
+                    <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-8 object-contain mix-blend-multiply" />
                   </div>
-                  <p className="text-[10px] font-bold text-gray-700">Scan to Order</p>
+                  <h4 className="text-lg font-extrabold text-[#1B2A4A]">Table #{t.tableNumber}</h4>
+                  <div className="flex justify-center py-2">
+                    <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={120} fgColor="#1B2A4A" bgColor="#F8FAFC" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-[#1B2A4A] leading-tight">Scan with Phone Camera<br/>to View Menu & Order</p>
+                    <p className="text-[8px] font-medium text-gray-500">
+                      visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
