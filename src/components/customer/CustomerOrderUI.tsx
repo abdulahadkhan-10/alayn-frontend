@@ -19,6 +19,7 @@ import {
 
 export default function CustomerOrderUI({ token }: { token: string }) {
   const [categories, setCategories] = useState<CustomerMenuCategory[]>([]);
+  const [businessName, setBusinessName] = useState("Alayn Dining");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +43,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       const res = await fetchTableMenu(token);
       if (res.ok && res.categories) {
         setCategories(res.categories);
+        if (res.businessName) setBusinessName(res.businessName);
         if (res.categories.length > 0) {
           setSelectedCategory(res.categories[0].id); // Select first category by default instead of ALL
         }
@@ -148,7 +150,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           <div className="flex items-center gap-2.5">
             <img src="/justlogo.png" alt="Alayn Logo" className="h-7 w-7 object-contain drop-shadow-sm" />
             <div>
-              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">Alayn Dining</h1>
+              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">{businessName}</h1>
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-gray-100/80 px-2.5 py-1 rounded-full border border-gray-200">
@@ -161,7 +163,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       {/* ── Banner ── */}
       <div className="bg-[#1B2A4A]/5 border-b border-[#1B2A4A]/10 px-4 py-2 text-center shrink-0">
         <p className="text-[11px] font-bold text-[#1B2A4A]">
-          📖 Browse the digital menu & ask your waiter to order!
+          ⚡ Powered by Alayn AI — Browse the digital menu & ask your waiter to order
         </p>
       </div>
 
