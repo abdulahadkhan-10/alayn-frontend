@@ -691,7 +691,7 @@ export default function LiveOrdersPage() {
                       {order.outletId && (
                         <div className="flex items-center gap-1.5 text-[10.5px] bg-indigo-50/70 border border-indigo-100 px-2.5 py-1 rounded-lg text-indigo-900 font-semibold">
                           <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                          <span className="truncate">Branch: <strong className="font-black text-indigo-950">{branches.find((b) => b.id === order.outletId)?.name || order.outletId}</strong></span>
+                          <span className="truncate">Branch: <strong className="font-black text-indigo-950">{order.branchName || branches.find((b) => b.id === order.outletId)?.name || order.outletId}</strong></span>
                         </div>
                       )}
                     </div>

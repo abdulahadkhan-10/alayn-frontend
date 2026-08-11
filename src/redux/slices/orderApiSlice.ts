@@ -35,6 +35,7 @@ export interface Order {
   orderNo: string;
   orderNumber?: string;
   outletId: string;
+  branchName?: string;
   orderSource: "TABLE" | "COUNTER" | "QR" | "DELIVERY";
   tableNo?: string;
   status: "SENT_TO_KITCHEN" | "PREPARING" | "READY" | "SERVED" | "DISPATCHED" | "COMPLETED" | "CANCELLED";
