@@ -20,7 +20,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const { activeBranch, setActiveBranch, branches, loading: branchesLoading } = useBranch();
+  const { activeBranch, setActiveBranch, branches, loading: branchesLoading, isDemo } = useBranch();
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
