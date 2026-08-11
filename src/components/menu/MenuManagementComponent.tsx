@@ -8,6 +8,8 @@ import {
   useCreateMenuItemMutation,
   useUpdateMenuItemMutation,
   useToggleMenuItemStatusMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
   useDeleteMenuItemMutation,
   MenuItem,
 } from "@/redux/slices/menuApiSlice";
@@ -61,6 +63,7 @@ export default function MenuManagementComponent() {
   // Modals
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
   const [isEditItemOpen, setIsEditItemOpen] = useState(false);
 
   // Form states
@@ -92,6 +95,13 @@ export default function MenuManagementComponent() {
     name: "",
     description: "",
   });
+
+  const [editCategory, setEditCategory] = useState({
+    id: "",
+    name: "",
+  });
+
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // RTK Query Hooks
   const { data: rawCategories = [], isLoading: isCatLoading } = useGetCategoriesQuery();
@@ -187,6 +197,8 @@ export default function MenuManagementComponent() {
   }, [selectedCategory, rawCategories, categoryNameToIdsMap]);
 
   const [createCategory, { isLoading: isCreatingCat }] = useCreateCategoryMutation();
+  const [updateCategory, { isLoading: isUpdatingCat }] = useUpdateCategoryMutation();
+  const [deleteCategory, { isLoading: isDeletingCat }] = useDeleteCategoryMutation();
   const [createMenuItem, { isLoading: isCreatingItem }] = useCreateMenuItemMutation();
   const [updateMenuItem, { isLoading: isUpdatingItem }] = useUpdateMenuItemMutation();
   const [toggleStatus] = useToggleMenuItemStatusMutation();
@@ -401,6 +413,33 @@ export default function MenuManagementComponent() {
       setPendingConfirmAction(null);
     } catch (err) {
       console.error("Failed to create category:", err);
+    }
+  };
+
+  const handleUpdateCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCategory.name) return;
+    try {
+      await updateCategory({
+        id: editCategory.id,
+        name: editCategory.name,
+      }).unwrap();
+      setIsEditCategoryOpen(false);
+    } catch (err) {
+      console.error("Failed to update category:", err);
+    }
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await deleteCategory({ id: categoryToDelete.id }).unwrap();
+      setCategoryToDelete(null);
+      if (selectedCategory === categoryToDelete.id) {
+        handleCategoryChange("ALL");
+      }
+    } catch (err) {
+      console.error("Failed to delete category:", err);
     }
   };
 
@@ -886,13 +925,38 @@ export default function MenuManagementComponent() {
                 <button
                   key={cat.id}
                   onClick={() => handleCategoryChange(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
+                  className={`group px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
                     isSelected
                       ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
                   {cat.name} ({count})
+                  {isSelected && (
+                    <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-white/20">
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditCategory({ id: cat.id, name: cat.name });
+                          setIsEditCategoryOpen(true);
+                        }}
+                        className="p-1 hover:bg-white/20 rounded-md transition cursor-pointer"
+                        title="Edit Category"
+                      >
+                        <Pencil className="w-3 h-3 text-blue-200 hover:text-white" />
+                      </div>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCategoryToDelete({ id: cat.id, name: cat.name });
+                        }}
+                        className="p-1 hover:bg-rose-500/80 rounded-md transition cursor-pointer"
+                        title="Delete Category"
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-300 hover:text-white" />
+                      </div>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -1786,6 +1850,103 @@ export default function MenuManagementComponent() {
                   ) : (
                     "Yes, Delete"
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Edit Category Modal */}
+        {isEditCategoryOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <Pencil className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[#1B2A4A]">Edit Category</h3>
+                </div>
+                <button
+                  onClick={() => setIsEditCategoryOpen(false)}
+                  className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateCategorySubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Category Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editCategory.name}
+                    onChange={(e) => setEditCategory({ ...editCategory, name: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                    placeholder="e.g., Starters, Beverages"
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditCategoryOpen(false)}
+                    className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingCat || !editCategory.name.trim()}
+                    className="flex-1 py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-sm font-black rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isUpdatingCat ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Category Confirmation Modal */}
+        {categoryToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200 space-y-5">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
+                  <Trash2 className="w-7 h-7 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Delete Category?</h3>
+                  <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg mb-2">
+                    <p className="text-sm text-rose-800 font-medium">
+                      All menu items inside <strong>"{categoryToDelete.name}"</strong> will also be removed!
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed font-semibold">
+                    This action is permanent and affects the selected outlets.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCategoryToDelete(null)}
+                  disabled={isDeletingCat}
+                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteCategory}
+                  disabled={isDeletingCat}
+                  className="flex-1 py-2.5 text-white text-sm font-black rounded-xl shadow-md bg-rose-600 hover:bg-rose-700 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {isDeletingCat ? "Deleting..." : "Yes, Delete"}
                 </button>
               </div>
             </div>
