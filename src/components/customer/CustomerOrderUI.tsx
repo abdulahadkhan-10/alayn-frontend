@@ -162,13 +162,11 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         </div>
       </header>
 
-      {/* ── Premium Brand Banner ── */}
-      <div className="bg-[#1B2A4A]/[0.02] border-b border-[#1B2A4A]/5 px-4 py-2 flex justify-center shrink-0">
-        <div className="flex items-center gap-1.5 opacity-75">
-          <span className="text-[9px] font-bold text-gray-500 tracking-widest uppercase">Powered By</span>
-          <img src="/justlogo.png" alt="Alayn" className="h-3 w-3 object-contain drop-shadow-sm" />
-          <span className="text-[10px] font-black text-[#1B2A4A] tracking-widest uppercase">ALAYN</span>
-        </div>
+      {/* ── Minimal Brand Tagline ── */}
+      <div className="bg-gray-50/50 border-b border-gray-100 px-4 py-1.5 flex justify-center shrink-0">
+        <p className="text-[9px] font-medium text-gray-400 tracking-[0.2em] uppercase">
+          Powered by <span className="font-extrabold text-[#1B2A4A]">Alayn AI</span>
+        </p>
       </div>
 
       {/* ── Search & Filters Bar ── */}
