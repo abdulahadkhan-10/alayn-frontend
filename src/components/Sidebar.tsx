@@ -98,6 +98,40 @@ const supplierNavItems: NavItem[] = [
   { name: "Account Profile", icon: Users, href: "/profile" },
 ];
 
+// Icon micro-animation lookup for Flaticon animated icon effect
+const getIconAnimationClass = (href: string): string => {
+  switch (href) {
+    case "/dashboard":
+      return "group-hover:scale-125 group-hover:rotate-6 transition-transform duration-300";
+    case "/outlets":
+      return "group-hover:-translate-y-1 group-hover:scale-125 transition-transform duration-300";
+    case "/workforce":
+    case "/workforce/directory":
+      return "group-hover:scale-125 group-hover:rotate-[-6deg] transition-transform duration-300";
+    case "/inventory":
+    case "/supplier":
+      return "group-hover:-translate-y-1 group-hover:scale-125 transition-transform duration-300";
+    case "/menu":
+      return "group-hover:rotate-45 transition-transform duration-400";
+    case "/tables":
+      return "group-hover:scale-125 group-hover:rotate-12 transition-transform duration-300";
+    case "/pos":
+      return "group-hover:-translate-y-0.5 group-hover:scale-125 transition-transform duration-300";
+    case "/orders":
+      return "group-hover:translate-x-1 group-hover:scale-120 transition-transform duration-300";
+    case "/kitchen":
+      return "group-hover:-translate-y-1 group-hover:scale-120 transition-transform duration-300";
+    case "/support":
+      return "group-hover:scale-125 group-hover:rotate-[-10deg] transition-transform duration-300";
+    case "/waste":
+      return "group-hover:rotate-[-15deg] group-hover:scale-125 transition-transform duration-300";
+    case "/settings":
+      return "group-hover:rotate-90 transition-transform duration-500";
+    default:
+      return "group-hover:scale-120 transition-transform duration-300";
+  }
+};
+
 // Memoized nav link item
 const NavLinkItem = memo(function NavLinkItem({
   item,
@@ -108,29 +142,36 @@ const NavLinkItem = memo(function NavLinkItem({
   isActive: boolean;
   isCollapsed: boolean;
 }) {
+  const animCls = getIconAnimationClass(item.href);
+
   return (
     <Link
       href={item.href}
       title={isCollapsed ? item.name : undefined}
       className={cn(
-        "group relative flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out overflow-hidden min-w-0",
-        isCollapsed ? "h-11 w-11 justify-center px-0 mx-auto" : "h-10 px-3.5 w-full",
+        "group relative flex items-center rounded-xl text-[13.5px] font-semibold transition-all duration-200 ease-out overflow-hidden min-w-0 active:scale-[0.98]",
+        isCollapsed ? "h-11 w-11 justify-center px-0 mx-auto" : "h-[42px] px-3.5 w-full",
         isActive
-          ? "bg-white/[0.08] text-white"
-          : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+          ? "bg-white/[0.12] text-white font-bold shadow-xs border border-white/[0.08]"
+          : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100 hover:translate-x-1.5"
       )}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-[#D3232A]" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[4px] rounded-r-full bg-[#D3232A] shadow-xs" />
       )}
-      <item.icon
-        className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-colors duration-150",
-          !isCollapsed && "mr-3",
-          isActive ? "text-white" : "text-zinc-500 group-hover:text-zinc-200"
-        )}
-        aria-hidden="true"
-      />
+      
+      {/* Flaticon Animated Icon Container */}
+      <div className={cn("shrink-0 flex items-center justify-center transition-all duration-200", !isCollapsed && "mr-3.5")}>
+        <item.icon
+          className={cn(
+            "h-5 w-5",
+            animCls,
+            isActive ? "text-white drop-shadow-xs" : "text-zinc-400 group-hover:text-white"
+          )}
+          aria-hidden="true"
+        />
+      </div>
+
       <span
         className={cn(
           "truncate leading-normal py-0.5 transition-all duration-200 ease-out whitespace-nowrap overflow-hidden",
@@ -186,11 +227,6 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
     return ownerNavItems;
   }, [role]);
 
-  // Use stable SSR-safe fallbacks until client mounts
-  const displayName = mounted ? (user?.name || "Owner") : "Owner";
-  const displayInitial = displayName.charAt(0).toUpperCase();
-  const displayRole = (user?.role || "BUSINESS_OWNER").replace(/_/g, " ");
-
   return (
     <aside
       className="flex h-full flex-col bg-[#0B1221] border-r border-white/[0.05] relative select-none w-full overflow-hidden"
@@ -216,8 +252,8 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               <Image
                 src="/whitelogo.png"
                 alt="Alayn AI"
-                width={160}
-                height={44}
+                width={150}
+                height={40}
                 onClick={() => {
                   if (role === "SUPPLIER") router.push("/supplier");
                   else if (role === "STAFF") router.push("/pos");
@@ -233,7 +269,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               className={cn(
                 "transition-all duration-200 ease-out flex items-center justify-center",
                 isCollapsed
-                  ? "opacity-100 scale-100 w-11 h-11"
+                  ? "opacity-100 scale-100 w-10 h-10"
                   : "opacity-0 scale-90 pointer-events-none w-0 overflow-hidden"
               )}
             >
@@ -242,7 +278,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                 alt="Alayn AI"
                 width={64}
                 height={64}
-                className="w-10 h-10 object-contain scale-[2.2] shadow-sm"
+                className="w-9 h-9 object-contain scale-[2.2] shadow-sm"
                 priority
               />
             </div>
@@ -266,22 +302,20 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
         </div>
       </div>
 
-      {/* ── Main Nav (scrollable, fills all space) ── */}
-      <div className={cn("flex-1 min-h-0 flex flex-col pt-4 overflow-hidden transition-all duration-200 ease-out", isCollapsed ? "px-2" : "px-3")}>
+      {/* ── Main Nav (Expanded without scroll) ── */}
+      <div className={cn("flex-1 min-h-0 flex flex-col py-3 overflow-hidden transition-all duration-200 ease-out", isCollapsed ? "px-2" : "px-3")}>
         <p
           className={cn(
-            "px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-600 transition-all duration-200 ease-out whitespace-nowrap overflow-hidden",
+            "px-2 text-[10px] font-extrabold uppercase tracking-[0.1em] text-zinc-500 transition-all duration-200 ease-out whitespace-nowrap overflow-hidden shrink-0",
             isCollapsed ? "opacity-0 h-0 mb-0 pointer-events-none" : "opacity-100 h-4 mb-2"
           )}
         >
           Navigation
         </p>
 
-        {/* overflow-y-auto so items never hide behind footer */}
         <nav
-          className="flex-1 overflow-y-auto flex flex-col gap-[3px] pb-2 scrollbar-none"
+          className="flex-1 flex flex-col justify-around overflow-hidden gap-1"
           role="navigation"
-          style={{ scrollbarWidth: "none" }}
         >
           {navItems.map((item) => {
             const isActive =
@@ -306,54 +340,24 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
         </nav>
       </div>
 
-      {/* ── User Badge & Log Out (pinned at bottom) ─────────── */}
+      {/* ── Log Out (bottom pinned) ─────────── */}
       <div
         className={cn(
-          "shrink-0 border-t border-white/[0.05] p-3 flex flex-col gap-2 bg-[#080d18] transition-all duration-200 ease-out overflow-hidden",
+          "shrink-0 border-t border-white/[0.05] p-3 flex flex-col bg-[#080d18] transition-all duration-200 ease-out overflow-hidden",
           isCollapsed ? "items-center px-2" : "px-3"
         )}
       >
-        <div
-          className={cn(
-            "flex items-center rounded-xl bg-white/[0.04] border border-white/[0.05] transition-all duration-200 ease-out min-w-0 overflow-hidden",
-            isCollapsed ? "h-11 w-11 justify-center px-0 gap-0" : "w-full px-3 py-2.5 gap-3"
-          )}
-          title={isCollapsed ? `${displayName} (${displayRole})` : undefined}
-        >
-          <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm leading-none"
-            suppressHydrationWarning
-          >
-            {displayInitial}
-          </div>
-          <div
-            className={cn(
-              "min-w-0 flex-1 transition-all duration-200 ease-out whitespace-nowrap overflow-hidden",
-              isCollapsed
-                ? "opacity-0 max-w-0 pointer-events-none translate-x-[-4px]"
-                : "opacity-100 max-w-[160px] translate-x-0"
-            )}
-          >
-            <p className="truncate text-xs font-semibold text-zinc-200 leading-tight" suppressHydrationWarning>
-              {displayName}
-            </p>
-            <p className="truncate text-[10px] text-zinc-500 font-medium leading-tight mt-0.5" suppressHydrationWarning>
-              {displayRole}
-            </p>
-          </div>
-        </div>
-
         <button
           type="button"
           onClick={handleLogout}
           title={isCollapsed ? "Log Out" : undefined}
           aria-label="Log Out"
           className={cn(
-            "group flex items-center rounded-xl text-[13px] font-medium text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 ease-out cursor-pointer overflow-hidden min-w-0",
-            isCollapsed ? "h-11 w-11 justify-center px-0" : "h-10 w-full px-3.5"
+            "group flex items-center rounded-xl text-[13.5px] font-semibold text-zinc-400 hover:bg-red-500/15 hover:text-red-400 transition-all duration-200 ease-out cursor-pointer overflow-hidden min-w-0 active:scale-95",
+            isCollapsed ? "h-10 w-10 justify-center px-0" : "h-10 w-full px-3.5"
           )}
         >
-          <LogOut className="h-[18px] w-[18px] shrink-0 text-zinc-500 group-hover:text-red-400 transition-colors" />
+          <LogOut className="h-5 w-5 shrink-0 text-zinc-400 group-hover:text-red-400 group-hover:-translate-x-0.5 transition-all duration-200" />
           <span
             className={cn(
               "truncate leading-normal py-0.5 ml-3 transition-all duration-200 ease-out whitespace-nowrap overflow-hidden",

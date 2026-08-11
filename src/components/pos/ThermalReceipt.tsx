@@ -186,48 +186,44 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
         <head>
           <title>Invoice — ${billNo} | ${outletName}</title>
           <meta charset="UTF-8" />
+          <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @page { size: 80mm auto; margin: 0mm; }
-            * { box-sizing: border-box; }
+            @media print {
+              html, body {
+                width: 78mm;
+                margin: 0 auto;
+                padding: 0;
+                background: #fff;
+                color: #000;
+              }
+            }
             body {
               font-family: 'Courier New', Courier, monospace;
               width: 78mm;
               margin: 0 auto;
               padding: 4mm 2mm;
-              font-size: 12px;
               color: #000;
-              line-height: 1.4;
               background: #fff;
             }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: bold; }
-            .font-black { font-weight: 900; }
-            .uppercase { text-transform: uppercase; }
-            .divider-dashed { border: none; border-top: 1px dashed #000; margin: 5px 0; }
-            .divider-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
-            .flex-between { display: flex; justify-content: space-between; align-items: center; }
-            .item-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; gap: 2px; }
-            .item-name { flex: 1; }
-            .item-qty { width: 24px; text-align: center; }
-            .item-price { width: 40px; text-align: right; }
-            .item-total { width: 46px; text-align: right; font-weight: bold; }
-            .tax-row { display: flex; justify-content: space-between; padding-left: 10px; font-size: 10.5px; }
-            .grand-total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; padding: 3px 0; }
-            .paid-badge { text-align: center; font-size: 11px; font-weight: bold; border: 1.5px solid #000; padding: 2px 8px; display: inline-block; margin: 2px auto; }
-            .qr-container { display: flex; flex-direction: column; align-items: center; margin-top: 8px; gap: 4px; }
-            .header-name { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; text-transform: uppercase; }
-            .header-tagline { font-size: 10.5px; font-style: italic; }
+            /* Override tailwind text colors for high contrast thermal print */
+            * {
+              color: #000 !important;
+            }
+            .border-gray-300, .border-gray-400, .border-gray-500, .border-gray-600 {
+              border-color: #000 !important;
+            }
           </style>
         </head>
-        <body>
+        <body class="bg-white">
           ${content.innerHTML}
           <script>
-            window.onload = function() {
-              setTimeout(() => { window.print(); }, 200);
-              setTimeout(() => { window.close(); }, 1200);
-            };
-          <\/script>
+            // Wait for Tailwind to process
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 800);
+          </script>
         </body>
       </html>
     `);
@@ -298,55 +294,52 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
             {/* ── STORE HEADER ── */}
             <div className="text-center pt-4 pb-2 space-y-0.5">
               <h2 className="text-[17px] font-black tracking-tight uppercase leading-none">{outletName}</h2>
-              {tagline && <p className="text-[10.5px] italic text-gray-600 mt-1">{tagline}</p>}
-              {outletAddress && <p className="text-[10px] text-gray-500">{outletAddress}</p>}
+              {tagline && <p className="text-[10.5px] italic font-medium mt-1">{tagline}</p>}
+              {outletAddress && <p className="text-[10px] mt-0.5">{outletAddress}</p>}
               {outletPhone && <p className="text-[10.5px]">Mob: {outletPhone}</p>}
               {outletGstin && (
                 <p className="text-[10.5px] font-bold mt-1">GSTIN: {outletGstin}</p>
               )}
             </div>
 
-            {/* ── DASHED DIVIDER ── */}
-            <div className="border-t border-dashed border-gray-400 my-2" />
-
-            {/* ── CUSTOMER LINE ── */}
-            {(customerName || customerPhone) && (
-              <div className="text-[11px] py-1 mb-1">
-                <span className="font-bold">Name: </span>
-                {customerName || "Customer"}
-                {customerPhone && <span className="text-gray-600"> (M: {customerPhone})</span>}
-              </div>
-            )}
+            <div className="border-t border-dashed border-black my-2" />
 
             {/* ── ORDER META ── */}
-            <div className="text-[10.5px] space-y-0.5 mb-2">
+            <div className="text-[10.5px] space-y-1 mb-2 mt-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
+                <span>Date:</span>
                 <span className="font-bold">{formattedDate} {formattedTime}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Type:</span>
+                <span>Type:</span>
                 <span className="font-bold">{orderSourceDisplay}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Cashier:</span>
+                <span>Cashier:</span>
                 <span className="font-bold">{cashierName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Bill No.:</span>
+                <span>Bill No:</span>
                 <span className="font-black">{billNo}</span>
               </div>
+              {(customerName || customerPhone) && (
+                <div className="flex justify-between">
+                  <span>Customer:</span>
+                  <span className="font-bold text-right">
+                    {customerName || "Guest"} {customerPhone ? `(${customerPhone})` : ""}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* ── DASHED DIVIDER ── */}
-            <div className="border-t border-dashed border-gray-400 my-2" />
+            <div className="border-t border-dashed border-black my-2" />
 
             {/* ── ITEMS HEADER ── */}
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider border-b border-gray-300 pb-1 mb-2">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider border-b border-black pb-1 mb-2 mt-2">
               <span className="flex-1">Item</span>
-              <span className="w-7 text-center">Qty</span>
+              <span className="w-8 text-center">Qty</span>
               <span className="w-12 text-right">Price</span>
-              <span className="w-14 text-right">Amount</span>
+              <span className="w-16 text-right">Amount</span>
             </div>
 
             {/* ── ITEMS LIST ── */}
@@ -365,96 +358,95 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
 
                 return (
                   <div key={idx}>
-                    <div className="flex justify-between text-[11px] items-baseline">
-                      <span className="flex-1 truncate pr-1 font-medium">{name}</span>
-                      <span className="w-7 text-center text-gray-700">{qty}</span>
-                      <span className="w-12 text-right text-gray-600">{unitPrice.toFixed(2)}</span>
-                      <span className="w-14 text-right font-bold">{lineAmount.toFixed(2)}</span>
+                    <div className="flex justify-between text-[11px] items-start">
+                      <span className="flex-1 pr-1 font-bold leading-tight">{name}</span>
+                      <span className="w-8 text-center">{qty}</span>
+                      <span className="w-12 text-right">{unitPrice.toFixed(2)}</span>
+                      <span className="w-16 text-right font-black">{lineAmount.toFixed(2)}</span>
                     </div>
                     {item.notes && (
-                      <p className="text-[10px] text-gray-500 pl-2 mt-0.5 italic">↳ {item.notes}</p>
+                      <p className="text-[10px] pl-2 mt-0.5 italic flex items-start gap-1">
+                        <span>↳</span> <span className="leading-tight">{item.notes}</span>
+                      </p>
                     )}
                   </div>
                 );
               })}
             </div>
 
-            {/* ── DASHED DIVIDER ── */}
-            <div className="border-t border-dashed border-gray-400 my-2" />
+            <div className="border-t border-dashed border-black my-2" />
 
             {/* ── TOTALS ── */}
-            <div className="space-y-1 text-[11px]">
+            <div className="space-y-1 text-[11px] mt-2">
               <div className="flex justify-between font-bold">
-                <span>Sub Total (Qty: {totalQty})</span>
+                <span>Sub Total ({totalQty} items)</span>
                 <span>₹{subtotalRupees.toFixed(2)}</span>
               </div>
 
               {discountRupees > 0 && (
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between">
                   <span>Discount</span>
                   <span>- ₹{discountRupees.toFixed(2)}</span>
                 </div>
               )}
 
-              <div className="flex justify-between text-gray-600">
-                <span className="pl-3">CGST @ {cgstRate}%</span>
+              <div className="flex justify-between">
+                <span>CGST @ {cgstRate}%</span>
                 <span>₹{cgstRupees.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
-                <span className="pl-3">SGST @ {sgstRate}%</span>
+              <div className="flex justify-between">
+                <span>SGST @ {sgstRate}%</span>
                 <span>₹{sgstRupees.toFixed(2)}</span>
               </div>
               {serviceTaxRupees > 0 && (
-                <div className="flex justify-between text-gray-600">
-                  <span className="pl-3">Service Tax {serviceTaxRate > 0 ? `@ ${serviceTaxRate}%` : ""}</span>
+                <div className="flex justify-between">
+                  <span>Service Tax {serviceTaxRate > 0 ? `@ ${serviceTaxRate}%` : ""}</span>
                   <span>₹{serviceTaxRupees.toFixed(2)}</span>
                 </div>
               )}
             </div>
 
-            {/* ── SOLID DIVIDER ── */}
             <div className="border-t-2 border-black my-2" />
 
             {/* ── GRAND TOTAL ── */}
-            <div className="flex justify-between items-center text-[15px] font-black py-0.5">
-              <span>Grand Total</span>
+            <div className="flex justify-between items-center text-[16px] font-black py-1">
+              <span>GRAND TOTAL</span>
               <span>₹{grandTotalRupees.toFixed(2)}</span>
             </div>
 
-            {/* ── DASHED DIVIDER ── */}
-            <div className="border-t border-dashed border-gray-400 my-2" />
+            <div className="border-t border-dashed border-black my-2" />
 
             {/* ── PAYMENT STATUS ── */}
-            <div className="text-center py-1">
+            <div className="text-center py-2">
               {isPaid ? (
-                <div className="inline-block border-2 border-black px-4 py-0.5 text-[11px] font-black uppercase tracking-widest">
+                <div className="inline-block border-2 border-black px-4 py-1 text-[12px] font-black uppercase tracking-widest bg-black text-white">
                   ✓ PAID — {paymentMethodLabel}
                 </div>
               ) : (
-                <div className="inline-block border-2 border-dashed border-gray-500 px-4 py-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-600">
+                <div className="inline-block border-2 border-dashed border-black px-4 py-1 text-[12px] font-bold uppercase tracking-wider">
                   PAYMENT PENDING
                 </div>
               )}
             </div>
 
             {/* ── FOOTER MESSAGE ── */}
-            <div className="text-center text-[10.5px] my-3 text-gray-600 whitespace-pre-line leading-relaxed border-t border-dashed border-gray-300 pt-3">
+            <div className="text-center text-[11px] my-3 whitespace-pre-line leading-relaxed border-t border-dashed border-black pt-3 font-bold">
               {footerMessage}
             </div>
 
             {/* ── UPI QR CODE ── */}
-            <div className="flex flex-col items-center mt-2 pt-2 border-t border-dashed border-gray-400">
-              <div className="p-1 border border-gray-200 rounded-sm bg-white inline-block">
+            <div className="flex flex-col items-center mt-2 pt-2 border-t border-dashed border-black">
+              <div className="p-1 border border-black rounded-sm bg-white inline-block">
                 <QRCodeSVG value={upiPaymentUrl} size={88} level="M" />
               </div>
-              <p className="text-[10px] font-bold mt-1.5 text-center text-gray-700">
+              <p className="text-[10px] font-bold mt-1.5 text-center text-black">
                 Scan & Pay via UPI
               </p>
-              <p className="text-[9px] text-gray-400 mt-0.5">{upiVpa}</p>
+              <p className="text-[9px] font-medium mt-0.5">{upiVpa}</p>
             </div>
 
             {/* ── BOTTOM SPACING ── */}
-            <div className="mt-4 text-center text-[9px] text-gray-300 tracking-widest">
+            <div className="mt-4 text-center text-[9px] tracking-widest font-bold">
               — ALAYN POS —
             </div>
           </div>

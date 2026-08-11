@@ -10,6 +10,7 @@ import {
   WasteLogApi,
 } from "@/redux/slices/wasteApiSlice";
 import { useGetItemsQuery } from "@/redux/slices/inventoryApiSlice";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Trash2,
   AlertTriangle,
@@ -36,10 +37,24 @@ import {
   Sparkles,
   Layers,
   ArrowRight,
+  LineChart as LineChartIcon,
+  Receipt,
+  FileSpreadsheet,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+} from "recharts";
 
-type PeriodFilter = "THIS_MONTH" | "LAST_MONTH" | "THIS_YEAR" | "ALL_TIME";
+type PeriodFilter = "TODAY" | "YESTERDAY" | "7_DAYS" | "THIS_MONTH" | "LAST_MONTH" | "THIS_YEAR" | "ALL_TIME" | "CUSTOM";
 
 export default function WasteManagementPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
@@ -60,7 +75,6 @@ export default function WasteManagementPage() {
   const {
     data: wasteSummary,
     isLoading: isLoadingSummary,
-    isFetching: isFetchingSummary,
     refetch: refetchSummary,
   } = useGetWasteSummaryQuery(undefined, { skip: !activeBranch });
 
@@ -73,15 +87,21 @@ export default function WasteManagementPage() {
 
   const isAllOutlets = activeBranch?.id === "all";
 
-  // Form State & Mutation
+  // Form State & Modal
+  const [showRecordModal, setShowRecordModal] = useState(false);
   const [logWaste, { isLoading: isSubmitting }] = useLogWasteMutation();
   const [selectedItemId, setSelectedItemId] = useState("");
   const [quantity, setQuantity] = useState<number | "">("");
   const [reason, setReason] = useState<"SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR">("SPOILAGE");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // Time Period & Analytics Filter State
+  // Time Period & Date Shortcut Filter State
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodFilter>("THIS_MONTH");
+  const todayStr = new Date().toISOString().split("T")[0];
+  const sevenDaysAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const [startDate, setStartDate] = useState<string>(sevenDaysAgoStr);
+  const [endDate, setEndDate] = useState<string>(todayStr);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<"createdAt" | "costAtLoggingPaise" | "quantity">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -107,20 +127,36 @@ export default function WasteManagementPage() {
 
   const isPageLoading = branchLoading || isLoadingLogs || isLoadingSummary;
 
-  const handleManualRefresh = () => {
-    refetchLogs();
-    refetchSummary();
-  };
-
   // Helper date logic
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  // Period Filtered Logs
+  // Period Filtered Logs with Date Shortcuts
   const periodFilteredLogs = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     return logs.filter((log) => {
       const d = new Date(log.createdAt);
+
+      if (selectedPeriod === "TODAY") {
+        return d >= today;
+      }
+      if (selectedPeriod === "YESTERDAY") {
+        const dDate = new Date(d);
+        dDate.setHours(0, 0, 0, 0);
+        return dDate.getTime() === yesterday.getTime();
+      }
+      if (selectedPeriod === "7_DAYS") {
+        return d >= sevenDaysAgo;
+      }
       if (selectedPeriod === "THIS_MONTH") {
         return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
       }
@@ -131,9 +167,17 @@ export default function WasteManagementPage() {
       if (selectedPeriod === "THIS_YEAR") {
         return d.getFullYear() === currentYear;
       }
+      if (selectedPeriod === "CUSTOM") {
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+        if (start && end) {
+          end.setHours(23, 59, 59, 999);
+          return d >= start && d <= end;
+        }
+      }
       return true; // ALL_TIME
     });
-  }, [logs, selectedPeriod, currentYear, currentMonth]);
+  }, [logs, selectedPeriod, currentYear, currentMonth, startDate, endDate]);
 
   // Analytics Metrics
   const periodTotalLossRupees = useMemo(() => {
@@ -148,27 +192,22 @@ export default function WasteManagementPage() {
     return paise / 100;
   }, [logs, currentYear]);
 
-  // Calculate Month-over-Month Trend
-  const momTrendPercentage = useMemo(() => {
-    const thisMonthPaise = logs
-      .filter((l) => {
-        const d = new Date(l.createdAt);
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      })
-      .reduce((acc, l) => acc + (l.costAtLoggingPaise || 0), 0);
+  // Daily Trend Chart Data for Selected Period
+  const wasteTrendData = useMemo(() => {
+    const map: Record<string, { date: string; loss: number; count: number }> = {};
 
-    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
-    const lastMonthPaise = logs
-      .filter((l) => {
-        const d = new Date(l.createdAt);
-        return d.getFullYear() === lastMonthDate.getFullYear() && d.getMonth() === lastMonthDate.getMonth();
-      })
-      .reduce((acc, l) => acc + (l.costAtLoggingPaise || 0), 0);
+    periodFilteredLogs.forEach((log) => {
+      const dateKey = new Date(log.createdAt).toLocaleDateString("en-IN", { month: "short", day: "2-digit" });
+      if (!map[dateKey]) {
+        map[dateKey] = { date: dateKey, loss: 0, count: 0 };
+      }
+      map[dateKey].loss += (log.costAtLoggingPaise || 0) / 100;
+      map[dateKey].count += 1;
+    });
 
-    if (lastMonthPaise === 0) return 0;
-    const diff = ((thisMonthPaise - lastMonthPaise) / lastMonthPaise) * 100;
-    return Number(diff.toFixed(1));
-  }, [logs, currentYear, currentMonth]);
+    const result = Object.values(map);
+    return result.length > 0 ? result : [{ date: "No Logs", loss: 0, count: 0 }];
+  }, [periodFilteredLogs]);
 
   // Top Wasted Ingredient in Selected Period
   const topWastedIngredient = useMemo(() => {
@@ -273,7 +312,7 @@ export default function WasteManagementPage() {
     return result;
   }, [periodFilteredLogs, isAllOutlets, wasteOutletFilter, searchTerm, filterReason, sortField, sortOrder]);
 
-  const handleLogWaste = async (e: React.FormEvent) => {
+  const handleLogWasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
 
@@ -300,6 +339,7 @@ export default function WasteManagementPage() {
       setFeedback({ type: "success", msg: "Wastage recorded successfully! Stock balance updated." });
       setQuantity("");
       setSelectedItemId("");
+      setShowRecordModal(false);
       refetchLogs();
       refetchSummary();
     } catch (err: any) {
@@ -338,81 +378,84 @@ export default function WasteManagementPage() {
     <DashboardLayout>
       <div className="flex flex-col min-h-full gap-5 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16 font-sans text-zinc-900">
         
-        {/* Header & Period Controls Bar */}
+        {/* Header & Date Shortcuts Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs">
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 tracking-tight">
-                Waste &amp; Spoilage Analytics
+                Waste &amp; Spoilage Ledger
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-0.5 text-xs font-bold text-[#D3232A]">
                 <Trash2 className="h-3 w-3" /> {activeBranch?.name || "Main Branch"}
               </span>
             </div>
             <p className="text-xs text-zinc-500 font-medium mt-1">
-              Monitor monthly &amp; yearly inventory loss, analyze spoilage patterns, and log stock waste.
+              Monitor inventory loss, analyze spoilage trends, and manage stock waste records.
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-            {/* Period Selector */}
-            <div className="bg-zinc-100 p-1 rounded-xl border border-zinc-200 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("THIS_MONTH")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  selectedPeriod === "THIS_MONTH"
-                    ? "bg-zinc-900 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                This Month
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("LAST_MONTH")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  selectedPeriod === "LAST_MONTH"
-                    ? "bg-zinc-900 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                Last Month
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("THIS_YEAR")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  selectedPeriod === "THIS_YEAR"
-                    ? "bg-zinc-900 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                2026 YTD
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedPeriod("ALL_TIME")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                  selectedPeriod === "ALL_TIME"
-                    ? "bg-zinc-900 text-white shadow-2xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                All Time
-              </button>
-            </div>
+            {/* Record Waste Primary Button */}
+            <button
+              onClick={() => setShowRecordModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#b01e23] transition-all cursor-pointer hover:-translate-y-[1px]"
+            >
+              <Plus className="h-4 w-4" /> Record Waste
+            </button>
 
             <button
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs cursor-pointer"
             >
-              <Download className="h-3.5 w-3.5 text-zinc-500" /> Export
+              <Download className="h-3.5 w-3.5 text-zinc-500" /> Export CSV
             </button>
           </div>
+        </div>
+
+        {/* Date Shortcuts Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200 shadow-2xs text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-zinc-500 font-bold mr-1 flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 text-zinc-400" /> Range:
+            </span>
+
+            {[
+              { id: "TODAY", label: "Today" },
+              { id: "YESTERDAY", label: "Yesterday" },
+              { id: "7_DAYS", label: "Last 7 Days" },
+              { id: "THIS_MONTH", label: "This Month" },
+              { id: "LAST_MONTH", label: "Last Month" },
+              { id: "THIS_YEAR", label: "2026 YTD" },
+              { id: "ALL_TIME", label: "All Time" },
+              { id: "CUSTOM", label: "Custom Range" },
+            ].map((shortcut) => (
+              <button
+                key={shortcut.id}
+                type="button"
+                onClick={() => setSelectedPeriod(shortcut.id as PeriodFilter)}
+                className={`rounded-lg px-3 py-1.5 font-bold transition-all cursor-pointer ${
+                  selectedPeriod === shortcut.id
+                    ? "bg-zinc-900 text-white shadow-2xs"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                }`}
+              >
+                {shortcut.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Inputs */}
+          {selectedPeriod === "CUSTOM" && (
+            <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-xl border border-zinc-200 animate-in fade-in duration-150">
+              <div className="w-36">
+                <CustomDatePicker value={startDate} onChange={setStartDate} />
+              </div>
+              <span className="text-zinc-400 font-bold">to</span>
+              <div className="w-36">
+                <CustomDatePicker value={endDate} onChange={setEndDate} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Analytics Key Metrics Cards */}
@@ -427,9 +470,11 @@ export default function WasteManagementPage() {
                     ? "This Month Loss"
                     : selectedPeriod === "LAST_MONTH"
                     ? "Last Month Loss"
+                    : selectedPeriod === "TODAY"
+                    ? "Today's Loss"
                     : selectedPeriod === "THIS_YEAR"
-                    ? "2026 Year-To-Date Loss"
-                    : "All Time Waste Loss"}
+                    ? "2026 YTD Loss"
+                    : "Selected Period Loss"}
                 </span>
                 <div className="h-8 w-8 rounded-xl bg-red-50 text-[#D3232A] flex items-center justify-center border border-red-100">
                   <IndianRupee className="h-4 w-4" />
@@ -441,15 +486,10 @@ export default function WasteManagementPage() {
             </div>
             
             <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-xs">
-              <span className="text-zinc-500 font-medium">{periodFilteredLogs.length} Waste Logs</span>
-              {momTrendPercentage !== 0 && selectedPeriod === "THIS_MONTH" && (
-                <span className={`inline-flex items-center gap-1 font-bold ${
-                  momTrendPercentage > 0 ? "text-rose-600" : "text-emerald-600"
-                }`}>
-                  {momTrendPercentage > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                  {Math.abs(momTrendPercentage)}% vs last month
-                </span>
-              )}
+              <span className="text-zinc-500 font-medium">{periodFilteredLogs.length} Waste Incidents</span>
+              <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                Filtered View
+              </span>
             </div>
           </div>
 
@@ -533,12 +573,56 @@ export default function WasteManagementPage() {
 
         </div>
 
-        {/* Visual Reason Breakdown Card */}
+        {/* Dynamic Waste Trend Analytics Chart */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-red-50 text-[#D3232A] rounded-xl border border-red-100">
+                <LineChartIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Waste &amp; Spoilage Loss Trend</h3>
+                <p className="text-xs text-zinc-500 font-medium">Daily loss accumulation (₹) for selected timeframe</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[220px] w-full pt-2">
+            {periodFilteredLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 w-full h-full">
+                <BarChart3 className="h-8 w-8 text-zinc-300 mb-2" />
+                <p className="text-xs font-bold text-zinc-600">No Spoilage Recorded For Selected Range</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Click "+ Record Waste" above to log stock loss.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={wasteTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="wasteGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#D3232A" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#D3232A" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 500 }} tickFormatter={(val) => `₹${val}`} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e4e4e7', fontSize: '12px', fontWeight: 'bold' }}
+                    formatter={(val: any) => [`₹${Number(val).toFixed(2)}`, 'Loss Value']}
+                  />
+                  <Area type="monotone" dataKey="loss" stroke="#D3232A" strokeWidth={2.5} fillOpacity={1} fill="url(#wasteGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Cause Breakdown Category Cards */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-900">Waste Breakdown by Cause</h3>
-              <p className="text-xs text-zinc-500 font-medium">Rupee and percentage contribution for the selected time period</p>
+              <p className="text-xs text-zinc-500 font-medium">Rupee and percentage contribution for the selected period</p>
             </div>
             {filterReason !== "ALL" && (
               <button
@@ -609,318 +693,360 @@ export default function WasteManagementPage() {
           </div>
         )}
 
-        {/* Workspace: Form Card + Logs Table */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* ========================================================================= */}
+        {/* FULL WIDTH LEDGER TABLE CONTAINER */}
+        {/* ========================================================================= */}
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-2xs overflow-hidden flex flex-col">
           
-          {/* Form Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-2xs h-fit">
-            <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-zinc-100">
-              <div className="rounded-xl bg-red-50 p-2 text-[#D3232A]">
-                <Plus className="h-4.5 w-4.5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-zinc-900">Record Stock Wastage</h2>
-                <p className="text-xs text-zinc-500 font-medium">Log item loss &amp; update inventory stock</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleLogWaste} className="space-y-4">
-              <div>
-                <label htmlFor="waste-item-select" className="block text-xs font-bold text-zinc-800 mb-1">
-                  Ingredient / Stock Item
-                </label>
-                {isLoadingItems || branchLoading ? (
-                  <Skeleton height={40} borderRadius={12} />
-                ) : (
-                  <select
-                    required
-                    id="waste-item-select"
-                    value={selectedItemId}
-                    onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
-                  >
-                    <option value="">-- Choose ingredient from inventory --</option>
-                    {items.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name} ({i.unit}){isAllOutlets || i.outlet ? ` — [${i.outlet?.name || 'Main'}]` : ''} — Available: {i.currentStock}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="waste-reason-select" className="block text-xs font-bold text-zinc-800 mb-1">
-                  Reason for Waste
-                </label>
-                <select
-                  id="waste-reason-select"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value as any)}
-                  className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
-                >
-                  <option value="SPOILAGE">Spoiled / Expired</option>
-                  <option value="OVER_PREP">Over-Prepared</option>
-                  <option value="ERROR">Kitchen Error / Spillage</option>
-                  <option value="RETURN">Customer Return</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="waste-quantity-input" className="block text-xs font-bold text-zinc-800 mb-1">
-                  Wasted Quantity ({selectedItem?.unit || "units"})
-                </label>
-                <input
-                  id="waste-quantity-input"
-                  type="number"
-                  step="any"
-                  min="0.001"
-                  placeholder="Enter quantity amount..."
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:outline-none shadow-2xs"
-                />
-              </div>
-
-              {/* Form Live Calculation Card */}
-              {selectedItem && numQty > 0 && (
-                <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">Calculated Loss:</span>
-                    <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
-                  </div>
-                  <p className="text-[11px] text-zinc-600 font-medium">
-                    {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / unit
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
-                    <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                      <span className="block text-[10px] text-zinc-400 font-bold">CURRENT STOCK</span>
-                      <strong className="text-xs text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
-                    </div>
-                    <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                      <span className="block text-[10px] text-zinc-400 font-bold">REMAINING</span>
-                      <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
-                        {Number(remainingStock.toFixed(2))} {selectedItem.unit}
-                      </strong>
-                    </div>
-                  </div>
-                  {remainingStock < selectedItem.reorderThreshold && (
-                    <p className="text-[11px] text-red-600 font-bold flex items-center gap-1 pt-0.5">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min threshold!
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <button
-                id="submit-waste-btn"
-                type="submit"
-                disabled={isSubmitting || !selectedItemId || numQty <= 0}
-                className="w-full rounded-xl bg-[#D3232A] py-2.5 text-xs font-bold text-white hover:bg-[#b01e23] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-2xs mt-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Recording Log...
-                  </>
-                ) : (
-                  "Confirm Waste Log"
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Historical Logs Table */}
-          <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white shadow-2xs overflow-hidden flex flex-col h-fit">
-            
-            {/* Search & Reason / Outlet Filter Header */}
-            <div className="p-3.5 border-b border-zinc-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-zinc-50">
-              <div className="relative flex-1">
+          {/* Table Control Header */}
+          <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-zinc-50/80">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Filter logs by item name or code..."
+                  placeholder="Filter waste ledger by item name or code..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setWastePage(1);
                   }}
-                  className="w-full rounded-xl border border-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#D3232A] focus:outline-none bg-white font-medium"
+                  className="w-full rounded-xl border border-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#D3232A] focus:outline-none bg-white font-medium shadow-2xs"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {isAllOutlets && availableOutlets.length > 0 && (
-                  <select
-                    value={wasteOutletFilter}
-                    onChange={(e) => {
-                      setWasteOutletFilter(e.target.value);
-                      setWastePage(1);
-                    }}
-                    className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none shadow-2xs"
-                  >
-                    <option value="ALL">All Outlets</option>
-                    {availableOutlets.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
+            <div className="flex items-center gap-2 shrink-0">
+              {isAllOutlets && availableOutlets.length > 0 && (
                 <select
-                  value={filterReason}
+                  value={wasteOutletFilter}
                   onChange={(e) => {
-                    setFilterReason(e.target.value);
+                    setWasteOutletFilter(e.target.value);
                     setWastePage(1);
                   }}
                   className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none shadow-2xs"
                 >
-                  <option value="ALL">All Reasons ({periodFilteredLogs.length})</option>
-                  <option value="SPOILAGE">Spoiled / Expired</option>
-                  <option value="OVER_PREP">Over-Prepared</option>
-                  <option value="ERROR">Kitchen Error</option>
-                  <option value="RETURN">Customer Return</option>
+                  <option value="ALL">All Outlets</option>
+                  {availableOutlets.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
                 </select>
-              </div>
+              )}
+
+              <select
+                value={filterReason}
+                onChange={(e) => {
+                  setFilterReason(e.target.value);
+                  setWastePage(1);
+                }}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none shadow-2xs"
+              >
+                <option value="ALL">All Causes ({periodFilteredLogs.length})</option>
+                <option value="SPOILAGE">Spoiled / Expired</option>
+                <option value="OVER_PREP">Over-Prepared</option>
+                <option value="ERROR">Kitchen Error</option>
+                <option value="RETURN">Customer Return</option>
+              </select>
             </div>
+          </div>
 
-            {/* Table */}
-            {isPageLoading ? (
-              <div className="p-4 space-y-3">
-                <Skeleton count={5} height={42} borderRadius={10} />
-              </div>
-            ) : processedLogs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-2">
-                <Package className="h-8 w-8 text-zinc-300" />
-                <p className="text-sm font-bold text-zinc-700">No waste logs found for this filter</p>
-                <p className="text-xs text-zinc-400">Record new waste using the form on the left</p>
-              </div>
-            ) : (() => {
-              const totalWastePages = Math.ceil(processedLogs.length / wastePageSize);
-              const safeWastePage = Math.min(wastePage, totalWastePages || 1);
-              const startWasteIdx = (safeWastePage - 1) * wastePageSize;
-              const paginatedLogs = processedLogs.slice(startWasteIdx, startWasteIdx + wastePageSize);
-              const showWasteOutlet = Boolean(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet));
+          {/* Ledger Table */}
+          {isPageLoading ? (
+            <div className="p-4 space-y-3">
+              <Skeleton count={6} height={46} borderRadius={10} />
+            </div>
+          ) : processedLogs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
+              <Package className="h-10 w-10 text-zinc-300" />
+              <p className="text-sm font-bold text-zinc-700">No waste logs found for this filter criteria</p>
+              <button
+                onClick={() => setShowRecordModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#b01e23] transition-all cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" /> Record Stock Wastage
+              </button>
+            </div>
+          ) : (() => {
+            const totalWastePages = Math.ceil(processedLogs.length / wastePageSize);
+            const safeWastePage = Math.min(wastePage, totalWastePages || 1);
+            const startWasteIdx = (safeWastePage - 1) * wastePageSize;
+            const paginatedLogs = processedLogs.slice(startWasteIdx, startWasteIdx + wastePageSize);
+            const showWasteOutlet = Boolean(isAllOutlets || processedLogs.some((l) => l.outlet || l.item?.outlet));
 
-              return (
-                <div className="flex flex-col">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse table-fixed min-w-[750px]">
-                      <thead>
-                        <tr className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[11px] border-b border-zinc-200">
-                          <th
-                            className="px-4 py-3 cursor-pointer select-none hover:text-zinc-900 w-[22%]"
-                            onClick={() => toggleSort("createdAt")}
-                          >
-                            <div className="flex items-center gap-1">
-                              Logged Date <ArrowUpDown className="h-3 w-3" />
-                            </div>
-                          </th>
-                          <th className="px-4 py-3 w-[26%]">Item &amp; Code</th>
-                          {showWasteOutlet && <th className="px-3 py-3 w-[18%]">Outlet</th>}
-                          <th
-                            className="px-3 py-3 text-center cursor-pointer select-none hover:text-zinc-900 w-[12%]"
-                            onClick={() => toggleSort("quantity")}
-                          >
-                            Qty
-                          </th>
-                          <th
-                            className="px-4 py-3 text-right cursor-pointer select-none hover:text-zinc-900 w-[14%]"
-                            onClick={() => toggleSort("costAtLoggingPaise")}
-                          >
-                            Loss (₹)
-                          </th>
-                          <th className="px-3 py-3 text-center w-[16%]">Reason</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 font-medium">
-                        {paginatedLogs.map((log) => {
-                          const reasonColors: Record<string, string> = {
-                            SPOILAGE: "bg-red-50 text-red-700 border-red-200",
-                            OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
-                            ERROR: "bg-orange-50 text-orange-700 border-orange-200",
-                            RETURN: "bg-blue-50 text-blue-700 border-blue-200",
-                          };
+            return (
+              <div className="flex flex-col">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[11px] border-b border-zinc-200">
+                        <th className="px-4 py-3.5 w-24">Ref ID</th>
+                        <th
+                          className="px-4 py-3.5 cursor-pointer select-none hover:text-zinc-900"
+                          onClick={() => toggleSort("createdAt")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Logged Date &amp; Time <ArrowUpDown className="h-3 w-3" />
+                          </div>
+                        </th>
+                        <th className="px-4 py-3.5">Stock Item &amp; Code</th>
+                        {showWasteOutlet && <th className="px-4 py-3.5">Outlet</th>}
+                        <th
+                          className="px-4 py-3.5 text-center cursor-pointer select-none hover:text-zinc-900"
+                          onClick={() => toggleSort("quantity")}
+                        >
+                          Wasted Qty
+                        </th>
+                        <th
+                          className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900"
+                          onClick={() => toggleSort("costAtLoggingPaise")}
+                        >
+                          Loss Value (₹)
+                        </th>
+                        <th className="px-4 py-3.5 text-center">Waste Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100 font-medium">
+                      {paginatedLogs.map((log, idx) => {
+                        const reasonColors: Record<string, string> = {
+                          SPOILAGE: "bg-red-50 text-red-700 border-red-200",
+                          OVER_PREP: "bg-amber-50 text-amber-700 border-amber-200",
+                          ERROR: "bg-orange-50 text-orange-700 border-orange-200",
+                          RETURN: "bg-blue-50 text-blue-700 border-blue-200",
+                        };
 
-                          return (
-                            <tr key={log.id} className="hover:bg-zinc-50/70 transition-colors">
-                              <td className="px-4 py-3.5 text-zinc-600 whitespace-nowrap overflow-hidden" suppressHydrationWarning>
-                                {mounted ? new Date(log.createdAt).toLocaleDateString("en-IN", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }) : ""}
-                              </td>
+                        const refId = `#WST-${String(startWasteIdx + idx + 1).padStart(3, "0")}`;
 
-                              <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
-                                <p className="font-bold text-zinc-900 text-xs truncate">{log.item?.name || "Ingredient Item"}</p>
-                                <span className="text-[10px] text-zinc-400 font-mono">Code: {log.item?.sku || "N/A"}</span>
-                              </td>
+                        return (
+                          <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
+                            <td className="px-4 py-4 font-mono font-bold text-zinc-400 text-[11px]">
+                              {refId}
+                            </td>
 
-                              {showWasteOutlet && (
-                                <td className="px-3 py-3.5 whitespace-nowrap overflow-hidden">
-                                  <span className="inline-flex items-center gap-1 truncate text-xs text-zinc-700 font-semibold bg-zinc-100 px-2 py-0.5 rounded">
-                                    <Building2 className="h-3 w-3 text-[#D3232A]" />
-                                    {log.outlet?.name || log.item?.outlet?.name || "Main Outlet"}
-                                  </span>
-                                </td>
-                              )}
+                            <td className="px-4 py-4 text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
+                              {mounted ? new Date(log.createdAt).toLocaleDateString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }) : ""}
+                            </td>
 
-                              <td className="px-3 py-3.5 text-center font-bold text-zinc-800 whitespace-nowrap">
-                                {log.quantity} <span className="text-zinc-400 font-normal text-[10px]">{log.item?.unit || ""}</span>
-                              </td>
+                            <td className="px-4 py-4">
+                              <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
+                              <span className="text-[10px] text-zinc-400 font-mono">SKU: {log.item?.sku || "N/A"}</span>
+                            </td>
 
-                              <td className="px-4 py-3.5 text-right font-black text-red-600 tabular-nums whitespace-nowrap">
-                                ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
-                              </td>
-
-                              <td className="px-3 py-3.5 text-center whitespace-nowrap">
-                                <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"}`}>
-                                  {log.reason.replace("_", " ")}
+                            {showWasteOutlet && (
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1 text-xs text-zinc-700 font-semibold bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200">
+                                  <Building2 className="h-3 w-3 text-[#D3232A]" />
+                                  {log.outlet?.name || log.item?.outlet?.name || "Main Outlet"}
                                 </span>
                               </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                            )}
 
-                  {/* Pagination Bar */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-zinc-50 border-t border-zinc-200 text-xs text-zinc-600">
-                    <div>
-                      Showing <strong>{startWasteIdx + 1}</strong> to <strong>{Math.min(startWasteIdx + wastePageSize, processedLogs.length)}</strong> of <strong>{processedLogs.length}</strong> Logs
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setWastePage((p) => Math.max(1, p - 1))}
-                        disabled={safeWastePage === 1}
-                        className="rounded-md border border-zinc-200 bg-white p-1 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <span className="px-2 font-semibold">
-                        Page {safeWastePage} of {totalWastePages}
-                      </span>
-                      <button
-                        onClick={() => setWastePage((p) => Math.min(totalWastePages, p + 1))}
-                        disabled={safeWastePage >= totalWastePages}
-                        className="rounded-md border border-zinc-200 bg-white p-1 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
+                            <td className="px-4 py-4 text-center font-bold text-zinc-800 whitespace-nowrap">
+                              {log.quantity} <span className="text-zinc-400 font-normal text-[10px]">{log.item?.unit || "units"}</span>
+                            </td>
+
+                            <td className="px-4 py-4 text-right font-black text-red-600 tabular-nums text-sm whitespace-nowrap">
+                              ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
+                            </td>
+
+                            <td className="px-4 py-4 text-center whitespace-nowrap">
+                              <span className={`inline-block rounded-full border px-3 py-0.5 text-[11px] font-bold ${reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"}`}>
+                                {log.reason.replace("_", " ")}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Footer Bar */}
+                <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-50 border-t border-zinc-200 text-xs text-zinc-600">
+                  <div>
+                    Showing <strong>{startWasteIdx + 1}</strong> to <strong>{Math.min(startWasteIdx + wastePageSize, processedLogs.length)}</strong> of <strong>{processedLogs.length}</strong> Ledger Records
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setWastePage((p) => Math.max(1, p - 1))}
+                      disabled={safeWastePage === 1}
+                      className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="px-2 font-bold text-zinc-800">
+                      Page {safeWastePage} of {totalWastePages}
+                    </span>
+                    <button
+                      onClick={() => setWastePage((p) => Math.min(totalWastePages, p + 1))}
+                      disabled={safeWastePage >= totalWastePages}
+                      className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              );
-            })()}
-
-          </div>
+              </div>
+            );
+          })()}
 
         </div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* RECORD WASTE MODAL DIALOG */}
+      {/* ========================================================================= */}
+      {showRecordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 bg-zinc-50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-red-50 p-2 text-[#D3232A] border border-red-100">
+                  <Trash2 className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900">Record Stock Wastage</h3>
+                  <p className="text-xs text-zinc-500 font-medium">Log item loss &amp; deduct from current stock balance</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRecordModal(false)}
+                className="text-zinc-400 hover:text-zinc-600 p-1.5 rounded-lg hover:bg-zinc-200/60 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleLogWasteSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+                <div>
+                  <label htmlFor="modal-waste-item-select" className="block font-bold text-zinc-800 mb-1">
+                    Ingredient / Stock Item <span className="text-red-500">*</span>
+                  </label>
+                  {isLoadingItems || branchLoading ? (
+                    <Skeleton height={40} borderRadius={12} />
+                  ) : (
+                    <select
+                      required
+                      id="modal-waste-item-select"
+                      value={selectedItemId}
+                      onChange={(e) => setSelectedItemId(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                    >
+                      <option value="">-- Choose ingredient from inventory --</option>
+                      {items.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.name} ({i.unit}){isAllOutlets || i.outlet ? ` — [${i.outlet?.name || 'Main'}]` : ''} — Available: {i.currentStock}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="modal-waste-reason-select" className="block font-bold text-zinc-800 mb-1">
+                    Reason for Waste <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="modal-waste-reason-select"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value as any)}
+                    className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                  >
+                    <option value="SPOILAGE">Spoiled / Expired</option>
+                    <option value="OVER_PREP">Over-Prepared</option>
+                    <option value="ERROR">Kitchen Error / Spillage</option>
+                    <option value="RETURN">Customer Return</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="modal-waste-quantity-input" className="block font-bold text-zinc-800 mb-1">
+                    Wasted Quantity ({selectedItem?.unit || "units"}) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="modal-waste-quantity-input"
+                    type="number"
+                    step="any"
+                    min="0.001"
+                    required
+                    placeholder="Enter quantity amount..."
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
+                  />
+                </div>
+
+                {/* Form Live Calculation Card */}
+                {selectedItem && numQty > 0 && (
+                  <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold">Calculated Loss:</span>
+                      <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
+                    </div>
+                    <p className="text-[11px] text-zinc-600 font-medium">
+                      {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / unit
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
+                      <div className="bg-white p-1.5 rounded-lg border border-red-100">
+                        <span className="block text-[10px] text-zinc-400 font-bold">CURRENT STOCK</span>
+                        <strong className="text-xs text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
+                      </div>
+                      <div className="bg-white p-1.5 rounded-lg border border-red-100">
+                        <span className="block text-[10px] text-zinc-400 font-bold">REMAINING</span>
+                        <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
+                          {Number(remainingStock.toFixed(2))} {selectedItem.unit}
+                        </strong>
+                      </div>
+                    </div>
+                    {remainingStock < selectedItem.reorderThreshold && (
+                      <p className="text-[11px] text-red-600 font-bold flex items-center gap-1 pt-0.5">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min threshold!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Sticky Footer */}
+              <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-zinc-200 bg-zinc-50 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowRecordModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !selectedItemId || numQty <= 0}
+                  className="px-5 py-2 text-xs font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Recording Log...
+                    </>
+                  ) : (
+                    "Confirm Waste Log"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

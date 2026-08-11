@@ -5,9 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 interface CustomDatePickerProps {
   value: string; // YYYY-MM-DD
   onChange: (date: string) => void;
+  minDate?: string; // YYYY-MM-DD
 }
 
-export function CustomDatePicker({ value, onChange }: CustomDatePickerProps) {
+export function CustomDatePicker({ value, onChange, minDate }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -111,14 +112,23 @@ export function CustomDatePicker({ value, onChange }: CustomDatePickerProps) {
                 ))}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
+                  const formattedMonth = String(currentMonth + 1).padStart(2, '0');
+                  const formattedDay = String(day).padStart(2, '0');
+                  const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+
                   const isSelected = value && parseInt(value.split('-')[2], 10) === day && parseInt(value.split('-')[1], 10) === currentMonth + 1 && parseInt(value.split('-')[0], 10) === currentYear;
+                  const isDisabled = minDate ? dateStr < minDate : false;
+
                   return (
                     <button
                       type="button"
                       key={day}
-                      onClick={() => handleSelectDate(day)}
+                      disabled={isDisabled}
+                      onClick={() => !isDisabled && handleSelectDate(day)}
                       className={`h-9 w-9 rounded-full text-sm font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                        isSelected 
+                        isDisabled
+                          ? 'text-gray-300 cursor-not-allowed opacity-50'
+                          : isSelected 
                           ? 'bg-[#D3232A] text-white shadow-md scale-105' 
                           : 'text-gray-700 hover:bg-red-50 hover:text-[#D3232A] active:scale-95'
                       }`}

@@ -1,11 +1,12 @@
 import { baseApi } from "../store/baseApi";
 
 export interface KpiResponse {
-  totalRevenue: { value: string; change: string; isPositive: boolean };
-  cogs: { value: string; change: string; isPositive: boolean };
-  grossProfit: { value: string; change: string; isPositive: boolean };
-  laborCosts: { value: string; change: string; isPositive: boolean };
-  netMargin: { value: string; change: string; isPositive: boolean };
+  totalRevenue: { value: string; change: string; isPositive: boolean; prev?: string };
+  cogs: { value: string; change: string; isPositive: boolean; prev?: string };
+  grossProfit: { value: string; change: string; isPositive: boolean; prev?: string };
+  laborCosts: { value: string; change: string; isPositive: boolean; prev?: string };
+  netMargin: { value: string; change: string; isPositive: boolean; prev?: string };
+  avgOrderValue?: { value: string; change: string; isPositive: boolean; prev?: string };
 }
 
 export interface SalesForecastPoint {

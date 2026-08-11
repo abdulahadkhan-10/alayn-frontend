@@ -194,13 +194,6 @@ export default function MasterDashboardPage(props?: PageProps) {
           hours: emp.shiftHours || defaultHours,
         };
       });
-    } else {
-      list = [
-        { id: "emp-1", name: "Arjun Mehta", role: "Head Chef", status: "ON_SHIFT", hours: "09:00 - 18:00" },
-        { id: "emp-2", name: "Priya Sharma", role: "Floor Manager", status: "ON_SHIFT", hours: "10:00 - 19:00" },
-        { id: "emp-3", name: "Rahul Verma", role: "Sous Chef", status: "ON_LEAVE", hours: "-" },
-        { id: "emp-4", name: "Sunita Roy", role: "Kitchen Lead", status: "ON_SHIFT", hours: "08:00 - 17:00" },
-      ];
     }
 
     // Filter strictly for Managers and Kitchen staff only
@@ -215,49 +208,12 @@ export default function MasterDashboardPage(props?: PageProps) {
       );
     });
 
-    return filtered.length > 0 ? filtered : list.slice(0, 4);
+    return filtered;
   }, [employeesResponse]);
 
   // Process Real Active Orders Data (Top 4 View)
   const { activeOrdersList, activeStats } = useMemo(() => {
-    let rawOrders = Array.isArray(realOrders) ? realOrders : (realOrders as any)?.data || [];
-
-    if (!rawOrders || rawOrders.length === 0) {
-      rawOrders = [
-        {
-          id: "ord-8921",
-          orderNo: "#ORD-8921",
-          orderSource: "TABLE",
-          tableNo: "T-04",
-          status: "PREPARING",
-          totalAmount: 1450,
-        },
-        {
-          id: "ord-8922",
-          orderNo: "#ORD-8922",
-          orderSource: "COUNTER",
-          tableNo: "Counter",
-          status: "SENT_TO_KITCHEN",
-          totalAmount: 680,
-        },
-        {
-          id: "ord-8923",
-          orderNo: "#ORD-8923",
-          orderSource: "QR",
-          tableNo: "T-12",
-          status: "PREPARING",
-          totalAmount: 2100,
-        },
-        {
-          id: "ord-8924",
-          orderNo: "#ORD-8924",
-          orderSource: "DELIVERY",
-          tableNo: "Zomato #402",
-          status: "READY",
-          totalAmount: 420,
-        },
-      ];
-    }
+    const rawOrders = Array.isArray(realOrders) ? realOrders : (realOrders as any)?.data || [];
 
     const processed = rawOrders.map((ord: any) => ({
       id: ord.id,
@@ -391,10 +347,38 @@ export default function MasterDashboardPage(props?: PageProps) {
             {/* Top Level KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "NET REVENUE", value: kpiData?.totalRevenue?.value || "₹1,24,500", prev: "₹1,18,200", trend: kpiData?.totalRevenue?.change || "+5.3%", positive: kpiData?.totalRevenue?.isPositive ?? true, route: "/performance" },
-                { label: "ACTIVE ORDERS", value: `${activeStats.activeCount}`, prev: "310", trend: "+10.3%", positive: true, route: "/orders" },
-                { label: "AVG ORDER VALUE", value: "₹364", prev: "₹381", trend: "-4.4%", positive: false, route: "/orders" },
-                { label: "GROSS MARGIN", value: kpiData?.netMargin?.value || "68.4%", prev: "67.2%", trend: kpiData?.netMargin?.change || "+1.2%", positive: kpiData?.netMargin?.isPositive ?? true, route: "/performance" },
+                {
+                  label: "NET REVENUE",
+                  value: kpiData?.totalRevenue?.value || (realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) > 0 ? `₹${realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0).toLocaleString()}` : "₹0"),
+                  prev: kpiData?.totalRevenue?.prev || "₹0",
+                  trend: kpiData?.totalRevenue?.change || "0%",
+                  positive: kpiData?.totalRevenue?.isPositive ?? true,
+                  route: "/performance"
+                },
+                {
+                  label: "ACTIVE ORDERS",
+                  value: `${activeStats.activeCount}`,
+                  prev: "0",
+                  trend: activeStats.activeCount > 0 ? `+${activeStats.activeCount}` : "0%",
+                  positive: true,
+                  route: "/orders"
+                },
+                {
+                  label: "AVG ORDER VALUE",
+                  value: kpiData?.avgOrderValue?.value || (realOrders.length > 0 ? `₹${Math.round(realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) / realOrders.length)}` : "₹0"),
+                  prev: "₹0",
+                  trend: kpiData?.avgOrderValue?.change || "0%",
+                  positive: kpiData?.avgOrderValue?.isPositive ?? true,
+                  route: "/orders"
+                },
+                {
+                  label: "GROSS MARGIN",
+                  value: kpiData?.netMargin?.value || "0%",
+                  prev: "0%",
+                  trend: kpiData?.netMargin?.change || "0%",
+                  positive: kpiData?.netMargin?.isPositive ?? true,
+                  route: "/performance"
+                },
               ].map((kpi, idx) => (
                 <div 
                   key={idx} 
@@ -579,34 +563,41 @@ export default function MasterDashboardPage(props?: PageProps) {
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border border-slate-200/70 flex-1">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-semibold tracking-wider">
-                      <tr>
-                        <th className="px-3.5 py-2.5">Ticket #</th>
-                        <th className="px-3.5 py-2.5">Location</th>
-                        <th className="px-3.5 py-2.5">Status</th>
-                        <th className="px-3.5 py-2.5 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {activeOrdersList.slice(0, 4).map((row: any) => (
-                        <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-3.5 py-2.5 font-mono font-bold text-slate-800 text-xs">{row.ticket}</td>
-                          <td className="px-3.5 py-2.5 font-semibold text-slate-700">{row.source}: {row.tableNo}</td>
-                          <td className="px-3.5 py-2.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              row.status === "PREPARING" ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                              row.status === "SENT_TO_KITCHEN" ? "bg-amber-50 text-amber-800 border border-amber-200" :
-                              "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            }`}>
-                              {row.status.replace(/_/g, " ")}
-                            </span>
-                          </td>
-                          <td className="px-3.5 py-2.5 text-right font-bold text-slate-800">₹{row.totalAmount.toLocaleString()}</td>
+                  {activeOrdersList.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 flex flex-col items-center justify-center">
+                      <Activity className="h-6 w-6 text-slate-300 mb-1" />
+                      No active orders right now.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-semibold tracking-wider">
+                        <tr>
+                          <th className="px-3.5 py-2.5">Ticket #</th>
+                          <th className="px-3.5 py-2.5">Location</th>
+                          <th className="px-3.5 py-2.5">Status</th>
+                          <th className="px-3.5 py-2.5 text-right">Amount</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {activeOrdersList.slice(0, 4).map((row: any) => (
+                          <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="px-3.5 py-2.5 font-mono font-bold text-slate-800 text-xs">{row.ticket}</td>
+                            <td className="px-3.5 py-2.5 font-semibold text-slate-700">{row.source}: {row.tableNo}</td>
+                            <td className="px-3.5 py-2.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                row.status === "PREPARING" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                                row.status === "SENT_TO_KITCHEN" ? "bg-amber-50 text-amber-800 border border-amber-200" :
+                                "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              }`}>
+                                {row.status.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-bold text-slate-800">₹{row.totalAmount.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </section>
 
@@ -637,42 +628,49 @@ export default function MasterDashboardPage(props?: PageProps) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-                  {managersAndKitchenStaff.slice(0, 4).map((staff: any) => {
-                    const initials = getInitials(staff.name);
-                    const pfpStyle = getRoleAvatarStyle(staff.role);
-                    return (
-                      <div
-                        key={staff.id}
-                        onClick={() => router.push("/workforce")}
-                        className="p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-all cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`h-8 w-8 rounded-full ${pfpStyle} text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
-                            {initials}
+                  {managersAndKitchenStaff.length === 0 ? (
+                    <div className="col-span-2 py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center">
+                      <Users className="h-6 w-6 text-slate-300 mb-1" />
+                      No staff members registered for this branch yet.
+                    </div>
+                  ) : (
+                    managersAndKitchenStaff.slice(0, 4).map((staff: any) => {
+                      const initials = getInitials(staff.name);
+                      const pfpStyle = getRoleAvatarStyle(staff.role);
+                      return (
+                        <div
+                          key={staff.id}
+                          onClick={() => router.push("/workforce")}
+                          className="p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-all cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`h-8 w-8 rounded-full ${pfpStyle} text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-800 truncate">{staff.name}</div>
+                              <div className="text-[10px] text-slate-500 font-medium truncate">{staff.role}</div>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-800 truncate">{staff.name}</div>
-                            <div className="text-[10px] text-slate-500 font-medium truncate">{staff.role}</div>
-                          </div>
-                        </div>
 
-                        <div className="flex flex-col items-end shrink-0">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                              staff.status === "ON_SHIFT"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : staff.status === "ON_LEAVE"
-                                ? "bg-rose-100 text-rose-800"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {staff.status.replace("_", " ")}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400 mt-0.5">{staff.hours}</span>
+                          <div className="flex flex-col items-end shrink-0">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                                staff.status === "ON_SHIFT"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : staff.status === "ON_LEAVE"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {staff.status.replace("_", " ")}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 mt-0.5">{staff.hours}</span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </section>
 
