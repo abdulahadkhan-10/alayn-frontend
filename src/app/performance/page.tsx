@@ -55,8 +55,8 @@ export default function PerformancePage() {
             </div>
           </div>
 
-          {/* 5-Column KPI Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          {/* 3-Column KPI Cards Grid (Real Data Only) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
             <PerformanceMetricCard 
               title="Net Sales"
               value={data.kpis.netSales.value}
@@ -75,30 +75,13 @@ export default function PerformancePage() {
               trend={data.kpis.avgOrderValue.trend}
               trendType={data.kpis.avgOrderValue.type}
             />
-            <PerformanceMetricCard 
-              title="Sales vs Forecast"
-              value={data.kpis.salesVsForecast.value}
-              trend={data.kpis.salesVsForecast.trend}
-              trendType={data.kpis.salesVsForecast.type}
-            />
-            <PerformanceMetricCard 
-              title="Sales vs LY"
-              value={data.kpis.salesVsLy.value}
-              trend={data.kpis.salesVsLy.trend}
-              trendType={data.kpis.salesVsLy.type}
-            />
           </div>
 
-          {/* Row 1: Chart (2/3 width) and Drivers (1/3 width) */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-            <div className="xl:col-span-2 flex flex-col">
-              <PerformanceRevenueChart 
-                chartData={data.chart}
-              />
-            </div>
-            <div className="flex flex-col">
-              <PerformanceDrivers />
-            </div>
+          {/* Row 1: Chart (Full Width) */}
+          <div className="mb-6">
+            <PerformanceRevenueChart 
+              chartData={data.chart}
+            />
           </div>
 
           {/* Row 2: Location Performance Table (Full width) */}
