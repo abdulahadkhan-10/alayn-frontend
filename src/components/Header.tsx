@@ -53,20 +53,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const initial = mounted && user?.name ? user.name.charAt(0).toUpperCase() : "O";
   const isLoadingOutlets = !mounted || (isAuthenticated && branchesLoading && branches.length === 0);
+  const isCaptiveOnboarding = mounted && isOwner && !isDemo && !branchesLoading && branches.length === 0;
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       {/* Mobile Menu */}
-      <button
-        type="button"
-        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-        onClick={onMenuClick}
-      >
-        <span className="sr-only">Open sidebar</span>
-        <Menu className="h-6 w-6" aria-hidden="true" />
-      </button>
+      {!isCaptiveOnboarding && (
+        <button
+          type="button"
+          className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+          onClick={onMenuClick}
+        >
+          <span className="sr-only">Open sidebar</span>
+          <Menu className="h-6 w-6" aria-hidden="true" />
+        </button>
+      )}
 
-      <div className="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true" />
+      {!isCaptiveOnboarding && (
+        <div className="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true" />
+      )}
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         {/* Left: Logo + Outlet Selector */}

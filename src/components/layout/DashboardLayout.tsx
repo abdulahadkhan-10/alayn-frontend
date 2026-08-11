@@ -4,12 +4,17 @@ import React, { useState, useCallback, useEffect, memo } from "react";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import AuthGuard from "../auth/AuthGuard";
+import { useBranch } from "@/lib/BranchContext";
+import { useAppSelector } from "@/redux/store/hooks";
 
 const EXPANDED = 244;
 const COLLAPSED = 72;
 const LS_KEY = "alayn_sidebar_collapsed";
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+  const { branches, loading: branchesLoading, isDemo } = useBranch();
+  const user = useAppSelector((state) => state.auth.user);
+  
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Always start false (matches SSR), then sync from localStorage after mount
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -34,13 +39,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const closeMobileSidebar = useCallback(() => setMobileSidebarOpen(false), []);
   const openMobileSidebar = useCallback(() => setMobileSidebarOpen(true), []);
 
+  const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
+  const isCaptiveOnboarding = mounted && isOwner && !isDemo && !branchesLoading && branches.length === 0;
+
   // Before mount: always render expanded width (matches SSR)
   const sidebarW = mounted ? (isCollapsed ? COLLAPSED : EXPANDED) : EXPANDED;
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F4F7F9]">
       {/* ─── Mobile backdrop ─────────────────── */}
-      {mobileSidebarOpen && (
+      {mobileSidebarOpen && !isCaptiveOnboarding && (
         <div
           className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-260 ease-out"
           onClick={closeMobileSidebar}
@@ -49,28 +57,30 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ─── Sidebar wrapper ───────────────────────────────────────────── */}
-      <div
-        suppressHydrationWarning
-        className={[
-          "fixed inset-y-0 left-0 z-30",
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:static lg:translate-x-0 lg:inset-auto",
-          "shrink-0 overflow-hidden",
-        ].join(" ")}
-        style={{
-          width: sidebarW,
-          contain: "layout style",
-          willChange: "width, transform",
-          transition: mounted
-            ? "width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)"
-            : "none",
-        }}
-      >
-        <Sidebar
-          isCollapsed={isCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-        />
-      </div>
+      {!isCaptiveOnboarding && (
+        <div
+          suppressHydrationWarning
+          className={[
+            "fixed inset-y-0 left-0 z-30",
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
+            "lg:static lg:translate-x-0 lg:inset-auto",
+            "shrink-0 overflow-hidden",
+          ].join(" ")}
+          style={{
+            width: sidebarW,
+            contain: "layout style",
+            willChange: "width, transform",
+            transition: mounted
+              ? "width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+              : "none",
+          }}
+        >
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        </div>
+      )}
 
       {/* ─── Main content ──────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
