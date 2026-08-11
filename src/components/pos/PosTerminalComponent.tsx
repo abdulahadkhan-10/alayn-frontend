@@ -1077,7 +1077,7 @@ export default function PosTerminalComponent() {
           {/* Payment & Summary Footer */}
           <div className="p-4 border-t border-gray-200 bg-gray-50/80 space-y-3 shrink-0">
             {/* Quick Discount Trigger */}
-            {cart.length > 0 && !isAllOutletsSelected && (
+            {/* {cart.length > 0 && !isAllOutletsSelected && (
               <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                 <span className="text-[11px] font-bold text-gray-500">Quick Adjustments</span>
                 {discount === 0 ? (
@@ -1104,7 +1104,7 @@ export default function PosTerminalComponent() {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Financial breakdown */}
             <div className="space-y-1.5 text-xs">
