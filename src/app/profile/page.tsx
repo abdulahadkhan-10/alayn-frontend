@@ -194,13 +194,7 @@ export default function ProfilePage() {
           {/* ─── Main Profile Card (Matching Design Layout) ───────────────── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             
-            {/* Top Soft Gradient Header Banner */}
-            <div className="h-32 bg-gradient-to-r from-[#1B2A4A]/10 via-[#F4F5F8] to-[#D3232A]/10 relative">
-              <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-full text-[#1B2A4A] text-xs font-bold border border-white/40 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-[#D3232A]" />
-                Alayn Operating System
-              </div>
-            </div>
+         
 
             {/* Profile Content Container */}
             <div className="px-6 sm:px-10 pb-10 relative">
