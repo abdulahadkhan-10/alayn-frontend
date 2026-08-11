@@ -192,7 +192,7 @@ export default function ProfilePage() {
           )}
 
           {/* ─── Main Profile Card (Matching Design Layout) ───────────────── */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-visible mt-8">
             
          
 
