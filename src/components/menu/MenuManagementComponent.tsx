@@ -8,6 +8,7 @@ import {
   useCreateMenuItemMutation,
   useUpdateMenuItemMutation,
   useToggleMenuItemStatusMutation,
+  useDeleteMenuItemMutation,
   MenuItem,
 } from "@/redux/slices/menuApiSlice";
 import {
@@ -26,6 +27,7 @@ import {
   X,
   AlertCircle,
   Leaf,
+  Trash2,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
@@ -188,6 +190,20 @@ export default function MenuManagementComponent() {
   const [createMenuItem, { isLoading: isCreatingItem }] = useCreateMenuItemMutation();
   const [updateMenuItem, { isLoading: isUpdatingItem }] = useUpdateMenuItemMutation();
   const [toggleStatus] = useToggleMenuItemStatusMutation();
+  const [deleteMenuItem, { isLoading: isDeletingItem }] = useDeleteMenuItemMutation();
+
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
+
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    try {
+      await deleteMenuItem({ id: itemToDelete.id, outletId: currentOutletId || undefined }).unwrap();
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      alert("Failed to delete item.");
+    }
+  };
 
   // File upload helper
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: "ITEM" | "CATEGORY" | "EDIT_ITEM") => {
@@ -1045,13 +1061,22 @@ export default function MenuManagementComponent() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleOpenEditModal(item, outletIds, allRelatedItems)}
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#D3232A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
-                        >
-                          <Pencil className="w-3.5 h-3.5 text-gray-500" />
-                          <span>Edit</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenEditModal(item, outletIds, allRelatedItems)}
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#1B2A4A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => setItemToDelete(item)}
+                            className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-white hover:bg-rose-500 hover:border-rose-500 transition text-xs font-semibold inline-flex items-center"
+                            title="Delete Item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1716,6 +1741,51 @@ export default function MenuManagementComponent() {
                   }`}
                 >
                   Yes, {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} for All Outlets
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {itemToDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+            <div className="bg-white border border-gray-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
+                  <Trash2 className="w-6 h-6 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900 mb-1">Delete Menu Item</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Are you sure you want to delete <strong>"{itemToDelete.name}"</strong>? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(null)}
+                  disabled={isDeletingItem}
+                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteItem}
+                  disabled={isDeletingItem}
+                  className="flex-1 py-2.5 text-white text-sm font-black rounded-xl shadow-md bg-rose-600 hover:bg-rose-700 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {isDeletingItem ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Yes, Delete"
+                  )}
                 </button>
               </div>
             </div>

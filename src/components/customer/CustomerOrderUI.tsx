@@ -95,7 +95,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   }, [categories, search, dietaryFilter]);
 
   // If search is active, we might want to show all categories that match, bypassing the left sidebar selection
-  const isSearchActive = search.trim().length > 0 || dietaryFilter !== "ALL";
+  const isSearchActive = search.trim().length > 0;
   
   const activeCategoryData = isSearchActive 
     ? displayCategories 
@@ -146,11 +146,9 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       <header className="z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shrink-0">
         <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
           <div className="flex items-center gap-2.5">
-            <div className="bg-[#1B2A4A] p-1.5 rounded-lg">
-              <img src="/justlogo.png" alt="Logo" className="h-5 w-5 object-contain brightness-0 invert" />
-            </div>
+            <img src="/justlogo.png" alt="Alayn Logo" className="h-7 w-7 object-contain drop-shadow-sm" />
             <div>
-              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">Menu</h1>
+              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">Alayn Dining</h1>
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-gray-100/80 px-2.5 py-1 rounded-full border border-gray-200">
@@ -159,6 +157,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           </div>
         </div>
       </header>
+
+      {/* ── Banner ── */}
+      <div className="bg-[#1B2A4A]/5 border-b border-[#1B2A4A]/10 px-4 py-2 text-center shrink-0">
+        <p className="text-[11px] font-bold text-[#1B2A4A]">
+          📖 Browse the digital menu & ask your waiter to order!
+        </p>
+      </div>
 
       {/* ── Search & Filters Bar ── */}
       <div className="z-20 bg-white border-b border-gray-100 px-3 py-3 shrink-0 shadow-sm">

@@ -91,6 +91,16 @@ export const menuApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuItems"],
     }),
+
+    deleteMenuItem: builder.mutation<{ success: boolean; message?: string }, { id: string; outletId?: string }>({
+      query: ({ id, outletId }) => ({
+        url: `/menu/items/${id}`,
+        method: "DELETE",
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
   }),
 });
 
@@ -102,4 +112,5 @@ export const {
   useCreateMenuItemMutation,
   useUpdateMenuItemMutation,
   useToggleMenuItemStatusMutation,
+  useDeleteMenuItemMutation,
 } = menuApi;
