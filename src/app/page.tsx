@@ -6,6 +6,7 @@ import SceneProgress from "@/components/landing/SceneProgress";
 import SmoothScroll from "@/components/landing/motion/SmoothScroll";
 import { GlobalFieldProvider } from "@/components/landing/motion/GlobalField";
 import HeroScene from "@/components/landing/scenes/HeroScene";
+import TrustedByScene from "@/components/landing/scenes/TrustedByScene";
 
 // Dynamic imports for below-the-fold scenes to enable code splitting
 const ChaosScene = dynamic(() => import("@/components/landing/scenes/ChaosScene"));
@@ -23,6 +24,7 @@ export default function LandingPage() {
           <LandingNav />
           <SceneProgress />
           <HeroScene />
+          <TrustedByScene />
           <ChaosScene />
           <ConvergenceScene />
           <RunningScene />

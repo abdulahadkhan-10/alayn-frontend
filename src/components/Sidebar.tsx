@@ -1,6 +1,7 @@
 "use client";
 
 import React, { memo, useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +28,7 @@ import {
   PanelLeftOpen,
   QrCode,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
@@ -208,7 +210,15 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   const dispatch = useAppDispatch();
   const [logoutApi] = useLogoutMutation();
 
-  const handleLogout = async () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await logoutApi(undefined).unwrap();
     } catch {
@@ -349,7 +359,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
       >
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           title={isCollapsed ? "Log Out" : undefined}
           aria-label="Log Out"
           className={cn(
@@ -370,6 +380,54 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
           </span>
         </button>
       </div>
+
+      {/* ── Logout Confirmation Modal ───────── */}
+      {mounted &&
+        showLogoutModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-100 mx-4 animate-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-[#D3232A]">
+                  <LogOut className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Sign Out</h3>
+                  <p className="text-sm text-gray-500">Are you sure you want to sign out?</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mb-6">
+                You will need to log back in to access the Alayn Operating System. Any unsaved changes on your current screen might be lost.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={isLoggingOut}
+                  onClick={() => setShowLogoutModal(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isLoggingOut}
+                  onClick={confirmLogout}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] transition-colors shadow-sm disabled:opacity-75"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Signing Out...
+                    </>
+                  ) : (
+                    "Yes, Sign Out"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </aside>
   );
 }
