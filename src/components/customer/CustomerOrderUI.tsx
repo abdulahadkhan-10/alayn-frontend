@@ -1,19 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Utensils,
   Search,
   AlertCircle,
-  // Bell, // Call Waiter — commented out for now
   Leaf,
   X,
+  ChevronRight,
+  Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   fetchTableMenu,
   CustomerMenuCategory,
-  CustomerMenuItem,
   resolveUploadUrl,
 } from "@/lib/api";
 
@@ -26,7 +26,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG" | "VEGAN">("ALL");
-  // const [callWaiterNotified, setCallWaiterNotified] = useState(false); // Call Waiter — commented out for now
 
   // Image lightbox
   const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
@@ -43,6 +42,9 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       const res = await fetchTableMenu(token);
       if (res.ok && res.categories) {
         setCategories(res.categories);
+        if (res.categories.length > 0) {
+          setSelectedCategory(res.categories[0].id); // Select first category by default instead of ALL
+        }
       } else {
         setError(res.error || "Failed to load table menu. Token may be invalid or expired.");
       }
@@ -89,106 +91,103 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         });
         return { ...cat, menuItems: filteredItems };
       })
-      .filter((cat) => {
-        if (selectedCategory !== "ALL" && cat.id !== selectedCategory) return false;
-        return cat.menuItems.length > 0;
-      });
-  }, [categories, selectedCategory, search, dietaryFilter]);
+      .filter((cat) => cat.menuItems.length > 0);
+  }, [categories, search, dietaryFilter]);
+
+  // If search is active, we might want to show all categories that match, bypassing the left sidebar selection
+  const isSearchActive = search.trim().length > 0 || dietaryFilter !== "ALL";
+  
+  const activeCategoryData = isSearchActive 
+    ? displayCategories 
+    : displayCategories.filter((cat) => cat.id === selectedCategory);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-        <div className="p-4 rounded-full bg-red-50 text-[#D3232A] animate-bounce mb-4">
-          <Utensils className="h-8 w-8" />
+      <div className="min-h-screen bg-gray-50 flex flex-col pt-12 items-center px-6">
+        <div className="w-full max-w-md space-y-4">
+          <div className="h-12 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="flex gap-4">
+             <div className="w-1/3 space-y-3 pt-4">
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse" />
+             </div>
+             <div className="w-2/3 space-y-4 pt-4">
+                <div className="h-24 bg-gray-200 rounded-2xl animate-pulse" />
+                <div className="h-24 bg-gray-200 rounded-2xl animate-pulse" />
+                <div className="h-24 bg-gray-200 rounded-2xl animate-pulse" />
+             </div>
+          </div>
         </div>
-        <p className="text-[#D3232A] font-bold text-lg animate-pulse">Loading Digital Menu...</p>
-        <p className="text-gray-400 text-xs mt-1">Setting up your dining experience</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="p-4 rounded-full bg-red-50 text-red-500 mb-4">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="p-4 rounded-full bg-red-50 text-red-500 mb-4 shadow-sm border border-red-100">
           <AlertCircle className="h-10 w-10" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">QR Code Issue</h2>
+        <h2 className="text-2xl font-black text-[#1B2A4A] mb-2 tracking-tight">Oops!</h2>
         <p className="text-gray-500 text-sm max-w-sm mb-6">{error}</p>
-        <p className="text-xs text-gray-400">
-          Please ask restaurant staff to check your table QR code sticker.
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+          Please ask restaurant staff for assistance.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-[#1B2A4A] pb-28" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Google Font */}
+    <div className="min-h-[100dvh] h-[100dvh] bg-white flex flex-col overflow-hidden text-[#1B2A4A]" style={{ fontFamily: "'Inter', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');`}</style>
 
-      {/* ── Top Header ──────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 bg-white shadow-sm border-b border-gray-100 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/justlogo.png" alt="Alayn Logo" className="h-10 w-10 object-contain drop-shadow-sm" />
-          <div>
-            <h1 className="text-base font-black text-[#1B2A4A] leading-none tracking-tight">Alayn Dining</h1>
-            <p className="text-[11px] text-emerald-600 font-semibold leading-none mt-1 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-              Digital Menu • View Only
-            </p>
+      {/* ── Premium Header ── */}
+      <header className="z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shrink-0">
+        <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[#1B2A4A] p-1.5 rounded-lg">
+              <img src="/justlogo.png" alt="Logo" className="h-5 w-5 object-contain brightness-0 invert" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">Menu</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-gray-100/80 px-2.5 py-1 rounded-full border border-gray-200">
+             <Info className="w-3.5 h-3.5 text-gray-500" />
+             <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">View Only</span>
           </div>
         </div>
-
-        {/* Call Waiter button — commented out for now */}
-        {/* <button
-          onClick={handleCallWaiter}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#D3232A] hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-200 transition-all active:scale-95"
-        >
-          <Bell className="h-3.5 w-3.5" />
-          <span>Call Waiter</span>
-        </button> */}
       </header>
 
-      {/* Call Waiter notification toast — commented out for now */}
-      {/* {callWaiterNotified && (
-        <div className="fixed top-[72px] inset-x-4 z-50 max-w-md mx-auto bg-emerald-500 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-top-2">
-          <span>🔔 Waiter notified! They&apos;ll be with you shortly.</span>
-        </div>
-      )} */}
-
-      {/* ── Banner ─────────────────────────────────────────────────────── */}
-      <div className="bg-[#1B2A4A]/5 border-b border-[#1B2A4A]/10 px-4 py-2.5 text-center">
-        <p className="text-xs font-semibold text-[#1B2A4A]">
-          📖 Browse the menu &amp; ask your waiter to place an order
-        </p>
-      </div>
-
-      {/* ── Main Content ───────────────────────────────────────────────── */}
-      <main className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
-
-        {/* Search & Dietary Filter */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+      {/* ── Search & Filters Bar ── */}
+      <div className="z-20 bg-white border-b border-gray-100 px-3 py-3 shrink-0 shadow-sm">
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-3">
+          <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search dishes or drinks..."
+              placeholder="Search dishes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#1B2A4A] placeholder-gray-400 focus:outline-none focus:border-[#D3232A] focus:ring-2 focus:ring-[#D3232A]/10 transition"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-[#1B2A4A] placeholder-gray-400 focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition-all"
             />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {(hasNonVegItems || hasVeganItems) && (
-            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shrink-0 self-start sm:self-auto">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
               <button
                 onClick={() => setDietaryFilter("ALL")}
                 className={cn(
-                  "px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
                   dietaryFilter === "ALL"
-                    ? "bg-gray-100 text-[#1B2A4A]"
-                    : "text-gray-500 hover:text-gray-800"
+                    ? "bg-[#1B2A4A] text-white"
+                    : "bg-gray-50 text-gray-600 border border-gray-200"
                 )}
               >
                 All
@@ -197,13 +196,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("VEG")}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
                     dietaryFilter === "VEG"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "text-gray-500 hover:text-gray-800"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-gray-50 text-gray-600 border border-gray-200"
                   )}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", dietaryFilter === "VEG" ? "bg-white" : "bg-emerald-500")} />
                   Veg
                 </button>
               )}
@@ -211,13 +210,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("NON_VEG")}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
                     dietaryFilter === "NON_VEG"
-                      ? "bg-rose-50 text-rose-700 border border-rose-200"
-                      : "text-gray-500 hover:text-gray-800"
+                      ? "bg-rose-600 text-white"
+                      : "bg-gray-50 text-gray-600 border border-gray-200"
                   )}
                 >
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className={cn("w-1.5 h-1.5 rounded-full", dietaryFilter === "NON_VEG" ? "bg-white" : "bg-rose-500")} />
                   Non-Veg
                 </button>
               )}
@@ -225,220 +224,165 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("VEGAN")}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
                     dietaryFilter === "VEGAN"
-                      ? "bg-teal-50 text-teal-700 border border-teal-200"
-                      : "text-gray-500 hover:text-gray-800"
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-50 text-gray-600 border border-gray-200"
                   )}
                 >
-                  <Leaf className="w-3 h-3 text-teal-600" />
+                  <Leaf className="w-3 h-3" />
                   Vegan
                 </button>
               )}
             </div>
           )}
-
         </div>
+      </div>
 
-        {/* Category horizontal scrolling bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4">
-          <button
-            onClick={() => setSelectedCategory("ALL")}
-            className={cn(
-              "px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 border",
-              selectedCategory === "ALL"
-                ? "bg-[#D3232A] text-white border-[#D3232A] shadow-md shadow-red-200"
-                : "bg-white text-gray-500 border-gray-200 hover:border-[#D3232A] hover:text-[#D3232A]"
-            )}
-          >
-            All Items
-          </button>
+      {/* ── Dual-Scroll Main Area ── */}
+      <main className="flex flex-1 overflow-hidden max-w-4xl mx-auto w-full">
+        
+        {/* Left Sidebar: Categories (Hidden if searching) */}
+        {!isSearchActive && (
+          <aside className="w-[90px] sm:w-[120px] shrink-0 bg-gray-50/50 border-r border-gray-100 overflow-y-auto scrollbar-none py-2">
+            {displayCategories.map((cat) => {
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={cn(
+                    "w-full flex flex-col items-center justify-center py-4 px-2 gap-1.5 transition-colors text-center relative",
+                    isActive ? "bg-white" : "hover:bg-gray-100"
+                  )}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D3232A] rounded-r-md" />
+                  )}
+                  {/* Subtle icon replacement based on category name could go here. For now, text focused. */}
+                  <span className={cn(
+                    "text-[10px] sm:text-xs leading-tight transition-all",
+                    isActive ? "font-black text-[#D3232A]" : "font-semibold text-gray-500"
+                  )}>
+                    {cat.name}
+                  </span>
+                </button>
+              );
+            })}
+          </aside>
+        )}
 
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={cn(
-                "px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 border",
-                selectedCategory === cat.id
-                  ? "bg-[#D3232A] text-white border-[#D3232A] shadow-md shadow-red-200"
-                  : "bg-white text-gray-500 border-gray-200 hover:border-[#D3232A] hover:text-[#D3232A]"
-              )}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
+        {/* Right Content Area: Items */}
+        <section className="flex-1 overflow-y-auto bg-gray-50/30 px-3 py-4 sm:p-5 scrollbar-none scroll-smooth">
+          {activeCategoryData.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+              <Utensils className="h-10 w-10 text-gray-200 mb-3" />
+              <p className="text-sm font-bold text-gray-400">No items found</p>
+            </div>
+          ) : (
+            <div className="space-y-6 pb-20">
+              {activeCategoryData.map((cat) => (
+                <div key={cat.id} className="space-y-3">
+                  {isSearchActive && (
+                    <h2 className="text-lg font-black text-[#1B2A4A] sticky top-0 bg-white/90 backdrop-blur py-2 z-10">
+                      {cat.name}
+                    </h2>
+                  )}
 
-        {/* Menu Categories & Items List */}
-        {displayCategories.length === 0 ? (
-          <div className="py-20 text-center text-gray-400">
-            <Utensils className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-semibold text-gray-500">No menu items found</p>
-            <p className="text-xs text-gray-400 mt-1">Try resetting your search or veg filter</p>
-          </div>
-        ) : (
-          displayCategories.map((cat) => (
-            <section key={cat.id} className="space-y-3 pt-2">
-              {/* Category Header */}
-              <div className="flex items-center justify-between pb-2 border-b-2 border-[#1B2A4A]/10">
-                <h2 className="text-sm font-black text-[#1B2A4A] uppercase tracking-wider">
-                  {cat.name}
-                </h2>
-                <span className="text-xs text-[#1B2A4A]/50 font-semibold bg-[#1B2A4A]/5 px-2 py-0.5 rounded-full">
-                  {cat.menuItems.length} items
-                </span>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {cat.menuItems.map((item) => {
+                      const priceRupees = (item.pricePaise / 100).toFixed(2);
+                      const imgUrl = resolveUploadUrl(item.imageUrl);
+                      const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
 
-              {/* Items Grid */}
-              <div className="grid grid-cols-1 gap-3">
-                {cat.menuItems.map((item) => {
-                  const priceRupees = (item.pricePaise / 100).toFixed(2);
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-stretch bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all overflow-hidden"
-                    >
-                      {/* Dish Image — shown only if imageUrl exists */}
-                      {(() => {
-                        const imgUrl = resolveUploadUrl(item.imageUrl);
-                        return imgUrl ? (
-                          <div className="shrink-0 w-[110px] relative overflow-hidden bg-gray-100 group">
-                            <img
-                              src={imgUrl}
-                              alt={item.name}
-                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                              onClick={() => setLightboxImage({ url: imgUrl, name: item.name })}
-                              title="Tap to view full image"
-                              onError={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                img.style.display = "none";
-                                const parent = img.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="absolute inset-0 flex items-center justify-center"><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='#e5e7eb' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6l3 3 4-4 4 4 3-3'/><rect x='2' y='3' width='20' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/></svg></div>`;
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          /* Placeholder when no image */
-                          <div className="shrink-0 w-[110px] relative bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Utensils className="w-8 h-8 text-gray-200" />
+                      return (
+                        <div
+                          key={item.id}
+                          className="group bg-white rounded-2xl border border-gray-100 p-3 shadow-xs hover:shadow-md hover:border-gray-200 transition-all flex gap-3 overflow-hidden"
+                        >
+                          {/* Info Side */}
+                          <div className="flex-1 flex flex-col min-w-0 justify-between">
+                            <div>
+                              <div className="flex items-start gap-1.5 mb-1">
+                                 <span
+                                    className={cn(
+                                      "mt-[3px] shrink-0 h-3 w-3 rounded-sm border-[1.5px] flex items-center justify-center",
+                                      dType === "VEGAN" ? "border-teal-600" : dType === "VEG" ? "border-emerald-500" : "border-rose-500"
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "h-1.5 w-1.5 rounded-full",
+                                        dType === "VEGAN" ? "bg-teal-600" : dType === "VEG" ? "bg-emerald-500" : "bg-rose-500"
+                                      )}
+                                    />
+                                  </span>
+                                <h3 className="text-[13px] sm:text-sm font-bold text-[#1B2A4A] leading-snug line-clamp-2">
+                                  {item.name}
+                                </h3>
+                              </div>
+                              
+                              <p className="text-[15px] font-black text-[#1B2A4A] tracking-tight mb-1.5">
+                                ₹{priceRupees}
+                              </p>
                             </div>
-                          </div>
-                        );
-                      })()}
 
-                      {/* Item Info */}
-                      <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
-                        <div className="flex items-start gap-2">
-                          {/* Dietary dot */}
-                          {(() => {
-                            const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
-                            return (
-                              <span
-                                className={cn(
-                                  "mt-0.5 shrink-0 h-4 w-4 rounded-sm border-2 flex items-center justify-center",
-                                  dType === "VEGAN"
-                                    ? "border-teal-600"
-                                    : dType === "VEG"
-                                      ? "border-emerald-500"
-                                      : "border-[#D3232A]"
-                                )}
-                                title={
-                                  dType === "VEGAN"
-                                    ? "Vegan (Plant-Based)"
-                                    : dType === "VEG"
-                                      ? "Vegetarian"
-                                      : "Non-Vegetarian"
-                                }
-                              >
-                                <span
-                                  className={cn(
-                                    "h-2 w-2 rounded-full",
-                                    dType === "VEGAN"
-                                      ? "bg-teal-600"
-                                      : dType === "VEG"
-                                        ? "bg-emerald-500"
-                                        : "bg-[#D3232A]"
-                                  )}
-                                />
-                              </span>
-                            );
-                          })()}
-
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-bold text-[#1B2A4A] leading-tight line-clamp-1">
-                              {item.name}
-                            </h3>
                             {item.description && (
-                              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                              <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
                                 {item.description}
                               </p>
                             )}
                           </div>
-                        </div>
 
-                        {/* Price */}
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-                          <p className="text-base font-black text-[#D3232A] tracking-tight">
-                            ₹{priceRupees}
-                          </p>
-                          {(() => {
-                            const dType = item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
-                            return (
-                              <span
-                                className={cn(
-                                  "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1",
-                                  dType === "VEGAN"
-                                    ? "bg-teal-50 text-teal-700 border border-teal-200"
-                                    : dType === "VEG"
-                                      ? "bg-emerald-50 text-emerald-600"
-                                      : "bg-red-50 text-red-500"
-                                )}
-                              >
-                                {dType === "VEGAN" && <Leaf className="w-2.5 h-2.5 text-teal-600" />}
-                                {dType === "VEGAN" ? "Vegan" : dType === "VEG" ? "Veg" : "Non-Veg"}
-                              </span>
-                            );
-                          })()}
+                          {/* Image Side (Compact Square) */}
+                          {imgUrl && (
+                            <div 
+                              className="shrink-0 w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden relative bg-gray-50 cursor-pointer shadow-sm border border-gray-100"
+                              onClick={() => setLightboxImage({ url: imgUrl, name: item.name })}
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))
-        )}
-
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
-      {/* ── Image Lightbox ──────────────────────────────────────────────── */}
+      {/* ── Image Lightbox ── */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setLightboxImage(null)}
         >
           <div
-            className="relative max-w-sm w-full bg-white rounded-2xl overflow-hidden shadow-2xl"
+            className="relative max-w-sm w-full bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={lightboxImage.url}
-              alt={lightboxImage.name}
-              className="w-full object-cover max-h-72"
-            />
-            <div className="px-4 py-3 flex items-center justify-between">
-              <p className="text-sm font-bold text-gray-800">{lightboxImage.name}</p>
+            <div className="relative">
+              <img
+                src={lightboxImage.url}
+                alt={lightboxImage.name}
+                className="w-full object-cover max-h-[60vh]"
+              />
               <button
                 onClick={() => setLightboxImage(null)}
-                className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition"
+                className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition"
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+            <div className="px-5 py-4 bg-white">
+              <p className="text-base font-black text-[#1B2A4A]">{lightboxImage.name}</p>
             </div>
           </div>
         </div>
