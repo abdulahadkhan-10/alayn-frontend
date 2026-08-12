@@ -47,16 +47,7 @@ export default function NotificationDropdown() {
 
   const rawNotifications = notificationsData?.data || [];
   const notifications = React.useMemo(() => {
-    const unhidden = rawNotifications.filter((n) => !hiddenIds.has(n.id));
-    const seenKeys = new Set<string>();
-    return unhidden.filter((n) => {
-      const key = n.entityType && n.entityId
-        ? `${n.entityType}_${n.entityId}`
-        : `${n.title}_${n.message}_${n.createdAt.slice(0, 16)}`;
-      if (seenKeys.has(key)) return false;
-      seenKeys.add(key);
-      return true;
-    });
+    return rawNotifications.filter((n) => !hiddenIds.has(n.id));
   }, [rawNotifications, hiddenIds]);
 
   const rawUnreadCount = unreadCountData?.data?.unreadCount || 0;
@@ -313,7 +304,7 @@ export default function NotificationDropdown() {
             <button
               onClick={() => {
                 setIsOpen(false);
-                router.push("/support");
+                router.push("/notifications");
               }}
               className="w-full py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-900 bg-white hover:bg-gray-50 transition-colors text-center shadow-xs"
             >

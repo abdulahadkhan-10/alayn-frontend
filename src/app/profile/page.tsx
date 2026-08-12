@@ -192,7 +192,7 @@ export default function ProfilePage() {
           )}
 
           {/* ─── Main Profile Card (Matching Design Layout) ───────────────── */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-visible mt-8">
             
          
 
@@ -200,14 +200,14 @@ export default function ProfilePage() {
             <div className="px-6 sm:px-10 pb-10 relative">
 
               {/* User Avatar + Name/Email + Edit Action Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 -mt-12 mb-8">
-                <div className="flex items-center gap-5">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div className="flex items-end gap-5">
                   {/* Round Avatar Container */}
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-md bg-gradient-to-br from-[#1B2A4A] to-[#D3232A] text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shrink-0 tracking-tight">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 -mt-10 sm:-mt-12 rounded-full border-4 border-white shadow-md bg-gradient-to-br from-[#1B2A4A] to-[#D3232A] text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shrink-0 tracking-tight relative z-10">
                     {initials}
                   </div>
                   {/* User Name & Email */}
-                  <div>
+                  <div className="pb-1 sm:pb-2">
                     <h1 className="text-xl sm:text-2xl font-bold text-[#1B2A4A] tracking-tight">
                       {user?.name || "Alexa Rawles"}
                     </h1>
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Right Side Edit Button */}
-                <div className="self-start sm:self-center">
+                <div className="self-start sm:self-auto pb-1 sm:pb-2">
                   {editMode ? (
                     <div className="flex items-center gap-2">
                       <button
