@@ -400,7 +400,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                             </div>
 
                             {item.description && (
-                              <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">
+                              <p className="text-[11px] text-gray-500 leading-relaxed">
                                 {item.description}
                               </p>
                             )}
