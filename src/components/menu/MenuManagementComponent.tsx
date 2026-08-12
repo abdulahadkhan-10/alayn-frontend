@@ -55,6 +55,8 @@ export default function MenuManagementComponent() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [dietaryFilter, setDietaryFilter] = useState<DietaryFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("NAME_ASC");
+  const [showCommonOnly, setShowCommonOnly] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -138,6 +140,12 @@ export default function MenuManagementComponent() {
     });
     return Array.from(map.values());
   }, [rawCategories]);
+
+  const filteredCategories = useMemo(() => {
+    if (!categorySearchQuery.trim()) return categories;
+    const q = categorySearchQuery.trim().toLowerCase();
+    return categories.filter((cat) => cat.name.toLowerCase().includes(q));
+  }, [categories, categorySearchQuery]);
 
   // Category Scrolling
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -310,16 +318,8 @@ export default function MenuManagementComponent() {
   }, [menuItems, searchQuery, statusFilter, activeCategoryIds, dietaryFilter, sortBy]);
 
   // Group processed items by dish name for clean non-redundant rows when viewing All Outlets
-  const displayItems = useMemo(() => {
-    if (!isAllOutletsSelected) {
-      const start = (currentPage - 1) * pageSize;
-      return processedItems.slice(start, start + pageSize).map((item) => ({
-        primaryItem: item,
-        outletIds: item.outletIds && item.outletIds.length > 0 ? item.outletIds : (item.outletId ? [item.outletId] : []),
-        allRelatedItems: [item],
-        isGroupActive: item.isAvailable,
-      }));
-    }
+  const displayItemsGroupedList = useMemo(() => {
+    if (!isAllOutletsSelected) return [];
 
     const map = new Map<string, { primaryItem: MenuItem; outletIds: string[]; allRelatedItems: MenuItem[] }>();
 
@@ -346,20 +346,38 @@ export default function MenuManagementComponent() {
       }
     });
 
-    const grouped = Array.from(map.values()).map((group) => {
+    let grouped = Array.from(map.values()).map((group) => {
       return {
         ...group,
         isGroupActive: group.allRelatedItems.every((i) => i.isAvailable),
       };
     });
 
+    if (showCommonOnly) {
+      grouped = grouped.filter((group) => group.outletIds.length === specificBranches.length);
+    }
+
+    return grouped;
+  }, [isAllOutletsSelected, processedItems, showCommonOnly, specificBranches.length]);
+
+  const displayItems = useMemo(() => {
+    if (!isAllOutletsSelected) {
+      const start = (currentPage - 1) * pageSize;
+      return processedItems.slice(start, start + pageSize).map((item) => ({
+        primaryItem: item,
+        outletIds: item.outletIds && item.outletIds.length > 0 ? item.outletIds : (item.outletId ? [item.outletId] : []),
+        allRelatedItems: [item],
+        isGroupActive: item.isAvailable,
+      }));
+    }
+
     const start = (currentPage - 1) * pageSize;
-    return grouped.slice(start, start + pageSize);
-  }, [isAllOutletsSelected, processedItems, currentPage, pageSize]);
+    return displayItemsGroupedList.slice(start, start + pageSize);
+  }, [isAllOutletsSelected, processedItems, displayItemsGroupedList, currentPage, pageSize]);
 
   // Pagination calculations
   const totalDisplayedItems = isAllOutletsSelected
-    ? new Set(processedItems.map((i) => i.name.trim().toLowerCase())).size
+    ? displayItemsGroupedList.length
     : processedItems.length;
 
   const totalPages = Math.ceil(totalDisplayedItems / pageSize) || 1;
@@ -711,10 +729,22 @@ export default function MenuManagementComponent() {
           </div>
           <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
             <button
-              onClick={() => setIsAddCategoryOpen(true)}
-              className="btn-ghost flex justify-center items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
+              onClick={() => {
+                if (isAllOutletsSelected) {
+                  alert("Please select a specific outlet to manage categories.");
+                  return;
+                }
+                setIsAddCategoryOpen(true);
+              }}
+              disabled={isAllOutletsSelected}
+              className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto ${
+                isAllOutletsSelected
+                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+              }`}
+              title={isAllOutletsSelected ? "Select a specific outlet to add categories" : "Add Category"}
             >
-              <Tag className="w-4 h-4 text-gray-500" />
+              <Tag className={`w-4 h-4 ${isAllOutletsSelected ? "text-gray-400" : "text-gray-500"}`} />
               Add Category
             </button>
             <button
@@ -776,92 +806,50 @@ export default function MenuManagementComponent() {
 
             {/* Controls */}
             <div className="flex flex-wrap items-center gap-3">
-              {/* Status Filter */}
-              <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-200 text-xs font-medium">
-                <button
-                  onClick={() => handleStatusFilterChange("ALL")}
-                  className={`px-3 py-1.5 rounded-md transition ${
-                    statusFilter === "ALL"
-                      ? "bg-white text-[#1B2A4A] font-bold shadow-xs border border-gray-200"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+              {/* Common Items Filter (All Outlets Only) */}
+              {isAllOutletsSelected && (
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-600 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100/50 transition">
+                  <input
+                    type="checkbox"
+                    checked={showCommonOnly}
+                    onChange={(e) => {
+                      setShowCommonOnly(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded text-[#D3232A] focus:ring-[#D3232A] w-3.5 h-3.5 border-gray-300"
+                  />
+                  <span>Common Items (All Outlets)</span>
+                </label>
+              )}
+
+              {/* Status Filter Dropdown */}
+              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
+                <span>Status:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleStatusFilterChange(e.target.value as StatusFilter)}
+                  className="bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer"
                 >
-                  All Status
-                </button>
-                <button
-                  onClick={() => handleStatusFilterChange("ACTIVE")}
-                  className={`px-3 py-1.5 rounded-md transition ${
-                    statusFilter === "ACTIVE"
-                      ? "bg-emerald-500 text-white font-bold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Active
-                </button>
-                <button
-                  onClick={() => handleStatusFilterChange("INACTIVE")}
-                  className={`px-3 py-1.5 rounded-md transition ${
-                    statusFilter === "INACTIVE"
-                      ? "bg-rose-500 text-white font-bold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Deactivated
-                </button>
+                  <option value="ALL">All Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Deactivated</option>
+                </select>
               </div>
 
-              {/* Dietary Filter */}
+              {/* Dietary Filter Dropdown */}
               {(hasNonVegItems || hasVeganItems) && (
-                <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-lg border border-gray-200 text-xs font-medium">
-                  <button
-                    onClick={() => handleDietaryFilterChange("ALL")}
-                    className={`px-3 py-1.5 rounded-md transition ${
-                      dietaryFilter === "ALL"
-                        ? "bg-white text-[#1B2A4A] font-bold shadow-xs border border-gray-200"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
+                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
+                  <span>Type:</span>
+                  <select
+                    value={dietaryFilter}
+                    onChange={(e) => handleDietaryFilterChange(e.target.value as DietaryFilter)}
+                    className="bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer"
                   >
-                    All Types
-                  </button>
-                  {hasVegItems && (
-                    <button
-                      onClick={() => handleDietaryFilterChange("VEG")}
-                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
-                        dietaryFilter === "VEG"
-                          ? "bg-emerald-600 text-white font-bold shadow-xs"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      Veg
-                    </button>
-                  )}
-                  {hasNonVegItems && (
-                    <button
-                      onClick={() => handleDietaryFilterChange("NON_VEG")}
-                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
-                        dietaryFilter === "NON_VEG"
-                          ? "bg-rose-600 text-white font-bold shadow-xs"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      <span className="w-2 h-2 rounded-full bg-rose-400" />
-                      Non-Veg
-                    </button>
-                  )}
-                  {hasVeganItems && (
-                    <button
-                      onClick={() => handleDietaryFilterChange("VEGAN")}
-                      className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
-                        dietaryFilter === "VEGAN"
-                          ? "bg-teal-600 text-white font-bold shadow-xs"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      <Leaf className="w-3 h-3 text-teal-300" />
-                      Vegan
-                    </button>
-                  )}
+                    <option value="ALL">All Types</option>
+                    {hasVegItems && <option value="VEG">Veg</option>}
+                    {hasNonVegItems && <option value="NON_VEG">Non-Veg</option>}
+                    {hasVeganItems && <option value="VEGAN">Vegan</option>}
+                  </select>
                 </div>
               )}
 
@@ -883,92 +871,109 @@ export default function MenuManagementComponent() {
           </div>
 
           {/* Category Tabs Pill Row */}
-          <div className="relative border-t border-gray-100 pt-2 pb-1 group/scroll">
-            {showLeftScroll && (
-              <button
-                onClick={() => scrollByAmount(-200)}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] transition-opacity"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            )}
-            <div
-              ref={scrollContainerRef}
-              onScroll={checkScroll}
-              className="flex items-center gap-2 overflow-x-auto scrollbar-none px-1"
-            >
-              <button
-              onClick={() => handleCategoryChange("ALL")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
-                selectedCategory === "ALL"
-                  ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                  : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-              }`}
-            >
-              All Items ({isAllOutletsSelected ? new Set(menuItems.map((i) => i.name.trim().toLowerCase())).size : menuItems.length})
-            </button>
-            {categories.map((cat) => {
-              const key = cat.name.trim().toLowerCase();
-              const sisterIds = categoryNameToIdsMap.get(key) || [cat.id];
-              const catItems = menuItems.filter(
-                (i) => i.categoryId && sisterIds.includes(i.categoryId)
-              );
-              const count = isAllOutletsSelected
-                ? new Set(catItems.map((i) => i.name.trim().toLowerCase())).size
-                : catItems.length;
+          <div className="border-t border-gray-100 pt-3 pb-2 flex flex-col md:flex-row md:items-center gap-3">
+            {/* Category Search Bar */}
+            <div className="relative w-full md:w-52 shrink-0">
+              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search categories..."
+                value={categorySearchQuery}
+                onChange={(e) => setCategorySearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-[#D3232A] transition"
+              />
+            </div>
 
-              const isSelected =
-                selectedCategory === cat.id ||
-                (activeCategoryIds && activeCategoryIds.includes(cat.id));
-
-              return (
+            {/* Scrollable Tabs Container */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {showLeftScroll && (
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategoryChange(cat.id)}
-                  className={`group px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
-                    isSelected
+                  onClick={() => scrollByAmount(-200)}
+                  className="w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] shrink-0 transition duration-200 hover:scale-105 cursor-pointer"
+                  title="Scroll Left"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              )}
+              <div
+                ref={scrollContainerRef}
+                onScroll={checkScroll}
+                className="flex-1 overflow-x-auto scrollbar-none flex items-center gap-2 py-1"
+              >
+                <button
+                  onClick={() => handleCategoryChange("ALL")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
+                    selectedCategory === "ALL"
                       ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
                       : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
-                  {cat.name} ({count})
-                  {isSelected && (
-                    <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-white/20">
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditCategory({ id: cat.id, name: cat.name });
-                          setIsEditCategoryOpen(true);
-                        }}
-                        className="p-1 hover:bg-white/20 rounded-md transition cursor-pointer"
-                        title="Edit Category"
-                      >
-                        <Pencil className="w-3 h-3 text-blue-200 hover:text-white" />
-                      </div>
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCategoryToDelete({ id: cat.id, name: cat.name });
-                        }}
-                        className="p-1 hover:bg-rose-500/80 rounded-md transition cursor-pointer"
-                        title="Delete Category"
-                      >
-                        <Trash2 className="w-3 h-3 text-rose-300 hover:text-white" />
-                      </div>
-                    </div>
-                  )}
+                  All Items ({isAllOutletsSelected ? new Set(menuItems.map((i) => i.name.trim().toLowerCase())).size : menuItems.length})
                 </button>
-              );
-            })}
+                {filteredCategories.map((cat) => {
+                  const key = cat.name.trim().toLowerCase();
+                  const sisterIds = categoryNameToIdsMap.get(key) || [cat.id];
+                  const catItems = menuItems.filter(
+                    (i) => i.categoryId && sisterIds.includes(i.categoryId)
+                  );
+                  const count = isAllOutletsSelected
+                    ? new Set(catItems.map((i) => i.name.trim().toLowerCase())).size
+                    : catItems.length;
+
+                  const isSelected =
+                    selectedCategory === cat.id ||
+                    (activeCategoryIds && activeCategoryIds.includes(cat.id));
+
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategoryChange(cat.id)}
+                      className={`group px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
+                        isSelected
+                          ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
+                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                      }`}
+                    >
+                      {cat.name} ({count})
+                      {isSelected && !isAllOutletsSelected && (
+                        <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-white/20">
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditCategory({ id: cat.id, name: cat.name });
+                              setIsEditCategoryOpen(true);
+                            }}
+                            className="p-1 hover:bg-white/20 rounded-md transition cursor-pointer"
+                            title="Edit Category"
+                          >
+                            <Pencil className="w-3 h-3 text-blue-200 hover:text-white" />
+                          </div>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategoryToDelete({ id: cat.id, name: cat.name });
+                            }}
+                            className="p-1 hover:bg-rose-500/80 rounded-md transition cursor-pointer"
+                            title="Delete Category"
+                          >
+                            <Trash2 className="w-3 h-3 text-rose-300 hover:text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {showRightScroll && (
+                <button
+                  onClick={() => scrollByAmount(200)}
+                  className="w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] shrink-0 transition duration-200 hover:scale-105 cursor-pointer"
+                  title="Scroll Right"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            {showRightScroll && (
-              <button
-                onClick={() => scrollByAmount(200)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] transition-opacity"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
 
