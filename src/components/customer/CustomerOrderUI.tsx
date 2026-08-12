@@ -306,29 +306,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         </div>
       </div>
 
-      {/* Mobile Sticky top category pill bar */}
-      {!isSearchActive && displayCategories.length > 0 && (
-        <div className="md:hidden border-b border-gray-100 bg-white sticky top-0 z-20 px-3 py-2.5 overflow-x-auto scrollbar-none flex gap-2 shrink-0">
-          {displayCategories.map((cat) => {
-            const isActive = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => scrollToCategory(cat.id)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all",
-                  isActive
-                    ? "bg-[#D3232A] text-white shadow-xs"
-                    : "bg-gray-50 text-gray-500 border border-gray-200"
-                )}
-              >
-                {cat.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* ── Dual-Scroll Main Area ── */}
       <main className="flex flex-1 overflow-hidden max-w-4xl mx-auto w-full">
         
