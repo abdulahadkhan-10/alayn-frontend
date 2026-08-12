@@ -239,6 +239,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
 
   return (
     <aside
+      suppressHydrationWarning
       className="flex h-full flex-col bg-[#0B1221] border-r border-white/[0.05] relative select-none w-full overflow-hidden"
       aria-label="Sidebar navigation"
     >

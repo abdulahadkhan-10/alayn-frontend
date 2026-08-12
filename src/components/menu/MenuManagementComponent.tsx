@@ -30,6 +30,10 @@ import {
   AlertCircle,
   Leaf,
   Trash2,
+  SlidersHorizontal,
+  Filter,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
@@ -38,6 +42,34 @@ import { useBranch } from "@/lib/BranchContext";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type DietaryFilter = "ALL" | "VEG" | "NON_VEG" | "VEGAN";
 type SortOption = "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC";
+
+// FSSAI Pack Food Icons
+const FssaiVegIcon = () => (
+  <span className="w-3.5 h-3.5 border border-emerald-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Vegetarian">
+    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+  </span>
+);
+
+const FssaiNonVegIcon = () => (
+  <span className="w-3.5 h-3.5 border border-rose-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Non-Vegetarian">
+    <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+  </span>
+);
+
+const FssaiVeganIcon = () => (
+  <span className="w-3.5 h-3.5 border border-teal-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Vegan">
+    <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
+  </span>
+);
+
+// Status Color Indicators
+const ActiveDot = () => (
+  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-xs animate-pulse" />
+);
+
+const InactiveDot = () => (
+  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 shadow-xs" />
+);
 
 export default function MenuManagementComponent() {
   const { activeBranch, branches } = useBranch();
@@ -57,6 +89,36 @@ export default function MenuManagementComponent() {
   const [sortBy, setSortBy] = useState<SortOption>("NAME_ASC");
   const [showCommonOnly, setShowCommonOnly] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
+  const [isStatusPopoverOpen, setIsStatusPopoverOpen] = useState(false);
+  const [isDietaryPopoverOpen, setIsDietaryPopoverOpen] = useState(false);
+  const [isSortPopoverOpen, setIsSortPopoverOpen] = useState(false);
+
+  const categoryPopoverRef = useRef<HTMLDivElement>(null);
+  const statusPopoverRef = useRef<HTMLDivElement>(null);
+  const dietaryPopoverRef = useRef<HTMLDivElement>(null);
+  const sortPopoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (categoryPopoverRef.current && !categoryPopoverRef.current.contains(target)) {
+        setIsCategoryPopoverOpen(false);
+      }
+      if (statusPopoverRef.current && !statusPopoverRef.current.contains(target)) {
+        setIsStatusPopoverOpen(false);
+      }
+      if (dietaryPopoverRef.current && !dietaryPopoverRef.current.contains(target)) {
+        setIsDietaryPopoverOpen(false);
+      }
+      if (sortPopoverRef.current && !sortPopoverRef.current.contains(target)) {
+        setIsSortPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -402,6 +464,87 @@ export default function MenuManagementComponent() {
     setDietaryFilter(dietary);
     setCurrentPage(1);
   };
+
+  const handleResetAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("ALL");
+    setDietaryFilter("ALL");
+    setSelectedCategory("ALL");
+    setShowCommonOnly(false);
+    setCategorySearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim() !== "") count++;
+    if (selectedCategory !== "ALL") count++;
+    if (statusFilter !== "ALL") count++;
+    if (dietaryFilter !== "ALL") count++;
+    if (showCommonOnly) count++;
+    return count;
+  }, [searchQuery, selectedCategory, statusFilter, dietaryFilter, showCommonOnly]);
+
+  const selectedCategoryObj = useMemo(() => {
+    if (selectedCategory === "ALL") return null;
+    return categories.find(
+      (c) => c.id === selectedCategory || c.name.trim().toLowerCase() === selectedCategory.trim().toLowerCase()
+    );
+  }, [selectedCategory, categories]);
+
+  const activeBadges = useMemo(() => {
+    const badges: { id: string; label: string; value: string; onRemove: () => void }[] = [];
+
+    if (searchQuery.trim()) {
+      badges.push({
+        id: "search",
+        label: "Search",
+        value: `"${searchQuery.trim()}"`,
+        onRemove: () => handleSearchChange(""),
+      });
+    }
+
+    if (selectedCategory !== "ALL") {
+      badges.push({
+        id: "category",
+        label: "Category",
+        value: selectedCategoryObj ? selectedCategoryObj.name : "Selected Category",
+        onRemove: () => handleCategoryChange("ALL"),
+      });
+    }
+
+    if (statusFilter !== "ALL") {
+      badges.push({
+        id: "status",
+        label: "Status",
+        value: statusFilter === "ACTIVE" ? "Active" : "Deactivated",
+        onRemove: () => handleStatusFilterChange("ALL"),
+      });
+    }
+
+    if (dietaryFilter !== "ALL") {
+      badges.push({
+        id: "dietary",
+        label: "Type",
+        value: dietaryFilter === "VEG" ? "Veg" : dietaryFilter === "NON_VEG" ? "Non-Veg" : "Vegan",
+        onRemove: () => handleDietaryFilterChange("ALL"),
+      });
+    }
+
+    if (showCommonOnly) {
+      badges.push({
+        id: "common",
+        label: "Scope",
+        value: "Common Items Only",
+        onRemove: () => {
+          setShowCommonOnly(false);
+          setCurrentPage(1);
+        },
+      });
+    }
+
+    return badges;
+  }, [searchQuery, selectedCategory, selectedCategoryObj, statusFilter, dietaryFilter, showCommonOnly]);
 
   const outletMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -788,27 +931,276 @@ export default function MenuManagementComponent() {
           </div>
         </div>
 
-        {/* Toolbar & Filters Card */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs space-y-4">
-          {/* Top Row: Search, Status Filter, Sort, View Toggle */}
-          <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" />
+        {/* Modern Minimalist SaaS Filter Toolbar (Direct Access: Search | Category | Status | Type | Sort) */}
+        <div className="bg-white rounded-xl border border-gray-200/80 shadow-2xs overflow-visible">
+          {/* Primary Control Bar */}
+          <div className="p-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+            {/* 1. Primary Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search dish name or description..."
+                placeholder="Search dishes or descriptions..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-[#D3232A] transition"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white border border-gray-200/80 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1B2A4A] focus:border-[#1B2A4A] transition"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full"
+                  title="Clear Search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Controls */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Common Items Filter (All Outlets Only) */}
+            {/* Direct Access Controls: Category | Status | Type | Sort */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {/* 2. Modern Searchable Category Combobox Popover */}
+              <div className="relative" ref={categoryPopoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryPopoverOpen((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
+                    selectedCategory !== "ALL"
+                      ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
+                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                  }`}
+                >
+                  <Tag className={`w-3.5 h-3.5 ${selectedCategory !== "ALL" ? "text-white" : "text-slate-400"}`} />
+                  <span className="truncate max-w-[130px]">
+                    {selectedCategoryObj ? selectedCategoryObj.name : "Category: All"}
+                  </span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isCategoryPopoverOpen ? "rotate-90" : ""}`} />
+                </button>
+
+                {/* Popover Menu for 100+ Categories */}
+                {isCategoryPopoverOpen && (
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Filter 100+ categories..."
+                        value={categorySearchQuery}
+                        onChange={(e) => setCategorySearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-gray-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#1B2A4A]"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto space-y-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCategoryChange("ALL");
+                          setIsCategoryPopoverOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${
+                          selectedCategory === "ALL"
+                            ? "bg-[#1B2A4A] text-white font-semibold"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>All Categories</span>
+                        <span className="text-[11px] opacity-70">
+                          {isAllOutletsSelected ? new Set(menuItems.map((i) => i.name.trim().toLowerCase())).size : menuItems.length}
+                        </span>
+                      </button>
+
+                      {filteredCategories.map((cat) => {
+                        const key = cat.name.trim().toLowerCase();
+                        const sisterIds = categoryNameToIdsMap.get(key) || [cat.id];
+                        const catItems = menuItems.filter(
+                          (i) => i.categoryId && sisterIds.includes(i.categoryId)
+                        );
+                        const count = isAllOutletsSelected
+                          ? new Set(catItems.map((i) => i.name.trim().toLowerCase())).size
+                          : catItems.length;
+
+                        const isSelected =
+                          selectedCategory === cat.id ||
+                          (activeCategoryIds && activeCategoryIds.includes(cat.id));
+
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              handleCategoryChange(cat.id);
+                              setIsCategoryPopoverOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${
+                              isSelected
+                                ? "bg-[#1B2A4A] text-white font-semibold"
+                                : "text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span className="truncate pr-2">{cat.name}</span>
+                            <span className="text-[11px] opacity-70 shrink-0">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Modern Status Combobox Popover */}
+              <div className="relative" ref={statusPopoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusPopoverOpen((prev) => !prev)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
+                    statusFilter !== "ALL"
+                      ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
+                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                  }`}
+                >
+                  {statusFilter === "ACTIVE" ? <ActiveDot /> : statusFilter === "INACTIVE" ? <InactiveDot /> : null}
+                  <span className="truncate">
+                    {statusFilter === "ALL" ? "Status: All" : statusFilter === "ACTIVE" ? "Active" : "Inactive"}
+                  </span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isStatusPopoverOpen ? "rotate-90" : ""}`} />
+                </button>
+
+                {isStatusPopoverOpen && (
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-44 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    {[
+                      { id: "ALL", label: "All Status", dot: null },
+                      { id: "ACTIVE", label: "Active", dot: <ActiveDot /> },
+                      { id: "INACTIVE", label: "Inactive", dot: <InactiveDot /> },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => {
+                          handleStatusFilterChange(st.id as StatusFilter);
+                          setIsStatusPopoverOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
+                          statusFilter === st.id
+                            ? "bg-[#1B2A4A] text-white font-semibold"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {st.dot}
+                        <span>{st.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Modern Dietary Type Combobox Popover */}
+              <div className="relative" ref={dietaryPopoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDietaryPopoverOpen((prev) => !prev)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
+                    dietaryFilter !== "ALL"
+                      ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
+                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                  }`}
+                >
+                  {dietaryFilter === "VEG" ? (
+                    <FssaiVegIcon />
+                  ) : dietaryFilter === "NON_VEG" ? (
+                    <FssaiNonVegIcon />
+                  ) : dietaryFilter === "VEGAN" ? (
+                    <FssaiVeganIcon />
+                  ) : null}
+                  <span className="truncate">
+                    {dietaryFilter === "ALL"
+                      ? "Type: All"
+                      : dietaryFilter === "VEG"
+                      ? "Vegetarian"
+                      : dietaryFilter === "NON_VEG"
+                      ? "Non-Vegetarian"
+                      : "Vegan"}
+                  </span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isDietaryPopoverOpen ? "rotate-90" : ""}`} />
+                </button>
+
+                {isDietaryPopoverOpen && (
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    {[
+                      { id: "ALL", label: "All Types", icon: null },
+                      { id: "VEG", label: "Vegetarian", icon: <FssaiVegIcon /> },
+                      { id: "NON_VEG", label: "Non-Vegetarian", icon: <FssaiNonVegIcon /> },
+                      { id: "VEGAN", label: "Vegan", icon: <FssaiVeganIcon /> },
+                    ].map((dt) => (
+                      <button
+                        key={dt.id}
+                        type="button"
+                        onClick={() => {
+                          handleDietaryFilterChange(dt.id as DietaryFilter);
+                          setIsDietaryPopoverOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
+                          dietaryFilter === dt.id
+                            ? "bg-[#1B2A4A] text-white font-semibold"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        {dt.icon}
+                        <span>{dt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Modern Sort Combobox Popover */}
+              <div className="relative" ref={sortPopoverRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsSortPopoverOpen((prev) => !prev)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200/80 bg-slate-50/80 hover:bg-slate-100/80 text-xs font-medium text-slate-700 transition cursor-pointer"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">
+                    {sortBy === "NAME_ASC"
+                      ? "Sort: Name (A-Z)"
+                      : sortBy === "PRICE_ASC"
+                      ? "Sort: Price (Low → High)"
+                      : "Sort: Price (High → Low)"}
+                  </span>
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isSortPopoverOpen ? "rotate-90" : ""}`} />
+                </button>
+
+                {isSortPopoverOpen && (
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                    {[
+                      { id: "NAME_ASC", label: "Name (A-Z)" },
+                      { id: "PRICE_ASC", label: "Price (Low → High)" },
+                      { id: "PRICE_DESC", label: "Price (High → Low)" },
+                    ].map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(s.id as SortOption);
+                          setIsSortPopoverOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
+                          sortBy === s.id
+                            ? "bg-[#1B2A4A] text-white font-semibold"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Scope Toggle (Common Items in All Outlets View) */}
               {isAllOutletsSelected && (
-                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-600 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100/50 transition">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-slate-50/80 border border-gray-200/80 px-2.5 py-2 rounded-lg text-xs text-slate-700 font-medium">
                   <input
                     type="checkbox"
                     checked={showCommonOnly}
@@ -816,165 +1208,58 @@ export default function MenuManagementComponent() {
                       setShowCommonOnly(e.target.checked);
                       setCurrentPage(1);
                     }}
-                    className="rounded text-[#D3232A] focus:ring-[#D3232A] w-3.5 h-3.5 border-gray-300"
+                    className="w-3.5 h-3.5 rounded text-[#1B2A4A] focus:ring-[#1B2A4A] border-gray-300 cursor-pointer"
                   />
-                  <span>Common Items (All Outlets)</span>
+                  <span>Common Only</span>
                 </label>
               )}
 
-              {/* Status Filter Dropdown */}
-              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
-                <span>Status:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => handleStatusFilterChange(e.target.value as StatusFilter)}
-                  className="bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer"
+              {/* Reset Link */}
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetAllFilters}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-900 underline px-1 cursor-pointer"
+                  title="Reset All Filters"
                 >
-                  <option value="ALL">All Status</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Deactivated</option>
-                </select>
-              </div>
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
 
-              {/* Dietary Filter Dropdown */}
-              {(hasNonVegItems || hasVeganItems) && (
-                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
-                  <span>Type:</span>
-                  <select
-                    value={dietaryFilter}
-                    onChange={(e) => handleDietaryFilterChange(e.target.value as DietaryFilter)}
-                    className="bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer"
+          {/* Active Filter Badges */}
+          {activeBadges.length > 0 && (
+            <div className="px-3 pb-2.5 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-2">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 mr-1">
+                Active:
+              </span>
+              {activeBadges.map((badge) => (
+                <span
+                  key={badge.id}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200/80 bg-slate-100/70 text-xs font-medium text-slate-700"
+                >
+                  <span className="text-slate-400">{badge.label}:</span>
+                  <span>{badge.value}</span>
+                  <button
+                    type="button"
+                    onClick={badge.onRemove}
+                    className="p-0.5 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
                   >
-                    <option value="ALL">All Types</option>
-                    {hasVegItems && <option value="VEG">Veg</option>}
-                    {hasNonVegItems && <option value="NON_VEG">Non-Veg</option>}
-                    {hasVeganItems && <option value="VEGAN">Vegan</option>}
-                  </select>
-                </div>
-              )}
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
 
-              {/* Sort Selector */}
-              <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 font-semibold">
-                <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                <span>Sort:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-transparent text-gray-900 font-bold focus:outline-none cursor-pointer"
-                >
-                  <option value="NAME_ASC">Name (A-Z)</option>
-                  <option value="PRICE_ASC">Price (Low → High)</option>
-                  <option value="PRICE_DESC">Price (High → Low)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Tabs Pill Row */}
-          <div className="border-t border-gray-100 pt-3 pb-2 flex flex-col md:flex-row md:items-center gap-3">
-            {/* Category Search Bar */}
-            <div className="relative w-full md:w-52 shrink-0">
-              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search categories..."
-                value={categorySearchQuery}
-                onChange={(e) => setCategorySearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-[#D3232A] transition"
-              />
-            </div>
-
-            {/* Scrollable Tabs Container */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              {showLeftScroll && (
-                <button
-                  onClick={() => scrollByAmount(-200)}
-                  className="w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] shrink-0 transition duration-200 hover:scale-105 cursor-pointer"
-                  title="Scroll Left"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              )}
-              <div
-                ref={scrollContainerRef}
-                onScroll={checkScroll}
-                className="flex-1 overflow-x-auto scrollbar-none flex items-center gap-2 py-1"
+              <button
+                type="button"
+                onClick={handleResetAllFilters}
+                className="text-xs font-medium text-slate-500 hover:text-slate-900 underline ml-auto cursor-pointer"
               >
-                <button
-                  onClick={() => handleCategoryChange("ALL")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
-                    selectedCategory === "ALL"
-                      ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                      : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  All Items ({isAllOutletsSelected ? new Set(menuItems.map((i) => i.name.trim().toLowerCase())).size : menuItems.length})
-                </button>
-                {filteredCategories.map((cat) => {
-                  const key = cat.name.trim().toLowerCase();
-                  const sisterIds = categoryNameToIdsMap.get(key) || [cat.id];
-                  const catItems = menuItems.filter(
-                    (i) => i.categoryId && sisterIds.includes(i.categoryId)
-                  );
-                  const count = isAllOutletsSelected
-                    ? new Set(catItems.map((i) => i.name.trim().toLowerCase())).size
-                    : catItems.length;
-
-                  const isSelected =
-                    selectedCategory === cat.id ||
-                    (activeCategoryIds && activeCategoryIds.includes(cat.id));
-
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => handleCategoryChange(cat.id)}
-                      className={`group px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition border flex items-center gap-2 ${
-                        isSelected
-                          ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
-                    >
-                      {cat.name} ({count})
-                      {isSelected && !isAllOutletsSelected && (
-                        <div className="flex items-center gap-1.5 ml-1 pl-2 border-l border-white/20">
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditCategory({ id: cat.id, name: cat.name });
-                              setIsEditCategoryOpen(true);
-                            }}
-                            className="p-1 hover:bg-white/20 rounded-md transition cursor-pointer"
-                            title="Edit Category"
-                          >
-                            <Pencil className="w-3 h-3 text-blue-200 hover:text-white" />
-                          </div>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCategoryToDelete({ id: cat.id, name: cat.name });
-                            }}
-                            className="p-1 hover:bg-rose-500/80 rounded-md transition cursor-pointer"
-                            title="Delete Category"
-                          >
-                            <Trash2 className="w-3 h-3 text-rose-300 hover:text-white" />
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {showRightScroll && (
-                <button
-                  onClick={() => scrollByAmount(200)}
-                  className="w-7 h-7 flex items-center justify-center bg-white shadow-md border border-gray-200 rounded-full text-gray-600 hover:text-[#1B2A4A] shrink-0 transition duration-200 hover:scale-105 cursor-pointer"
-                  title="Scroll Right"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
+                Clear all
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Content Body: Table View */}
@@ -1028,30 +1313,8 @@ export default function MenuManagementComponent() {
                             <div className="flex items-center gap-2">
                               {(() => {
                                 const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
-                                if (dType === "VEGAN") {
-                                  return (
-                                    <span
-                                      className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-xs border border-teal-600 p-0.5 shrink-0"
-                                      title="Vegan (100% Plant-Based)"
-                                    >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <span
-                                    className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-xs border p-0.5 shrink-0 ${
-                                      dType === "VEG" ? "border-emerald-600" : "border-rose-600"
-                                    }`}
-                                    title={dType === "VEG" ? "Vegetarian" : "Non-Vegetarian"}
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${
-                                        dType === "VEG" ? "bg-emerald-600" : "bg-rose-600"
-                                      }`}
-                                    />
-                                  </span>
-                                );
+                                if (dType === "VEGAN") return <FssaiVeganIcon />;
+                                return dType === "VEG" ? <FssaiVegIcon /> : <FssaiNonVegIcon />;
                               })()}
                               <p className="font-bold text-[#1B2A4A]">{item.name}</p>
                               {(item.dietaryType === "VEGAN") && (
@@ -1107,10 +1370,10 @@ export default function MenuManagementComponent() {
                             title={
                               isAllOutletsSelected
                                 ? isGroupActive
-                                  ? "Click to Deactivate across All Outlets"
+                                  ? "Click to set Inactive across All Outlets"
                                   : "Click to Activate across All Outlets"
                                 : item.isAvailable
-                                ? "Click to Deactivate"
+                                ? "Click to set Inactive"
                                 : "Click to Activate"
                             }
                           >
@@ -1122,10 +1385,10 @@ export default function MenuManagementComponent() {
                           </button>
                           <span
                             className={`text-xs font-bold ${
-                              isGroupActive ? "text-emerald-700" : "text-gray-500"
+                              isGroupActive ? "text-emerald-700" : "text-rose-600"
                             }`}
                           >
-                            {isGroupActive ? "Active" : "Deactivated"}
+                            {isGroupActive ? "Active" : "Inactive"}
                           </span>
                         </div>
                       </td>
