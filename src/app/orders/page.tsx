@@ -596,12 +596,9 @@ export default function LiveOrdersPage() {
                 order.orderNo ||
                 order.orderNumber ||
                 order.id.toUpperCase();
-              const orderNumDisplay =
-                rawOrderNo.length > 8
-                  ? `#${rawOrderNo.slice(-6)}`
-                  : rawOrderNo.startsWith("#")
-                  ? rawOrderNo
-                  : `#${rawOrderNo}`;
+              const orderNumDisplay = rawOrderNo.startsWith("#")
+                ? rawOrderNo
+                : `#${rawOrderNo}`;
               const tableNumDisplay =
                 order.tableNo !== undefined && order.tableNo !== null
                   ? order.tableNo
@@ -806,7 +803,7 @@ export default function LiveOrdersPage() {
                   <h3 className="text-3xl font-black tracking-tighter mt-1">
                     {(() => {
                       const rawOrderNo = selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.toUpperCase();
-                      return rawOrderNo.length > 8 ? `#${rawOrderNo.slice(-6)}` : rawOrderNo.startsWith("#") ? rawOrderNo : `#${rawOrderNo}`;
+                      return rawOrderNo.startsWith("#") ? rawOrderNo : `#${rawOrderNo}`;
                     })()}
                   </h3>
                   <p className="text-[10px] text-gray-400 flex items-center gap-1 font-bold">
