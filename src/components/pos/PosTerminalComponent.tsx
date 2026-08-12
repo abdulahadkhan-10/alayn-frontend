@@ -39,6 +39,7 @@ import {
 import ThermalReceipt from "./ThermalReceipt";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import { fetchTables, TableItem } from "@/lib/api";
@@ -449,22 +450,22 @@ export default function PosTerminalComponent() {
             )}
           </div>
 
-          {/* Controls Card: Search Bar + Dietary Filter + View Mode Switcher */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+          {/* Controls Bar: Search Bar + Dietary Filter + View Mode Switcher */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
 
             {/* Search Box */}
             <div className="relative flex-1 sm:min-w-[240px]">
-              <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
+              <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search item or category..."
+                placeholder="Search menu..."
                 value={searchQuery}
                 disabled={isAllOutletsSelected}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#1B2A4A] focus:bg-white transition disabled:opacity-50"
+                className="w-full pl-10 pr-8 py-2 bg-white/80 backdrop-blur-md border border-black/5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] rounded-[14px] text-xs font-bold text-gray-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#1B2A4A]/20 transition-all disabled:opacity-50"
               />
               {searchQuery && (
                 <button
@@ -573,15 +574,15 @@ export default function PosTerminalComponent() {
 
           {/* Category Tabs Bar */}
           {!isAllOutletsSelected && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-2 shadow-xs flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0 py-1">
               <button
                 onClick={() => {
                   setSelectedCategoryId("ALL");
                   setCurrentPage(1);
                 }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border ${selectedCategoryId === "ALL"
-                  ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                  : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border shadow-sm ${selectedCategoryId === "ALL"
+                  ? "bg-[#1B2A4A] text-white border-[#1B2A4A]"
+                  : "bg-white text-gray-700 border-gray-200/80 hover:bg-gray-50"
                   }`}
               >
                 All Items ({menuItems.length})
@@ -602,9 +603,9 @@ export default function PosTerminalComponent() {
                       setSelectedCategoryId(cat.id);
                       setCurrentPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 ${isSelected
-                      ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer border flex items-center gap-1.5 shadow-sm ${isSelected
+                      ? "bg-[#1B2A4A] text-white border-[#1B2A4A]"
+                      : "bg-white text-gray-700 border-gray-200/80 hover:bg-gray-50"
                       }`}
                   >
                     {cat.name}
@@ -670,8 +671,21 @@ export default function PosTerminalComponent() {
                 </p>
               </div>
             ) : viewMode === "GRID" ? (
-              /* SENIOR-GRADE GRID VIEW */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5 pb-20 lg:pb-0">
+              /* PREMIUM GRID VIEW WITH STAGGER & DOUBLE-BEZEL */
+              <motion.div 
+                layout
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.04 }
+                  }
+                }}
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 pb-20 lg:pb-0 p-1"
+              >
+                <AnimatePresence mode="popLayout">
                 {filteredItems
                   .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                   .map((item) => {
@@ -682,122 +696,158 @@ export default function PosTerminalComponent() {
                     const isSelected = cartQty > 0;
 
                     return (
-                      <div
+                      <motion.div
+                        layout
+                        variants={{
+                          hidden: { opacity: 0, y: 15, scale: 0.95 },
+                          visible: { 
+                            opacity: 1, 
+                            y: 0, 
+                            scale: 1,
+                            transition: { type: "spring", stiffness: 400, damping: 30 }
+                          },
+                          exit: { opacity: 0, scale: 0.9 }
+                        }}
                         key={item.id}
-                        className={`bg-white border rounded-2xl p-3 flex flex-col justify-between transition-all select-none shadow-2xs hover:shadow-md relative group ${isSelected
-                          ? "border-[#D3232A] bg-rose-50/20 ring-2 ring-[#D3232A]/20"
-                          : "border-gray-200/90 hover:border-gray-300"
-                          }`}
+                        /* CLEAN PREMIUM CARD */
+                        className={`bg-white rounded-[16px] p-2.5 transition-all select-none group flex flex-col h-full overflow-hidden ${
+                          isSelected
+                            ? "ring-2 ring-rose-500 shadow-[0_4px_12px_rgba(225,29,72,0.15)]"
+                            : "border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:border-gray-200"
+                        }`}
                       >
-                        {/* Top Media Thumbnail Container */}
-                        <div className="relative w-full h-24 rounded-xl overflow-hidden mb-2.5 bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
-                          {item.imageUrl ? (
-                            <img
-                              src={getImageUrl(item.imageUrl)}
-                              alt={item.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLElement).style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center text-gray-300 group-hover:text-[#D3232A] transition-colors">
-                              <Utensils className="w-7 h-7" />
-                            </div>
-                          )}
-
-                          {/* Top Left: Category Badge */}
-                          <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-xs text-[9px] font-black text-[#1B2A4A] px-2 py-0.5 rounded-md shadow-2xs truncate max-w-[70%]">
-                            {item.category?.name || "General"}
-                          </span>
-
-                          {/* Top Right: Dietary Dot Indicator */}
-                          {(() => {
-                            const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
-                            return (
-                              <span
-                                className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded bg-white/90 backdrop-blur-xs shadow-2xs border p-0.5 ${
-                                  dType === "VEGAN"
-                                    ? "border-teal-600"
-                                    : dType === "VEG"
-                                    ? "border-emerald-600"
-                                    : "border-rose-600"
-                                }`}
-                                title={
-                                  dType === "VEGAN"
-                                    ? "Vegan (100% Plant-Based)"
-                                    : dType === "VEG"
-                                    ? "Vegetarian"
-                                    : "Non-Vegetarian"
-                                }
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    dType === "VEGAN"
-                                      ? "bg-teal-600"
-                                      : dType === "VEG"
-                                      ? "bg-emerald-600"
-                                      : "bg-rose-600"
-                                  }`}
-                                />
-                              </span>
-                            );
-                          })()}
-                        </div>
-
-                        {/* Title & Description */}
-                        <div className="flex-1 flex flex-col justify-between">
-                          <div className="space-y-0.5 mb-2">
-                            <h4 className="text-xs font-black text-[#1B2A4A] group-hover:text-[#D3232A] transition-colors leading-snug line-clamp-2">
-                              {item.name}
-                            </h4>
-                          </div>
-
-                          {/* Footer: Price & Add / Stepper Button */}
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-100 mt-auto">
-                            <div>
-                              <p className="text-[8px] uppercase tracking-wider font-extrabold text-gray-400">Price</p>
-                              <p className="text-xs font-black text-[#1B2A4A]">
-                                ₹{Number(item.price).toFixed(2)}
-                              </p>
-                            </div>
-
-                            {cartQty === 0 ? (
-                              <button
-                                onClick={() => addToCart(item)}
-                                type="button"
-                                className="px-3 py-1.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white text-xs font-extrabold shadow-2xs hover:scale-105 transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Add</span>
-                              </button>
+                          
+                          {/* Top Media Thumbnail Container */}
+                          <div className="relative w-full h-20 rounded-xl overflow-hidden mb-2.5 bg-gray-50 border border-gray-100/50 flex items-center justify-center shrink-0">
+                            {item.imageUrl ? (
+                              <img
+                                src={getImageUrl(item.imageUrl)}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = "none";
+                                }}
+                              />
                             ) : (
-                              <div className="flex items-center gap-1 bg-white border border-[#D3232A]/50 rounded-xl p-0.5 shadow-2xs">
-                                <button
-                                  onClick={() => updateQuantity(item.id, -1)}
-                                  type="button"
-                                  className="w-5 h-5 rounded-lg bg-gray-100 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-700 font-bold transition cursor-pointer"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="text-xs font-black text-[#1B2A4A] px-1">
-                                  {cartQty}
-                                </span>
-                                <button
-                                  onClick={() => updateQuantity(item.id, 1)}
-                                  type="button"
-                                  className="w-5 h-5 rounded-lg bg-[#D3232A] text-white hover:bg-[#b01e23] flex items-center justify-center font-bold transition cursor-pointer"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
+                              <div className="flex items-center justify-center text-gray-300 group-hover:text-[#D3232A] transition-colors duration-300">
+                                <Utensils className="w-6 h-6" />
                               </div>
                             )}
+
+                            {/* Top Left: Category Badge */}
+                            <span className="absolute top-1.5 left-1.5 bg-white/90 backdrop-blur-md font-heading text-[9px] font-bold text-[#1B2A4A] px-2 py-0.5 rounded-lg shadow-sm truncate max-w-[70%]">
+                              {item.category?.name || "General"}
+                            </span>
+
+                            {/* Top Right: Dietary Dot Indicator */}
+                            {(() => {
+                              const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
+                              return (
+                                <span
+                                  className={`absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded-md bg-white/90 backdrop-blur-md shadow-sm border p-0.5 ${
+                                    dType === "VEGAN"
+                                      ? "border-teal-600"
+                                      : dType === "VEG"
+                                      ? "border-emerald-600"
+                                      : "border-rose-600"
+                                  }`}
+                                  title={
+                                    dType === "VEGAN"
+                                      ? "Vegan (100% Plant-Based)"
+                                      : dType === "VEG"
+                                      ? "Vegetarian"
+                                      : "Non-Vegetarian"
+                                  }
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      dType === "VEGAN"
+                                        ? "bg-teal-600"
+                                        : dType === "VEG"
+                                        ? "bg-emerald-600"
+                                        : "bg-rose-600"
+                                    }`}
+                                  />
+                                </span>
+                              );
+                            })()}
                           </div>
-                        </div>
-                      </div>
+
+                          {/* Title & Description */}
+                          <div className="flex flex-col flex-1 mt-1.5">
+                            <div className="h-[34px] mb-2">
+                              <h4 className="text-[12px] font-black text-[#1B2A4A] group-hover:text-[#D3232A] transition-colors duration-300 ease-out leading-snug line-clamp-2">
+                                {item.name}
+                              </h4>
+                            </div>
+
+                            {/* Footer: Price & Add / Stepper Button */}
+                            <div className="flex justify-between items-end pt-2.5 border-t border-gray-100 gap-1 mt-auto">
+                              <div className="flex flex-col justify-end min-w-0 flex-1 pb-0.5">
+                                <p className="text-[9px] uppercase tracking-wider font-extrabold text-gray-400">Price</p>
+                                <p className="text-[13px] font-heading font-black text-[#1B2A4A] leading-none mt-0.5 truncate">
+                                  ₹{Number(item.price).toFixed(2)}
+                                </p>
+                              </div>
+
+                              {/* Fluid Morphing Stepper */}
+                              <div className="relative w-[64px] h-[28px] shrink-0">
+                                <AnimatePresence mode="wait">
+                                  {cartQty === 0 ? (
+                                    <motion.button
+                                      key="add-btn"
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.9 }}
+                                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                      onClick={() => addToCart(item)}
+                                      type="button"
+                                      className="absolute inset-0 w-full h-full rounded-md bg-[#D3232A] hover:bg-[#b01e23] active:scale-[0.95] text-white text-[10px] font-extrabold shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1 origin-right"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      Add
+                                    </motion.button>
+                                  ) : (
+                                    <motion.div
+                                      key="stepper"
+                                      initial={{ opacity: 0, scale: 0.9 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.9 }}
+                                      className="absolute inset-0 w-full h-full flex items-center justify-between bg-white border border-[#D3232A]/30 rounded-md p-0.5 shadow-sm origin-right"
+                                    >
+                                      <button
+                                        onClick={() => updateQuantity(item.id, -1)}
+                                        type="button"
+                                        className="w-5 h-5 rounded-[4px] bg-gray-50 hover:bg-rose-50 active:scale-[0.92] active:bg-rose-100 flex items-center justify-center text-rose-600 font-bold transition-all cursor-pointer shrink-0"
+                                      >
+                                        <Minus className="w-2.5 h-2.5" />
+                                      </button>
+                                      <motion.span 
+                                        key={cartQty}
+                                        initial={{ y: -6, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        className="text-[11px] font-heading font-black text-[#1B2A4A] px-1 truncate"
+                                      >
+                                        {cartQty}
+                                      </motion.span>
+                                      <button
+                                        onClick={() => updateQuantity(item.id, 1)}
+                                        type="button"
+                                        className="w-5 h-5 rounded-[4px] bg-[#D3232A] text-white hover:bg-[#b01e23] active:scale-[0.92] flex items-center justify-center font-bold transition-all cursor-pointer shrink-0"
+                                      >
+                                        <Plus className="w-2.5 h-2.5" />
+                                      </button>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            </div>
+                          </div>
+                      </motion.div>
                     );
                   })}
-              </div>
+                </AnimatePresence>
+              </motion.div>
             ) : (
               /* FAST BILLING LIST VIEW */
               <div className="space-y-2 pb-20 lg:pb-0">
@@ -931,10 +981,10 @@ export default function PosTerminalComponent() {
         </div>
 
         {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (Visible on Tablet and Desktop) ── */}
-        <div className="hidden md:flex w-[35%] min-w-[280px] max-w-[420px] shrink-0 h-full flex-col bg-white border-l border-gray-200 shadow-xl z-20 overflow-hidden">
+        <div className="hidden md:flex w-[35%] min-w-[300px] max-w-[420px] shrink-0 h-full flex-col bg-white border-l border-black/5 shadow-[-16px_0_48px_rgba(0,0,0,0.06)] z-20 overflow-hidden relative">
 
           {/* Cart Ticket Header */}
-          <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between shrink-0">
+          <div className="p-4 border-b border-black/5 bg-white/50 backdrop-blur-md flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-[#D3232A]/10 text-[#D3232A]">
                 <ShoppingCart className="w-4 h-4" />

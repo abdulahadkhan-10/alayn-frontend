@@ -59,17 +59,17 @@ const STATUS_META: Record<
 > = {
   SENT_TO_KITCHEN: {
     label: "Sent to Kitchen",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
-    dot: "bg-blue-500",
+    bg: "bg-white",
+    text: "text-[#1B2A4A]",
+    border: "border-gray-300",
+    dot: "bg-gray-400",
   },
   RECEIVED: {
-    label: "Sent to Kitchen",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
-    dot: "bg-blue-500",
+    label: "Received",
+    bg: "bg-white",
+    text: "text-[#1B2A4A]",
+    border: "border-gray-300",
+    dot: "bg-gray-400",
   },
   PREPARING: {
     label: "Preparing",
@@ -83,35 +83,35 @@ const STATUS_META: Record<
     bg: "bg-emerald-50",
     text: "text-emerald-700",
     border: "border-emerald-200",
-    dot: "bg-emerald-500",
+    dot: "bg-emerald-400",
   },
   SERVED: {
     label: "Served",
     bg: "bg-purple-50",
     text: "text-purple-700",
     border: "border-purple-200",
-    dot: "bg-purple-500",
+    dot: "bg-purple-400",
   },
   DISPATCHED: {
     label: "Dispatched",
-    bg: "bg-indigo-50",
-    text: "text-indigo-700",
-    border: "border-indigo-200",
-    dot: "bg-indigo-500",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    dot: "bg-blue-400",
   },
   COMPLETED: {
     label: "Completed",
     bg: "bg-gray-100",
     text: "text-gray-600",
-    border: "border-gray-300",
+    border: "border-gray-200",
     dot: "bg-gray-400",
   },
   CANCELLED: {
     label: "Cancelled",
-    bg: "bg-rose-50",
-    text: "text-rose-700",
-    border: "border-rose-200",
-    dot: "bg-rose-400",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
+    dot: "bg-red-400",
   },
 };
 
@@ -478,9 +478,9 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Status Sub-filter bar + Search ── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border-y border-gray-200 p-3 shadow-sm">
           {/* Status pill tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none w-full sm:w-auto">
             {statusFilterTabs.map((tab) => {
               const active = selectedStatusFilter === tab.id;
               const meta = tab.id !== "ALL" ? getStatusMeta(tab.id) : null;
@@ -488,22 +488,22 @@ export default function LiveOrdersPage() {
                 <button
                   key={tab.id}
                   onClick={() => setSelectedStatusFilter(tab.id)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border ${active
-                    ? "bg-[#1B2A4A] text-white border-[#1B2A4A] shadow-xs"
-                    : "bg-transparent text-gray-600 border-transparent hover:bg-gray-100 hover:border-gray-200"
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shadow-[2px_2px_0px_rgba(0,0,0,0.05)] active:translate-y-[1px] active:translate-x-[1px] active:shadow-none ${active
+                    ? "bg-[#1B2A4A] text-white border-[#1B2A4A]"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                     }`}
                 >
                   {meta && (
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white/70" : meta.dot}`}
+                      className={`w-1.5 h-1.5 rounded-none ${active ? "bg-white" : meta.dot}`}
                     />
                   )}
                   {tab.label}
                   {tab.id !== "ALL" && (
                     <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded-md font-black ${active
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-100 text-gray-500"
+                      className={`text-[9px] px-1.5 py-0.5 font-mono ml-1 border ${active
+                        ? "bg-white/20 text-white border-white/20"
+                        : "bg-gray-100 text-gray-600 border-gray-200"
                         }`}
                     >
                       {
@@ -526,10 +526,10 @@ export default function LiveOrdersPage() {
             <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
             <input
               type="text"
-              placeholder="Table # or Order ID…"
+              placeholder="TABLE # OR ORDER ID"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A] focus:bg-white transition"
+              className="w-full pl-9 pr-4 py-2 bg-white border-2 border-gray-200 rounded-none text-xs font-black font-mono tracking-widest text-gray-900 focus:outline-none focus:border-[#1B2A4A] transition-all shadow-[2px_2px_0px_rgba(0,0,0,0.05)] uppercase placeholder-gray-400"
             />
           </div>
         </div>
@@ -592,10 +592,16 @@ export default function LiveOrdersPage() {
                 [],
                 { hour: "2-digit", minute: "2-digit" }
               );
-              const orderNumDisplay =
+              const rawOrderNo =
                 order.orderNo ||
                 order.orderNumber ||
-                `#${order.id.slice(0, 8).toUpperCase()}`;
+                order.id.toUpperCase();
+              const orderNumDisplay =
+                rawOrderNo.length > 8
+                  ? `#${rawOrderNo.slice(-6)}`
+                  : rawOrderNo.startsWith("#")
+                  ? rawOrderNo
+                  : `#${rawOrderNo}`;
               const tableNumDisplay =
                 order.tableNo !== undefined && order.tableNo !== null
                   ? order.tableNo
@@ -615,206 +621,160 @@ export default function LiveOrdersPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-xs hover:shadow-md hover:border-gray-300 transition-all flex flex-col overflow-hidden"
+                  className="bg-white border border-gray-200 shadow-sm transition-all flex flex-col p-4 space-y-4 rounded-xl relative hover:shadow-md"
                 >
-                  {/* Card top accent bar */}
-                  <div
-                    className={`h-1 w-full ${order.status === "CANCELLED"
-                      ? "bg-rose-400"
-                      : order.status === "COMPLETED"
-                        ? "bg-gray-300"
-                        : order.status === "READY"
-                          ? "bg-emerald-400"
-                          : order.status === "PREPARING"
-                            ? "bg-amber-400"
-                            : order.status === "SERVED"
-                              ? "bg-purple-400"
-                              : "bg-[#1B2A4A]"
-                      }`}
-                  />
-
-                  <div className="p-4 flex flex-col gap-3 flex-1">
-                    {/* Header row */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {/* Source badge */}
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black shrink-0 ${isCounter
-                            ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                            : "bg-[#D3232A]/10 text-[#D3232A] border border-[#D3232A]/20"
-                            }`}
-                        >
-                          {isCounter ? (
-                            <CreditCard className="w-2.5 h-2.5" />
-                          ) : (
-                            <Utensils className="w-2.5 h-2.5" />
-                          )}
-                          {isCounter ? "Counter" : `Table ${tableNumDisplay}`}
-                        </span>
-                        <span className="text-[11px] font-bold text-gray-500 truncate">
-                          {orderNumDisplay}
-                        </span>
-                      </div>
-
-                      {/* Status pill */}
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black whitespace-nowrap shrink-0 border ${meta.bg} ${meta.text} ${meta.border}`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${meta.dot}`}
-                        />
-                        {meta.label}
+                  {/* Header row */}
+                  <div className="flex justify-between items-start pb-3 border-b border-gray-100">
+                    <div className="flex flex-col pr-2">
+                      <span className="text-lg font-bold text-gray-900 leading-tight break-all">
+                        {orderNumDisplay}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium mt-1">
+                        TBL: <span className="text-gray-800">{tableNumDisplay || "COUNTER"}</span>
                       </span>
                     </div>
 
-                    {/* Time & amount row */}
-                    <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-gray-400" />
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider border rounded-md ${meta.bg} ${meta.text} ${meta.border}`}
+                      >
+                        {meta.label}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
                         {formattedTime}
                       </span>
-                      <span className="font-black text-[#1B2A4A] text-sm">
+                    </div>
+                  </div>
+
+                  {/* Placer Info */}
+                  <div className="flex items-center justify-between text-xs bg-gray-50/80 px-3 py-2 rounded-lg">
+                    <span className="truncate text-gray-500">Placed by: <strong className="font-semibold text-gray-800">{order.placedByName || (isCounter ? "Counter Staff" : "Staff")}</strong></span>
+                    <span className="text-[10px] text-gray-400 font-semibold shrink-0 uppercase tracking-wider">{order.placedByRole || (isCounter ? "COUNTER" : "STAFF")}</span>
+                  </div>
+
+                  {/* Items list */}
+                  <div className="bg-gray-50/50 rounded-lg p-3 space-y-2 max-h-32 overflow-y-auto flex-1">
+                    {items.length > 0 ? (
+                      (() => {
+                        const consolidatedMap = new Map<string, { item: any; totalQty: number; totalPrice: number }>();
+                        items.forEach((item: any) => {
+                          const key = item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
+                          const qty = item.quantity || 1;
+                          const price = getItemPrice(item);
+                          if (consolidatedMap.has(key)) {
+                            const existing = consolidatedMap.get(key)!;
+                            existing.totalQty += qty;
+                            existing.totalPrice += price;
+                          } else {
+                            consolidatedMap.set(key, { item, totalQty: qty, totalPrice: price });
+                          }
+                        });
+
+                        return Array.from(consolidatedMap.values()).map(({ item, totalQty, totalPrice }, idx: number) => (
+                          <div
+                            key={item.id || idx}
+                            className="flex justify-between items-start text-xs gap-2"
+                          >
+                            <div className="flex items-start gap-2">
+                              <span className="font-semibold text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200 shrink-0 leading-none">
+                                {totalQty}
+                              </span>
+                              <span className="font-medium text-gray-700 leading-tight pt-0.5 truncate">
+                                {item.menuItem?.name || item.name || "Dish Item"}
+                              </span>
+                            </div>
+                            <span className="text-gray-600 font-medium shrink-0">
+                              ₹{totalPrice.toFixed(0)}
+                            </span>
+                          </div>
+                        ));
+                      })()
+                    ) : (
+                      <p className="text-[11px] text-gray-400 font-medium text-center py-2">
+                        No Items
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Total & Footer actions */}
+                  <div className="pt-3 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Total</span>
+                      <span className="font-bold text-lg text-gray-900">
                         ₹{Number(totalAmt).toFixed(2)}
                       </span>
                     </div>
 
-                    {/* Placer Info & Branch Location Badge */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-1.5 text-[10.5px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-semibold">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                          <span className="truncate">Placed by: <strong className="font-black text-[#1B2A4A]">{order.placedByName || (isCounter ? "Counter Staff" : "Staff")}</strong></span>
-                        </div>
-                        <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[9px] font-black uppercase tracking-wider shrink-0">{order.placedByRole || (isCounter ? "COUNTER" : "STAFF")}</span>
-                      </div>
-
-                      {order.outletId && (
-                        <div className="flex items-center gap-1.5 text-[10.5px] bg-indigo-50/70 border border-indigo-100 px-2.5 py-1 rounded-lg text-indigo-900 font-semibold">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                          <span className="truncate">Branch: <strong className="font-black text-indigo-950">{order.branchName || branches.find((b) => b.id === order.outletId)?.name || order.outletId}</strong></span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Items list */}
-                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-1.5 max-h-28 overflow-y-auto scrollbar-none flex-1">
-                      {items.length > 0 ? (
-                        (() => {
-                          const consolidatedMap = new Map<string, { item: any; totalQty: number; totalPrice: number }>();
-                          items.forEach((item: any) => {
-                            const key = item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
-                            const qty = item.quantity || 1;
-                            const price = getItemPrice(item);
-                            if (consolidatedMap.has(key)) {
-                              const existing = consolidatedMap.get(key)!;
-                              existing.totalQty += qty;
-                              existing.totalPrice += price;
-                            } else {
-                              consolidatedMap.set(key, { item, totalQty: qty, totalPrice: price });
-                            }
-                          });
-
-                          return Array.from(consolidatedMap.values()).map(({ item, totalQty, totalPrice }, idx: number) => (
-                            <div
-                              key={item.id || idx}
-                              className="flex justify-between items-center text-xs gap-2"
-                            >
-                              <span className="font-semibold text-[#1B2A4A] truncate">
-                                <span className="text-[#D3232A] font-black mr-1">
-                                  {totalQty}×
-                                </span>
-                                {item.menuItem?.name || item.name || "Dish Item"}
-                              </span>
-                              <span className="text-gray-500 font-semibold shrink-0">
-                                ₹{totalPrice.toFixed(2)}
-                              </span>
-                            </div>
-                          ));
-                        })()
-                      ) : (
-                        <p className="text-[11px] text-gray-400 italic">
-                          No item details
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Footer actions */}
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-100">
+                    <div className="flex gap-2 h-10">
                       <button
                         onClick={() => setSelectedOrder(order)}
-                        className="text-xs font-bold text-gray-500 hover:text-[#1B2A4A] transition flex items-center gap-1"
+                        className="flex-1 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold rounded-lg flex items-center justify-center transition-colors hover:bg-gray-100"
                       >
                         Details
-                        <ChevronRight className="w-3.5 h-3.5" />
                       </button>
 
-                      <div className="flex items-center gap-1.5">
-                        {order.status !== "COMPLETED" &&
-                          order.status !== "CANCELLED" && (
-                            <button
-                              onClick={() => setCancellingOrder(order)}
-                              disabled={isUpdating}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60 cursor-pointer"
-                              title="Cancel Order"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              Cancel
-                            </button>
-                          )}
-                        {!isStaffRole &&
-                          (order.status === "SENT_TO_KITCHEN" ||
-                            order.status === "RECEIVED") && (
-                            <button
-                              onClick={() =>
-                                handleStatusChange(order.id, "PREPARING")
-                              }
-                              disabled={isUpdating}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60"
-                            >
-                              <Timer className="w-3 h-3" />
-                              Start Prep
-                            </button>
-                          )}
-                        {!isStaffRole && order.status === "PREPARING" && (
+                      {order.status !== "COMPLETED" &&
+                        order.status !== "CANCELLED" && (
                           <button
-                            onClick={() =>
-                              handleStatusChange(order.id, "READY")
-                            }
+                            onClick={() => setCancellingOrder(order)}
                             disabled={isUpdating}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60"
+                            className="px-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-colors"
+                            title="Cancel Order"
                           >
-                            <CheckCircle2 className="w-3 h-3" />
-                            Mark Ready
+                            <X className="w-4 h-4" />
                           </button>
                         )}
-                        {order.status === "READY" && (
+                    </div>
+                    
+                    {/* Primary Action Button */}
+                    <div className="w-full">
+                      {!isStaffRole &&
+                        (order.status === "SENT_TO_KITCHEN" || order.status === "RECEIVED") && (
                           <button
-                            onClick={() =>
-                              handleStatusChange(order.id, "SERVED")
-                            }
+                            onClick={() => handleStatusChange(order.id, "PREPARING")}
                             disabled={isUpdating}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-[11px] font-bold rounded-lg shadow-xs transition disabled:opacity-60"
+                            className="w-full h-10 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                           >
-                            <Package className="w-3 h-3" />
-                            Mark Served
+                            START PREP <ArrowRight className="w-4 h-4" />
                           </button>
                         )}
-                        {order.status === "SERVED" && (
-                          <button
-                            onClick={() => {
-                              setCustomerName(order.customerName || "");
-                              setCustomerPhone(order.customerPhone || "");
-                              setSettlingOrder(order);
-                            }}
-                            disabled={isUpdating}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-                            title="Generate Alayn AI Bill & Settle Order"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-emerald-200" />
-                            Settle & Print
-                          </button>
-                        )}
-                      </div>
+
+                      {!isStaffRole && order.status === "PREPARING" && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, "READY")}
+                          disabled={isUpdating}
+                          className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                        >
+                          MARK READY <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {!isStaffRole && order.status === "READY" && (
+                        <button
+                          onClick={() => handleStatusChange(order.id, "SERVED")}
+                          disabled={isUpdating}
+                          className="w-full h-10 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                        >
+                          MARK SERVED <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {/* Cashier/Staff button (if needed for COMPLETED flow) */}
+                      {!isStaffRole && order.status === "SERVED" && (
+                        <button
+                          onClick={() => {
+                            setCustomerName(order.customerName || "");
+                            setCustomerPhone(order.customerPhone || "");
+                            setSettlingOrder(order);
+                          }}
+                          disabled={isUpdating}
+                          className="w-full h-10 bg-[#1B2A4A] hover:bg-black text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                        >
+                          <CreditCard className="w-4 h-4 text-emerald-400" />
+                          SETTLE BILL
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -825,81 +785,60 @@ export default function LiveOrdersPage() {
 
         {/* ── Modal: Full Order Details ── */}
         {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full shadow-2xl overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
+            <div className="bg-white rounded-none border-4 border-[#1B2A4A] max-w-md w-full shadow-[8px_8px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col max-h-[90vh]">
               {/* Modal header */}
-              <div className="flex justify-between items-center p-5 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-xl ${selectedOrder.tableNo ||
-                      (selectedOrder as any).tableNumber
-                      ? "bg-[#D3232A]/10"
-                      : "bg-indigo-50"
-                      }`}
-                  >
-                    {selectedOrder.tableNo ||
-                      (selectedOrder as any).tableNumber ? (
-                      <Utensils className="w-4 h-4 text-[#D3232A]" />
+              <div className="flex justify-between items-start p-4 border-b-4 border-[#1B2A4A] bg-[#1B2A4A] text-white">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    {selectedOrder.tableNo || (selectedOrder as any).tableNumber ? (
+                      <span className="bg-white text-[#1B2A4A] px-2 py-0.5 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <Utensils className="w-3 h-3" />
+                        Table {selectedOrder.tableNo || (selectedOrder as any).tableNumber}
+                      </span>
                     ) : (
-                      <CreditCard className="w-4 h-4 text-indigo-600" />
+                      <span className="bg-indigo-500 text-white px-2 py-0.5 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <CreditCard className="w-3 h-3" />
+                        Counter
+                      </span>
                     )}
                   </div>
-                  <div>
-                    <h3 className="text-base font-black text-[#1B2A4A]">
-                      {selectedOrder.orderNo ||
-                        (selectedOrder as any).orderNumber ||
-                        `#${selectedOrder.id.slice(0, 8).toUpperCase()}`}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-medium">
-                      {selectedOrder.tableNo ||
-                        (selectedOrder as any).tableNumber
-                        ? `Table ${selectedOrder.tableNo || (selectedOrder as any).tableNumber}`
-                        : "Counter Direct"}{" "}
-                      ·{" "}
-                      {new Date(selectedOrder.createdAt).toLocaleTimeString(
-                        [],
-                        { hour: "2-digit", minute: "2-digit" }
-                      )}
-                    </p>
-                  </div>
+                  <h3 className="text-3xl font-black tracking-tighter mt-1">
+                    {(() => {
+                      const rawOrderNo = selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.toUpperCase();
+                      return rawOrderNo.length > 8 ? `#${rawOrderNo.slice(-6)}` : rawOrderNo.startsWith("#") ? rawOrderNo : `#${rawOrderNo}`;
+                    })()}
+                  </h3>
+                  <p className="text-[10px] text-gray-400 flex items-center gap-1 font-bold">
+                    <Clock className="w-3 h-3" />
+                    {new Date(selectedOrder.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                  className="bg-white text-[#1B2A4A] hover:bg-red-500 hover:text-white border-2 border-white transition-colors p-1"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="p-5 space-y-4 overflow-y-auto bg-gray-50 flex-1">
                 {/* Status banner */}
-                <div
-                  className={`flex items-center justify-between p-3 rounded-xl border ${getStatusMeta(selectedOrder.status).bg
-                    } ${getStatusMeta(selectedOrder.status).border}`}
-                >
-                  <span
-                    className={`text-xs font-bold ${getStatusMeta(selectedOrder.status).text}`}
-                  >
+                <div className={`flex items-center justify-between p-3 border-2 border-dashed ${getStatusMeta(selectedOrder.status).bg} ${getStatusMeta(selectedOrder.status).border}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusMeta(selectedOrder.status).text}`}>
                     Kitchen Status
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${getStatusMeta(selectedOrder.status).bg
-                      } ${getStatusMeta(selectedOrder.status).text} ${getStatusMeta(selectedOrder.status).border
-                      }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${getStatusMeta(selectedOrder.status).dot}`}
-                    />
+                  <span className={`text-[11px] font-black uppercase tracking-widest ${getStatusMeta(selectedOrder.status).text}`}>
                     {getStatusMeta(selectedOrder.status).label}
                   </span>
                 </div>
 
                 {/* Items */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                <div className="bg-white border-2 border-gray-300 p-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3 border-b-2 border-gray-200 pb-2">
                     Ordered Items
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {(() => {
                       const modalItems = selectedOrder.orderItems || (selectedOrder as any).items || [];
                       const modalConsolidated = new Map<string, { item: any; totalQty: number; totalPrice: number; notes: string[] }>();
@@ -920,25 +859,24 @@ export default function LiveOrdersPage() {
                       });
 
                       return Array.from(modalConsolidated.values()).map(({ item, totalQty, totalPrice, notes }, idx: number) => (
-                        <div
-                          key={item.id || idx}
-                          className="flex justify-between items-start p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs"
-                        >
-                          <div>
-                            <span className="font-bold text-[#1B2A4A] block">
-                              <span className="text-[#D3232A] mr-1 font-black">
-                                {totalQty}×
-                              </span>
-                              {item.menuItem?.name || item.name || "Dish Item"}
+                        <div key={item.id || idx} className="flex justify-between items-start text-[13px]">
+                          <div className="flex gap-2 items-start">
+                            <span className="font-black text-white bg-[#1B2A4A] px-1.5 py-0.5 leading-none mt-0.5">
+                              {totalQty}
                             </span>
-                            {notes.length > 0 && (
-                              <span className="text-[10px] text-gray-400 italic mt-0.5 block">
-                                {notes.join(", ")}
+                            <div>
+                              <span className="font-bold text-[#1B2A4A] leading-tight block">
+                                {item.menuItem?.name || item.name || "Dish Item"}
                               </span>
-                            )}
+                              {notes.length > 0 && (
+                                <span className="text-[10px] text-gray-500 italic mt-0.5 block border-l-2 border-amber-400 pl-1.5">
+                                  {notes.join(", ")}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <span className="font-bold text-gray-700">
-                            ₹{totalPrice.toFixed(2)}
+                          <span className="font-black text-gray-700">
+                            ₹{totalPrice.toFixed(0)}
                           </span>
                         </div>
                       ));
@@ -947,126 +885,50 @@ export default function LiveOrdersPage() {
                 </div>
 
                 {/* Bill summary */}
-                {(() => {
-                  const subtotalVal =
-                    selectedOrder.subtotal !== undefined
-                      ? selectedOrder.subtotal
-                      : (selectedOrder as any).subtotalPaise !== undefined
-                        ? (selectedOrder as any).subtotalPaise / 100
-                        : 0;
+                <div className="bg-[#1B2A4A] text-white p-4 space-y-2 relative">
+                  {/* Jagged receipt edge effect top */}
+                  <div className="absolute top-0 left-0 w-full h-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxwb2x5Z29uIGZpbGw9IiNmOWZhZmIiIHBvaW50cz0iMCAwIDQgNCA4IDAgOCA4IDAgOCIvPjwvc3ZnPg==')] -mt-2"></div>
+                  
+                  {(() => {
+                    const subtotalVal = selectedOrder.subtotal !== undefined ? selectedOrder.subtotal : (selectedOrder as any).subtotalPaise !== undefined ? (selectedOrder as any).subtotalPaise / 100 : 0;
+                    const totalVal = selectedOrder.totalAmount !== undefined ? selectedOrder.totalAmount : (selectedOrder as any).totalPaise !== undefined ? (selectedOrder as any).totalPaise / 100 : 0;
+                    const discountVal = selectedOrder.discountAmount !== undefined ? selectedOrder.discountAmount : (selectedOrder as any).discountPaise !== undefined ? (selectedOrder as any).discountPaise / 100 : 0;
+                    let taxVal = selectedOrder.taxAmount !== undefined ? selectedOrder.taxAmount : (selectedOrder as any).taxPaise !== undefined ? (selectedOrder as any).taxPaise / 100 : 0;
+                    
+                    if (taxVal === 0 && totalVal > 0 && subtotalVal > 0 && totalVal >= (subtotalVal - discountVal)) {
+                      taxVal = Math.max(0, totalVal - (subtotalVal - discountVal));
+                    }
 
-                  const totalVal =
-                    selectedOrder.totalAmount !== undefined
-                      ? selectedOrder.totalAmount
-                      : (selectedOrder as any).totalPaise !== undefined
-                        ? (selectedOrder as any).totalPaise / 100
-                        : 0;
-
-                  const discountVal =
-                    selectedOrder.discountAmount !== undefined
-                      ? selectedOrder.discountAmount
-                      : (selectedOrder as any).discountPaise !== undefined
-                        ? (selectedOrder as any).discountPaise / 100
-                        : 0;
-
-                  let taxVal =
-                    selectedOrder.taxAmount !== undefined
-                      ? selectedOrder.taxAmount
-                      : (selectedOrder as any).taxPaise !== undefined
-                        ? (selectedOrder as any).taxPaise / 100
-                        : 0;
-
-                  if (taxVal === 0 && totalVal > 0 && subtotalVal > 0 && totalVal >= (subtotalVal - discountVal)) {
-                    taxVal = Math.max(0, totalVal - (subtotalVal - discountVal));
-                  }
-
-                  const cgstVal =
-                    selectedOrder.cgstAmount !== undefined
-                      ? selectedOrder.cgstAmount
-                      : (selectedOrder as any).cgstPaise !== undefined
-                        ? (selectedOrder as any).cgstPaise / 100
-                        : 0;
-
-                  const sgstVal =
-                    selectedOrder.sgstAmount !== undefined
-                      ? selectedOrder.sgstAmount
-                      : (selectedOrder as any).sgstPaise !== undefined
-                        ? (selectedOrder as any).sgstPaise / 100
-                        : 0;
-
-                  const serviceTaxVal =
-                    (selectedOrder as any).serviceTaxAmount !== undefined
-                      ? (selectedOrder as any).serviceTaxAmount
-                      : (selectedOrder as any).serviceTaxPaise !== undefined
-                        ? (selectedOrder as any).serviceTaxPaise / 100
-                        : 0;
-
-                  const cgstPct = subtotalVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const sgstPct = subtotalVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const serviceTaxPct = subtotalVal > 0 ? Number(((serviceTaxVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const totalTaxPct = Number((cgstPct + sgstPct + serviceTaxPct).toFixed(2));
-
-                  return (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
-                      <div className="flex justify-between text-gray-600 font-medium">
-                        <span>Actual Amount (Subtotal)</span>
-                        <span className="font-semibold text-gray-800">
-                          ₹{subtotalVal.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {discountVal > 0 && (
-                        <div className="flex justify-between text-emerald-600 font-medium">
-                          <span>Discount</span>
-                          <span className="font-semibold">
-                            - ₹{discountVal.toFixed(2)}
+                    return (
+                      <>
+                        <div className="flex justify-between text-[11px] font-bold text-gray-300 uppercase tracking-widest">
+                          <span>Subtotal</span>
+                          <span className="font-bold text-white">₹{subtotalVal.toFixed(2)}</span>
+                        </div>
+                        {discountVal > 0 && (
+                          <div className="flex justify-between text-[11px] font-bold text-emerald-400 uppercase tracking-widest">
+                            <span>Discount</span>
+                            <span className="font-bold">- ₹{discountVal.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-[11px] font-bold text-gray-300 uppercase tracking-widest pb-2 border-b-2 border-dashed border-gray-600">
+                          <span>Taxes</span>
+                          <span className="font-bold text-white">₹{taxVal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-end pt-2">
+                          <span className="text-[14px] font-black uppercase tracking-widest text-emerald-400">Total</span>
+                          <span className="text-3xl font-black tracking-tighter leading-none text-emerald-400">
+                            ₹{totalVal.toFixed(2)}
                           </span>
                         </div>
-                      )}
-
-                      <div className="flex justify-between text-gray-600 font-medium items-baseline">
-                        <div className="flex flex-col">
-                          <span>Tax Amount ({serviceTaxVal > 0 ? "GST & Taxes" : "GST"}{totalTaxPct > 0 ? ` ${totalTaxPct}%` : ""})</span>
-                          {(cgstVal > 0 || sgstVal > 0 || serviceTaxVal > 0) && (
-                            <span className="text-[10px] text-gray-400 font-normal">
-                              ({[
-                                cgstVal > 0 ? `CGST${cgstPct > 0 ? ` ${cgstPct}%` : ""}: ₹${cgstVal.toFixed(2)}` : null,
-                                sgstVal > 0 ? `SGST${sgstPct > 0 ? ` ${sgstPct}%` : ""}: ₹${sgstVal.toFixed(2)}` : null,
-                                serviceTaxVal > 0 ? `Service Tax${serviceTaxPct > 0 ? ` ${serviceTaxPct}%` : ""}: ₹${serviceTaxVal.toFixed(2)}` : null,
-                              ].filter(Boolean).join(" + ")})
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-semibold text-gray-800">
-                          ₹{taxVal.toFixed(2)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between font-black text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
-                        <span>Overall Total</span>
-                        <span className="text-[#D3232A]">
-                          ₹{totalVal.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {selectedOrder.paymentMethod && (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
-                          <span className="text-gray-500 font-medium">Payment Method</span>
-                          <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
-                            {selectedOrder.paymentMethod}
-                            {selectedOrder.status === "COMPLETED" && (
-                              <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
 
               {/* Modal footer */}
-              <div className="p-4 border-t border-gray-100 flex gap-2">
+              <div className="p-4 border-t-4 border-[#1B2A4A] bg-white flex gap-2">
                 {selectedOrder.status !== "COMPLETED" &&
                   selectedOrder.status !== "CANCELLED" && (
                     <>
@@ -1075,10 +937,9 @@ export default function LiveOrdersPage() {
                           setCancellingOrder(selectedOrder);
                           setSelectedOrder(null);
                         }}
-                        className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                        className="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border-2 border-red-500 font-black uppercase tracking-widest py-3 px-4 text-[10px] transition-all flex items-center gap-1 active:translate-y-[2px] active:translate-x-[2px] shadow-[2px_2px_0px_rgba(0,0,0,0.1)] active:shadow-none"
                       >
-                        <XCircle className="w-4 h-4 text-rose-600" />
-                        Cancel Order
+                        <X className="w-4 h-4" /> Cancel
                       </button>
                       <button
                         onClick={() => {
@@ -1087,19 +948,22 @@ export default function LiveOrdersPage() {
                           setSettlingOrder(selectedOrder);
                           setSelectedOrder(null);
                         }}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] shadow-xs cursor-pointer"
+                        className="flex-1 bg-[#1B2A4A] border-2 border-black text-white font-black uppercase tracking-widest py-3 px-3 text-[11px] transition-all hover:bg-black flex items-center justify-center gap-2 active:translate-y-[2px] active:translate-x-[2px] shadow-[4px_4px_0px_rgba(0,0,0,0.2)] active:shadow-none"
                       >
-                        <Printer className="w-4 h-4 text-emerald-200" />
-                        Settle & Print Bill
+                        <Printer className="w-4 h-4 text-emerald-400" />
+                        Settle & Print
                       </button>
                     </>
                   )}
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
-                >
-                  Close
-                </button>
+                {/* Optional close button if needed, but we have X top right */}
+                {(selectedOrder.status === "COMPLETED" || selectedOrder.status === "CANCELLED") && (
+                   <button
+                     onClick={() => setSelectedOrder(null)}
+                     className="flex-1 bg-gray-100 hover:bg-gray-200 border-2 border-gray-300 text-gray-700 font-black uppercase tracking-widest py-3 text-[11px] transition-all active:translate-y-[2px] active:translate-x-[2px] shadow-[2px_2px_0px_rgba(0,0,0,0.1)] active:shadow-none"
+                   >
+                     Close
+                   </button>
+                )}
               </div>
             </div>
           </div>
