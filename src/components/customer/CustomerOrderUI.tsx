@@ -27,9 +27,16 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [dietaryFilter, setDietaryFilter] = useState<"ALL" | "VEG" | "NON_VEG" | "VEGAN">("ALL");
+  
+  // Mobile category overlay bottom sheet
+  const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
 
   // Image lightbox
   const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
+
+  // Scroll spy refs
+  const isScrollingRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadMenu() {
@@ -96,12 +103,63 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       .filter((cat) => cat.menuItems.length > 0);
   }, [categories, search, dietaryFilter]);
 
-  // If search is active, we might want to show all categories that match, bypassing the left sidebar selection
+  // If search is active, we show all matching categories
   const isSearchActive = search.trim().length > 0;
   
-  const activeCategoryData = isSearchActive 
-    ? displayCategories 
-    : displayCategories.filter((cat) => cat.id === selectedCategory);
+  const activeCategoryData = displayCategories;
+
+  // Scroll to category function
+  const scrollToCategory = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    isScrollingRef.current = true;
+    const element = document.getElementById(`category-${categoryId}`);
+    if (element) {
+      // scroll-mt offset accounts for sticky headers
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+    } else {
+      isScrollingRef.current = false;
+    }
+  };
+
+  // Scroll Spy Hook
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isScrollingRef.current || isSearchActive) return;
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const containerTop = container.getBoundingClientRect().top;
+      let activeId = selectedCategory;
+
+      displayCategories.forEach((cat) => {
+        const el = document.getElementById(`category-${cat.id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // If the category header has crossed the top scroll offset (e.g. 100px)
+          if (rect.top - containerTop < 100 && rect.bottom - containerTop > 10) {
+            activeId = cat.id;
+          }
+        }
+      });
+
+      if (activeId !== selectedCategory) {
+        setSelectedCategory(activeId);
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [displayCategories, selectedCategory, isSearchActive]);
 
   if (loading) {
     return (
@@ -248,30 +306,52 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         </div>
       </div>
 
+      {/* Mobile Sticky top category pill bar */}
+      {!isSearchActive && displayCategories.length > 0 && (
+        <div className="md:hidden border-b border-gray-100 bg-white sticky top-0 z-20 px-3 py-2.5 overflow-x-auto scrollbar-none flex gap-2 shrink-0">
+          {displayCategories.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => scrollToCategory(cat.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all",
+                  isActive
+                    ? "bg-[#D3232A] text-white shadow-xs"
+                    : "bg-gray-50 text-gray-500 border border-gray-200"
+                )}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── Dual-Scroll Main Area ── */}
       <main className="flex flex-1 overflow-hidden max-w-4xl mx-auto w-full">
         
-        {/* Left Sidebar: Categories (Hidden if searching) */}
+        {/* Left Sidebar: Categories (Desktop/Tablet Only, Hidden if searching) */}
         {!isSearchActive && (
-          <aside className="w-[90px] sm:w-[120px] shrink-0 bg-gray-50/50 border-r border-gray-100 overflow-y-auto scrollbar-none py-2">
+          <aside className="hidden md:flex md:w-[130px] shrink-0 bg-gray-50/50 border-r border-gray-100 flex-col overflow-y-auto scrollbar-none py-3">
             {displayCategories.map((cat) => {
               const isActive = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => scrollToCategory(cat.id)}
                   className={cn(
-                    "w-full flex flex-col items-center justify-center py-4 px-2 gap-1.5 transition-colors text-center relative",
+                    "w-full flex flex-col items-center justify-center py-4.5 px-3 gap-1.5 transition-colors text-center relative",
                     isActive ? "bg-white" : "hover:bg-gray-100"
                   )}
                 >
                   {isActive && (
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D3232A] rounded-r-md" />
                   )}
-                  {/* Subtle icon replacement based on category name could go here. For now, text focused. */}
                   <span className={cn(
-                    "text-[10px] sm:text-xs leading-tight transition-all",
-                    isActive ? "font-black text-[#D3232A]" : "font-semibold text-gray-500"
+                    "text-xs leading-tight transition-all",
+                    isActive ? "font-black text-[#D3232A]" : "font-bold text-gray-500"
                   )}>
                     {cat.name}
                   </span>
@@ -282,21 +362,27 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         )}
 
         {/* Right Content Area: Items */}
-        <section className="flex-1 overflow-y-auto bg-gray-50/30 px-3 py-4 sm:p-5 scrollbar-none scroll-smooth">
+        <section 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto bg-gray-50/30 px-3 py-4 sm:p-5 scrollbar-none scroll-smooth"
+        >
           {activeCategoryData.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <Utensils className="h-10 w-10 text-gray-200 mb-3" />
               <p className="text-sm font-bold text-gray-400">No items found</p>
             </div>
           ) : (
-            <div className="space-y-6 pb-20">
+            <div className="space-y-8 pb-24">
               {activeCategoryData.map((cat) => (
-                <div key={cat.id} className="space-y-3">
-                  {isSearchActive && (
-                    <h2 className="text-lg font-black text-[#1B2A4A] sticky top-0 bg-white/90 backdrop-blur py-2 z-10">
+                <div key={cat.id} id={`category-${cat.id}`} className="space-y-4 scroll-mt-28 md:scroll-mt-12">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <h2 className="text-sm font-black text-[#1B2A4A] tracking-wider uppercase">
                       {cat.name}
                     </h2>
-                  )}
+                    <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                      {cat.menuItems.length}
+                    </span>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {cat.menuItems.map((item) => {
@@ -366,6 +452,64 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           )}
         </section>
       </main>
+
+      {/* Floating Category Selector (Mobile Only) */}
+      {!isSearchActive && displayCategories.length > 0 && (
+        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <button
+            onClick={() => setIsCategorySheetOpen(true)}
+            className="bg-[#1B2A4A] text-white px-5 py-2.5 rounded-full shadow-lg font-black text-xs flex items-center gap-1.5 hover:scale-105 transition-transform border border-slate-700 cursor-pointer"
+          >
+            <Utensils className="w-3.5 h-3.5" />
+            Categories
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Category Overlay Bottom Sheet */}
+      {isCategorySheetOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs md:hidden flex items-end justify-center animate-in fade-in duration-200"
+          onClick={() => setIsCategorySheetOpen(false)}
+        >
+          <div
+            className="bg-white w-full rounded-t-[2rem] p-6 max-h-[70vh] overflow-y-auto space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-[#1B2A4A]">Select Category</h3>
+              <button
+                onClick={() => setIsCategorySheetOpen(false)}
+                className="p-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 py-2">
+              {displayCategories.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      scrollToCategory(cat.id);
+                      setIsCategorySheetOpen(false);
+                    }}
+                    className={cn(
+                      "py-3.5 px-4 rounded-2xl text-xs font-black text-center border transition-all cursor-pointer",
+                      isActive
+                        ? "bg-[#D3232A]/5 text-[#D3232A] border-[#D3232A] shadow-xs"
+                        : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100"
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Image Lightbox ── */}
       {lightboxImage && (
