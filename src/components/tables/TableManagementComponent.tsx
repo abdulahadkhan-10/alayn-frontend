@@ -813,10 +813,21 @@ export default function TableManagementComponent() {
           body * {
             visibility: hidden !important;
           }
-          /* Show only the single print element if it exists */
-          #table-print-single-card, #table-print-single-card * {
+          /* Show print container and its contents */
+          #print-section-container, #print-section-container * {
             visibility: visible !important;
           }
+          #print-section-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block !important;
+            background: white !important;
+          }
+          
+          /* Style single card */
           #table-print-single-card {
             position: absolute !important;
             left: 50% !important;
@@ -825,34 +836,31 @@ export default function TableManagementComponent() {
             width: 380px !important;
             border: 2px dashed #1B2A4A !important;
             background-color: #F8FAFC !important;
-            padding: 24px !important;
+            padding: 32px !important;
             border-radius: 16px !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Show only the bulk print elements if they exist */
-          #table-print-bulk-cards, #table-print-bulk-cards * {
-            visibility: visible !important;
-          }
+
+          /* Style bulk cards grid */
           #table-print-bulk-cards {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
             display: grid !important;
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-            gap: 16px !important;
-            background: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
+            gap: 20px !important;
+            width: 100% !important;
+            background: white !important;
+            padding: 20px !important;
           }
-          #table-print-bulk-cards > div {
+          .print-card-bulk {
             border: 2px dashed #1B2A4A !important;
             background-color: #F8FAFC !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            padding: 24px !important;
+            border-radius: 16px !important;
+            text-align: center !important;
           }
         }
       ` }} />
@@ -872,7 +880,7 @@ export default function TableManagementComponent() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div id="table-print-single-card" className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
+              <div id="table-print-single-card-modal" className="border-2 border-dashed border-[#1B2A4A]/20 p-6 rounded-2xl bg-slate-50 space-y-3">
                 <div className="flex justify-center mb-1">
                   <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-12 object-contain mix-blend-multiply" />
                 </div>
@@ -924,7 +932,7 @@ export default function TableManagementComponent() {
               </button>
             </div>
 
-            <div id="table-print-bulk-cards" className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div id="table-print-bulk-cards-modal" className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {tables.map((t) => (
                 <div key={t.id} className="border-2 border-dashed border-[#1B2A4A]/20 p-5 rounded-2xl bg-slate-50 text-center space-y-3">
                   <div className="flex justify-center mb-1">
@@ -964,6 +972,49 @@ export default function TableManagementComponent() {
           </div>
         </div>
       )}
+
+      {/* Print-Only Container (Rendered outside modals to prevent max-height layout clipping during print) */}
+      <div id="print-section-container" className="hidden">
+        {printTable && (
+          <div id="table-print-single-card">
+            <div className="flex justify-center mb-2">
+              <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-14 object-contain mix-blend-multiply" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-[#1B2A4A] mb-2">Table #{printTable.tableNumber}</h2>
+            <div className="py-4 flex justify-center">
+              <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={180} fgColor="#1B2A4A" bgColor="#F8FAFC" />
+            </div>
+            <div className="space-y-1 mt-2">
+              <p className="text-sm font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+              <p className="text-[10px] font-medium text-gray-500">
+                visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {showBulkPrint && (
+          <div id="table-print-bulk-cards">
+            {tables.map((t) => (
+              <div key={t.id} className="print-card-bulk">
+                <div className="flex justify-center mb-1">
+                  <img src="/logowithouttagline.png" alt="Alayn Logo" className="h-8 object-contain mix-blend-multiply" />
+                </div>
+                <h4 className="text-lg font-extrabold text-[#1B2A4A]">Table #{t.tableNumber}</h4>
+                <div className="flex justify-center py-2">
+                  <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={120} fgColor="#1B2A4A" bgColor="#F8FAFC" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-[#1B2A4A] leading-tight">Scan with Phone Camera<br/>to View Menu & Order</p>
+                  <p className="text-[8px] font-medium text-gray-500">
+                    visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
