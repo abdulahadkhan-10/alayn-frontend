@@ -72,15 +72,28 @@ export function useSocket(
       optionsRef.current.onDisconnect?.();
     };
 
-    const debounceTimerRef = { current: null as any };
+    let lastExecuted = 0;
+    let throttleTimeout: any = null;
 
     const handleKDSUpdate = (data: any) => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = setTimeout(() => {
+      const now = Date.now();
+      const throttleLimit = 2000; // 2 seconds throttle window
+
+      const executeUpdate = () => {
+        lastExecuted = Date.now();
         optionsRef.current.onKDSUpdate?.(data);
-      }, 250);
+      };
+
+      if (throttleTimeout) {
+        clearTimeout(throttleTimeout);
+      }
+
+      if (now - lastExecuted >= throttleLimit) {
+        executeUpdate();
+      } else {
+        const delay = throttleLimit - (now - lastExecuted);
+        throttleTimeout = setTimeout(executeUpdate, delay);
+      }
     };
 
     const handleNotification = (data: any) => {
