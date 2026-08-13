@@ -566,7 +566,7 @@ export default function LiveOrdersPage() {
                     {/* Status Top Line indicator */}
                     <div className={`absolute top-0 left-0 w-full h-1 ${meta.bg}`} />
                     
-                    <div className="flex flex-col gap-2 z-10 pt-1">
+                    <div className="flex flex-col gap-2 relative pt-1">
                       {/* Top Line: Status Badge & Time */}
                       <div className="flex items-center justify-between gap-2">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
