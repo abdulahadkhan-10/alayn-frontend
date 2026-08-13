@@ -28,7 +28,7 @@ export default function LoginComponent() {
         password,
       }).unwrap();
 
-      console.log("Login response:", response);
+      // console.log("Login response:", response);
 
       const payload = response?.data || response;
       dispatch(setCredentials(payload));
