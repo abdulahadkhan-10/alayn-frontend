@@ -375,7 +375,7 @@ export default function LiveOrdersPage() {
                 <ChefHat className="w-5 h-5 text-[#D3232A]" />
               </div>
               <div>
-                <h1 className="text-xl font-black text-[#1B2A4A] leading-tight">
+                <h1 className="text-xl font-bold text-[#1B2A4A] leading-tight">
                   Live Orders
                 </h1>
                 <p className="text-xs text-gray-500 font-medium mt-0.5">
@@ -421,7 +421,7 @@ export default function LiveOrdersPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             {/* Channel Tabs */}
             {!isStaffRole && (
-              <div className="flex bg-gray-100/80 p-1 rounded-xl w-full sm:w-fit border border-gray-200/50 shrink-0 overflow-x-auto">
+              <div className="flex bg-gray-100/80 p-1 rounded-xl w-full sm:w-fit border border-gray-200/50 overflow-x-auto min-w-0">
                 {channelTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = selectedSourceFilter === tab.id;
@@ -442,7 +442,7 @@ export default function LiveOrdersPage() {
                       <Icon className="w-3.5 h-3.5" />
                       <span className="uppercase tracking-wider">{tab.label}</span>
                       <span
-                        className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-black ${
+                        className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           isActive ? "bg-gray-100 text-[#1B2A4A]" : "bg-gray-200/60 text-gray-400"
                         }`}
                       >
@@ -490,7 +490,7 @@ export default function LiveOrdersPage() {
                   {tab.label}
                   {tab.id !== "ALL" && (
                     <span
-                      className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                      className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
                         active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
                       }`}
                     >
@@ -523,7 +523,7 @@ export default function LiveOrdersPage() {
             <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
               <ChefHat className="w-7 h-7 text-gray-400" />
             </div>
-            <p className="text-sm font-black text-[#1B2A4A] uppercase tracking-widest">No active orders</p>
+            <p className="text-sm font-bold text-[#1B2A4A] uppercase tracking-widest">No active orders</p>
             <p className="text-xs text-gray-500 max-w-xs mx-auto">
               {selectedSourceFilter !== "ALL"
                 ? `No active ${channelTabs.find((c) => c.id === selectedSourceFilter)?.label.toLowerCase()} match your filters.`
@@ -569,7 +569,7 @@ export default function LiveOrdersPage() {
                     <div className="flex flex-col gap-2 z-10 pt-1">
                       {/* Top Line: Status Badge & Time */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
                           <span className={`w-1 h-1 rounded-full ${meta.dot}`} />
                           {meta.label}
                         </span>
@@ -580,7 +580,7 @@ export default function LiveOrdersPage() {
                       
                       {/* Bottom Area: ID & Table */}
                       <div className="mt-1 flex flex-col gap-1">
-                        <span className="text-[15px] font-black text-[#1B2A4A] font-mono tracking-tight break-all">
+                        <span className="text-[15px] font-bold text-[#1B2A4A] font-mono tracking-tight break-all">
                           {orderNumDisplay}
                         </span>
                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
@@ -614,7 +614,7 @@ export default function LiveOrdersPage() {
                             <>
                               {displayItems.map(({ item, totalQty }, idx: number) => (
                                 <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-200 text-gray-700 text-[10px] font-bold rounded-lg max-w-full truncate">
-                                  <span className="text-[#1B2A4A] font-black">{totalQty}×</span>
+                                  <span className="text-[#1B2A4A] font-bold">{totalQty}×</span>
                                   <span className="truncate ml-1">{item.menuItem?.name || item.name || "Item"}</span>
                                 </span>
                               ))}
@@ -638,7 +638,7 @@ export default function LiveOrdersPage() {
                   <div className="p-4 pt-3 border-t border-gray-100 bg-white flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">Total</span>
-                      <span className="text-base font-black text-[#1B2A4A] font-mono">₹{Number(totalAmt).toFixed(2)}</span>
+                      <span className="text-base font-bold text-[#1B2A4A] font-mono">₹{Number(totalAmt).toFixed(2)}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -662,7 +662,7 @@ export default function LiveOrdersPage() {
                         </button>
                       )}
                       {order.status === "SERVED" && (
-                        <button onClick={() => { setCustomerName(order.customerName || ""); setCustomerPhone(order.customerPhone || ""); setSettlingOrder(order); }} disabled={isUpdating} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1B2A4A] hover:bg-black text-white text-[11px] font-black rounded-xl transition-all shadow-sm active:translate-y-[1px]">
+                        <button onClick={() => { setCustomerName(order.customerName || ""); setCustomerPhone(order.customerPhone || ""); setSettlingOrder(order); }} disabled={isUpdating} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1B2A4A] hover:bg-black text-white text-[11px] font-bold rounded-xl transition-all shadow-sm active:translate-y-[1px]">
                           <Printer className="w-3.5 h-3.5" />
                           Settle
                         </button>
@@ -697,7 +697,7 @@ export default function LiveOrdersPage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-[#1B2A4A]">
+                    <h3 className="text-base font-bold text-[#1B2A4A]">
                       {selectedOrder.orderNo ||
                         (selectedOrder as any).orderNumber ||
                         `#${selectedOrder.id.slice(0, 8).toUpperCase()}`}
@@ -735,7 +735,7 @@ export default function LiveOrdersPage() {
                     Kitchen Status
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${getStatusMeta(selectedOrder.status).bg
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusMeta(selectedOrder.status).bg
                       } ${getStatusMeta(selectedOrder.status).text} ${getStatusMeta(selectedOrder.status).border
                       }`}
                   >
@@ -748,7 +748,7 @@ export default function LiveOrdersPage() {
 
                 {/* Items */}
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
                     Ordered Items
                   </p>
                   <div className="space-y-2">
@@ -778,7 +778,7 @@ export default function LiveOrdersPage() {
                         >
                           <div>
                             <span className="font-bold text-[#1B2A4A] block">
-                              <span className="text-[#D3232A] mr-1 font-black">
+                              <span className="text-[#D3232A] mr-1 font-bold">
                                 {totalQty}×
                               </span>
                               {item.menuItem?.name || item.name || "Dish Item"}
@@ -894,7 +894,7 @@ export default function LiveOrdersPage() {
                         </span>
                       </div>
 
-                      <div className="flex justify-between font-black text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
+                      <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
                         <span>Overall Total</span>
                         <span className="text-[#D3232A]">
                           ₹{totalVal.toFixed(2)}
@@ -1128,10 +1128,10 @@ export default function LiveOrdersPage() {
         {/* ── Printable Thermal Receipt Modal ── */}
         {printingOrder && (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm receipt-backdrop-animation"
             onClick={(e) => { if (e.target === e.currentTarget) setPrintingOrder(null); }}
           >
-            <div className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden shadow-[0_32px_80px_-12px_rgba(0,0,0,0.6)] border border-white/10 animate-in zoom-in-95 duration-200">
+            <div className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden shadow-[0_32px_80px_-12px_rgba(0,0,0,0.6)] border border-white/10 receipt-modal-animation">
               <ThermalReceipt
                 order={printingOrder}
                 onClose={() => setPrintingOrder(null)}
@@ -1149,7 +1149,7 @@ export default function LiveOrdersPage() {
                   <XCircle className="w-6 h-6 text-rose-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-[#1B2A4A]">
+                  <h3 className="text-base font-bold text-[#1B2A4A]">
                     Cancel Order
                   </h3>
                   <p className="text-xs text-gray-500 font-bold font-mono">

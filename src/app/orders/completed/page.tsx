@@ -266,7 +266,7 @@ export default function CompletedOrdersPage() {
                 <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
                   <CheckCircle2 className="w-5 h-5" />
                 </span>
-                <h1 className="text-xl font-black text-[#1B2A4A]">
+                <h1 className="text-xl font-bold text-[#1B2A4A]">
                   Completed Orders
                 </h1>
               </div>
@@ -304,7 +304,7 @@ export default function CompletedOrdersPage() {
             <p className="text-xs font-bold text-emerald-100 uppercase tracking-wider">
               Total Revenue (Completed)
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black mt-1">
+            <h3 className="text-2xl sm:text-3xl font-bold mt-1">
               ₹{totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </h3>
             <p className="text-[11px] text-emerald-200 mt-1 font-medium">
@@ -319,7 +319,7 @@ export default function CompletedOrdersPage() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               Total Completed Tickets
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-[#1B2A4A] mt-1">
+            <h3 className="text-2xl sm:text-3xl font-bold text-[#1B2A4A] mt-1">
               {filteredCompletedOrders.length}
             </h3>
             <p className="text-[11px] text-gray-500 mt-1 font-medium">
@@ -334,7 +334,7 @@ export default function CompletedOrdersPage() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               Average Order Value
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-[#1B2A4A] mt-1">
+            <h3 className="text-2xl sm:text-3xl font-bold text-[#1B2A4A] mt-1">
               ₹{avgOrderValue.toFixed(2)}
             </h3>
             <p className="text-[11px] text-gray-500 mt-1 font-medium">
@@ -348,7 +348,7 @@ export default function CompletedOrdersPage() {
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-[#D3232A]" />
-              <h2 className="text-sm font-black text-[#1B2A4A]">Filter Orders</h2>
+              <h2 className="text-sm font-bold text-[#1B2A4A]">Filter Orders</h2>
             </div>
             {(searchQuery || dateRange !== "ALL" || selectedStaff !== "ALL" || selectedSource !== "ALL" || selectedPaymentMethod !== "ALL") && (
               <button
@@ -494,7 +494,7 @@ export default function CompletedOrdersPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-black uppercase text-gray-500 tracking-wider">
+                  <tr className="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase text-gray-500 tracking-wider">
                     <th className="py-3.5 px-4">Order ID & Date</th>
                     <th className="py-3.5 px-4">Source / Table</th>
                     <th className="py-3.5 px-4">Staff Member</th>
@@ -538,11 +538,11 @@ export default function CompletedOrdersPage() {
 
                         <td className="py-3.5 px-4">
                           {tableNum !== null ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-[#D3232A] font-black border border-rose-100 text-[11px]">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-[#D3232A] font-bold border border-rose-100 text-[11px]">
                               <Utensils className="w-3 h-3" /> Table {tableNum}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-black border border-indigo-100 text-[11px]">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 text-[11px]">
                               <CreditCard className="w-3 h-3" /> Counter Direct
                             </span>
                           )}
@@ -582,7 +582,7 @@ export default function CompletedOrdersPage() {
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
-                          <span className="text-sm font-black text-[#1B2A4A]">
+                          <span className="text-sm font-bold text-[#1B2A4A]">
                             ₹{order.totalAmount.toFixed(2)}
                           </span>
                         </td>
@@ -685,7 +685,7 @@ export default function CompletedOrdersPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <ReceiptIndianRupeeIcon className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg font-black">
+                    <h3 className="text-lg font-bold">
                       Order {selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.slice(0, 8)}
                     </h3>
                   </div>
@@ -735,7 +735,7 @@ export default function CompletedOrdersPage() {
 
                 {/* Item list */}
                 <div>
-                  <h4 className="text-xs font-black uppercase text-gray-400 tracking-wider mb-2">
+                  <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">
                     Ordered Items
                   </h4>
                   <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
@@ -760,7 +760,7 @@ export default function CompletedOrdersPage() {
                               )}
                             </div>
                           </div>
-                          <span className="font-black text-gray-800">
+                          <span className="font-bold text-gray-800">
                             ₹{getItemPrice(item).toFixed(2)}
                           </span>
                         </div>
@@ -791,7 +791,7 @@ export default function CompletedOrdersPage() {
                       <span>-₹{selectedOrder.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm font-black text-[#1B2A4A] pt-2 border-t border-gray-200">
+                  <div className="flex justify-between text-sm font-bold text-[#1B2A4A] pt-2 border-t border-gray-200">
                     <span>Total Paid</span>
                     <span>₹{selectedOrder.totalAmount.toFixed(2)}</span>
                   </div>

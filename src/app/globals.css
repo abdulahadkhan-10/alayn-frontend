@@ -554,4 +554,83 @@ html {
   }
 }
 
+/* ── Thermal Receipt Roll-Out Animation ──────────────────────────────────────
+   Mimics paper feeding out of a thermal receipt printer.
+   Uses clip-path reveal from top for hardware acceleration.
+   ─────────────────────────────────────────────────────────────────────────── */
 
+@keyframes receipt-roll-out {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  72% {
+    clip-path: inset(0 0 0% 0);
+    transform: translateY(3px);
+  }
+  88% {
+    transform: translateY(-1px);
+  }
+  100% {
+    clip-path: inset(0 0 0% 0);
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
+
+@keyframes receipt-modal-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(-10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.005) translateY(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes receipt-backdrop-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.receipt-roll-animation {
+  animation: receipt-roll-out 1500ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  will-change: clip-path, transform;
+}
+
+.receipt-modal-animation {
+  animation: receipt-modal-in 380ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.receipt-backdrop-animation {
+  animation: receipt-backdrop-in 250ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt-roll-animation,
+  .receipt-modal-animation {
+    animation: none;
+    clip-path: inset(0 0 0% 0);
+    transform: none;
+    opacity: 1;
+  }
+  .receipt-backdrop-animation {
+    animation: none;
+  }
+}
+
+@keyframes printer-light-sweep {
+  0% { opacity: 0; transform: translateX(-100%); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(400%); }
+}

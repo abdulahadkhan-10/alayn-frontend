@@ -71,6 +71,15 @@ export interface ThermalReceiptProps {
 export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [rollStarted, setRollStarted] = useState(false);
+
+  // Trigger roll animation after first paint
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setTimeout(() => setRollStarted(true), 60);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Safely unwraps order if nested under { data: ... }
   const actualOrder = (order as any)?.data || order || {};
@@ -275,22 +284,51 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
       )}
 
       {/* ── Thermal Receipt Paper Preview ── */}
-      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-100 to-gray-200 p-5 flex justify-center">
+      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-100 to-gray-200 px-5 pb-5 pt-0 flex justify-center">
 
-        {/* Paper shadow effect */}
-        <div className="relative">
-          {/* Perforated top edge */}
-          <div className="h-2 bg-white rounded-t-sm" style={{
-            backgroundImage: "radial-gradient(circle at 8px 0, transparent 5px, white 6px)",
-            backgroundSize: "16px 8px",
-            backgroundRepeat: "repeat-x",
-          }} />
-
+        {/* Paper with roll-out animation */}
+        <div className="relative w-[296px]">
+          {/* Printer machine slot — the physical "mouth" the paper exits from */}
           <div
-            ref={receiptRef}
-            className="bg-white text-black w-[296px] px-5 pb-6 select-text"
-            style={{ fontFamily: "'Courier New', Courier, monospace" }}
+            className="relative h-[22px] overflow-hidden sticky top-0 z-10"
+            style={{
+              background: "linear-gradient(to bottom, #0d0d0d 0%, #2a2a2a 55%, #1a1a1a 100%)",
+              boxShadow: "0 3px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07)",
+            }}
           >
+            {/* Slot opening — narrow dark gap */}
+            <div
+              className="absolute inset-x-4 bottom-0 h-[5px] rounded-t"
+              style={{ background: "rgba(0,0,0,0.85)", boxShadow: "inset 0 2px 6px rgba(0,0,0,1)" }}
+            />
+            {/* Scanning light sweep */}
+            {rollStarted && (
+              <div
+                className="absolute top-2 w-12 h-[2px] rounded-full"
+                style={{
+                  background: "linear-gradient(90deg, transparent, rgba(74,222,128,0.9), transparent)",
+                  animation: "printer-light-sweep 3500ms linear forwards",
+                }}
+              />
+            )}
+          </div>
+
+          {/* Clip mask — overflow:hidden gates what's visible of the paper */}
+          <div style={{ overflow: "hidden" }}>
+            {/* The paper itself — slides down from -100% to 0 */}
+            <div
+              style={{
+                transform: rollStarted ? "translateY(0)" : "translateY(-100%)",
+                transition: rollStarted ? "transform 3500ms cubic-bezier(0.12, 0.8, 0.3, 1)" : "none",
+                willChange: "transform",
+              }}
+            >
+            {/* Inner receipt content with ref for printing */}
+            <div
+              ref={receiptRef}
+              className="bg-white text-black w-[296px] px-5 pb-6 select-text"
+              style={{ fontFamily: "'Courier New', Courier, monospace" }}
+            >
             {/* ── STORE HEADER ── */}
             <div className="text-center pt-4 pb-2 space-y-0.5">
               <h2 className="text-[17px] font-black tracking-tight uppercase leading-none">{outletName}</h2>
@@ -449,15 +487,19 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
             <div className="mt-4 text-center text-[9px] tracking-widest font-bold">
               — ALAYN POS —
             </div>
-          </div>
+          </div>{/* end receiptRef div */}
+            </div>{/* end translateY sliding div */}
 
-          {/* Perforated bottom edge */}
-          <div className="h-3 bg-white rounded-b-sm" style={{
-            backgroundImage: "radial-gradient(circle at 8px 100%, transparent 5px, white 6px)",
-            backgroundSize: "16px 10px",
-            backgroundRepeat: "repeat-x",
-            backgroundPosition: "0 bottom",
-          }} />
+            {/* Perforated bottom edge */}
+            <div className="h-3 bg-white" style={{
+              backgroundImage: "radial-gradient(circle at 8px 100%, transparent 5px, white 6px)",
+              backgroundSize: "16px 10px",
+              backgroundRepeat: "repeat-x",
+              backgroundPosition: "0 bottom",
+            }} />
+
+          </div>{/* end overflow:hidden clip mask */}
+
 
           {/* Paper drop shadow */}
           <div className="absolute inset-x-2 -bottom-2 h-4 bg-black/10 blur-md rounded-full -z-10" />
