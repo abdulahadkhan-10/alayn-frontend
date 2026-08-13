@@ -75,15 +75,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         {/* Left: Logo + Outlet Selector */}
-        <div className="flex flex-1 items-center gap-x-6">
-          <div className="w-56 h-16 flex items-center justify-start hidden sm:block">
+        <div className="flex flex-1 items-center gap-x-4 md:gap-x-6">
+          <div className="flex items-center justify-start lg:hidden shrink-0">
             <Image
               src="/image1.png"
               alt="ALAYN Logo"
-              width={224}
-              height={64}
+              width={120}
+              height={40}
               style={{ width: "auto", height: "auto" }}
-              className="max-h-16 w-auto object-contain"
+              className="max-h-8 sm:max-h-12 w-auto object-contain"
               priority
             />
           </div>
@@ -130,7 +130,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <input
               type="search"
               placeholder="Search operations..."
-              className="block w-full sm:w-64 rounded-full border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6 bg-gray-50"
+              className="block w-full sm:w-48 lg:w-64 rounded-full border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6 bg-gray-50"
             />
           </div>
 
