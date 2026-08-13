@@ -77,30 +77,29 @@ export default function KitchenDispatchBoardComponent() {
         </div>
 
         {/* Kanban Board Columns */}
-        <div className="overflow-x-auto pb-4 -mx-6 px-6 lg:mx-0 lg:px-0 lg:pb-0 lg:overflow-visible">
-          <div className="flex lg:grid lg:grid-cols-3 gap-6 w-max lg:w-auto">
-            {columns.map((col) => {
-              const colTickets = (tickets as any[])
-                .map((t) => {
-                  const items = t.orderItems || t.items || [];
-                  const matchingItems = items.filter((item: any) => {
-                    if (!item.status) return true;
-                    if (col.status === "SENT_TO_KITCHEN") {
-                      return item.status === "SENT_TO_KITCHEN" || item.status === "RECEIVED";
-                    }
-                    return item.status === col.status;
-                  });
-                  return { ...t, activeItems: matchingItems };
-                })
-                .filter((t) => t.activeItems.length > 0);
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+          {columns.map((col) => {
+            const colTickets = (tickets as any[])
+              .map((t) => {
+                const items = t.orderItems || t.items || [];
+                const matchingItems = items.filter((item: any) => {
+                  if (!item.status) return true;
+                  if (col.status === "SENT_TO_KITCHEN") {
+                    return item.status === "SENT_TO_KITCHEN" || item.status === "RECEIVED";
+                  }
+                  return item.status === col.status;
+                });
+                return { ...t, activeItems: matchingItems };
+              })
+              .filter((t) => t.activeItems.length > 0);
 
-              const IconComponent = col.icon;
+            const IconComponent = col.icon;
 
-              return (
-                <div
-                  key={col.status}
-                  className="w-[85vw] sm:w-[400px] lg:w-auto shrink-0 bg-gray-200/80 border-2 border-gray-300 rounded-md p-3 flex flex-col min-h-[700px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)]"
-                >
+            return (
+              <div
+                key={col.status}
+                className="bg-gray-200/80 border-2 border-gray-300 rounded-md p-2 lg:p-3 flex flex-col min-h-[700px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)]"
+              >
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-3 mb-3 border-b-2 border-black/10">
                   <div className="flex items-center gap-2">
@@ -200,7 +199,6 @@ export default function KitchenDispatchBoardComponent() {
               </div>
             );
           })}
-        </div>
         </div>
       </div>
     </DashboardLayout>
