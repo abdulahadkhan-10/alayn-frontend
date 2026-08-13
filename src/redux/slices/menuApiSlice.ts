@@ -12,6 +12,7 @@ export interface MenuItem {
   categoryId: string;
   outletId?: string;
   outletIds?: string[];
+  outlets?: { outletId: string; isActive: boolean }[];
   category?: {
     id: string;
     name: string;
