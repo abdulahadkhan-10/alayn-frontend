@@ -21,8 +21,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alayn — The All-in-One Operating System for Modern Businesses",
-  description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform built specifically for café owners in India.",
+  metadataBase: new URL("https://alaynai.com"),
+  title: {
+    default: "Alayn — The AI Operating System for Modern Businesses",
+    template: "%s | Alayn AI",
+  },
+  description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform built specifically for café and restaurant owners in India.",
+  keywords: ["Alayn", "Alayn AI", "Restaurant Operating System", "Cafe POS India", "AI Inventory Management", "Restaurant Management Software"],
+  openGraph: {
+    title: "Alayn — The AI Operating System for Modern Businesses",
+    description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform built specifically for café and restaurant owners in India.",
+    url: "https://alaynai.com",
+    siteName: "Alayn AI",
+    locale: "en_IN",
+    type: "website",
+    images: [
+      {
+        url: "/alaynlogo.png",
+        width: 1200,
+        height: 630,
+        alt: "Alayn AI Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Alayn — The AI Operating System for Modern Businesses",
+    description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform.",
+    images: ["/alaynlogo.png"],
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({

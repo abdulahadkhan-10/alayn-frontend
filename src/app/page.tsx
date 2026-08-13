@@ -20,6 +20,38 @@ export default function LandingPage() {
   return (
     <SmoothScroll>
       <GlobalFieldProvider>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "SoftwareApplication",
+                  "name": "Alayn AI",
+                  "operatingSystem": "Web",
+                  "applicationCategory": "BusinessApplication",
+                  "description": "Alayn is an AI-powered operating system for modern businesses, specifically designed for restaurants and cafes in India to manage staff, inventory, and orders.",
+                  "url": "https://alaynai.com",
+                  "creator": {
+                    "@type": "Organization",
+                    "name": "BRAHM Global Holdings",
+                  }
+                },
+                {
+                  "@type": "Organization",
+                  "name": "Alayn AI",
+                  "url": "https://alaynai.com",
+                  "logo": "https://alaynai.com/alaynlogo.png",
+                  "parentOrganization": {
+                    "@type": "Organization",
+                    "name": "BRAHM Global Holdings"
+                  }
+                }
+              ]
+            }),
+          }}
+        />
         <div className="landing-root">
           <LandingNav />
           <SceneProgress />
