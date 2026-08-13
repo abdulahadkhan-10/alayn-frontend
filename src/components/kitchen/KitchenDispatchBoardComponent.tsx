@@ -99,7 +99,7 @@ export default function KitchenDispatchBoardComponent() {
               return (
                 <div
                   key={col.status}
-                  className="w-[85vw] sm:w-[360px] lg:w-auto shrink-0 bg-gray-200/80 border-2 border-gray-300 rounded-md p-3 flex flex-col min-h-[700px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)]"
+                  className="w-[85vw] sm:w-[400px] lg:w-auto shrink-0 bg-gray-200/80 border-2 border-gray-300 rounded-md p-3 flex flex-col min-h-[700px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)]"
                 >
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-3 mb-3 border-b-2 border-black/10">
