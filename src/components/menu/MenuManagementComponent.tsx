@@ -517,7 +517,7 @@ export default function MenuManagementComponent() {
       badges.push({
         id: "status",
         label: "Status",
-        value: statusFilter === "ACTIVE" ? "Active" : "Deactivated",
+        value: statusFilter === "ACTIVE" ? "Active" : "Deactive",
         onRemove: () => handleStatusFilterChange("ALL"),
       });
     }
@@ -701,7 +701,7 @@ export default function MenuManagementComponent() {
       await toggleStatus({
         id: item.id,
         isAvailable,
-        outletId: item.outletId || currentOutletId || undefined,
+        outletId: currentOutletId || undefined,
       }).unwrap();
     } catch (err) {
       console.error("Failed to toggle availability:", err);
@@ -812,13 +812,13 @@ export default function MenuManagementComponent() {
 
       for (const itemId of relatedIds) {
         const targetItem = (Array.isArray(rawMenuItems) ? rawMenuItems : []).find((i) => i.id === itemId);
-        const originalOutlets = targetItem?.outletIds?.length 
-            ? targetItem.outletIds 
-            : (targetItem?.outletId ? [targetItem.outletId] : []);
-        
+        const originalOutlets = targetItem?.outletIds?.length
+          ? targetItem.outletIds
+          : (targetItem?.outletId ? [targetItem.outletId] : []);
+
         const assignedOutlets = originalOutlets.filter((id: string) => remainingTargetOutlets.has(id));
         assignedOutlets.forEach((id: string) => remainingTargetOutlets.delete(id));
-        
+
         itemToOutlets.set(itemId, assignedOutlets);
       }
 
@@ -880,11 +880,10 @@ export default function MenuManagementComponent() {
                 setIsAddCategoryOpen(true);
               }}
               disabled={isAllOutletsSelected}
-              className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto ${
-                isAllOutletsSelected
+              className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto ${isAllOutletsSelected
                   ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
-              }`}
+                }`}
               title={isAllOutletsSelected ? "Select a specific outlet to add categories" : "Add Category"}
             >
               <Tag className={`w-4 h-4 ${isAllOutletsSelected ? "text-gray-400" : "text-gray-500"}`} />
@@ -964,11 +963,10 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setIsCategoryPopoverOpen((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
-                    selectedCategory !== "ALL"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${selectedCategory !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
                       : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
-                  }`}
+                    }`}
                 >
                   <Tag className={`w-3.5 h-3.5 ${selectedCategory !== "ALL" ? "text-white" : "text-slate-400"}`} />
                   <span className="truncate max-w-[130px]">
@@ -998,11 +996,10 @@ export default function MenuManagementComponent() {
                           handleCategoryChange("ALL");
                           setIsCategoryPopoverOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${
-                          selectedCategory === "ALL"
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${selectedCategory === "ALL"
                             ? "bg-[#1B2A4A] text-white font-semibold"
                             : "text-slate-700 hover:bg-slate-100"
-                        }`}
+                          }`}
                       >
                         <span>All Categories</span>
                         <span className="text-[11px] opacity-70">
@@ -1032,11 +1029,10 @@ export default function MenuManagementComponent() {
                               handleCategoryChange(cat.id);
                               setIsCategoryPopoverOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${
-                              isSelected
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-left transition cursor-pointer ${isSelected
                                 ? "bg-[#1B2A4A] text-white font-semibold"
                                 : "text-slate-700 hover:bg-slate-100"
-                            }`}
+                              }`}
                           >
                             <span className="truncate pr-2">{cat.name}</span>
                             <span className="text-[11px] opacity-70 shrink-0">{count}</span>
@@ -1053,15 +1049,14 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setIsStatusPopoverOpen((prev) => !prev)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
-                    statusFilter !== "ALL"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${statusFilter !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
                       : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
-                  }`}
+                    }`}
                 >
                   {statusFilter === "ACTIVE" ? <ActiveDot /> : statusFilter === "INACTIVE" ? <InactiveDot /> : null}
                   <span className="truncate">
-                    {statusFilter === "ALL" ? "Status: All" : statusFilter === "ACTIVE" ? "Active" : "Inactive"}
+                    {statusFilter === "ALL" ? "Status: All" : statusFilter === "ACTIVE" ? "Active" : "Deactive"}
                   </span>
                   <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isStatusPopoverOpen ? "rotate-90" : ""}`} />
                 </button>
@@ -1071,7 +1066,7 @@ export default function MenuManagementComponent() {
                     {[
                       { id: "ALL", label: "All Status", dot: null },
                       { id: "ACTIVE", label: "Active", dot: <ActiveDot /> },
-                      { id: "INACTIVE", label: "Inactive", dot: <InactiveDot /> },
+                      { id: "INACTIVE", label: "Deactive", dot: <InactiveDot /> },
                     ].map((st) => (
                       <button
                         key={st.id}
@@ -1080,11 +1075,10 @@ export default function MenuManagementComponent() {
                           handleStatusFilterChange(st.id as StatusFilter);
                           setIsStatusPopoverOpen(false);
                         }}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
-                          statusFilter === st.id
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${statusFilter === st.id
                             ? "bg-[#1B2A4A] text-white font-semibold"
                             : "text-slate-700 hover:bg-slate-100"
-                        }`}
+                          }`}
                       >
                         {st.dot}
                         <span>{st.label}</span>
@@ -1099,11 +1093,10 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setIsDietaryPopoverOpen((prev) => !prev)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${
-                    dietaryFilter !== "ALL"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${dietaryFilter !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
                       : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
-                  }`}
+                    }`}
                 >
                   {dietaryFilter === "VEG" ? (
                     <FssaiVegIcon />
@@ -1116,10 +1109,10 @@ export default function MenuManagementComponent() {
                     {dietaryFilter === "ALL"
                       ? "Type: All"
                       : dietaryFilter === "VEG"
-                      ? "Vegetarian"
-                      : dietaryFilter === "NON_VEG"
-                      ? "Non-Vegetarian"
-                      : "Vegan"}
+                        ? "Vegetarian"
+                        : dietaryFilter === "NON_VEG"
+                          ? "Non-Vegetarian"
+                          : "Vegan"}
                   </span>
                   <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isDietaryPopoverOpen ? "rotate-90" : ""}`} />
                 </button>
@@ -1139,11 +1132,10 @@ export default function MenuManagementComponent() {
                           handleDietaryFilterChange(dt.id as DietaryFilter);
                           setIsDietaryPopoverOpen(false);
                         }}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
-                          dietaryFilter === dt.id
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${dietaryFilter === dt.id
                             ? "bg-[#1B2A4A] text-white font-semibold"
                             : "text-slate-700 hover:bg-slate-100"
-                        }`}
+                          }`}
                       >
                         {dt.icon}
                         <span>{dt.label}</span>
@@ -1165,8 +1157,8 @@ export default function MenuManagementComponent() {
                     {sortBy === "NAME_ASC"
                       ? "Sort: Name (A-Z)"
                       : sortBy === "PRICE_ASC"
-                      ? "Sort: Price (Low → High)"
-                      : "Sort: Price (High → Low)"}
+                        ? "Sort: Price (Low → High)"
+                        : "Sort: Price (High → Low)"}
                   </span>
                   <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isSortPopoverOpen ? "rotate-90" : ""}`} />
                 </button>
@@ -1185,11 +1177,10 @@ export default function MenuManagementComponent() {
                           setSortBy(s.id as SortOption);
                           setIsSortPopoverOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${
-                          sortBy === s.id
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition cursor-pointer ${sortBy === s.id
                             ? "bg-[#1B2A4A] text-white font-semibold"
                             : "text-slate-700 hover:bg-slate-100"
-                        }`}
+                          }`}
                       >
                         <span>{s.label}</span>
                       </button>
@@ -1332,22 +1323,44 @@ export default function MenuManagementComponent() {
                       {isAllOutletsSelected && (
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
-                            {outletIds.length >= specificBranches.length && specificBranches.length > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <Store className="w-3.5 h-3.5 text-emerald-600" />
-                                All {specificBranches.length} Outlets
-                              </span>
-                            ) : (
-                              outletIds.map((outId) => (
-                                <span
-                                  key={outId}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                >
-                                  <Store className="w-3 h-3 text-indigo-500" />
-                                  {outletMap.get(outId) || "Outlet"}
+                            {(() => {
+                              const activeOutletIds: string[] = [];
+                              allRelatedItems.forEach((relItem) => {
+                                if (Array.isArray(relItem.outlets) && relItem.outlets.length > 0) {
+                                  relItem.outlets.forEach((o: any) => {
+                                    if (o.isActive !== false && !activeOutletIds.includes(o.outletId)) {
+                                      activeOutletIds.push(o.outletId);
+                                    }
+                                  });
+                                } else if (relItem.isAvailable) {
+                                  const relOutletIds = relItem.outletIds && relItem.outletIds.length > 0
+                                    ? relItem.outletIds
+                                    : (relItem.outletId ? [relItem.outletId] : []);
+                                  relOutletIds.forEach((id) => {
+                                    if (!activeOutletIds.includes(id)) {
+                                      activeOutletIds.push(id);
+                                    }
+                                  });
+                                }
+                              });
+
+                              return activeOutletIds.length >= specificBranches.length && specificBranches.length > 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Store className="w-3.5 h-3.5 text-emerald-600" />
+                                  All {specificBranches.length} Outlets
                                 </span>
-                              ))
-                            )}
+                              ) : (
+                                activeOutletIds.map((outId: string) => (
+                                  <span
+                                    key={outId}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  >
+                                    <Store className="w-3 h-3 text-indigo-500" />
+                                    {outletMap.get(outId) || "Outlet"}
+                                  </span>
+                                ))
+                              );
+                            })()}
                           </div>
                         </td>
                       )}
@@ -1364,31 +1377,28 @@ export default function MenuManagementComponent() {
                           <button
                             type="button"
                             onClick={() => handleToggleAvailabilityClick(item, allRelatedItems, isGroupActive)}
-                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              isGroupActive ? "bg-emerald-500" : "bg-gray-300"
-                            }`}
+                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGroupActive ? "bg-emerald-500" : "bg-gray-300"
+                              }`}
                             title={
                               isAllOutletsSelected
                                 ? isGroupActive
-                                  ? "Click to set Inactive across All Outlets"
+                                  ? "Click to set Deactive across All Outlets"
                                   : "Click to Activate across All Outlets"
                                 : item.isAvailable
-                                ? "Click to set Inactive"
-                                : "Click to Activate"
+                                  ? "Click to set Deactive"
+                                  : "Click to Activate"
                             }
                           >
                             <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-2xs ring-0 transition duration-200 ease-in-out ${
-                                isGroupActive ? "translate-x-5" : "translate-x-0"
-                              }`}
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-2xs ring-0 transition duration-200 ease-in-out ${isGroupActive ? "translate-x-5" : "translate-x-0"
+                                }`}
                             />
                           </button>
                           <span
-                            className={`text-xs font-bold ${
-                              isGroupActive ? "text-emerald-700" : "text-rose-600"
-                            }`}
+                            className={`text-xs font-bold ${isGroupActive ? "text-emerald-700" : "text-rose-600"
+                              }`}
                           >
-                            {isGroupActive ? "Active" : "Inactive"}
+                            {isGroupActive ? "Active" : "Deactive"}
                           </span>
                         </div>
                       </td>
@@ -1507,11 +1517,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setNewItem({ ...newItem, dietaryType: "VEG", isVeg: true })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        newItem.dietaryType === "VEG"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                       Veg
@@ -1519,11 +1528,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setNewItem({ ...newItem, dietaryType: "NON_VEG", isVeg: false })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        newItem.dietaryType === "NON_VEG"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                       Non-Veg
@@ -1531,11 +1539,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setNewItem({ ...newItem, dietaryType: "VEGAN", isVeg: true })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        newItem.dietaryType === "VEGAN"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "VEGAN"
                           ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                       Vegan
@@ -1621,11 +1628,10 @@ export default function MenuManagementComponent() {
                         return (
                           <label
                             key={b.id}
-                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${
-                              isChecked
+                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${isChecked
                                 ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
                                 : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
-                            }`}
+                              }`}
                           >
                             <input
                               type="checkbox"
@@ -1757,11 +1763,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setEditItem({ ...editItem, dietaryType: "VEG", isVeg: true })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        editItem.dietaryType === "VEG"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                       Veg
@@ -1769,11 +1774,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setEditItem({ ...editItem, dietaryType: "NON_VEG", isVeg: false })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        editItem.dietaryType === "NON_VEG"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
                       Non-Veg
@@ -1781,11 +1785,10 @@ export default function MenuManagementComponent() {
                     <button
                       type="button"
                       onClick={() => setEditItem({ ...editItem, dietaryType: "VEGAN", isVeg: true })}
-                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                        editItem.dietaryType === "VEGAN"
+                      className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "VEGAN"
                           ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
                           : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
                       Vegan
@@ -1871,11 +1874,10 @@ export default function MenuManagementComponent() {
                         return (
                           <label
                             key={b.id}
-                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${
-                              isChecked
+                            className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${isChecked
                                 ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
                                 : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
-                            }`}
+                              }`}
                           >
                             <input
                               type="checkbox"
@@ -2005,11 +2007,10 @@ export default function MenuManagementComponent() {
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`p-2.5 rounded-xl ${
-                      pendingStatusToggle.targetStatus
+                    className={`p-2.5 rounded-xl ${pendingStatusToggle.targetStatus
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-rose-100 text-rose-800"
-                    }`}
+                      }`}
                   >
                     <Store className="w-5 h-5" />
                   </div>
@@ -2031,17 +2032,15 @@ export default function MenuManagementComponent() {
               </div>
 
               <div
-                className={`p-3.5 rounded-xl text-xs font-semibold space-y-1.5 border ${
-                  pendingStatusToggle.targetStatus
+                className={`p-3.5 rounded-xl text-xs font-semibold space-y-1.5 border ${pendingStatusToggle.targetStatus
                     ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                     : "bg-rose-50 border-rose-200 text-rose-900"
-                }`}
+                  }`}
               >
                 <p className="font-bold flex items-center gap-1.5 text-sm">
                   <AlertCircle
-                    className={`w-4 h-4 shrink-0 ${
-                      pendingStatusToggle.targetStatus ? "text-emerald-600" : "text-rose-600"
-                    }`}
+                    className={`w-4 h-4 shrink-0 ${pendingStatusToggle.targetStatus ? "text-emerald-600" : "text-rose-600"
+                      }`}
                   />
                   Confirm Multi-Outlet Status Change
                 </p>
@@ -2066,11 +2065,10 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={handleConfirmAllOutletsToggle}
-                  className={`flex-1 py-2.5 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer ${
-                    pendingStatusToggle.targetStatus
+                  className={`flex-1 py-2.5 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer ${pendingStatusToggle.targetStatus
                       ? "bg-emerald-600 hover:bg-emerald-700"
                       : "bg-rose-600 hover:bg-rose-700"
-                  }`}
+                    }`}
                 >
                   Yes, {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} for All Outlets
                 </button>
@@ -2094,7 +2092,7 @@ export default function MenuManagementComponent() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -2198,7 +2196,7 @@ export default function MenuManagementComponent() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
