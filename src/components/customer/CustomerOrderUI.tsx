@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Info
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   fetchTableMenu,
@@ -189,7 +190,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         <div className="p-4 rounded-full bg-red-50 text-red-500 mb-4 shadow-sm border border-red-100">
           <AlertCircle className="h-10 w-10" />
         </div>
-        <h2 className="text-2xl font-black text-[#1B2A4A] mb-2 tracking-tight">Oops!</h2>
+        <h2 className="text-2xl font-bold text-zinc-900 mb-2 tracking-tight">Oops!</h2>
         <p className="text-gray-500 text-sm max-w-sm mb-6">{error}</p>
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
           Please ask restaurant staff for assistance.
@@ -199,37 +200,31 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   }
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] bg-white flex flex-col overflow-hidden text-[#1B2A4A]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');`}</style>
-
-      {/* ── Premium Header ── */}
-      <header className="z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-4 py-3 shrink-0">
-        <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
-          <div className="flex items-center gap-2.5">
-            <img src="/justlogo.png" alt="Alayn Logo" className="h-7 w-7 object-contain drop-shadow-sm" />
-            <div>
-              <h1 className="text-lg font-black text-[#1B2A4A] leading-none tracking-tight">
-                {businessName} <span className="font-semibold text-gray-500">Dining</span>
-              </h1>
+    <div className="min-h-[100dvh] h-[100dvh] bg-zinc-50 flex flex-col overflow-hidden text-zinc-900 font-sans antialiased selection:bg-zinc-200">
+      
+      {/* ── Unified Sticky Header Wrapper ── */}
+      <div className="sticky top-0 z-40 w-full shrink-0 flex flex-col">
+        {/* ── Premium Header ── */}
+        <header className="bg-white/70 backdrop-blur-xl border-b border-zinc-200/50 px-4 py-3">
+          <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
+            <div className="flex items-center gap-2.5">
+              <img src="/justlogo.png" alt="Alayn Logo" className="h-7 w-7 object-contain drop-shadow-sm" />
+              <div>
+                <h1 className="text-lg font-bold text-zinc-900 leading-none tracking-tight">
+                  {businessName} <span className="font-medium text-zinc-500">Dining</span>
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 bg-zinc-100/80 px-2.5 py-1 rounded-full border border-zinc-200">
+               <Info className="w-3.5 h-3.5 text-zinc-500" />
+               <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">View Only</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-gray-100/80 px-2.5 py-1 rounded-full border border-gray-200">
-             <Info className="w-3.5 h-3.5 text-gray-500" />
-             <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">View Only</span>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      {/* ── Minimal Brand Tagline ── */}
-      <div className="bg-gray-50/50 border-b border-gray-100 px-4 py-1.5 flex justify-center shrink-0">
-        <p className="text-[9px] font-medium text-gray-400 tracking-[0.2em] uppercase">
-          Powered by <span className="font-extrabold text-[#1B2A4A]">Alayn AI</span>
-        </p>
-      </div>
-
-      {/* ── Search & Filters Bar ── */}
-      <div className="z-20 bg-white border-b border-gray-100 px-3 py-3 shrink-0 shadow-sm">
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-3">
+        {/* ── Search & Filters Bar ── */}
+        <div className="bg-white/70 backdrop-blur-xl border-b border-zinc-200/50 px-3 py-3 shadow-sm">
+          <div className="max-w-4xl mx-auto w-full flex flex-col gap-3">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -251,10 +246,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
               <button
                 onClick={() => setDietaryFilter("ALL")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-[0.98]",
                   dietaryFilter === "ALL"
-                    ? "bg-[#1B2A4A] text-white"
-                    : "bg-gray-50 text-gray-600 border border-gray-200"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
                 )}
               >
                 All
@@ -263,10 +258,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("VEG")}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-[0.98]",
                     dietaryFilter === "VEG"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gray-50 text-gray-600 border border-gray-200"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
                   )}
                 >
                   <span className={cn("w-1.5 h-1.5 rounded-full", dietaryFilter === "VEG" ? "bg-white" : "bg-emerald-500")} />
@@ -277,10 +272,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("NON_VEG")}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-[0.98]",
                     dietaryFilter === "NON_VEG"
-                      ? "bg-rose-600 text-white"
-                      : "bg-gray-50 text-gray-600 border border-gray-200"
+                      ? "bg-rose-600 text-white shadow-sm"
+                      : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
                   )}
                 >
                   <span className={cn("w-1.5 h-1.5 rounded-full", dietaryFilter === "NON_VEG" ? "bg-white" : "bg-rose-500")} />
@@ -291,10 +286,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 <button
                   onClick={() => setDietaryFilter("VEGAN")}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap active:scale-[0.98]",
                     dietaryFilter === "VEGAN"
-                      ? "bg-teal-600 text-white"
-                      : "bg-gray-50 text-gray-600 border border-gray-200"
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
                   )}
                 >
                   <Leaf className="w-3 h-3" />
@@ -305,6 +300,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           )}
         </div>
       </div>
+    </div>
 
       {/* ── Dual-Scroll Main Area ── */}
       <main className="flex flex-1 overflow-hidden max-w-4xl mx-auto w-full">
@@ -320,15 +316,15 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                   onClick={() => scrollToCategory(cat.id)}
                   className={cn(
                     "w-full flex flex-col items-center justify-center py-4.5 px-3 gap-1.5 transition-colors text-center relative",
-                    isActive ? "bg-white" : "hover:bg-gray-100"
+                    isActive ? "bg-white" : "hover:bg-zinc-100"
                   )}
                 >
                   {isActive && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D3232A] rounded-r-md" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-zinc-900 rounded-r-md" />
                   )}
                   <span className={cn(
                     "text-xs leading-tight transition-all",
-                    isActive ? "font-black text-[#D3232A]" : "font-bold text-gray-500"
+                    isActive ? "font-bold text-zinc-900" : "font-semibold text-zinc-500"
                   )}>
                     {cat.name}
                   </span>
@@ -349,19 +345,19 @@ export default function CustomerOrderUI({ token }: { token: string }) {
               <p className="text-sm font-bold text-gray-400">No items found</p>
             </div>
           ) : (
-            <div className="space-y-8 pb-24">
+            <div className="space-y-10 pb-24">
               {activeCategoryData.map((cat) => (
-                <div key={cat.id} id={`category-${cat.id}`} className="space-y-4 scroll-mt-28 md:scroll-mt-12">
-                  <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
-                    <h2 className="text-sm font-black text-[#1B2A4A] tracking-wider uppercase">
+                <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-32 md:scroll-mt-12">
+                  <div className="sticky top-0 z-20 bg-zinc-50/95 backdrop-blur-md py-2 mb-2 border-b border-zinc-200/50 flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-zinc-900 tracking-wide uppercase">
                       {cat.name}
                     </h2>
-                    <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-zinc-400 bg-zinc-200/50 px-1.5 py-0.5 rounded">
                       {cat.menuItems.length}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col">
                     {cat.menuItems.map((item) => {
                       const priceRupees = (item.pricePaise / 100).toFixed(2);
                       const imgUrl = resolveUploadUrl(item.imageUrl);
@@ -370,13 +366,14 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                       return (
                         <div
                           key={item.id}
-                          className="group bg-white rounded-2xl border border-gray-100 p-3 shadow-xs hover:shadow-md hover:border-gray-200 transition-all flex gap-3 overflow-hidden"
+                          className="group relative bg-transparent py-4 border-b border-zinc-200/60 last:border-0 flex gap-4 active:scale-[0.99] transition-transform cursor-pointer"
+                          onClick={() => imgUrl && setLightboxImage({ url: imgUrl, name: item.name })}
                         >
                           {/* Info Side */}
                           <div className="flex-1 flex flex-col min-w-0 justify-between">
                             <div>
                               <div className="flex items-start gap-1.5 mb-1">
-                                 <span
+                                  <span
                                     className={cn(
                                       "mt-[3px] shrink-0 h-3 w-3 rounded-sm border-[1.5px] flex items-center justify-center",
                                       dType === "VEGAN" ? "border-teal-600" : dType === "VEG" ? "border-emerald-500" : "border-rose-500"
@@ -389,33 +386,32 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                                       )}
                                     />
                                   </span>
-                                <h3 className="text-[13px] sm:text-sm font-bold text-[#1B2A4A] leading-snug line-clamp-2">
+                                <h3 className="text-sm sm:text-base font-bold text-zinc-900 leading-snug pr-2">
                                   {item.name}
                                 </h3>
                               </div>
                               
-                              <p className="text-[15px] font-black text-[#1B2A4A] tracking-tight mb-1.5">
+                              <p className="text-sm font-semibold text-zinc-900 tracking-tight mb-1.5">
                                 ₹{priceRupees}
                               </p>
                             </div>
 
                             {item.description && (
-                              <p className="text-[11px] text-gray-500 leading-relaxed">
+                              <p className="text-xs text-zinc-500 leading-relaxed pr-2">
                                 {item.description}
                               </p>
                             )}
                           </div>
 
-                          {/* Image Side (Compact Square) */}
+                          {/* Image Side */}
                           {imgUrl && (
                             <div 
-                              className="shrink-0 w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] rounded-xl overflow-hidden relative bg-gray-50 cursor-pointer shadow-sm border border-gray-100"
-                              onClick={() => setLightboxImage({ url: imgUrl, name: item.name })}
+                              className="shrink-0 w-[100px] h-[100px] sm:w-[110px] sm:h-[110px] rounded-xl overflow-hidden relative bg-zinc-100 shadow-sm border border-zinc-200/50"
                             >
                               <img
                                 src={imgUrl}
                                 alt={item.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                               />
                             </div>
                           )}
@@ -425,6 +421,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                   </div>
                 </div>
               ))}
+
+              {/* ── Minimal Brand Footer ── */}
+              <div className="pt-8 pb-12 flex justify-center">
+                <p className="text-[10px] font-medium text-zinc-400 tracking-[0.2em] uppercase">
+                  Powered by <span className="font-bold text-zinc-800">Alayn AI</span>
+                </p>
+              </div>
             </div>
           )}
         </section>
@@ -435,88 +438,106 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <button
             onClick={() => setIsCategorySheetOpen(true)}
-            className="bg-[#1B2A4A] text-white px-5 py-2.5 rounded-full shadow-lg font-black text-xs flex items-center gap-1.5 hover:scale-105 transition-transform border border-slate-700 cursor-pointer"
+            className="bg-black/80 backdrop-blur-md text-white px-5 py-2.5 rounded-full shadow-lg font-bold text-sm flex items-center gap-1.5 active:scale-[0.95] transition-transform border border-white/10 cursor-pointer"
           >
-            <Utensils className="w-3.5 h-3.5" />
+            <Utensils className="w-3.5 h-3.5 opacity-80" />
             Categories
           </button>
         </div>
       )}
 
       {/* Mobile Category Overlay Bottom Sheet */}
-      {isCategorySheetOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs md:hidden flex items-end justify-center animate-in fade-in duration-200"
-          onClick={() => setIsCategorySheetOpen(false)}
-        >
-          <div
-            className="bg-white w-full rounded-t-[2rem] p-6 max-h-[70vh] overflow-y-auto space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-300"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {isCategorySheetOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs md:hidden flex items-end justify-center"
+            onClick={() => setIsCategorySheetOpen(false)}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-black text-[#1B2A4A]">Select Category</h3>
-              <button
-                onClick={() => setIsCategorySheetOpen(false)}
-                className="p-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 py-2">
-              {displayCategories.map((cat) => {
-                const isActive = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      scrollToCategory(cat.id);
-                      setIsCategorySheetOpen(false);
-                    }}
-                    className={cn(
-                      "py-3.5 px-4 rounded-2xl text-xs font-black text-center border transition-all cursor-pointer",
-                      isActive
-                        ? "bg-[#D3232A]/5 text-[#D3232A] border-[#D3232A] shadow-xs"
-                        : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100"
-                    )}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="bg-white w-full rounded-t-[2rem] p-6 max-h-[70vh] overflow-y-auto space-y-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 className="text-base font-bold text-zinc-900">Select Category</h3>
+                <button
+                  onClick={() => setIsCategorySheetOpen(false)}
+                  className="p-1 rounded-full bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition active:scale-[0.95]"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 py-2">
+                {displayCategories.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        scrollToCategory(cat.id);
+                        setIsCategorySheetOpen(false);
+                      }}
+                      className={cn(
+                        "py-3.5 px-4 rounded-2xl text-xs font-bold text-center transition-all cursor-pointer active:scale-[0.98]",
+                        isActive
+                          ? "bg-zinc-900 text-white shadow-md"
+                          : "bg-zinc-50 text-zinc-600 border border-zinc-100 hover:bg-zinc-100"
+                      )}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Image Lightbox ── */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div
-            className="relative max-w-sm w-full bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setLightboxImage(null)}
           >
-            <div className="relative">
-              <img
-                src={lightboxImage.url}
-                alt={lightboxImage.name}
-                className="w-full object-cover max-h-[60vh]"
-              />
-              <button
-                onClick={() => setLightboxImage(null)}
-                className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4 bg-white">
-              <p className="text-base font-black text-[#1B2A4A]">{lightboxImage.name}</p>
-            </div>
-          </div>
-        </div>
-      )}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+              className="relative max-w-sm w-full bg-white rounded-3xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative">
+                <img
+                  src={lightboxImage.url}
+                  alt={lightboxImage.name}
+                  className="w-full object-cover max-h-[60vh]"
+                />
+                <button
+                  onClick={() => setLightboxImage(null)}
+                  className="absolute top-3 right-3 p-2 rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition active:scale-[0.95]"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="px-5 py-4 bg-white">
+                <p className="text-base font-bold text-zinc-900">{lightboxImage.name}</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
