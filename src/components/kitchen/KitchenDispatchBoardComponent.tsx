@@ -140,8 +140,8 @@ export default function KitchenDispatchBoardComponent() {
                           {/* Ticket Header */}
                           <div className="flex justify-between items-start pb-2 border-b-2 border-dashed border-gray-200">
                             <div className="flex flex-col pr-2">
-                              <span className="text-base font-black text-[#1B2A4A] font-mono tracking-tight leading-tight break-all">
-                                {ticketOrderNo} {maxKotNo > 1 && <span className="text-rose-600 ml-1 inline-block">(KOT #{maxKotNo})</span>}
+                              <span className="text-sm font-semibold text-[#1B2A4A] tracking-normal leading-tight break-all">
+                                {ticketOrderNo} {maxKotNo > 1 && <span className="text-rose-600 ml-1 inline-block font-bold text-[11px]">(KOT #{maxKotNo})</span>}
                               </span>
                               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                                 TBL: <span className="text-[#1B2A4A]">{ticketTableNo}</span>
