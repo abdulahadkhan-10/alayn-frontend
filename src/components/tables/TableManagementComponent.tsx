@@ -803,32 +803,34 @@ export default function TableManagementComponent() {
 
       {/* Custom print stylesheet */}
       <style dangerouslySetInnerHTML={{ __html: `
+        @page {
+          size: auto;
+          margin: 0mm; /* Removes browser headers/footers */
+        }
         @media print {
           /* Hide everything on the page */
           body * {
-            visibility: hidden !important;
+            visibility: hidden;
           }
           /* Show print container and its contents */
           #print-section-container, #print-section-container * {
-            visibility: visible !important;
+            visibility: visible;
           }
           #print-section-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            height: auto !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
             display: block !important;
-            background: white !important;
+            background: white;
+            padding: 20px;
           }
           
           /* Style single card */
           #table-print-single-card {
-            position: absolute !important;
-            left: 50% !important;
-            top: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            width: 380px !important;
+            width: 380px;
+            margin: 100px auto; /* Center horizontally in print */
             border: 2px dashed #1B2A4A !important;
             background-color: #F8FAFC !important;
             padding: 32px !important;
