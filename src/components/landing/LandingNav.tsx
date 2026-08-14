@@ -57,17 +57,30 @@ export default function LandingNav() {
   };
 
   return (
-    <nav
-      className={`landing-nav ${scrolled ? "scrolled" : ""}`}
-      aria-label="Main navigation"
-    >
+    <>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 top-[45px] sm:hidden bg-zinc-900/20 backdrop-blur-sm z-[90]"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <nav
+        className={`landing-nav ${scrolled ? "scrolled" : ""}`}
+        aria-label="Main navigation"
+      >
       <div
         className="nav-inner"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
+          padding: "4px 16px",
           maxWidth: "1400px",
           margin: "0 auto",
         }}
@@ -81,7 +94,7 @@ export default function LandingNav() {
             height={111}
             sizes="(max-width: 640px) 160px, 360px"
             style={{ transformOrigin: "left center" }}
-            className="w-[140px] sm:w-[180px] h-auto transform-gpu object-contain"
+            className="w-[90px] sm:w-[115px] h-auto transform-gpu object-contain"
             priority
           />
         </Link>
@@ -179,7 +192,7 @@ export default function LandingNav() {
                     color: "#FFFFFF",
                     backgroundColor: "#1A1D24",
                     textDecoration: "none",
-                    padding: "10px 20px",
+                    padding: "8px 16px",
                     borderRadius: "20px",
                     display: "inline-block",
                     transition: "transform 0.15s ease, background-color 0.15s ease",
@@ -205,24 +218,16 @@ export default function LandingNav() {
         </div>
       </div>
 
-      {/* Mobile Navigation Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 top-[60px] sm:hidden bg-zinc-900/20 backdrop-blur-sm -z-10"
-              onClick={() => setMobileMenuOpen(false)}
-            />
+
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="sm:hidden relative z-10 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-2xl px-5 py-6 space-y-4 overflow-hidden"
+              className="sm:hidden relative z-10 bg-white border-b border-zinc-200/80 px-5 py-6 space-y-4 overflow-hidden"
             >
             {isAuthenticated && user ? (
               <div className="space-y-3">
@@ -257,18 +262,31 @@ export default function LandingNav() {
             ) : (
               <div className="flex flex-col gap-3">
                 <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center rounded-xl bg-[#C41E2A] px-4 py-3 text-[13px] font-bold text-white shadow-md transition-transform active:scale-95 min-h-[48px] mb-2"
+                >
+                  Book a Demonstration
+                </Link>
+                
+                <div className="flex flex-col gap-1 py-2 border-y border-zinc-100 mb-2">
+                  <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                    Platform
+                  </Link>
+                  <Link href="#modules" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                    Modules
+                  </Link>
+                  <Link href="#pricing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                    Pricing
+                  </Link>
+                </div>
+
+                <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center rounded-xl bg-zinc-100 border border-zinc-200/80 px-4 py-3 text-xs font-bold text-zinc-900 transition-colors min-h-[44px]"
                 >
                   Log in
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl bg-[#1A1D24] px-4 py-3 text-xs font-bold text-white shadow-md transition-transform active:scale-95 min-h-[44px]"
-                >
-                  Get started
                 </Link>
               </div>
             )}
@@ -276,7 +294,8 @@ export default function LandingNav() {
           </>
         )}
       </AnimatePresence>
-    </nav>
+      </nav>
+    </>
   );
 }
 

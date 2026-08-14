@@ -52,6 +52,8 @@ export default function LandingFooter() {
             { href: "/login", label: "Log in" },
             { href: "/signup", label: "Sign up" },
             { href: "#how-it-works", label: "How it works" },
+            { href: "/legal/privacy", label: "Privacy Policy" },
+            { href: "/legal/terms", label: "Terms of Service" },
           ].map(({ href, label }) => (
             <Link
               key={label}
