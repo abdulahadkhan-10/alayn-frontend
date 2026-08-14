@@ -137,7 +137,7 @@ export default function HeroScene() {
                 lineHeight: 1.65,
                 color: "var(--muted)",
                 maxWidth: "520px",
-                marginBottom: "32px",
+                marginBottom: "40px",
               }}
             >
               Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
@@ -146,7 +146,7 @@ export default function HeroScene() {
             <Assemble
               as="div"
               delay={0.18}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 mb-8"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 mb-10 sm:mb-8"
             >
               <MagneticLink href="/signup" id="cta-hero" className="btn-primary w-full sm:w-auto text-center justify-center">
                 Book a Demonstration
@@ -157,7 +157,7 @@ export default function HeroScene() {
 
               <a
                 href="#how-it-works"
-                className="justify-center sm:justify-start"
+                className="justify-center sm:justify-start bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-3 sm:bg-transparent sm:border-transparent sm:rounded-none sm:px-0 sm:py-0 hover:opacity-100 transition-opacity"
                 style={{
                   fontSize: "0.9375rem",
                   fontWeight: 500,
@@ -176,7 +176,7 @@ export default function HeroScene() {
               </a>
             </Assemble>
 
-            <Assemble as="p" delay={0.24} style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.75, margin: 0 }}>
+            <Assemble as="p" delay={0.24} className="hidden sm:block" style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.75, margin: 0 }}>
               We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
             </Assemble>
           </div>
@@ -346,6 +346,13 @@ export default function HeroScene() {
 
             </div>
           </Assemble>
+
+          {/* Mobile-only paragraph below the fold */}
+          <div className="sm:hidden mt-8 px-2 text-center w-full max-w-[320px] mx-auto">
+            <Assemble as="p" delay={0.4} style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
+            </Assemble>
+          </div>
         </div>
       </div>
     </FieldScene>

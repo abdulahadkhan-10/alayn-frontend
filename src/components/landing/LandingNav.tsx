@@ -80,11 +80,8 @@ export default function LandingNav() {
             width={480}
             height={111}
             sizes="(max-width: 640px) 160px, 360px"
-            style={{ 
-              width: "auto",
-              transformOrigin: "left center"
-            }}
-            className="w-auto h-10 sm:h-12 scale-125 sm:scale-150 transform-gpu object-contain transition-transform"
+            style={{ transformOrigin: "left center" }}
+            className="w-[140px] sm:w-[180px] h-auto transform-gpu object-contain"
             priority
           />
         </Link>
