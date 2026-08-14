@@ -148,7 +148,7 @@ export default function ConvergenceScene() {
             Alayn unifies orders, inventory, staffing, finance and operations into a single AI-powered operating system—providing real-time visibility, intelligent automation and complete operational control.
           </p>
           <div className="mt-4 flex items-center justify-center">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white border border-rose-200 shadow-sm text-[11px] sm:text-sm font-bold text-[#C41E2A] tracking-wide">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-50 border border-slate-200/60 shadow-sm text-[11px] sm:text-sm font-bold text-slate-700 tracking-wide">
               <MousePointerClick className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C41E2A]" />
               <span className="hidden sm:inline">Click any module circle below to view details &amp; connected workflows</span>
               <span className="sm:hidden">Select any operational module below to inspect connected workflows</span>
