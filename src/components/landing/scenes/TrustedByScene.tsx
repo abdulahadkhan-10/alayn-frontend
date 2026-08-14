@@ -86,8 +86,8 @@ export default function TrustedByScene() {
               <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60" />
               <div className="absolute inset-[1px] rounded-[15px] border border-white" />
               
-              <div className="relative p-8 sm:p-10 h-full flex flex-col items-center justify-center text-center">
-                <div className="relative w-40 h-24 sm:w-48 sm:h-28 transition-transform duration-500 ease-out group-hover:scale-105">
+              <div className="relative px-8 py-6 sm:px-10 sm:py-8 h-full flex flex-col items-center justify-center text-center">
+                <div className="relative w-44 h-28 sm:w-52 sm:h-32 transition-transform duration-500 ease-out group-hover:scale-105">
                   <Image
                     src={client.logo}
                     alt={`${client.name} logo`}

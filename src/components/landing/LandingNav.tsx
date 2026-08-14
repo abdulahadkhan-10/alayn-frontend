@@ -211,13 +211,22 @@ export default function LandingNav() {
       {/* Mobile Navigation Drawer */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="sm:hidden bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-2xl px-5 py-6 space-y-4 overflow-hidden"
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 top-[60px] sm:hidden bg-zinc-900/20 backdrop-blur-sm -z-10"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="sm:hidden relative z-10 bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-2xl px-5 py-6 space-y-4 overflow-hidden"
+            >
             {isAuthenticated && user ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80">
@@ -267,6 +276,7 @@ export default function LandingNav() {
               </div>
             )}
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </nav>

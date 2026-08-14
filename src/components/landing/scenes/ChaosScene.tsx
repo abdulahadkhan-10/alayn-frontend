@@ -126,7 +126,7 @@ export default function ChaosScene() {
                 onClick={() => setViewMode("traditional")}
                 className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
                   !isAlayn
-                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow"
+                    ? "bg-slate-700/50 text-white border border-slate-600/50 shadow"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
