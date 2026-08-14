@@ -84,7 +84,7 @@ export default function LandingNav() {
               width: "auto",
               transformOrigin: "left center"
             }}
-            className="w-auto h-9 sm:h-12 scale-110 sm:scale-150 transform-gpu object-contain transition-transform"
+            className="w-auto h-10 sm:h-12 scale-125 sm:scale-150 transform-gpu object-contain transition-transform"
             priority
           />
         </Link>

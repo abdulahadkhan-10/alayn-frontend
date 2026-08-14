@@ -124,7 +124,7 @@ export default function ChaosScene() {
             <div className="flex w-full p-1 rounded-xl bg-slate-900 border border-white/10">
               <button
                 onClick={() => setViewMode("traditional")}
-                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center outline-none [-webkit-tap-highlight-color:transparent] ${
                   !isAlayn
                     ? "bg-slate-700/50 text-white border border-slate-600/50 shadow"
                     : "text-slate-400 hover:text-white"
@@ -134,7 +134,7 @@ export default function ChaosScene() {
               </button>
               <button
                 onClick={() => setViewMode("alayn")}
-                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center outline-none [-webkit-tap-highlight-color:transparent] ${
                   isAlayn
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow"
                     : "text-slate-400 hover:text-white"
