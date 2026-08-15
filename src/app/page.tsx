@@ -43,6 +43,9 @@ export default function LandingPage() {
                   "name": "Alayn AI",
                   "url": "https://alaynai.com",
                   "logo": "https://alaynai.com/alaynlogo.png",
+                  "sameAs": [
+                    "https://www.instagram.com/alayn.ai/"
+                  ],
                   "parentOrganization": {
                     "@type": "Organization",
                     "name": "BRAHM Global Holdings"

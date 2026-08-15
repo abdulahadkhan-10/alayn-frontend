@@ -52,13 +52,15 @@ export default function LandingFooter() {
             { href: "/login", label: "Log in" },
             { href: "/signup", label: "Sign up" },
             { href: "#how-it-works", label: "How it works" },
+            { href: "https://www.instagram.com/alayn.ai/", label: "Instagram", external: true },
             { href: "/legal/privacy", label: "Privacy Policy" },
             { href: "/legal/terms", label: "Terms of Service" },
-          ].map(({ href, label }) => (
+          ].map(({ href, label, external }) => (
             <Link
               key={label}
               href={href}
               className="footer-link min-h-[44px] flex items-center"
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             >
               {label}
             </Link>
