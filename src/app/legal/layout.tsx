@@ -10,6 +10,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     { name: "Refund Policy", href: "/legal/refund" },
     { name: "Cookie Policy", href: "/legal/cookie" },
     { name: "Security & Data", href: "/legal/security" },
+    { name: "Responsible AI", href: "/legal/responsible-ai" },
+    { name: "Corporate Info", href: "/legal/corporate" },
+    { name: "Support & Grievance", href: "/legal/support" },
   ];
 
   return (
