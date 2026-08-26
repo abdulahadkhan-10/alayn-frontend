@@ -1,0 +1,74 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Alayn AI Hospitality API",
+    "description": "Enterprise API for Alayn AI restaurant operating system, inventory, KDS, and workforce.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.alaynai.com/v1",
+      "description": "Production Server"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "get": {
+        "summary": "List active orders",
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create order",
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/inventory/items": {
+      "get": {
+        "summary": "Get inventory stock levels and FEFO batches",
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/workforce/roster": {
+      "get": {
+        "summary": "Retrieve outlet shift roster matrix",
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

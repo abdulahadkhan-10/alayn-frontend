@@ -20,18 +20,32 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://alaynai.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://alaynai.com"),
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: siteUrl,
+  },
   title: {
-    default: "Alayn — The AI Operating System for Modern Businesses",
+    default: "Alayn AI — The Intelligent Operating System for Hospitality",
     template: "%s | Alayn AI",
   },
-  description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform built specifically for café and restaurant owners in India.",
-  keywords: ["Alayn", "Alayn AI", "Restaurant Operating System", "Cafe POS India", "AI Inventory Management", "Restaurant Management Software"],
+  description: "Alayn connects staff, inventory, orders, kitchen KDS, waste, and analytics into one AI-powered platform built specifically for restaurant and café operators.",
+  keywords: [
+    "Alayn",
+    "Alayn AI",
+    "Restaurant Operating System",
+    "Hospitality AI",
+    "Cafe POS",
+    "Kitchen Display System",
+    "Restaurant Management Software",
+    "FEFO Inventory",
+  ],
   openGraph: {
-    title: "Alayn — The AI Operating System for Modern Businesses",
-    description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform built specifically for café and restaurant owners in India.",
-    url: "https://alaynai.com",
+    title: "Alayn AI — The Intelligent Operating System for Hospitality",
+    description: "Alayn connects staff, inventory, orders, kitchen KDS, waste, and analytics into one AI-powered platform built specifically for restaurant and café operators.",
+    url: siteUrl,
     siteName: "Alayn AI",
     locale: "en_IN",
     type: "website",
@@ -46,7 +60,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alayn — The AI Operating System for Modern Businesses",
+    title: "Alayn AI — The Intelligent Operating System for Hospitality",
     description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform.",
     images: ["/alaynlogo.png"],
   },
@@ -63,9 +77,6 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
-  alternates: {
-    canonical: "/",
-  },
 };
 
 export default function RootLayout({
@@ -73,11 +84,72 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "Alayn Hospitality Operating System"],
+        "operatingSystem": "Web, iOS, Android",
+        "applicationCategory": "BusinessApplication",
+        "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling for restaurants and cafes.",
+        "url": siteUrl,
+        "creator": {
+          "@type": "Organization",
+          "name": "BRAHM Global Holdings",
+          "url": "https://brahmglobalholdings.com"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "Alayn Hospitality"],
+        "url": siteUrl,
+        "logo": `${siteUrl}/alaynlogo.png`,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "London",
+          "addressCountry": "GB",
+          "addressRegion": "Greater London"
+        },
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "contactType": "sales",
+            "email": "sales@alaynai.com",
+            "availableLanguage": ["English", "Hindi"]
+          },
+          {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "info@alaynai.com",
+            "availableLanguage": ["English", "Hindi"]
+          }
+        ],
+        "sameAs": [
+          "https://www.instagram.com/alayn.ai/"
+        ],
+        "parentOrganization": {
+          "@type": "Organization",
+          "name": "BRAHM Global Holdings",
+          "url": "https://brahmglobalholdings.com"
+        }
+      }
+    ]
+  };
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-[#F4F7F9] text-gray-900 font-sans">
         <ReduxProvider>
           <BranchProvider>

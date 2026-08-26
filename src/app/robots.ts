@@ -4,7 +4,20 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/login", "/signup"],
+      allow: [
+        "/",
+        "/about",
+        "/contact",
+        "/privacy",
+        "/legal/*",
+        "/api-docs",
+        "/login",
+        "/signup",
+        "/llms.txt",
+        "/llms-full.txt",
+        "/sitemap.xml",
+        "/openapi.json",
+      ],
       disallow: [
         "/dashboard",
         "/inventory",
@@ -22,7 +35,6 @@ export default function robots(): MetadataRoute.Robots {
         "/workforce",
         "/attendance-terminal",
         "/notifications",
-        "/support",
       ],
     },
     sitemap: "https://alaynai.com/sitemap.xml",
