@@ -185,9 +185,9 @@ export default function ChaosScene() {
                         }`}
                       />
                     </div>
-                    <h4 className="text-base font-semibold tracking-tight text-white">
+                    <h3 className="text-base font-semibold tracking-tight text-white">
                       {pillar.title}
-                    </h4>
+                    </h3>
                   </button>
                 );
               })}
