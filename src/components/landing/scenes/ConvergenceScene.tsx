@@ -98,6 +98,15 @@ export default function ConvergenceScene() {
       ariaLabel="Alayn Unified Architecture"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="sr-only">
+          <h3>Location &amp; Multi-Outlet Management</h3>
+          <h3>Workforce Scheduling &amp; Matrix Rosters</h3>
+          <h3>Smart FEFO Inventory &amp; Automated Purchase Orders</h3>
+          <h3>Counter POS &amp; Table Dining Stream</h3>
+          <h3>Real-Time Revenue &amp; P&amp;L Analytics</h3>
+          <h3>Guest CRM &amp; Feedback Tickets</h3>
+          <h3>Food Waste Telemetry &amp; Spoilage Tracking</h3>
+        </div>
         {/* Section Header */}
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <span

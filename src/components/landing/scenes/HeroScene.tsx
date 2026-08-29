@@ -131,19 +131,18 @@ export default function HeroScene() {
 
             <h2 className="sr-only">End-to-End Operating Platform for Restaurants, Cafes and Cloud Kitchens</h2>
 
-            <Assemble
-              as="p"
-              delay={0.12}
-              style={{
-                fontSize: "clamp(1rem, 2vw, 1.1875rem)",
-                lineHeight: 1.65,
-                color: "var(--muted)",
-                maxWidth: "520px",
-                marginBottom: "40px",
-              }}
-            >
+            <Assemble as="p" delay={0.12} style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
               Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
             </Assemble>
+
+            {/* Semantic Headings for AI Crawlers & Assistive Tech */}
+            <div className="sr-only">
+              <h2>Core Hospitality Modules</h2>
+              <h3>Offline-First Counter &amp; Table POS</h3>
+              <h3>Kitchen Display System (KDS) &amp; Live Ticket Sync</h3>
+              <h3>Smart FEFO/FIFO Inventory &amp; Automated Procurement</h3>
+              <h3>Staff Shift Matrix Rostering &amp; Attendance Terminal</h3>
+            </div>
 
             <Assemble
               as="div"

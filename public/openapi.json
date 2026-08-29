@@ -29,6 +29,10 @@
         "Link"
       ],
       "policyUrl": "https://alaynai.com/api-docs#deprecation-policy"
+    },
+    "x-sunset-policy": {
+      "noticePeriod": "12 months",
+      "documentation": "https://alaynai.com/api-docs#deprecation-policy"
     }
   },
   "servers": [
@@ -149,7 +153,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       },
       "post": {
         "operationId": "createOrder",
@@ -206,7 +211,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/orders/{orderId}": {
@@ -261,7 +267,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/inventory/items": {
@@ -316,7 +323,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/inventory/purchase-orders": {
@@ -374,7 +382,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/workforce/roster": {
@@ -439,7 +448,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/workforce/attendance": {
@@ -497,7 +507,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     },
     "/analytics/summary": {
@@ -559,7 +570,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "deprecated": false
       }
     }
   },
@@ -616,6 +628,11 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       },
@@ -623,6 +640,11 @@
         "description": "Missing or invalid authentication credentials",
         "content": {
           "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          },
+          "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
@@ -636,6 +658,11 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       },
@@ -646,6 +673,11 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       },
@@ -653,6 +685,11 @@
         "description": "Payload failed schema validation (RFC 9457)",
         "content": {
           "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationErrorResponse"
+            }
+          },
+          "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ValidationErrorResponse"
             }
@@ -675,6 +712,11 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       },
@@ -682,6 +724,11 @@
         "description": "An unexpected server error occurred",
         "content": {
           "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          },
+          "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }

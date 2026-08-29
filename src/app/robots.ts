@@ -38,5 +38,6 @@ export default function robots(): MetadataRoute.Robots {
       ],
     },
     sitemap: "https://alaynai.com/sitemap.xml",
+    host: "https://alaynai.com",
   };
 }
