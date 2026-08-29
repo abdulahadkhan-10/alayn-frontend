@@ -16,6 +16,7 @@ export default function CalmScene() {
       ariaLabel="Calm"
     >
       <div style={{ maxWidth: "560px", margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
+        <h2 className="sr-only">Predictable Hospitality Operations</h2>
         <Assemble
           as="p"
           style={{
@@ -32,6 +33,10 @@ export default function CalmScene() {
           <br />
           Confident decisions.
         </Assemble>
+        <div className="sr-only">
+          <h3>Zero Manual Reconciliation</h3>
+          <h3>Automated Nightly Closeouts</h3>
+        </div>
       </div>
     </FieldScene>
   );
