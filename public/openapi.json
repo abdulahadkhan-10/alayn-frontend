@@ -3,14 +3,14 @@
   "info": {
     "title": "Alayn AI Hospitality & Restaurant API",
     "version": "1.0.0",
-    "description": "Enterprise REST API for Alayn AI restaurant operating system, point of sale (POS), kitchen display systems (KDS), smart FEFO inventory, and workforce scheduling. Built for autonomous agents, developers, and restaurant integrations.",
+    "description": "Enterprise REST API for Alayn AI restaurant operating system, point of sale (POS), kitchen display systems (KDS), smart FEFO inventory, and workforce scheduling.",
     "contact": {
-      "name": "Alayn AI Developer Relations",
+      "name": "Alayn AI Developer Platform",
       "email": "info@alaynai.com",
       "url": "https://alaynai.com/api-docs"
     },
     "license": {
-      "name": "Proprietary / Commercial",
+      "name": "Proprietary",
       "url": "https://alaynai.com/legal/terms"
     },
     "x-cli": {
@@ -18,7 +18,8 @@
       "registry": "https://www.npmjs.com/package/@alayn/cli",
       "command": "alayn",
       "install": "npm install -g @alayn/cli",
-      "docs": "https://alaynai.com/api-docs#cli"
+      "docs": "https://alaynai.com/api-docs#cli",
+      "repository": "https://github.com/Akshi1277/alayn"
     },
     "x-deprecation-policy": {
       "sunsetWindowMonths": 12,
@@ -131,19 +132,22 @@
             }
           },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
           },
           "401": {
-            "": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
           },
           "500": {
-            "": "#/components/responses/InternalServerError"
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       },
@@ -182,22 +186,25 @@
             }
           },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
           },
           "401": {
-            "": "#/components/responses/UnauthorizedError"
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
           },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
           },
           "500": {
-            "": "#/components/responses/InternalServerError"
-          },
-          "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -236,23 +243,23 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
           },
-          "500": {
-            "": "#/components/responses/InternalServerError"
-          },
-          "400": {
-            "": "#/components/responses/BadRequestError"
-          },
-          "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "": "#/components/responses/ForbiddenError"
-          },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -291,20 +298,23 @@
               }
             }
           },
-          "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "429": {
-            "": "#/components/responses/RateLimitError"
-          },
-          "500": {
-            "": "#/components/responses/InternalServerError"
-          },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -344,22 +354,25 @@
             }
           },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "422": {
             "$ref": "#/components/responses/ValidationError"
           },
-          "500": {
-            "": "#/components/responses/InternalServerError"
-          },
-          "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "403": {
-            "": "#/components/responses/ForbiddenError"
-          },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -408,20 +421,23 @@
               }
             }
           },
-          "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "500": {
-            "": "#/components/responses/InternalServerError"
-          },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -461,19 +477,25 @@
             }
           },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
           },
           "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "500": {
-            "": "#/components/responses/InternalServerError"
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -519,20 +541,23 @@
               }
             }
           },
-          "401": {
-            "": "#/components/responses/UnauthorizedError"
-          },
-          "500": {
-            "": "#/components/responses/InternalServerError"
-          },
           "400": {
-            "": "#/components/responses/BadRequestError"
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
           },
           "403": {
-            "": "#/components/responses/ForbiddenError"
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "429": {
-            "": "#/components/responses/RateLimitError"
+            "$ref": "#/components/responses/RateLimitError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -625,7 +650,7 @@
         }
       },
       "ValidationError": {
-        "description": "Payload failed schema validation",
+        "description": "Payload failed schema validation (RFC 9457)",
         "content": {
           "application/problem+json": {
             "schema": {
@@ -705,6 +730,7 @@
       },
       "ValidationErrorResponse": {
         "type": "object",
+        "description": "Standard RFC 9457 Validation Problem Details",
         "required": [
           "type",
           "title",

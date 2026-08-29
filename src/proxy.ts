@@ -17,6 +17,8 @@ export function proxy(request: NextRequest) {
     response.headers.set("RateLimit-Remaining", "99");
     response.headers.set("RateLimit-Reset", "60");
     response.headers.set("RateLimit-Policy", "100;w=60");
+    response.headers.set("x-api-version", "1.0.0");
+    response.headers.set("Link", '<https://alaynai.com/api-docs#deprecation-policy>; rel="deprecation"');
     return response;
   }
 
@@ -40,6 +42,8 @@ export function proxy(request: NextRequest) {
           "RateLimit-Remaining": "99",
           "RateLimit-Reset": "60",
           "RateLimit-Policy": "100;w=60",
+          "x-api-version": "1.0.0",
+          "Link": '<https://alaynai.com/api-docs#deprecation-policy>; rel="deprecation"',
           "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
         },
       });
@@ -54,6 +58,7 @@ export function proxy(request: NextRequest) {
         "RateLimit-Remaining": "99",
         "RateLimit-Reset": "60",
         "RateLimit-Policy": "100;w=60",
+        "x-api-version": "1.0.0",
         "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
@@ -72,6 +77,8 @@ export function proxy(request: NextRequest) {
   response.headers.set("RateLimit-Remaining", "99");
   response.headers.set("RateLimit-Reset", "60");
   response.headers.set("RateLimit-Policy", "100;w=60");
+  response.headers.set("x-api-version", "1.0.0");
+  response.headers.set("Link", '<https://alaynai.com/api-docs#deprecation-policy>; rel="deprecation"');
 
   return response;
 }

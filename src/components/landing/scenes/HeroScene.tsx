@@ -129,6 +129,8 @@ export default function HeroScene() {
               </em>
             </Assemble>
 
+            <h2 className="sr-only">End-to-End Operating Platform for Restaurants, Cafes and Cloud Kitchens</h2>
+
             <Assemble
               as="p"
               delay={0.12}

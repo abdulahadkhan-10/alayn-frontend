@@ -35,6 +35,7 @@ export const metadata: Metadata = {
   keywords: [
     "Alayn",
     "Alayn AI",
+    "alaynai.com",
     "Restaurant Operating System",
     "Hospitality AI",
     "Cafe POS",
@@ -42,6 +43,12 @@ export const metadata: Metadata = {
     "Restaurant Management Software",
     "FEFO Inventory",
   ],
+  applicationName: "Alayn AI",
+  appleWebApp: {
+    title: "Alayn AI",
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "Alayn AI — The Intelligent Operating System for Hospitality",
     description: "Alayn connects staff, inventory, orders, kitchen KDS, waste, and analytics into one AI-powered platform built specifically for restaurant and café operators.",
@@ -92,7 +99,7 @@ export default function RootLayout({
         "@id": `${siteUrl}/#website`,
         "url": siteUrl,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality Operating System"],
+        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com"],
         "description": "The Intelligent Operating System for Modern Hospitality.",
         "publisher": {
           "@id": `${siteUrl}/#organization`
@@ -102,7 +109,7 @@ export default function RootLayout({
         "@type": "Brand",
         "@id": `${siteUrl}/#brand`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality"],
+        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`
       },
@@ -110,7 +117,7 @@ export default function RootLayout({
         "@type": "SoftwareApplication",
         "@id": `${siteUrl}/#software`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality Operating System"],
+        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com"],
         "operatingSystem": "Web, iOS, Android",
         "applicationCategory": "BusinessApplication",
         "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling for restaurants and cafes.",
@@ -126,7 +133,7 @@ export default function RootLayout({
         "@id": `${siteUrl}/#organization`,
         "name": "Alayn AI",
         "legalName": "Alayn AI Ltd",
-        "alternateName": ["Alayn", "Alayn Hospitality"],
+        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`,
         "brand": {
@@ -170,6 +177,8 @@ export default function RootLayout({
       className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <meta name="application-name" content="Alayn AI" />
+        <meta name="apple-mobile-web-app-title" content="Alayn AI" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

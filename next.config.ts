@@ -45,6 +45,10 @@ const nextConfig: NextConfig = {
             key: "x-api-version",
             value: "1.0.0",
           },
+          {
+            key: "Link",
+            value: '<https://alaynai.com/api-docs#deprecation-policy>; rel="deprecation"',
+          },
         ],
       },
     ];
