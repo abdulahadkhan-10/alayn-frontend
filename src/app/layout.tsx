@@ -88,7 +88,27 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        "url": siteUrl,
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "Alayn Hospitality Operating System"],
+        "description": "The Intelligent Operating System for Modern Hospitality.",
+        "publisher": {
+          "@id": `${siteUrl}/#organization`
+        }
+      },
+      {
+        "@type": "Brand",
+        "@id": `${siteUrl}/#brand`,
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "Alayn Hospitality"],
+        "url": siteUrl,
+        "logo": `${siteUrl}/alaynlogo.png`
+      },
+      {
         "@type": "SoftwareApplication",
+        "@id": `${siteUrl}/#software`,
         "name": "Alayn AI",
         "alternateName": ["Alayn", "Alayn Hospitality Operating System"],
         "operatingSystem": "Web, iOS, Android",
@@ -103,10 +123,15 @@ export default function RootLayout({
       },
       {
         "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
         "name": "Alayn AI",
+        "legalName": "Alayn AI Ltd",
         "alternateName": ["Alayn", "Alayn Hospitality"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`,
+        "brand": {
+          "@id": `${siteUrl}/#brand`
+        },
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "London",
