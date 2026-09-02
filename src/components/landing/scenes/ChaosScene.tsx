@@ -225,7 +225,7 @@ export default function ChaosScene() {
                       {/* Main Title & Narrative */}
                       <div>
                         <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-3">
-                          {activePillar.title}
+                          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{activePillar.title}</h3>
                         </h3>
                         <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                           {isAlayn ? activePillar.alaynSolution : activePillar.traditionalProblem}

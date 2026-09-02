@@ -68,13 +68,7 @@ export default function VerticalsScene() {
       ariaLabel="Built for every hospitality business"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="sr-only">
-          <h3>Independent Fine Dining &amp; Casual Restaurants</h3>
-          <h3>Cafes, Coffee Shops &amp; Bakeries</h3>
-          <h3>Cloud Kitchens &amp; Multi-Brand Delivery Hubs</h3>
-          <h3>Quick Service Restaurants (QSR) &amp; Food Courts</h3>
-          <h3>Hotel Dining, Bars &amp; Multi-Location Hospitality Groups</h3>
-        </div>
+        
         
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <h2 style={{

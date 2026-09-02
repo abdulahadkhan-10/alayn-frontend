@@ -136,13 +136,7 @@ export default function HeroScene() {
             </Assemble>
 
             {/* Semantic Headings for AI Crawlers & Assistive Tech */}
-            <div className="sr-only">
-              <h2 className="text-sm font-semibold tracking-wider text-amber-500 uppercase">Core Hospitality Modules</h2>
-              <h3>Offline-First Counter &amp; Table POS</h3>
-              <h3>Kitchen Display System (KDS) &amp; Live Ticket Sync</h3>
-              <h3>Smart FEFO/FIFO Inventory &amp; Automated Procurement</h3>
-              <h3>Staff Shift Matrix Rostering &amp; Attendance Terminal</h3>
-            </div>
+            
 
             <Assemble
               as="div"
