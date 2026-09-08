@@ -124,20 +124,20 @@ export default function ChaosScene() {
             <div className="flex w-full p-1 rounded-xl bg-slate-900 border border-white/10">
               <button
                 onClick={() => setViewMode("traditional")}
-                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center outline-none [-webkit-tap-highlight-color:transparent] border ${
                   !isAlayn
-                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-slate-700/50 text-white border-slate-600/50 shadow"
+                    : "border-transparent text-slate-400 hover:text-white"
                 }`}
               >
                 Traditional Operations
               </button>
               <button
                 onClick={() => setViewMode("alayn")}
-                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center ${
+                className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 min-h-[44px] flex items-center justify-center outline-none [-webkit-tap-highlight-color:transparent] border ${
                   isAlayn
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow"
+                    : "border-transparent text-slate-400 hover:text-white"
                 }`}
               >
                 With Alayn OS
@@ -185,9 +185,9 @@ export default function ChaosScene() {
                         }`}
                       />
                     </div>
-                    <h4 className="text-base font-semibold tracking-tight text-white">
+                    <h3 className="text-base font-semibold tracking-tight text-white">
                       {pillar.title}
-                    </h4>
+                    </h3>
                   </button>
                 );
               })}
@@ -225,7 +225,7 @@ export default function ChaosScene() {
                       {/* Main Title & Narrative */}
                       <div>
                         <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-3">
-                          {activePillar.title}
+                          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{activePillar.title}</h3>
                         </h3>
                         <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                           {isAlayn ? activePillar.alaynSolution : activePillar.traditionalProblem}

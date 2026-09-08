@@ -870,7 +870,7 @@ export default function MenuManagementComponent() {
               Scalable product catalog dashboard for managing dishes, categories, pricing, and stock status.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 shrink-0">
             <button
               onClick={() => {
                 if (isAllOutletsSelected) {
@@ -880,7 +880,7 @@ export default function MenuManagementComponent() {
                 setIsAddCategoryOpen(true);
               }}
               disabled={isAllOutletsSelected}
-              className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto ${isAllOutletsSelected
+              className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto whitespace-nowrap ${isAllOutletsSelected
                   ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
                 }`}
@@ -891,7 +891,7 @@ export default function MenuManagementComponent() {
             </button>
             <button
               onClick={() => setIsAddItemOpen(true)}
-              className="bg-[#D3232A] hover:bg-[#b01e23] text-white shadow-xs font-semibold px-4 py-2.5 rounded-xl transition duration-200 flex justify-center items-center gap-2 w-full sm:w-auto cursor-pointer"
+              className="bg-[#D3232A] hover:bg-[#b01e23] text-white shadow-xs font-semibold px-4 py-2.5 rounded-xl transition duration-200 flex justify-center items-center gap-2 w-full sm:w-auto cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               Add Menu Item
@@ -933,7 +933,7 @@ export default function MenuManagementComponent() {
         {/* Modern Minimalist SaaS Filter Toolbar (Direct Access: Search | Category | Status | Type | Sort) */}
         <div className="bg-white rounded-xl border border-gray-200/80 shadow-2xs overflow-visible">
           {/* Primary Control Bar */}
-          <div className="p-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+          <div className="p-3 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
             {/* 1. Primary Search Input */}
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1349,11 +1349,16 @@ export default function MenuManagementComponent() {
                                   <Store className="w-3.5 h-3.5 text-emerald-600" />
                                   All {specificBranches.length} Outlets
                                 </span>
+                              ) : activeOutletIds.length > 1 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">
+                                  <Store className="w-3.5 h-3.5 text-indigo-500" />
+                                  {activeOutletIds.length} Outlets
+                                </span>
                               ) : (
                                 activeOutletIds.map((outId: string) => (
                                   <span
                                     key={outId}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap"
                                   >
                                     <Store className="w-3 h-3 text-indigo-500" />
                                     {outletMap.get(outId) || "Outlet"}

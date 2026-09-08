@@ -224,8 +224,9 @@ export default function RadialOrbitalTimeline({
           </span>
         </div>
 
-        {/* Mobile Pills Flex-Wrap Grid (100% visible, no hidden scroll) */}
-        <div className="flex flex-wrap items-center gap-2 mb-5">
+        {/* Mobile Pills Horizontal Scroll (Native iOS feel) */}
+        <div className="relative mb-5 -mx-4 sm:-mx-6">
+          <div className="flex items-center gap-2 overflow-x-auto px-4 sm:px-6 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {timelineData.map((item) => {
             const isSelected = activeNodeId === item.id || (!activeNodeId && item.id === 1);
             const Icon = item.icon;
@@ -233,7 +234,7 @@ export default function RadialOrbitalTimeline({
               <button
                 key={item.id}
                 onClick={() => setActiveNodeId(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all min-h-[40px] ${
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all min-h-[40px] ${
                   isSelected
                     ? "bg-[#C41E2A] text-white shadow-md shadow-rose-950/20 ring-2 ring-rose-300/40"
                     : "bg-white text-slate-700 border border-slate-200/90 hover:bg-slate-100"
@@ -244,6 +245,9 @@ export default function RadialOrbitalTimeline({
               </button>
             );
           })}
+          </div>
+          {/* Right side fade to indicate scrollability */}
+          <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-[#F4F5F8] via-[#F4F5F8]/80 to-transparent pointer-events-none" />
         </div>
 
         {/* Mobile Active Module Details Card */}
@@ -318,7 +322,7 @@ export default function RadialOrbitalTimeline({
 
                 <button
                   onClick={() => setActiveNodeId(nextItem.id)}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors min-h-[40px]"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 bg-slate-800 text-white font-semibold hover:bg-slate-700 transition-colors min-h-[40px]"
                 >
                   <span>{nextItem.title}</span>
                   <span>→</span>

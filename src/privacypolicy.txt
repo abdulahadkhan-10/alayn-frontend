@@ -1,0 +1,399 @@
+PRIVACY POLICY
+Effective Date: 14 August 2026 Last Updated: 14 August 2026
+Alayn AI is committed to protecting the privacy and security of personal data entrusted to us.
+This Privacy Policy explains how BRAHM GLOBAL HOLDINGS, a sole proprietorship owned and operated by Iyaan Khan Tauqir Khan, trading under the brand Alayn AI ("Alayn", "we", "us" or "our"), collects, uses, stores, discloses and otherwise processes personal data when you access or use our websites, applications, software, products and services.
+Alayn is a cloud-based, AI-powered business operating system developed primarily for hospitality businesses. Our platform may include Point of Sale (POS), Kitchen Display Systems (KDS), inventory management, workforce management, customer relationship management, analytics, automation, reporting and related business services.
+This Privacy Policy applies to:
+	•	visitors to our websites and digital properties;
+	•	individuals who contact us or request information about Alayn;
+	•	customers and authorised users of Alayn;
+	•	employees, contractors and representatives of our customers who use the platform;
+	•	individuals whose personal data may be entered into Alayn by a customer; and
+	•	other individuals whose personal data we process in connection with our business and services.
+If you use Alayn on behalf of a restaurant, café, QSR, cloud kitchen, bakery, hotel or other organisation, that organisation may determine how certain personal data is collected and used within its Alayn account. In those circumstances, the organisation may be the relevant Data Fiduciary and Alayn may process that information on its behalf as a Data Processor or service provider, depending on the applicable law and the nature of the relationship.
+
+1. WHO WE ARE
+For customers and users in India, the relevant business entity is:
+Trade Name: BRAHM GLOBAL HOLDINGS Legal Name: IYAAN KHAN TAUQUIR KHAN Constitution: Sole Proprietorship Product: Alayn AI Principal Place of Business: Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West, Mumbai, Maharashtra 400050, India
+GSTIN: 27KOBPK2043Q1ZH
+General Support: info@alaynai.com Privacy Contact: brahmglobalholdings@gmail.com
+For privacy-related enquiries, requests or concerns, please contact us using the Privacy Contact address above.
+
+2. OUR APPROACH TO PRIVACY
+Alayn is built around the principle that business intelligence should not require businesses to surrender control of their information.
+We aim to:
+	•	collect only information reasonably required for identified purposes;
+	•	use personal data fairly and transparently;
+	•	protect information against unauthorised access, loss, misuse or disclosure;
+	•	give individuals appropriate choices and rights where applicable;
+	•	retain information only for as long as reasonably necessary;
+	•	distinguish between customer-owned business data and information Alayn processes for its own legitimate business purposes; and
+	•	avoid using customer data to train general-purpose AI models without appropriate authorisation or consent where required.
+
+3. PERSONAL DATA WE MAY COLLECT
+The information we collect depends on how you interact with Alayn.
+3.1 Information you provide directly
+This may include:
+	•	name;
+	•	business or organisation name;
+	•	job title or role;
+	•	email address;
+	•	telephone number;
+	•	business address;
+	•	account login details;
+	•	profile information;
+	•	billing and subscription information;
+	•	communications with our team;
+	•	information submitted through forms;
+	•	information provided when requesting a demonstration;
+	•	information provided when contacting support; and
+	•	other information you voluntarily provide to us.
+We do not require you to provide more personal information than is reasonably necessary for the relevant interaction or service.
+
+3.2 Account and business information
+When a customer creates or administers an Alayn account, we may process information relating to the customer's organisation, including:
+	•	business name;
+	•	outlet or location information;
+	•	operating preferences;
+	•	user roles and permissions;
+	•	subscription information;
+	•	configuration information;
+	•	account activity;
+	•	business settings; and
+	•	information necessary to provide and administer the Alayn platform.
+
+4. INFORMATION ENTERED INTO ALAYN BY CUSTOMERS
+Because Alayn is an operating system for businesses, customers may enter substantial amounts of business and operational information into the platform.
+Depending on the customer's use of Alayn, this may include:
+	•	employee names and contact details;
+	•	staff roles and permissions;
+	•	shift and roster information;
+	•	employee availability;
+	•	attendance or operational workforce information;
+	•	customer names and contact information;
+	•	order information;
+	•	transaction information;
+	•	product and menu information;
+	•	inventory information;
+	•	supplier information;
+	•	recipe and preparation information;
+	•	operational records;
+	•	customer preferences;
+	•	loyalty or CRM information;
+	•	support or service records;
+	•	business performance information;
+	•	outlet information;
+	•	financial and commercial information; and
+	•	other information entered or uploaded by the customer.
+Where a customer uses Alayn to process personal data relating to its employees, customers, suppliers or other individuals, the customer remains responsible for determining the lawful basis and appropriate purpose for that processing, where applicable.
+The customer must ensure that it has the necessary rights, permissions, notices and lawful basis to provide such information to Alayn.
+
+5. INFORMATION WE COLLECT AUTOMATICALLY
+When you access our websites or use Alayn, we may automatically collect certain technical and usage information.
+This may include:
+	•	IP address;
+	•	browser type and version;
+	•	device type;
+	•	operating system;
+	•	language and regional settings;
+	•	referring website;
+	•	pages viewed;
+	•	approximate interaction times;
+	•	application activity;
+	•	login activity;
+	•	error information;
+	•	performance information;
+	•	security and authentication logs; and
+	•	other technical information reasonably required to operate, secure and improve our services.
+We may associate this information with an account or other information where reasonably necessary for security, service delivery, analytics or support.
+
+6. COOKIES AND SIMILAR TECHNOLOGIES
+Alayn may use cookies, pixels, local storage and similar technologies to:
+	•	operate our websites and applications;
+	•	maintain sessions;
+	•	remember preferences;
+	•	understand website usage;
+	•	improve performance;
+	•	maintain security;
+	•	measure marketing effectiveness; and
+	•	provide relevant functionality.
+Where required by applicable law, we will seek appropriate consent before using non-essential cookies or similar technologies.
+Further information will be provided in our Cookie Policy.
+
+7. HOW WE USE PERSONAL DATA
+We may process personal data for the following purposes:
+Providing Alayn
+To:
+	•	create and manage accounts;
+	•	provide access to the platform;
+	•	process transactions and subscriptions;
+	•	provide POS, KDS, inventory, workforce, CRM, analytics and other functionality;
+	•	provide customer support;
+	•	maintain service availability;
+	•	configure and personalise the platform; and
+	•	deliver requested services.
+Security and integrity
+To:
+	•	authenticate users;
+	•	prevent unauthorised access;
+	•	detect suspicious activity;
+	•	investigate security incidents;
+	•	protect our systems and users;
+	•	maintain audit and security logs; and
+	•	enforce our terms and policies.
+Business operations
+To:
+	•	manage customer relationships;
+	•	administer contracts;
+	•	process payments;
+	•	maintain financial and accounting records;
+	•	communicate with customers;
+	•	provide service notifications;
+	•	manage support requests;
+	•	maintain business records; and
+	•	comply with applicable legal obligations.
+Product development and improvement
+We may use appropriate information to:
+	•	improve the performance of Alayn;
+	•	understand product usage;
+	•	identify technical issues;
+	•	develop new features;
+	•	improve user experience;
+	•	conduct aggregated analytics; and
+	•	improve our systems and services.
+Where information is used for analytics or product improvement, we seek to use aggregated, anonymised or appropriately de-identified information where reasonably practicable.
+
+8. ARTIFICIAL INTELLIGENCE
+Alayn incorporates artificial intelligence and machine-learning capabilities into certain aspects of its platform.
+These capabilities may assist with:
+	•	business intelligence;
+	•	operational insights;
+	•	forecasting;
+	•	recommendations;
+	•	anomaly detection;
+	•	inventory analysis;
+	•	workforce insights;
+	•	waste optimisation;
+	•	reporting;
+	•	automation; and
+	•	other decision-support functionality.
+Customer data and AI model training
+Alayn does not use customer business data to train general-purpose AI models without appropriate authorisation or consent where required.
+Customer information may nevertheless be processed by AI-powered features where this is necessary to provide the functionality requested by the customer.
+For example, a customer may ask Alayn to analyse its own sales, inventory or operational data. Such processing is part of providing the requested service and does not, by itself, mean that the information is being used to train a general-purpose AI model.
+Where a future feature involves a materially different use of customer data, Alayn may provide additional information, obtain consent or provide appropriate controls where required.
+
+9. LEGAL BASIS AND PERMITTED PURPOSES
+Depending on the applicable legal framework and the nature of the processing, Alayn may process personal data:
+	•	with consent;
+	•	to provide a service requested by an individual;
+	•	to perform or administer a contract;
+	•	to comply with legal or regulatory obligations;
+	•	for legitimate business and security purposes where permitted;
+	•	to protect rights, property and systems;
+	•	to prevent fraud or misuse; or
+	•	for other purposes permitted under applicable law.
+For processing governed by India's Digital Personal Data Protection framework, Alayn will process personal data in accordance with the applicable requirements of the Digital Personal Data Protection Act, 2023 and applicable rules and notifications as they come into force.
+
+10. CUSTOMER DATA AND ALAYN'S ROLE
+Alayn may operate in different privacy roles depending on the type of information and the relationship involved.
+10.1 Information relating to the Alayn account
+For information that Alayn collects directly to establish, administer and support a customer's account, Alayn may determine the purposes and means of processing and therefore act as the relevant Data Fiduciary or equivalent entity under applicable law.
+10.2 Information submitted by customers
+Where a customer uses Alayn to process information relating to its own employees, customers, suppliers or other individuals, the customer generally determines the purposes for which that information is processed.
+In such circumstances, Alayn may act as a Data Processor, service provider or equivalent processing entity.
+The customer's own privacy notice and policies may therefore also apply.
+
+11. DATA OWNERSHIP
+Customers retain their rights and interests in the business and personal data they submit to Alayn, subject to applicable law and the customer's contractual arrangements with Alayn.
+Alayn does not acquire ownership of a customer's underlying business records merely because those records are stored or processed through the Alayn platform.
+Alayn may, however, create and use:
+	•	technical information;
+	•	service metadata;
+	•	aggregated statistics;
+	•	anonymised or de-identified information; and
+	•	information relating to the operation, security and performance of its services,
+for legitimate purposes including security, analytics, service improvement and product development, subject to applicable law.
+
+12. SHARING OF PERSONAL DATA
+We may share information with carefully selected third parties where reasonably necessary to operate our business and provide Alayn.
+These may include:
+Technology and infrastructure providers
+Providers supporting:
+	•	cloud infrastructure;
+	•	hosting;
+	•	databases;
+	•	communications;
+	•	authentication;
+	•	monitoring;
+	•	security;
+	•	analytics; and
+	•	other technical services.
+Payment providers
+Where applicable, payment information may be processed through third-party payment service providers.
+Payment providers may process payment information under their own privacy policies and terms.
+Alayn does not require you to provide complete payment-card information directly to us where payment is handled through a third-party payment provider.
+Professional advisers
+We may share information with:
+	•	accountants;
+	•	auditors;
+	•	lawyers;
+	•	insurers;
+	•	consultants; and
+	•	other professional advisers,
+where reasonably necessary.
+Legal and regulatory authorities
+We may disclose information where required or permitted by applicable law, regulation, court order, governmental request or lawful authority.
+Business transfers
+If Alayn or substantially all of its assets are involved in a merger, acquisition, restructuring, financing, sale or similar transaction, relevant information may be transferred as part of that transaction, subject to applicable law and appropriate protections.
+We do not sell personal data as a commercial product.
+
+13. INTERNATIONAL DATA TRANSFERS
+Alayn may use technology and service providers that operate infrastructure or process information in jurisdictions outside India.
+Where personal data is transferred, stored or processed outside India, Alayn will take appropriate steps required by applicable law and relevant contractual or technical safeguards.
+Cross-border processing may therefore occur depending on the infrastructure, service providers and functionality used by a customer.
+We will update this Privacy Policy if applicable law introduces additional requirements or restrictions concerning international transfers.
+
+14. DATA SECURITY
+Alayn takes reasonable technical and organisational measures designed to protect personal data against:
+	•	unauthorised access;
+	•	accidental loss;
+	•	destruction;
+	•	alteration;
+	•	misuse;
+	•	disclosure; and
+	•	other unlawful or unauthorised processing.
+Depending on the service and circumstances, security measures may include:
+	•	access controls;
+	•	authentication mechanisms;
+	•	encryption or other appropriate technical protections;
+	•	logging and monitoring;
+	•	secure development practices;
+	•	backups;
+	•	role-based access;
+	•	incident response procedures; and
+	•	measures designed to maintain the confidentiality, integrity and availability of information.
+No internet-based service can guarantee absolute security.
+Customers are responsible for maintaining appropriate account credentials and permissions and for notifying Alayn promptly of suspected unauthorised access.
+
+15. DATA BREACHES AND SECURITY INCIDENTS
+If Alayn becomes aware of a personal data breach affecting information for which we have responsibility, we will assess and respond to the incident in accordance with applicable law and our incident-response procedures.
+Where legally required, we will notify affected customers, individuals and/or relevant authorities within the applicable timeframes.
+Where Alayn processes customer data on behalf of a customer, Alayn may notify the relevant customer so that the customer can meet its own legal and contractual obligations.
+
+16. DATA RETENTION
+We retain personal data only for as long as reasonably necessary for the purposes for which it was collected or processed, including:
+	•	providing the requested services;
+	•	maintaining customer accounts;
+	•	fulfilling contractual obligations;
+	•	resolving disputes;
+	•	maintaining business and financial records;
+	•	complying with legal obligations;
+	•	preventing fraud and misuse;
+	•	maintaining security; and
+	•	enforcing agreements.
+When information is no longer reasonably required, it may be deleted, anonymised or securely disposed of, subject to applicable law and legitimate retention requirements.
+For customer-submitted data, contractual terms may establish additional retention and deletion arrangements.
+
+17. YOUR PRIVACY RIGHTS
+Depending on the applicable law and your relationship with Alayn, you may have rights relating to your personal data.
+These may include the right to:
+	•	request information about processing;
+	•	request access to relevant personal data;
+	•	request correction of inaccurate information;
+	•	request deletion or erasure where legally applicable;
+	•	withdraw consent where processing is based on consent;
+	•	request information about certain disclosures or processing activities;
+	•	raise a complaint or grievance; and
+	•	exercise other rights available under applicable law.
+Under India's DPDP framework, rights and mechanisms will apply in accordance with the provisions and commencement dates applicable at the relevant time. The Government has prescribed a phased commencement for the DPDP Act, including substantive provisions scheduled to commence 18 months after 13 November 2025.
+
+18. HOW TO EXERCISE YOUR RIGHTS
+To submit a privacy request, please contact:
+Privacy Contact: brahmglobalholdings@gmail.com
+Please include:
+	•	your full name;
+	•	contact details;
+	•	the organisation or Alayn account with which you are associated, where applicable;
+	•	the nature of your request; and
+	•	sufficient information to allow us to verify your identity and locate the relevant information.
+We may request reasonable information to verify the identity of the person making a request.
+We will respond within the period required by applicable law.
+If the request concerns personal data controlled by one of our business customers, we may refer the request to that customer where the customer is the relevant Data Fiduciary or equivalent entity.
+
+19. GRIEVANCES
+If you believe that your personal data has been handled improperly, you may contact us first so that we can investigate and attempt to resolve the matter.
+Privacy & Grievance Contact: brahmglobalholdings@gmail.com
+General Support: info@alaynai.com
+We aim to handle privacy complaints fairly, promptly and transparently.
+Where applicable law provides a right to escalate a complaint to a statutory authority or Data Protection Board or other competent authority, you may exercise that right in accordance with the applicable procedure.
+
+20. CHILDREN'S DATA
+Alayn is a business-to-business platform and is not intended for use by children independently.
+Our services are designed for businesses, business owners, managers, employees and authorised representatives.
+Customers must not knowingly use Alayn to collect or process children's personal data in violation of applicable law.
+Where a customer processes personal data relating to children through Alayn, the customer is responsible for ensuring that the processing complies with applicable legal requirements.
+
+21. MARKETING COMMUNICATIONS
+We may send service-related communications necessary to:
+	•	administer an account;
+	•	provide important service information;
+	•	communicate security matters;
+	•	provide billing information;
+	•	respond to enquiries; or
+	•	support the operation of Alayn.
+Where permitted and where appropriate, we may also send marketing communications concerning Alayn, new features, events, product developments or related services.
+You may opt out of non-essential marketing communications using the unsubscribe mechanism provided or by contacting us.
+Opting out of marketing communications will not prevent us from sending essential service or transactional communications.
+
+22. THIRD-PARTY SERVICES AND LINKS
+Alayn may integrate with or link to third-party services.
+Third-party services may include:
+	•	payment services;
+	•	communication platforms;
+	•	analytics tools;
+	•	accounting systems;
+	•	authentication services;
+	•	business integrations; and
+	•	other software or technology services.
+Third-party services are governed by their own privacy policies and terms.
+Alayn is not responsible for the privacy practices of independent third parties except to the extent required by applicable law.
+
+23. CUSTOMER RESPONSIBILITIES
+Customers using Alayn are responsible for:
+	•	ensuring that personal data is collected lawfully;
+	•	providing appropriate privacy notices to individuals where required;
+	•	obtaining required consent or other lawful authorisation;
+	•	configuring access permissions appropriately;
+	•	maintaining accurate information;
+	•	limiting access to authorised personnel;
+	•	complying with applicable employment, consumer, tax, financial and data protection laws; and
+	•	responding appropriately to requests from individuals whose information they control.
+Alayn provides technology to support business operations; it does not replace the customer's legal or regulatory responsibilities.
+
+24. CHANGES TO THIS PRIVACY POLICY
+We may update this Privacy Policy from time to time to reflect:
+	•	changes to Alayn;
+	•	new products or functionality;
+	•	changes in our data practices;
+	•	legal or regulatory developments;
+	•	security requirements; or
+	•	changes to applicable privacy frameworks.
+When material changes are made, we may provide appropriate notice through the Alayn website, platform, email or other reasonable means.
+The latest version will be identified by its Last Updated date at the beginning of this Policy.
+
+25. GOVERNING FRAMEWORK
+This Privacy Policy is intended for Alayn's India launch and is to be interpreted in accordance with applicable laws and regulations of India.
+Nothing in this Privacy Policy limits any mandatory rights or protections that cannot lawfully be excluded or restricted.
+As Alayn expands into other jurisdictions, additional regional privacy notices, contractual terms or data protection addenda may apply.
+
+26. CONTACT US
+For questions concerning this Privacy Policy or Alayn's handling of personal data, please contact:
+BRAHM GLOBAL HOLDINGS A sole proprietorship owned and operated by Iyaan Khan Tauqir Khan
+Principal Place of Business Shop No. 6, Veena Beena Shopping Centre Guru Nanak Marg, Bandra West Mumbai, Maharashtra 400050 India
+General Support: info@alaynai.com
+Privacy & Data Protection: brahmglobalholdings@gmail.com
+GSTIN: 27KOBPK2043Q1ZH
+
+© 2026 Alayn. All rights reserved.
+Alayn AI — The AI Operating System for Modern Business.

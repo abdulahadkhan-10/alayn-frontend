@@ -263,9 +263,9 @@ export default function RunningScene() {
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: line.color }}>
+                      <h3 style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: line.color, margin: 0 }}>
                         {line.label}
-                      </span>
+                      </h3>
                       <span
                         style={{
                           display: "inline-block",

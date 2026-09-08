@@ -1316,54 +1316,6 @@ export default function WorkforcePage() {
                     )}
                   </div>
                 </div>
-
-                {/* Uploaded Verification & Compliance Documents Section */}
-                <div className="bg-gray-50/80 rounded-xl p-4 border border-gray-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      Verification Documents ({selectedEmployeeDetail.documents?.length || 0})
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setDocUploadItem(selectedEmployeeDetail);
-                        setSelectedEmployeeDetail(null);
-                      }}
-                      className="text-[11px] font-bold text-[#D3232A] hover:bg-red-50 px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3" />
-                      Upload Document
-                    </button>
-                  </div>
-
-                  {selectedEmployeeDetail.documents && selectedEmployeeDetail.documents.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {selectedEmployeeDetail.documents.map((doc: any, i: number) => (
-                        <div
-                          key={doc.id || i}
-                          className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-gray-200 text-xs shadow-2xs"
-                        >
-                          <div className="flex items-center gap-2 font-semibold text-gray-800 truncate">
-                            <FileText className="h-4 w-4 text-purple-600 shrink-0" />
-                            <span className="truncate">{doc.name || `Document_${i + 1}`}</span>
-                          </div>
-                          {doc.url && (
-                            <a
-                              href={doc.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1 text-gray-500 hover:text-[#D3232A] rounded transition-colors"
-                              title="Download file"
-                            >
-                              <Download className="h-4 w-4" />
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">No verification documents uploaded yet.</p>
-                  )}
-                </div>
               </div>
 
               {/* Profile Footer Actions */}

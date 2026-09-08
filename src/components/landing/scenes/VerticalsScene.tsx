@@ -69,6 +69,7 @@ export default function VerticalsScene() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         
+        
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <h2 style={{
             fontFamily: "var(--font-playfair), Georgia, serif",

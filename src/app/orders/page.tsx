@@ -414,7 +414,7 @@ export default function LiveOrdersPage() {
         </div>
 
         {/* ── Unified Sticky Filter Header Wrapper ── */}
-        <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 bg-[#F4F7F9]">
+        <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 bg-[#F4F7F9]">
           <div className="bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-2xl p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 sm:gap-4">
           
           {/* Top Row: Channels & Search */}
@@ -566,7 +566,7 @@ export default function LiveOrdersPage() {
                     {/* Status Top Line indicator */}
                     <div className={`absolute top-0 left-0 w-full h-1 ${meta.bg}`} />
                     
-                    <div className="flex flex-col gap-2 z-10 pt-1">
+                    <div className="flex flex-col gap-2 relative pt-1">
                       {/* Top Line: Status Badge & Time */}
                       <div className="flex items-center justify-between gap-2">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
