@@ -19,7 +19,8 @@ import {
   Sparkles,
   Lock,
   Building2,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from "lucide-react";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
@@ -30,6 +31,10 @@ import {
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import { useAppSelector } from "@/redux/store/hooks";
 import Link from "next/link";
+import SubscriptionMonthSelector, { 
+  calculateSubscriptionPricing, 
+  calculateProjectedEndDate 
+} from "@/components/subscription/SubscriptionMonthSelector";
 
 export default function CreateOutletPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -42,13 +47,14 @@ export default function CreateOutletPage() {
     }
   }, [isSupplier]);
 
-  const { refreshBranches, branches, setActiveBranch } = useBranch();
+  const { refreshBranches, branches, setActiveBranch, hasAnyActiveBranch } = useBranch();
   const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyOutletPaymentMutation();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [createdOutlet, setCreatedOutlet] = useState<any>(null);
+  const [months, setMonths] = useState<number>(1);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -62,6 +68,15 @@ export default function CreateOutletPage() {
   const [submitError, setSubmitError] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const pricing = calculateSubscriptionPricing(months);
+  const projectedEnd = calculateProjectedEndDate(months);
+  const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+  const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
   if (!isOwner) {
     return (
@@ -138,6 +153,7 @@ export default function CreateOutletPage() {
       const res = await initiateSubscription({
         outletId: createdOutlet.id,
         planCode: "MONTHLY_STANDARD",
+        months,
       }).unwrap();
 
       const { paymentSessionId, orderId } = res;
@@ -186,11 +202,11 @@ export default function CreateOutletPage() {
       <div className="max-w-3xl mx-auto py-6 sm:py-10">
         {branches.length > 0 && currentStep === 1 && (
           <Link 
-            href="/dashboard" 
+            href={hasAnyActiveBranch ? "/dashboard" : "/outlets"} 
             className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {hasAnyActiveBranch ? "Back to Dashboard" : "Back to Location Manager"}
           </Link>
         )}
 
@@ -394,7 +410,7 @@ export default function CreateOutletPage() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-[#D3232A]/20 px-2.5 py-0.5 text-[11px] font-bold text-red-400 border border-[#D3232A]/30">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Step 2 of 2 · Monthly Subscription
+                  Step 2 of 2 · {months === 1 ? "Monthly" : `${months} Months`} Subscription
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   Branch Registered: <strong>{createdOutlet.name}</strong>
@@ -404,7 +420,7 @@ export default function CreateOutletPage() {
                 Activate Outlet Subscription
               </h1>
               <p className="mt-1.5 text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
-                Activate your 30-day operational license to start creating menu items, taking orders, and syncing live inventory.
+                Activate your {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days) operational license to start creating menu items, taking orders, and syncing live inventory.
               </p>
             </div>
 
@@ -414,6 +430,17 @@ export default function CreateOutletPage() {
                   {paymentError}
                 </div>
               )}
+
+              {/* Notice that payment is mandatory */}
+              <div className="rounded-2xl bg-amber-500/10 p-4 text-xs font-semibold text-amber-800 border border-amber-500/20 flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-900">Subscription Required to Unlock Branch</p>
+                  <p className="text-amber-700 text-[11px] font-normal mt-0.5">
+                    Your outlet details are saved. To activate POS billing terminals, live Kitchen Display (KDS), and inventory telemetry, complete the monthly subscription payment below.
+                  </p>
+                </div>
+              </div>
 
               {/* Outlet Summary Card */}
               <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-4 border border-slate-200/80">
@@ -464,27 +491,12 @@ export default function CreateOutletPage() {
                 </div>
               </div>
 
-              {/* Pricing Breakdown Box */}
-              <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-red-50/20 p-5 border border-slate-200/80 space-y-2.5">
-                <div className="flex justify-between text-xs text-zinc-600 font-medium">
-                  <span>Branch Monthly Base Fee</span>
-                  <span>₹1,999.00</span>
-                </div>
-                <div className="flex justify-between text-xs text-zinc-600 font-medium">
-                  <span>GST (18%)</span>
-                  <span>₹359.82</span>
-                </div>
-                <div className="border-t border-slate-200/80 pt-3 flex justify-between items-baseline">
-                  <div>
-                    <span className="text-xs font-extrabold text-zinc-900 block">Total Amount Due</span>
-                    <span className="text-[10px] text-zinc-500">Includes 30 days of active service</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xl sm:text-2xl font-extrabold text-zinc-900 font-mono">₹2,358.82</span>
-                    <span className="text-[10px] text-zinc-500 block">INR</span>
-                  </div>
-                </div>
-              </div>
+              {/* Duration Selector & Dynamic Pricing */}
+              <SubscriptionMonthSelector
+                months={months}
+                onChange={setMonths}
+                disabled={isProcessingPayment || isInitiating || isVerifying}
+              />
 
               {/* Action Buttons */}
               <div className="space-y-3 pt-2">
@@ -502,11 +514,21 @@ export default function CreateOutletPage() {
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5" />
-                      Pay ₹2,358.82 & Activate Branch
+                      Pay ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} & Activate Branch
                       <ArrowRight className="h-5 w-5 ml-1" />
                     </>
                   )}
                 </button>
+
+                <div className="pt-2 text-center">
+                  <Link
+                    href="/outlets"
+                    className="text-xs font-semibold text-zinc-400 hover:text-zinc-700 transition-colors inline-flex items-center gap-1"
+                  >
+                    View in Location Manager
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
               </div>
 
               <div className="flex items-center justify-center gap-4 text-[11px] text-zinc-400 font-medium pt-2">
@@ -542,7 +564,11 @@ export default function CreateOutletPage() {
                 Branch Successfully Launched!
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-zinc-500 max-w-md mx-auto font-medium leading-relaxed">
-                <strong>{createdOutlet.name}</strong> is now fully operational with 30 days of active subscription. Your POS counters, KDS terminals, and inventory telemetry are live.
+                <strong>{createdOutlet.name}</strong> is now fully operational with{" "}
+                <span className="font-bold text-zinc-800">
+                  {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days, valid until {formattedEndDate})
+                </span>{" "}
+                of active subscription. Your POS counters, KDS terminals, and inventory telemetry are live.
               </p>
             </div>
 

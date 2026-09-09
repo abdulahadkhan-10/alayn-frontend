@@ -20,6 +20,10 @@ import {
   useVerifyOutletPaymentMutation 
 } from "@/redux/slices/subscriptionApiSlice";
 import { openCashfreeCheckout } from "@/lib/cashfree";
+import SubscriptionMonthSelector, { 
+  calculateSubscriptionPricing, 
+  calculateProjectedEndDate 
+} from "./SubscriptionMonthSelector";
 
 interface SubscriptionRenewModalProps {
   isOpen: boolean;
@@ -47,21 +51,35 @@ export default function SubscriptionRenewModal({
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyOutletPaymentMutation();
 
+  const [months, setMonths] = useState<number>(1);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success">("review");
 
   if (!isOpen || !outlet) return null;
 
+  const pricing = calculateSubscriptionPricing(months);
+  const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd);
+  const now = new Date();
+  const existingEnd = outlet.subscription?.currentPeriodEnd ? new Date(outlet.subscription.currentPeriodEnd) : null;
+  const effectiveStartDate = existingEnd && existingEnd > now ? existingEnd : now;
+  const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
   const handlePayNow = async () => {
     setErrorMessage("");
     setPaymentStep("processing");
 
     try {
-      // 1. Initiate order on backend
+      // 1. Initiate order on backend with selected duration in months
       const res = await initiateSubscription({
         outletId: outlet.id,
         planCode: "MONTHLY_STANDARD",
+        months,
       }).unwrap();
 
       const { paymentSessionId, orderId } = res;
@@ -182,7 +200,11 @@ export default function SubscriptionRenewModal({
                 Payment Confirmed & Subscription Active!
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm mx-auto font-medium leading-relaxed">
-                Your monthly subscription for <strong>{outlet.name}</strong> has been successfully renewed. 30 days of uninterrupted operations have been credited to this branch.
+                Your subscription for <strong>{outlet.name}</strong> has been successfully renewed.{" "}
+                <span className="font-bold text-zinc-800">
+                  {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days, valid until {formattedEndDate})
+                </span>{" "}
+                of uninterrupted operations have been credited to this branch.
               </p>
               <div className="pt-4">
                 <button
@@ -235,27 +257,13 @@ export default function SubscriptionRenewModal({
                 </div>
               </div>
 
-              {/* Price Breakdown */}
-              <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200/80 space-y-2">
-                <div className="flex justify-between text-xs text-zinc-600 font-medium">
-                  <span>Branch Pro Plan (30 Days)</span>
-                  <span>₹1,999.00</span>
-                </div>
-                <div className="flex justify-between text-xs text-zinc-600 font-medium">
-                  <span>GST (18%)</span>
-                  <span>₹359.82</span>
-                </div>
-                <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
-                  <div>
-                    <span className="text-xs font-bold text-zinc-900 block">Total Payable</span>
-                    <span className="text-[10px] text-zinc-500">Monthly billing · Cancel anytime</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg sm:text-xl font-extrabold text-zinc-900 font-mono">₹2,358.82</span>
-                    <span className="text-[10px] text-zinc-500 block">/ month</span>
-                  </div>
-                </div>
-              </div>
+              {/* Duration & Price Selector */}
+              <SubscriptionMonthSelector
+                months={months}
+                onChange={setMonths}
+                currentPeriodEnd={outlet.subscription?.currentPeriodEnd}
+                disabled={paymentStep === "processing" || isInitiating || isVerifying}
+              />
 
               {/* Pay Button */}
               <button
@@ -271,7 +279,7 @@ export default function SubscriptionRenewModal({
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
-                    Pay ₹2,358.82 via Cashfree PG
+                    Pay ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} via Cashfree PG
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </>
                 )}

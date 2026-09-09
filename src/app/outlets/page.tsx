@@ -19,10 +19,11 @@ import {
   Sparkles,
   Calendar,
   AlertTriangle,
-  Receipt
+  Receipt,
+  Trash2
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
-import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
+import { useGetOutletsQuery, useDeleteOutletMutation } from "@/redux/slices/outletApiSlice";
 import { useBranch } from "@/lib/BranchContext";
 import SubscriptionRenewModal from "@/components/subscription/SubscriptionRenewModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -32,6 +33,7 @@ export default function OutletsLedgerPage() {
   const user = useAppSelector((state) => state.auth.user);
   const { data: outletsData, isLoading, refetch } = useGetOutletsQuery();
   const { activeBranch, setActiveBranch, refreshBranches } = useBranch();
+  const [deleteOutlet, { isLoading: isDeletingOutlet }] = useDeleteOutletMutation();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOutletForRenew, setSelectedOutletForRenew] = useState<any | null>(null);
@@ -136,6 +138,46 @@ export default function OutletsLedgerPage() {
               </Link>
             </div>
           </div>
+
+          {/* Pending Activation Banner */}
+          {(() => {
+            const pendingList = (outlets as any[]).filter((item) => {
+              const sub = item.subscription;
+              if (!sub || sub.status !== "ACTIVE") return true;
+              if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) <= new Date()) return true;
+              return false;
+            });
+
+            if (pendingList.length === 0) return null;
+
+            return (
+              <div className="rounded-2xl bg-amber-50/90 border border-amber-200/90 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xs sm:text-sm font-bold text-amber-950">
+                      {pendingList.length === 1 
+                        ? `1 outlet requires subscription payment (${pendingList[0].name})` 
+                        : `${pendingList.length} outlets require subscription payment`}
+                    </h2>
+                    <p className="text-xs text-amber-800 font-medium mt-0.5">
+                      Operational features (POS counters, Live KDS, Inventory telemetry, and Menu items) remain locked until subscription payment is completed.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOutletForRenew(pendingList[0])}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white px-4 py-2.5 text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer hover:-translate-y-[0.5px]"
+                >
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Pay ₹2,358.82 & Unlock Branch
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Filter & Search Bar */}
           <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -282,26 +324,41 @@ export default function OutletsLedgerPage() {
                                 {!isSubActive ? "Pay Subscription" : isExpired ? "Renew Subscription" : "Extend Plan"}
                               </button>
 
+                              {!isSubActive && !isExpired && (
+                                <button
+                                  type="button"
+                                  title="Delete unpaid draft branch"
+                                  disabled={isDeletingOutlet}
+                                  onClick={async () => {
+                                    if (confirm(`Are you sure you want to delete the unpaid draft branch "${outlet.name}"?`)) {
+                                      try {
+                                        await deleteOutlet(outlet.id).unwrap();
+                                        await refreshBranches();
+                                        refetch();
+                                      } catch (err: any) {
+                                        alert(err?.data?.message || err?.message || "Failed to delete outlet");
+                                      }
+                                    }
+                                  }}
+                                  className="inline-flex items-center justify-center h-7 w-7 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-[#D3232A] transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+
                               {isActive ? (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 px-2">
                                   <CheckCircle2 className="h-3.5 w-3.5" />
                                   Active Branch
                                 </span>
-                              ) : !isSubActive || isExpired ? (
-                                <button
-                                  onClick={() => setSelectedOutletForRenew(outlet)}
-                                  className="inline-flex items-center gap-1 rounded-xl bg-red-50 hover:bg-red-100 text-[#D3232A] border border-red-200 px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
-                                >
-                                  Pay to Activate
-                                </button>
-                              ) : (
+                              ) : isSubActive && !isExpired ? (
                                 <button
                                   onClick={() => setActiveBranch(outlet)}
                                   className="inline-flex items-center gap-1 rounded-xl bg-gray-100 hover:bg-[#D3232A] hover:text-white px-3 py-1.5 text-[11px] font-bold text-gray-700 transition-all cursor-pointer shadow-2xs"
                                 >
                                   Switch To
                                 </button>
-                              )}
+                              ) : null}
                             </div>
                           </td>
                         </tr>

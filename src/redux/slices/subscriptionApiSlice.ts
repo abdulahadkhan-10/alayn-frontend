@@ -70,7 +70,7 @@ export const subscriptionApi = baseApi.injectEndpoints({
 
     initiateOutletSubscription: builder.mutation<
       InitiateSubscriptionResponse,
-      { outletId: string; planCode?: string }
+      { outletId: string; planCode?: string; months?: number }
     >({
       query: (body) => ({
         url: "/subscriptions/outlets/initiate",
