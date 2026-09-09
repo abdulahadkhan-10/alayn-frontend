@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-let cashfreePromise: Promise<any> | null = null;
+let scriptLoadedPromise: Promise<void> | null = null;
 
 export const loadCashfree = (mode: "sandbox" | "production" = "sandbox"): Promise<any> => {
   if (typeof window === "undefined") {
@@ -24,27 +24,31 @@ export const loadCashfree = (mode: "sandbox" | "production" = "sandbox"): Promis
     return Promise.resolve(window.Cashfree({ mode }));
   }
 
-  if (!cashfreePromise) {
-    cashfreePromise = new Promise((resolve, reject) => {
+  if (!scriptLoadedPromise) {
+    scriptLoadedPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector('script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]');
+      if (existingScript) {
+        resolve();
+        return;
+      }
       const script = document.createElement("script");
       script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
       script.async = true;
-      script.onload = () => {
-        if (window.Cashfree) {
-          resolve(window.Cashfree({ mode }));
-        } else {
-          reject(new Error("Cashfree SDK script loaded, but window.Cashfree is undefined"));
-        }
-      };
+      script.onload = () => resolve();
       script.onerror = () => {
-        cashfreePromise = null;
+        scriptLoadedPromise = null;
         reject(new Error("Failed to load Cashfree JS SDK"));
       };
       document.body.appendChild(script);
     });
   }
 
-  return cashfreePromise;
+  return scriptLoadedPromise.then(() => {
+    if (!window.Cashfree) {
+      throw new Error("Cashfree SDK script loaded, but window.Cashfree is undefined");
+    }
+    return window.Cashfree({ mode });
+  });
 };
 
 export const openCashfreeCheckout = async ({
