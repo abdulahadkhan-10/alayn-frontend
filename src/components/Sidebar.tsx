@@ -29,11 +29,13 @@ import {
   QrCode,
   LogOut,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
+import { useBranch } from "@/lib/BranchContext";
 
 type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN" | "SUPPLIER";
 
@@ -139,23 +141,26 @@ const NavLinkItem = memo(function NavLinkItem({
   item,
   isActive,
   isCollapsed,
+  isLocked,
 }: {
   item: NavItem;
   isActive: boolean;
   isCollapsed: boolean;
+  isLocked?: boolean;
 }) {
   const animCls = getIconAnimationClass(item.href);
 
   return (
     <Link
       href={item.href}
-      title={isCollapsed ? item.name : undefined}
+      title={isCollapsed ? (isLocked ? `${item.name} (Subscription Required)` : item.name) : undefined}
       className={cn(
         "group relative flex items-center rounded-xl text-[13.5px] font-semibold transition-all duration-200 ease-out overflow-hidden min-w-0 active:scale-[0.98]",
         isCollapsed ? "h-11 w-11 justify-center px-0 mx-auto" : "h-[42px] px-3.5 w-full",
         isActive
           ? "bg-white/[0.12] text-white font-bold shadow-xs border border-white/[0.08]"
-          : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100 hover:translate-x-1.5"
+          : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100 hover:translate-x-1.5",
+        isLocked && !isActive && "text-zinc-500 hover:text-zinc-300"
       )}
     >
       {isActive && (
@@ -168,7 +173,7 @@ const NavLinkItem = memo(function NavLinkItem({
           className={cn(
             "h-5 w-5",
             animCls,
-            isActive ? "text-white drop-shadow-xs" : "text-zinc-400 group-hover:text-white"
+            isActive ? "text-white drop-shadow-xs" : isLocked ? "text-zinc-500 group-hover:text-zinc-300" : "text-zinc-400 group-hover:text-white"
           )}
           aria-hidden="true"
         />
@@ -184,7 +189,17 @@ const NavLinkItem = memo(function NavLinkItem({
       >
         {item.name}
       </span>
-      {item.badge && (
+      {isLocked ? (
+        <span
+          className={cn(
+            "ml-auto shrink-0 transition-all duration-200 ease-out",
+            isCollapsed ? "opacity-0 max-w-0" : "opacity-100"
+          )}
+          title="Subscription Required"
+        >
+          <Lock className="h-3.5 w-3.5 text-zinc-500 group-hover:text-amber-400" />
+        </span>
+      ) : item.badge ? (
         <span
           className={cn(
             "ml-auto shrink-0 rounded-full bg-[#D3232A] px-1.5 py-0.5 text-[10px] font-bold text-white leading-none transition-all duration-200 ease-out",
@@ -193,7 +208,7 @@ const NavLinkItem = memo(function NavLinkItem({
         >
           {item.badge}
         </span>
-      )}
+      ) : null}
     </Link>
   );
 });
@@ -202,6 +217,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   const pathname = usePathname();
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
+  const { hasActiveSubscription, isDemo } = useBranch();
   const role: Role = useMemo(() => (user?.role as Role) || "BUSINESS_OWNER", [user?.role]);
   const [mounted, setMounted] = useState(false);
 
@@ -339,17 +355,57 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                     other.href.startsWith(item.href) &&
                     pathname.startsWith(other.href)
                 ));
+
+            const isLocked = 
+              !isDemo && 
+              !hasActiveSubscription && 
+              item.href !== "/outlets" && 
+              item.href !== "/support" && 
+              !item.href.startsWith("/outlets");
+
             return (
               <NavLinkItem
                 key={item.href}
                 item={item}
                 isActive={isActive}
                 isCollapsed={isCollapsed}
+                isLocked={isLocked}
               />
             );
           })}
         </nav>
       </div>
+
+      {/* ── Subscription Warning Banner when unpaid ── */}
+      {!isDemo && !hasActiveSubscription && (
+        <div className={cn("shrink-0 px-3 pb-2 transition-all duration-200", isCollapsed && "px-1.5")}>
+          {isCollapsed ? (
+            <Link
+              href="/outlets"
+              title="Subscription Required — Click to Pay"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 hover:bg-[#D3232A] hover:text-white transition-all mx-auto shadow-xs"
+            >
+              <Lock className="h-4 w-4" />
+            </Link>
+          ) : (
+            <div className="rounded-xl bg-gradient-to-r from-red-950/50 to-amber-950/40 border border-red-500/25 p-2.5 text-xs">
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[11px] mb-1">
+                <Lock className="h-3 w-3" />
+                Subscription Required
+              </div>
+              <p className="text-[10px] text-zinc-400 leading-tight mb-2">
+                Features locked until branch payment is completed.
+              </p>
+              <Link
+                href="/outlets"
+                className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[#D3232A] hover:bg-[#b01e23] py-1.5 text-[11px] font-bold text-white transition-all shadow-xs"
+              >
+                Pay Subscription
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Log Out (bottom pinned) ─────────── */}
       <div

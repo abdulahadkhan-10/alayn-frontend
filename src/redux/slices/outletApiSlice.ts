@@ -21,6 +21,15 @@ export interface Outlet {
   geofenceRadius?: number;
   createdAt?: string;
   updatedAt?: string;
+  subscription?: {
+    id: string;
+    status: "ACTIVE" | "PENDING_PAYMENT" | "EXPIRED" | "CANCELED";
+    planCode?: string;
+    planName?: string;
+    monthlyFeePaise?: number;
+    currentPeriodStart?: string;
+    currentPeriodEnd?: string;
+  } | null;
 }
 
 export interface CreateOutletInput {
@@ -98,12 +107,21 @@ export const outletApi = baseApi.injectEndpoints({
         return response as { lat: number; lng: number; name?: string };
       },
     }),
+
+    deleteOutlet: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/outlets/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
   }),
 });
 
 export const {
   useGetOutletsQuery,
   useCreateOutletMutation,
+  useDeleteOutletMutation,
   useUpdateTaxRatesMutation,
   useUpdateReceiptDetailsMutation,
   useUpdateLocationMutation,

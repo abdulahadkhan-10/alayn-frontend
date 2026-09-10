@@ -5,6 +5,16 @@ import { useGetOutletsQuery, Outlet } from "@/redux/slices/outletApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { baseApi } from "@/redux/store/baseApi";
 
+export interface BranchSubscription {
+  id: string;
+  status: "ACTIVE" | "PENDING_PAYMENT" | "EXPIRED" | "CANCELED";
+  planCode?: string;
+  planName?: string;
+  monthlyFeePaise?: number;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+}
+
 export interface Branch {
   id: string;
   name: string;
@@ -13,12 +23,25 @@ export interface Branch {
   city?: string;
   state?: string;
   country?: string;
+  subscription?: BranchSubscription | null;
 }
+
+export const isBranchSubscribed = (branch: Branch | null | undefined): boolean => {
+  if (!branch) return false;
+  const sub = branch.subscription;
+  if (!sub) return false;
+  if (sub.status !== "ACTIVE") return false;
+  if (sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) <= new Date()) return false;
+  return true;
+};
 
 interface BranchContextType {
   activeBranch: Branch | null;
   setActiveBranch: (branch: Branch | null) => void;
   branches: Branch[];
+  activeBranches: Branch[];
+  hasActiveSubscription: boolean;
+  hasAnyActiveBranch: boolean;
   loading: boolean;
   isDemo: boolean;
   refreshBranches: () => Promise<void>;
@@ -54,7 +77,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
 
   const [activeBranch, setActiveBranchState] = useState<Branch | null>(null);
 
-  const rawOutlets = fetchedOutlets || [];
+  const rawOutlets = (fetchedOutlets as Branch[]) || [];
   const isDemo = !isAuthenticated;
   const loading = isAuthenticated ? (isQueryLoading && rawOutlets.length === 0) : false;
 
@@ -64,13 +87,25 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     ? [ALL_OUTLETS_BRANCH, ...rawOutlets]
     : rawOutlets;
 
+  const activeBranches: Branch[] = isDemo
+    ? DEMO_BRANCHES
+    : rawOutlets.filter(isBranchSubscribed);
+
+  const hasAnyActiveBranch: boolean = isDemo ? true : activeBranches.length > 0;
+
+  const hasActiveSubscription: boolean = isDemo
+    ? true
+    : activeBranch?.id === "all"
+    ? hasAnyActiveBranch
+    : isBranchSubscribed(activeBranch);
+
   useEffect(() => {
     if (isDemo) {
       setActiveBranchState(DEMO_BRANCHES[0]);
     } else if (branches.length > 0) {
       const savedId = typeof window !== "undefined" ? localStorage.getItem("alayn_active_branch_id") : null;
       const matched = branches.find((b) => b.id === savedId);
-      const nextBranch = matched || branches[0];
+      const nextBranch = matched || activeBranches[0] || branches[0];
       setActiveBranchState(nextBranch);
       if (nextBranch && typeof window !== "undefined") {
         localStorage.setItem("alayn_active_branch_id", nextBranch.id);
@@ -78,7 +113,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     } else {
       setActiveBranchState(null);
     }
-  }, [branches.length, isDemo]);
+  }, [branches.length, isDemo, activeBranches.length]);
 
   const dispatch = useAppDispatch();
 
@@ -97,7 +132,17 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <BranchContext.Provider value={{ activeBranch, setActiveBranch, branches, loading, isDemo, refreshBranches }}>
+    <BranchContext.Provider value={{ 
+      activeBranch, 
+      setActiveBranch, 
+      branches, 
+      activeBranches,
+      hasActiveSubscription,
+      hasAnyActiveBranch,
+      loading, 
+      isDemo, 
+      refreshBranches 
+    }}>
       {children}
     </BranchContext.Provider>
   );

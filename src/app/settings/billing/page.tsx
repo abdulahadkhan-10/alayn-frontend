@@ -224,38 +224,34 @@ export default function BillingPage() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                      <th className="py-3 px-5">Order ID</th>
-                      <th className="py-3 px-5">Branch Outlet</th>
-                      <th className="py-3 px-5">Method</th>
-                      <th className="py-3 px-5">Date</th>
-                      <th className="py-3 px-5">Status</th>
-                      <th className="py-3 px-5 text-right">Amount (Incl. GST)</th>
+                      <th className="py-3.5 px-6">Branch Outlet</th>
+                      <th className="py-3.5 px-6">Method</th>
+                      <th className="py-3.5 px-6">Date</th>
+                      <th className="py-3.5 px-6">Status</th>
+                      <th className="py-3.5 px-6 text-right">Amount (Incl. GST)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
                     {billingHistory.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3.5 px-5 font-mono text-[11px] font-bold text-gray-500">
-                          {item.orderId}
-                        </td>
-                        <td className="py-3.5 px-5">
+                        <td className="py-4 px-6">
                           <p className="font-bold text-zinc-900">{item.outletName}</p>
                           <span className="text-[10px] text-zinc-400">{item.outletCity}</span>
                         </td>
-                        <td className="py-3.5 px-5">
+                        <td className="py-4 px-6">
                           <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
                             <CreditCard className="h-3 w-3 text-slate-500" />
                             {item.paymentMethod || "UPI"}
                           </span>
                         </td>
-                        <td className="py-3.5 px-5 text-zinc-500">
+                        <td className="py-4 px-6 text-zinc-500">
                           {new Date(item.paidAt || item.createdAt).toLocaleDateString("en-IN", {
                             day: "numeric",
                             month: "short",
                             year: "numeric"
                           })}
                         </td>
-                        <td className="py-3.5 px-5">
+                        <td className="py-4 px-6">
                           {item.status === "SUCCESS" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
                               <CheckCircle2 className="h-3 w-3" />
@@ -273,7 +269,7 @@ export default function BillingPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-5 text-right font-mono font-bold text-zinc-900">
+                        <td className="py-4 px-6 text-right font-mono font-bold text-zinc-900">
                           ₹{item.amountRupees.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>

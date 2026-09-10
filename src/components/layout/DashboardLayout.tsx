@@ -1,18 +1,26 @@
-"use client";
-
 import React, { useState, useCallback, useEffect, memo } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import AuthGuard from "../auth/AuthGuard";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
+import SubscriptionPaywall from "../subscription/SubscriptionPaywall";
 
 const EXPANDED = 244;
 const COLLAPSED = 72;
 const LS_KEY = "alayn_sidebar_collapsed";
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const { branches, loading: branchesLoading, isDemo } = useBranch();
+  const pathname = usePathname();
+  const { 
+    branches, 
+    activeBranch,
+    loading: branchesLoading, 
+    isDemo, 
+    hasActiveSubscription,
+    hasAnyActiveBranch 
+  } = useBranch();
   const user = useAppSelector((state) => state.auth.user);
   
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -41,6 +49,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
   const isCaptiveOnboarding = mounted && isOwner && !isDemo && !branchesLoading && branches.length === 0;
+
+  // Unrestricted routes where users manage outlets or view billing/support without active subscription
+  const isUnrestrictedRoute = 
+    pathname === "/outlets" || 
+    pathname?.startsWith("/outlets/create") || 
+    pathname === "/settings/billing" || 
+    pathname?.startsWith("/support");
+
+  // Determine if paywall must be shown:
+  // Show paywall if not demo, not loading, route is restricted, and active branch is not subscribed
+  const showPaywall = mounted && !isDemo && !branchesLoading && !isUnrestrictedRoute && !hasActiveSubscription;
 
   // Before mount: always render expanded width (matches SSR)
   const sidebarW = mounted ? (isCollapsed ? COLLAPSED : EXPANDED) : EXPANDED;
@@ -89,7 +108,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           className="flex-1 overflow-y-auto overflow-x-auto p-4 sm:p-6 lg:p-8 min-w-0"
           id="main-content"
         >
-          {children}
+          {showPaywall ? (
+            <SubscriptionPaywall targetBranch={activeBranch} />
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>
