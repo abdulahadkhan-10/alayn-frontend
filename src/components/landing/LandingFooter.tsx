@@ -46,9 +46,6 @@ export default function LandingFooter() {
             <Link href="/contact" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Book a Demo
             </Link>
-            <Link href="/api-docs" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
-              Developer APIs
-            </Link>
             <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Log in
             </Link>
@@ -66,9 +63,6 @@ export default function LandingFooter() {
             <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               info@alaynai.com
             </a>
-            <Link href="/llms.txt" className="text-sm font-medium text-amber-400 hover:underline transition-colors duration-300 w-fit mt-1">
-              llms.txt
-            </Link>
             <Link href="https://www.instagram.com/alayn.ai/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Instagram
             </Link>
@@ -107,7 +101,7 @@ export default function LandingFooter() {
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
             <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
             <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/api-docs" className="hover:text-white transition-colors">APIs</Link>
+            <Link href="/legal/terms" className="hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </div>

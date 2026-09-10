@@ -537,8 +537,8 @@ export default function SignupComponent() {
                 <div className="w-full max-w-sm mx-auto mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-[#6B7A90] font-medium border-t border-[#1B2A4A]/10 pt-4">
                     <span>© 2026 Alayn. All rights reserved.</span>
                     <div className="flex gap-3">
-                        <Link href="#" className="hover:text-[#1B2A4A] transition-colors">Privacy</Link>
-                        <Link href="#" className="hover:text-[#1B2A4A] transition-colors">Terms</Link>
+                        <Link href="/legal/privacy" className="hover:text-[#1B2A4A] transition-colors">Privacy</Link>
+                        <Link href="/legal/terms" className="hover:text-[#1B2A4A] transition-colors">Terms</Link>
                     </div>
                 </div>
             </div>
