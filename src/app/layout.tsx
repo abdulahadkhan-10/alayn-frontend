@@ -28,14 +28,15 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   title: {
-    default: "Alayn AI — The Intelligent Operating System for Hospitality",
+    default: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
     template: "%s | Alayn AI",
   },
-  description: "Alayn connects staff, inventory, orders, kitchen KDS, waste, and analytics into one AI-powered platform built specifically for restaurant and café operators.",
+  description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands. Seamlessly unify POS, inventory, kitchen KDS, and workforce management into one AI-powered platform.",
   keywords: [
     "Alayn",
     "Alayn AI",
     "alaynai.com",
+    "Alayn AI Official",
     "Restaurant Operating System",
     "Hospitality AI",
     "Cafe POS",
@@ -50,8 +51,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    title: "Alayn AI — The Intelligent Operating System for Hospitality",
-    description: "Alayn connects staff, inventory, orders, kitchen KDS, waste, and analytics into one AI-powered platform built specifically for restaurant and café operators.",
+    title: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
+    description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands. Seamlessly unify POS, inventory, kitchen KDS, and workforce management into one AI-powered platform.",
     url: siteUrl,
     siteName: "Alayn AI",
     locale: "en_IN",
@@ -67,8 +68,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alayn AI — The Intelligent Operating System for Hospitality",
-    description: "Alayn connects staff, inventory, orders, waste, analytics and feedback into one AI-powered platform.",
+    title: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
+    description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands.",
     images: ["/alaynlogo.png"],
   },
   icons: {
@@ -99,17 +100,19 @@ export default function RootLayout({
         "@id": `${siteUrl}/#website`,
         "url": siteUrl,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com"],
-        "description": "The Intelligent Operating System for Modern Hospitality.",
+        "alternateName": ["Alayn", "AlaynAI", "alaynai.com", "Alayn Hospitality Operating System", "Alayn AI Official"],
+        "description": "The Official Intelligent Operating System for Modern Hospitality.",
+        "disambiguatingDescription": "The official Alayn AI software platform and operating system for hospitality, restaurants, and cafes at alaynai.com.",
         "publisher": {
           "@id": `${siteUrl}/#organization`
-        }
+        },
+        "inLanguage": "en"
       },
       {
         "@type": "Brand",
         "@id": `${siteUrl}/#brand`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com"],
+        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com", "Alayn AI Platform"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`
       },
@@ -117,7 +120,7 @@ export default function RootLayout({
         "@type": "SoftwareApplication",
         "@id": `${siteUrl}/#software`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com"],
+        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com", "Alayn AI Platform"],
         "operatingSystem": "Web, iOS, Android",
         "applicationCategory": "BusinessApplication",
         "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling for restaurants and cafes.",
@@ -133,12 +136,14 @@ export default function RootLayout({
         "@id": `${siteUrl}/#organization`,
         "name": "Alayn AI",
         "legalName": "Alayn AI Ltd",
-        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com"],
+        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com", "Alayn AI Official"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`,
         "brand": {
           "@id": `${siteUrl}/#brand`
         },
+        "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, inventory, and workforce management for restaurants and cafes.",
+        "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "London",
