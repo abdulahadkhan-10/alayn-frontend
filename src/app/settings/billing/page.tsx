@@ -34,7 +34,8 @@ export default function BillingPage() {
   const billingHistory = Array.isArray(billingData) ? billingData : [];
   const outlets = Array.isArray(outletsData) ? outletsData : (outletsData as any)?.data || [];
 
-  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE").length * 2358.82;
+  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && o.subscription?.planCode !== "COUPON_FIRST25").length * 2358.82;
+  const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && o.subscription?.planCode === "COUPON_FIRST25").length;
 
   return (
     <AuthGuard>
@@ -173,7 +174,9 @@ export default function BillingPage() {
                         <div className="mt-3 flex items-center justify-between text-xs text-zinc-600 bg-white rounded-xl p-3 border border-gray-100">
                           <div>
                             <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-semibold">Tier</span>
-                            <span className="font-bold text-zinc-800">Smart Branch Pro</span>
+                            <span className="font-bold text-zinc-800">
+                              {sub?.planCode === "COUPON_FIRST25" ? "FIRST25 VIP Access" : "Smart Branch Pro"}
+                            </span>
                           </div>
                           <div className="text-right">
                             <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-semibold">Valid Till</span>
@@ -186,7 +189,15 @@ export default function BillingPage() {
                       </div>
 
                       <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-200/60">
-                        <span className="text-xs font-bold font-mono text-zinc-900">₹2,358.82 / mo</span>
+                        <span className="text-xs font-bold font-mono text-zinc-900">
+                          {sub?.planCode === "COUPON_FIRST25" ? (
+                            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-sans">
+                              100% Free Promo (Dec 2026)
+                            </span>
+                          ) : (
+                            "₹2,358.82 / mo"
+                          )}
+                        </span>
                         <button
                           onClick={() => setSelectedOutletForRenew(outlet)}
                           className="rounded-xl bg-[#D3232A] hover:bg-[#b01e23] px-3.5 py-1.5 text-[11px] font-bold text-white transition-all shadow-xs cursor-pointer"

@@ -13,6 +13,7 @@ import {
     EyeOff,
     ArrowRight,
     ArrowLeft,
+    CheckCircle2,
 } from "lucide-react";
 import { useRegisterMutation } from "@/redux/slices/authApiSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
@@ -193,7 +194,7 @@ export default function SignupComponent() {
             setSubmitSuccess(true);
             setTimeout(() => {
                 window.location.href = "/login";
-            }, 1200);
+            }, 1500);
         } catch (err: any) {
             setSubmitError(
                 err?.data?.error?.message ||
@@ -285,8 +286,14 @@ export default function SignupComponent() {
                         )}
 
                         {submitSuccess && (
-                            <div role="status" className="rounded-lg bg-[#1B2A4A]/5 p-2.5 text-xs text-[#1B2A4A] border border-[#1B2A4A]/10 font-medium">
-                                Restaurant created successfully. Redirecting to sign in...
+                            <div role="status" className="rounded-xl bg-emerald-50/90 p-3 text-xs text-emerald-900 border border-emerald-200/90 font-medium space-y-1 animate-in fade-in-50 duration-200">
+                                <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                    Restaurant created successfully!
+                                </div>
+                                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                                    Redirecting to sign in...
+                                </p>
                             </div>
                         )}
 

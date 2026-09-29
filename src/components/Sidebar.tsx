@@ -36,6 +36,7 @@ import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
 import { useBranch } from "@/lib/BranchContext";
+import { baseApi } from "@/redux/store/baseApi";
 
 type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN" | "SUPPLIER";
 
@@ -240,6 +241,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
     } catch {
       // ignore network errors on logout
     } finally {
+      dispatch(baseApi.util.resetApiState());
       dispatch(logout());
       window.location.href = "/login";
     }

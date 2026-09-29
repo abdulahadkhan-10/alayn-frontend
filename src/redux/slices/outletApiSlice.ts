@@ -38,6 +38,7 @@ export interface CreateOutletInput {
   city: string;
   state: string;
   country: string;
+  couponCode?: string;
 }
 
 export const outletApi = baseApi.injectEndpoints({

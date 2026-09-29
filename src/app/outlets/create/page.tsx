@@ -20,13 +20,16 @@ import {
   Lock,
   Building2,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Tag,
+  Gift
 } from "lucide-react";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
 import { 
   useInitiateOutletSubscriptionMutation, 
-  useVerifyOutletPaymentMutation 
+  useVerifyOutletPaymentMutation,
+  useApplyCouponMutation
 } from "@/redux/slices/subscriptionApiSlice";
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -51,10 +54,13 @@ export default function CreateOutletPage() {
   const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyOutletPaymentMutation();
+  const [applyCoupon, { isLoading: isApplyingCoupon }] = useApplyCouponMutation();
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [createdOutlet, setCreatedOutlet] = useState<any>(null);
   const [months, setMonths] = useState<number>(1);
+  const [couponInput, setCouponInput] = useState<string>("FIRST25");
+  const [couponError, setCouponError] = useState<string>("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -132,13 +138,61 @@ export default function CreateOutletPage() {
     if (!validate()) return;
 
     try {
-      const outletResult = await createOutlet(formData).unwrap();
+      const outletResult = await createOutlet({
+        ...formData,
+        couponCode: couponInput.trim().toUpperCase() || undefined,
+      }).unwrap();
       await refreshBranches();
       setCreatedOutlet(outletResult);
-      setCurrentStep(2); // Advance to Subscription Step
+
+      // If coupon FIRST25 was used or outlet subscription is active:
+      if (outletResult?.subscription?.status === "ACTIVE" || couponInput.trim().toUpperCase() === "FIRST25") {
+        setActiveBranch(outletResult);
+        setCurrentStep(3); // Directly launch the outlet!
+      } else {
+        setCurrentStep(2); // Advance to Subscription Step
+      }
     } catch (err: any) {
       const msg = err?.data?.message || err?.data?.error || err?.message || "An error occurred while creating the outlet.";
       setSubmitError(msg);
+    }
+  };
+
+  // Redeem FIRST25 Promo Coupon
+  const handleApplyCoupon = async () => {
+    if (!createdOutlet?.id) return;
+    setCouponError("");
+
+    try {
+      const res = await applyCoupon({
+        couponCode: couponInput.trim(),
+        outletId: createdOutlet.id,
+      }).unwrap();
+
+      await refreshBranches();
+      setActiveBranch({
+        ...createdOutlet,
+        subscription: {
+          id: res.businessSubscription?.id || "promo",
+          status: "ACTIVE",
+          planCode: "COUPON_FIRST25",
+          planName: "FIRST25 Special Access (Free until Dec 2026)",
+          currentPeriodEnd: res.validUntil || "2026-12-31T23:59:59.999Z",
+        },
+      });
+      setCreatedOutlet((prev: any) => ({
+        ...prev,
+        subscription: {
+          id: res.businessSubscription?.id || "promo",
+          status: "ACTIVE",
+          planCode: "COUPON_FIRST25",
+          planName: "FIRST25 Special Access (Free until Dec 2026)",
+          currentPeriodEnd: res.validUntil || "2026-12-31T23:59:59.999Z",
+        },
+      }));
+      setCurrentStep(3); // Advance to Confirmation
+    } catch (err: any) {
+      setCouponError(err?.data?.message || err?.message || "Invalid coupon code. Please try again.");
     }
   };
 
@@ -379,7 +433,78 @@ export default function CreateOutletPage() {
                 {errors.country && <p className="mt-1.5 text-xs font-semibold text-[#D3232A]">{errors.country}</p>}
               </div>
 
-              <div className="pt-4">
+              {/* Promo Coupon Code Section */}
+              <div className="rounded-2xl border-2 border-dashed border-[#D3232A]/30 bg-gradient-to-r from-red-50/40 via-white to-amber-50/30 p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-[#D3232A]">
+                      <Gift className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+                        <span>Have Early Access Coupon?</span>
+                        <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Free Till Dec 2026
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-zinc-500">
+                        Enter coupon <strong className="font-mono text-zinc-900">FIRST25</strong> to get 100% free VIP access through December 31, 2026!
+                      </p>
+                    </div>
+                  </div>
+                  {couponInput.trim().toUpperCase() === "FIRST25" ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/90 px-2.5 py-1 rounded-full border border-emerald-300">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      FIRST25 Applied
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCouponInput("FIRST25");
+                        setCouponError("");
+                      }}
+                      className="text-[11px] font-bold text-[#D3232A] hover:text-[#b01e23] hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      Apply FIRST25
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) => {
+                        setCouponInput(e.target.value.toUpperCase());
+                        setCouponError("");
+                      }}
+                      placeholder="Enter coupon code (e.g. FIRST25)"
+                      className="block w-full rounded-xl border-0 py-3 pl-3.5 pr-4 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase transition-all"
+                    />
+                  </div>
+                </div>
+
+                {couponInput.trim().toUpperCase() === "FIRST25" && (
+                  <div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 border border-emerald-200 text-xs text-emerald-900 animate-in fade-in-50 duration-200">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-emerald-900">100% Free VIP License Active</p>
+                      <p className="text-[11px] text-emerald-700 leading-tight mt-0.5">
+                        Your restaurant branch will be launched with free access through <strong>December 31, 2026</strong>. Zero subscription fees, no credit card required.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {couponError && (
+                  <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
+                )}
+              </div>
+
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isCreating}
@@ -389,6 +514,12 @@ export default function CreateOutletPage() {
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
                       Creating Branch Record...
+                    </>
+                  ) : couponInput.trim().toUpperCase() === "FIRST25" ? (
+                    <>
+                      <Sparkles className="h-5 w-5 text-amber-300 animate-pulse" />
+                      Launch Branch with FIRST25 (Free until Dec 2026)
+                      <ArrowRight className="h-5 w-5 ml-1" />
                     </>
                   ) : (
                     <>
@@ -495,15 +626,62 @@ export default function CreateOutletPage() {
               <SubscriptionMonthSelector
                 months={months}
                 onChange={setMonths}
-                disabled={isProcessingPayment || isInitiating || isVerifying}
+                disabled={isProcessingPayment || isInitiating || isVerifying || isApplyingCoupon}
               />
+
+              {/* Promo Coupon Redemption Card */}
+              <div className="rounded-2xl border border-dashed border-[#D3232A]/30 bg-gradient-to-r from-red-50/40 via-white to-amber-50/30 p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-100 text-[#D3232A]">
+                      <Gift className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                        <span>Have Early Access Code FIRST25?</span>
+                        <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">100% Free</span>
+                      </p>
+                      <p className="text-[11px] text-zinc-500">Apply coupon <strong className="font-mono text-zinc-900">FIRST25</strong> to get full access through December 31, 2026 for free!</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value.toUpperCase());
+                      setCouponError("");
+                    }}
+                    placeholder="Enter code (e.g. FIRST25)"
+                    className="block flex-1 rounded-xl border-0 py-2.5 px-3.5 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={isApplyingCoupon || !couponInput.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B1221] hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {isApplyingCoupon ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    )}
+                    Apply Code
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div className="space-y-3 pt-2">
                 <button
                   type="button"
                   onClick={handleCashfreePayment}
-                  disabled={isProcessingPayment || isInitiating || isVerifying}
+                  disabled={isProcessingPayment || isInitiating || isVerifying || isApplyingCoupon}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D3232A] px-6 py-4 text-base font-bold text-white shadow-xl hover:bg-[#b01e23] transition-all duration-200 disabled:opacity-75 disabled:cursor-not-allowed hover:-translate-y-[1px] cursor-pointer"
                 >
                   {isProcessingPayment || isInitiating || isVerifying ? (
@@ -565,9 +743,15 @@ export default function CreateOutletPage() {
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-zinc-500 max-w-md mx-auto font-medium leading-relaxed">
                 <strong>{createdOutlet.name}</strong> is now fully operational with{" "}
-                <span className="font-bold text-zinc-800">
-                  {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days, valid until {formattedEndDate})
-                </span>{" "}
+                {createdOutlet?.subscription?.planCode === "COUPON_FIRST25" ? (
+                  <span className="font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    FIRST25 VIP Access (100% Free until December 31, 2026)
+                  </span>
+                ) : (
+                  <span className="font-bold text-zinc-800">
+                    {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days, valid until {formattedEndDate})
+                  </span>
+                )}{" "}
                 of active subscription. Your POS counters, KDS terminals, and inventory telemetry are live.
               </p>
             </div>
