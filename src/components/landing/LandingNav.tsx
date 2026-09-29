@@ -8,6 +8,7 @@ import { useMagnetic, springSnappy } from "./motion/primitives";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
+import { baseApi } from "@/redux/store/baseApi";
 import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -49,6 +50,7 @@ export default function LandingNav() {
     } catch {
       // ignore
     } finally {
+      dispatch(baseApi.util.resetApiState());
       dispatch(logout());
       setDropdownOpen(false);
       setMobileMenuOpen(false);

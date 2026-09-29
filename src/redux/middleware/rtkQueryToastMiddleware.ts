@@ -94,6 +94,9 @@ export const rtkQueryToastMiddleware: Middleware = () => (next) => (action: any)
         showToast.success(title, msg);
       }
     } else if (isRejected(action)) {
+      if (endpointName === "logout") {
+        return next(action);
+      }
       const title = `${formatEndpointTitle(endpointName)} Failed`;
       const errorMsg = extractErrorMessage(action);
       showToast.error(title, errorMsg);

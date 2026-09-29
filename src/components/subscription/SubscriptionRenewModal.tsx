@@ -13,11 +13,14 @@ import {
   Building2,
   Calendar,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Tag,
+  Gift
 } from "lucide-react";
 import { 
   useInitiateOutletSubscriptionMutation, 
-  useVerifyOutletPaymentMutation 
+  useVerifyOutletPaymentMutation,
+  useApplyCouponMutation
 } from "@/redux/slices/subscriptionApiSlice";
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import SubscriptionMonthSelector, { 
@@ -50,10 +53,14 @@ export default function SubscriptionRenewModal({
 }: SubscriptionRenewModalProps) {
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyOutletPaymentMutation();
+  const [applyCoupon, { isLoading: isApplyingCoupon }] = useApplyCouponMutation();
 
   const [months, setMonths] = useState<number>(1);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [couponInput, setCouponInput] = useState("FIRST25");
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success">("review");
 
   if (!isOpen || !outlet) return null;
@@ -119,6 +126,25 @@ export default function SubscriptionRenewModal({
         err?.data?.message || err?.message || "Failed to initiate payment. Please try again."
       );
       setPaymentStep("review");
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!outlet?.id) return;
+    setCouponError("");
+    setCouponSuccess(false);
+
+    try {
+      await applyCoupon({
+        couponCode: couponInput.trim(),
+        outletId: outlet.id,
+      }).unwrap();
+
+      setCouponSuccess(true);
+      setPaymentStep("success");
+      onSuccess?.();
+    } catch (err: any) {
+      setCouponError(err?.data?.message || err?.message || "Invalid coupon code. Try 'FIRST25'.");
     }
   };
 
@@ -262,8 +288,55 @@ export default function SubscriptionRenewModal({
                 months={months}
                 onChange={setMonths}
                 currentPeriodEnd={outlet.subscription?.currentPeriodEnd}
-                disabled={paymentStep === "processing" || isInitiating || isVerifying}
+                disabled={paymentStep === "processing" || isInitiating || isVerifying || isApplyingCoupon}
               />
+
+              {/* Promo Coupon Box */}
+              <div className="rounded-2xl border border-dashed border-[#D3232A]/30 bg-gradient-to-r from-red-50/40 via-white to-amber-50/30 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[#D3232A]">
+                      <Gift className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+                        <span>Have Early Access Code FIRST25?</span>
+                        <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full">100% Free</span>
+                      </p>
+                      <p className="text-[10px] text-zinc-500">Unlock free access through December 31, 2026</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value.toUpperCase());
+                      setCouponError("");
+                    }}
+                    placeholder="Enter FIRST25"
+                    className="block flex-1 rounded-xl border-0 py-2 px-3 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={isApplyingCoupon || !couponInput.trim()}
+                    className="inline-flex items-center gap-1 rounded-xl bg-[#0B1221] hover:bg-black text-white px-3.5 py-2 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {isApplyingCoupon ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-amber-400" />
+                    )}
+                    Apply Code
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
+                )}
+              </div>
 
               {/* Pay Button */}
               <button

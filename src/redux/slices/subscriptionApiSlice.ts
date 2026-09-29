@@ -120,6 +120,33 @@ export const subscriptionApi = baseApi.injectEndpoints({
       },
       providesTags: ["Subscription"],
     }),
+
+    applyCoupon: builder.mutation<
+      { success: boolean; message: string; couponCode: string; validUntil: string; businessSubscription?: any },
+      { couponCode: string; outletId?: string }
+    >({
+      query: (body) => ({
+        url: "/subscriptions/apply-coupon",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: { data?: any } | any) => {
+        if ("data" in response && response.data) return response.data;
+        return response;
+      },
+      invalidatesTags: ["Subscription", "Outlet"],
+    }),
+
+    validateCoupon: builder.query<
+      { valid: boolean; code: string; description?: string; discountPercent?: number; validUntil?: string; message?: string },
+      string
+    >({
+      query: (code) => `/subscriptions/validate-coupon?code=${encodeURIComponent(code)}`,
+      transformResponse: (response: { data?: any } | any) => {
+        if ("data" in response && response.data) return response.data;
+        return response;
+      },
+    }),
   }),
 });
 
@@ -129,4 +156,7 @@ export const {
   useVerifyOutletPaymentMutation,
   useGetOutletSubscriptionStatusQuery,
   useGetBillingHistoryQuery,
+  useApplyCouponMutation,
+  useValidateCouponQuery,
 } = subscriptionApi;
+

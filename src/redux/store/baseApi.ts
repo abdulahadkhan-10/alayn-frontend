@@ -58,8 +58,8 @@ const baseQueryWithReauth: BaseQueryFn<
 
     if (result.error && result.error.status === 401) {
         const urlStr = typeof normalizedArgs === "string" ? normalizedArgs : normalizedArgs.url;
-        // Don't loop refresh if refresh or login itself returned 401
-        if (urlStr.includes("auth/refresh") || urlStr.includes("auth/login")) {
+        // Don't loop refresh if refresh, login, or logout itself returned 401
+        if (urlStr.includes("auth/refresh") || urlStr.includes("auth/login") || urlStr.includes("auth/logout")) {
             return result;
         }
 
