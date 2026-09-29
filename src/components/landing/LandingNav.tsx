@@ -90,7 +90,7 @@ export default function LandingNav() {
         {/* Brand logo */}
         <Link href="/" className="nav-brand flex items-center overflow-visible shrink-0">
           <Image
-            src="/gptlogo.png"
+            src="/gptlogo.webp"
             alt="Alayn — AI Operating System for Hospitality"
             width={480}
             height={111}
