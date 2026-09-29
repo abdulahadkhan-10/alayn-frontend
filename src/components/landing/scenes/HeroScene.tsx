@@ -277,14 +277,7 @@ export default function HeroScene() {
               </motion.div>
 
               {/* MOBILE PHONE MOCKUP (IMAGE ALREADY INCLUDES PHONE FRAME) */}
-              <motion.div
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
-                transition={{
-                  opacity: { duration: 0.8, delay: 0.3 },
-                  scale: { duration: 0.8, delay: 0.3 },
-                  y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 }
-                }}
+              <div
                 className="hero-phone-mockup"
                 style={{
                   position: "absolute",
@@ -295,20 +288,34 @@ export default function HeroScene() {
                   filter: "drop-shadow(0 20px 35px rgba(15, 23, 42, 0.35))",
                 }}
               >
-                <Image
-                  src="/screencapture.png"
-                  alt="Alayn Mobile App Interface"
-                  width={393}
-                  height={799}
-                  priority
-                  sizes="(max-width: 768px) 160px, 225px"
-                  style={{
-                    width: "100%",
-                    height: "auto",
-                    display: "block",
+                <motion.div
+                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
+                  transition={{
+                    opacity: { duration: 0.8, delay: 0.3 },
+                    scale: { duration: 0.8, delay: 0.3 },
+                    y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 },
                   }}
-                />
-              </motion.div>
+                  style={{
+                    willChange: "transform",
+                    transform: "translateZ(0)",
+                  }}
+                >
+                  <Image
+                    src="/screencapture.png"
+                    alt="Alayn Mobile App Interface"
+                    width={393}
+                    height={799}
+                    priority
+                    sizes="(max-width: 768px) 160px, 225px"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      display: "block",
+                    }}
+                  />
+                </motion.div>
+              </div>
 
               {/* Floating Alert / Live Sync Badge */}
               {/* <AnimatePresence>

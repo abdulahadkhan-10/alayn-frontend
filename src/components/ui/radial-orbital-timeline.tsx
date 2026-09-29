@@ -168,30 +168,51 @@ export default function RadialOrbitalTimeline({
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
+    let isVisible = false;
+
+    const el = containerRef.current;
+    let observer: IntersectionObserver | null = null;
+
+    if (el && typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          isVisible = entry.isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      observer.observe(el);
+    } else {
+      isVisible = true;
+    }
 
     const animateLoop = (time: number) => {
-      const deltaTime = time - lastTime;
-      lastTime = time;
-
-      if (autoRotateRef.current && !isHoveredRef.current) {
-        // Slowed down to 0.005 degrees per ms (7x slower)
-        targetAngleRef.current = (targetAngleRef.current + 0.010 * deltaTime) % 360;
-        rotationAngleRef.current = targetAngleRef.current;
-        updateNodesPositions();
-      } else if (!autoRotateRef.current) {
-        // Smoothly lerp to center node if clicked
-        let diff = targetAngleRef.current - rotationAngleRef.current;
-        diff = ((diff + 540) % 360) - 180;
-        rotationAngleRef.current += diff * 0.08;
-        rotationAngleRef.current = (rotationAngleRef.current + 360) % 360;
-        updateNodesPositions();
+      // Only execute DOM math & style mutations if element is in view AND on desktop
+      if (isVisible && window.innerWidth >= 768) {
+        const deltaTime = time - lastTime;
+        if (autoRotateRef.current && !isHoveredRef.current) {
+          // Slowed down to 0.005 degrees per ms (7x slower)
+          targetAngleRef.current = (targetAngleRef.current + 0.010 * deltaTime) % 360;
+          rotationAngleRef.current = targetAngleRef.current;
+          updateNodesPositions();
+        } else if (!autoRotateRef.current) {
+          // Smoothly lerp to center node if clicked
+          let diff = targetAngleRef.current - rotationAngleRef.current;
+          diff = ((diff + 540) % 360) - 180;
+          rotationAngleRef.current += diff * 0.08;
+          rotationAngleRef.current = (rotationAngleRef.current + 360) % 360;
+          updateNodesPositions();
+        }
       }
 
+      lastTime = time;
       animationFrameId = requestAnimationFrame(animateLoop);
     };
 
     animationFrameId = requestAnimationFrame(animateLoop);
-    return () => cancelAnimationFrame(animationFrameId);
+    return () => {
+      if (observer) observer.disconnect();
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   // Update positions initially and on data change or radius change
@@ -202,7 +223,7 @@ export default function RadialOrbitalTimeline({
   const hubDiameter = Math.min(160, Math.max(76, Math.round(radius * 0.72)));
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       {/* MOBILE-NATIVE VIEW (< 768px): Clean Module Selector & Interactive Card */}
       <div className="block md:hidden bg-[#F4F5F8] rounded-2xl border border-slate-200/90 shadow-md p-4 sm:p-6">
         {/* Mini Central Alayn Hub Core for Mobile Header */}

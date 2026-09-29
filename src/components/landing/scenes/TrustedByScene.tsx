@@ -7,8 +7,8 @@ import { Assemble } from "../motion/primitives";
 import { motion } from "framer-motion";
 
 const CLIENTS = [
-  { name: "Al Baik", logo: "/albaik.png", subtitle: "QSR Chain" },
-  { name: "Mezbaan", logo: "/mezbaan.png", subtitle: "Fine Dining" },
+  { name: "Al Baik", logo: "/albaik.webp", subtitle: "QSR Chain" },
+  { name: "Mezbaan", logo: "/mezbaan.webp", subtitle: "Fine Dining" },
 ];
 
 export default function TrustedByScene() {

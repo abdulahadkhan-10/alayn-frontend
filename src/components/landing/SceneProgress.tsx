@@ -24,29 +24,43 @@ export default function SceneProgress() {
   const ratiosRef = useRef<number[]>(new Array(SCENES.length).fill(0));
 
   useEffect(() => {
-    const handleScroll = () => {
-      const viewportCenter = window.innerHeight / 2;
-      let bestIdx = 0;
-      let minDistance = Infinity;
+    if (typeof window === "undefined" || window.innerWidth < 960) return;
 
-      SCENES.forEach((s, idx) => {
-        const el = document.getElementById(s.id);
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const elCenter = rect.top + rect.height / 2;
-        const dist = Math.abs(elCenter - viewportCenter);
-        if (dist < minDistance) {
-          minDistance = dist;
-          bestIdx = idx;
+    const ratios = new Map<string, number>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          ratios.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+        });
+
+        let highestRatio = -1;
+        let bestIdx = 0;
+
+        SCENES.forEach((s, idx) => {
+          const ratio = ratios.get(s.id) || 0;
+          if (ratio > highestRatio) {
+            highestRatio = ratio;
+            bestIdx = idx;
+          }
+        });
+
+        if (highestRatio > 0.05) {
+          setActive(bestIdx);
         }
-      });
+      },
+      {
+        rootMargin: "-15% 0px -15% 0px",
+        threshold: [0, 0.15, 0.3, 0.5, 0.7, 0.9],
+      }
+    );
 
-      setActive(bestIdx);
-    };
+    SCENES.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => observer.disconnect();
   }, []);
 
   return (
