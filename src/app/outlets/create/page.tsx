@@ -52,9 +52,13 @@ export default function CreateOutletPage() {
 
   const { refreshBranches, branches, setActiveBranch, hasAnyActiveBranch } = useBranch();
   const existingCouponBranch = branches.find(
-    (b: any) => b.subscription?.planCode === "COUPON_FIRST25"
+    (b: any) => b.id !== "all" && b.subscription?.planCode?.toUpperCase() === "COUPON_FIRST25"
   );
   const hasAlreadyRedeemedCoupon = !!existingCouponBranch;
+
+  React.useEffect(() => {
+    refreshBranches();
+  }, []);
 
   const [createOutlet, { isLoading: isCreating }] = useCreateOutletMutation();
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
@@ -66,6 +70,13 @@ export default function CreateOutletPage() {
   const [months, setMonths] = useState<number>(1);
   const [couponInput, setCouponInput] = useState<string>(hasAlreadyRedeemedCoupon ? "" : "FIRST25");
   const [couponError, setCouponError] = useState<string>("");
+
+  React.useEffect(() => {
+    if (hasAlreadyRedeemedCoupon) {
+      setCouponInput("");
+      setCouponError("");
+    }
+  }, [hasAlreadyRedeemedCoupon]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -143,9 +154,13 @@ export default function CreateOutletPage() {
     if (!validate()) return;
 
     try {
+      const couponToSend = hasAlreadyRedeemedCoupon
+        ? undefined
+        : (couponInput.trim().toUpperCase() || undefined);
+
       const outletResult = await createOutlet({
         ...formData,
-        couponCode: couponInput.trim().toUpperCase() || undefined,
+        couponCode: couponToSend,
       }).unwrap();
       await refreshBranches();
       setCreatedOutlet(outletResult);
@@ -158,8 +173,13 @@ export default function CreateOutletPage() {
         setCurrentStep(2); // Advance to Subscription Step
       }
     } catch (err: any) {
-      const msg = err?.data?.message || err?.data?.error || err?.message || "An error occurred while creating the outlet.";
-      setSubmitError(msg);
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "An error occurred while creating the outlet.";
+      setSubmitError(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
   };
 
@@ -197,7 +217,13 @@ export default function CreateOutletPage() {
       }));
       setCurrentStep(3); // Advance to Confirmation
     } catch (err: any) {
-      setCouponError(err?.data?.message || err?.message || "Invalid coupon code. Please try again.");
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Invalid coupon code. Please try again.";
+      setCouponError(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
   };
 
@@ -249,9 +275,13 @@ export default function CreateOutletPage() {
       });
     } catch (err: any) {
       console.error("Payment initiation error:", err);
-      setPaymentError(
-        err?.data?.message || err?.message || "Failed to initiate payment. Please try again."
-      );
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Failed to initiate payment. Please try again.";
+      setPaymentError(typeof msg === "string" ? msg : JSON.stringify(msg));
       setIsProcessingPayment(false);
     }
   };

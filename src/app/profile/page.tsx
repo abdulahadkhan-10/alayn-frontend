@@ -121,7 +121,8 @@ export default function ProfilePage() {
       setSaveErrorMsg(
         err?.data?.error?.message ||
           err?.data?.message ||
-          err?.data?.error ||
+          (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+          err?.message ||
           "Failed to update profile."
       );
     }
@@ -154,7 +155,8 @@ export default function ProfilePage() {
       setPwErrorMsg(
         err?.data?.error?.message ||
           err?.data?.message ||
-          err?.data?.error ||
+          (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+          err?.message ||
           "Failed to update password."
       );
     }

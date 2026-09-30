@@ -58,7 +58,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       {/* Mobile Menu */}
-      {!isCaptiveOnboarding && (
+      {!isCaptiveOnboarding && user?.role !== "SUPPLIER" && (
         <button
           type="button"
           className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
@@ -69,24 +69,30 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
       )}
 
-      {!isCaptiveOnboarding && (
+      {!isCaptiveOnboarding && user?.role !== "SUPPLIER" && (
         <div className="h-6 w-px bg-gray-900/10 lg:hidden" aria-hidden="true" />
       )}
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         {/* Left: Logo + Outlet Selector */}
         <div className="flex flex-1 items-center gap-x-4 md:gap-x-6">
-          <div className="flex items-center justify-start lg:hidden shrink-0">
+          <div className={`flex items-center justify-start shrink-0 ${user?.role === "SUPPLIER" ? "" : "lg:hidden"}`}>
             <Image
               src="/image1.png"
               alt="ALAYN Logo"
               width={120}
               height={40}
               style={{ width: "auto", height: "auto" }}
-              className="max-h-8 sm:max-h-12 w-auto object-contain"
+              className="max-h-8 sm:max-h-10 w-auto object-contain"
               priority
             />
           </div>
+
+          {user?.role === "SUPPLIER" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+              Supplier Portal
+            </span>
+          )}
 
           {user?.role !== "SUPPLIER" && (
             <div className="hidden md:flex items-center space-x-6 text-sm">

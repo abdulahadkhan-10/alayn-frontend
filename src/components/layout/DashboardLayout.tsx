@@ -48,18 +48,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const openMobileSidebar = useCallback(() => setMobileSidebarOpen(true), []);
 
   const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
+  const isSupplier = user?.role === "SUPPLIER";
   const isCaptiveOnboarding = mounted && isOwner && !isDemo && !branchesLoading && branches.length === 0;
 
   // Unrestricted routes where users manage outlets or view billing/support without active subscription
   const isUnrestrictedRoute = 
+    isSupplier ||
+    pathname === "/supplier" ||
     pathname === "/outlets" || 
     pathname?.startsWith("/outlets/create") || 
     pathname === "/settings/billing" || 
     pathname?.startsWith("/support");
 
   // Determine if paywall must be shown:
-  // Show paywall if not demo, not loading, route is restricted, and active branch is not subscribed
-  const showPaywall = mounted && !isDemo && !branchesLoading && !isUnrestrictedRoute && !hasActiveSubscription;
+  // Show paywall if not demo, not loading, route is restricted, not a supplier, and active branch is not subscribed
+  const showPaywall = mounted && !isSupplier && !isDemo && !branchesLoading && !isUnrestrictedRoute && !hasActiveSubscription;
 
   // Before mount: always render expanded width (matches SSR)
   const sidebarW = mounted ? (isCollapsed ? COLLAPSED : EXPANDED) : EXPANDED;
@@ -67,7 +70,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-[#F4F7F9]">
       {/* ─── Mobile backdrop ─────────────────── */}
-      {mobileSidebarOpen && !isCaptiveOnboarding && (
+      {mobileSidebarOpen && !isCaptiveOnboarding && !isSupplier && (
         <div
           className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-260 ease-out"
           onClick={closeMobileSidebar}
@@ -76,7 +79,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ─── Sidebar wrapper ───────────────────────────────────────────── */}
-      {!isCaptiveOnboarding && (
+      {!isCaptiveOnboarding && !isSupplier && (
         <div
           suppressHydrationWarning
           className={[
