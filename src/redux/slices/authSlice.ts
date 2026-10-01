@@ -9,7 +9,13 @@ const getInitialUser = () => {
     if (typeof window === "undefined") return null;
     try {
         const item = localStorage.getItem("auth_user");
-        return item ? JSON.parse(item) : null;
+        if (!item) return null;
+        const parsed = JSON.parse(item);
+        if (parsed?.role === "SUPER_ADMIN") {
+            localStorage.removeItem("auth_user");
+            return null;
+        }
+        return parsed;
     } catch {
         return null;
     }
@@ -18,7 +24,14 @@ const getInitialUser = () => {
 const getInitialIsAuthenticated = () => {
     if (typeof window === "undefined") return false;
     try {
-        return !!localStorage.getItem("auth_user");
+        const item = localStorage.getItem("auth_user");
+        if (!item) return false;
+        const parsed = JSON.parse(item);
+        if (parsed?.role === "SUPER_ADMIN") {
+            localStorage.removeItem("auth_user");
+            return false;
+        }
+        return true;
     } catch {
         return false;
     }
@@ -44,6 +57,25 @@ const authSlice = createSlice({
         setCredentials: (state, action) => {
             const payload = action.payload;
             const user = payload?.user || payload;
+
+            if (user?.role === "SUPER_ADMIN") {
+                state.user = null;
+                state.isAuthenticated = false;
+                try {
+                    localStorage.removeItem("auth_user");
+                    localStorage.removeItem("alayn_access_token");
+                    localStorage.removeItem("alayn_refresh_token");
+                    localStorage.removeItem("alayn_active_branch_id");
+                    localStorage.removeItem("alayn_cached_branches");
+                    if (typeof document !== "undefined") {
+                        document.cookie = "token=; Max-Age=0; path=/;";
+                        document.cookie = "refreshToken=; Max-Age=0; path=/;";
+                    }
+                } catch {
+                    // ignore
+                }
+                return;
+            }
 
             state.user = user;
             state.isAuthenticated = true;
@@ -82,6 +114,23 @@ const authSlice = createSlice({
                 const payload = action.payload?.data || action.payload;
                 const user = payload?.user || payload;
 
+                if (user?.role === "SUPER_ADMIN") {
+                    state.user = null;
+                    state.isAuthenticated = false;
+                    try {
+                        localStorage.removeItem("auth_user");
+                        localStorage.removeItem("alayn_access_token");
+                        localStorage.removeItem("alayn_refresh_token");
+                        if (typeof document !== "undefined") {
+                            document.cookie = "token=; Max-Age=0; path=/;";
+                            document.cookie = "refreshToken=; Max-Age=0; path=/;";
+                        }
+                    } catch {
+                        // ignore
+                    }
+                    return;
+                }
+
                 state.isAuthenticated = true;
                 state.user = user;
                 try {
@@ -98,6 +147,23 @@ const authSlice = createSlice({
             (state, action: any) => {
                 const payload = action.payload?.data || action.payload;
                 const user = payload?.user || payload;
+
+                if (user?.role === "SUPER_ADMIN") {
+                    state.user = null;
+                    state.isAuthenticated = false;
+                    try {
+                        localStorage.removeItem("auth_user");
+                        localStorage.removeItem("alayn_access_token");
+                        localStorage.removeItem("alayn_refresh_token");
+                        if (typeof document !== "undefined") {
+                            document.cookie = "token=; Max-Age=0; path=/;";
+                            document.cookie = "refreshToken=; Max-Age=0; path=/;";
+                        }
+                    } catch {
+                        // ignore
+                    }
+                    return;
+                }
 
                 state.isAuthenticated = true;
                 state.user = user;

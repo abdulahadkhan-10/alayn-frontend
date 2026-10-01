@@ -7,7 +7,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import { useLoginMutation } from "@/redux/slices/authApiSlice";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { setCredentials } from "@/redux/slices/authSlice";
+import { logout, setCredentials } from "@/redux/slices/authSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
 export default function LoginComponent() {
   const [email, setEmail] = useState("");
@@ -28,12 +28,18 @@ export default function LoginComponent() {
         password,
       }).unwrap();
 
-      // console.log("Login response:", response);
-
       const payload = response?.data || response;
+      const user = payload?.user || payload;
+      const role = user?.role;
+
+      if (role === "SUPER_ADMIN") {
+        dispatch(logout());
+        setError("Access Restricted: Super Administrator accounts cannot log in to the Restaurant Portal. Please sign in via the Admin Portal.");
+        return;
+      }
+
       dispatch(setCredentials(payload));
 
-      const role = payload?.user?.role;
       if (role === "STAFF") {
         router.replace("/pos");
       } else if (role === "KITCHEN") {

@@ -92,9 +92,13 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
       });
     } catch (err: any) {
       console.error("Payment initiation error:", err);
-      setErrorMessage(
-        err?.data?.message || err?.message || "Failed to initiate payment. Please try again."
-      );
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Failed to initiate payment. Please try again.";
+      setErrorMessage(typeof msg === "string" ? msg : JSON.stringify(msg));
       setIsProcessing(false);
     }
   };
@@ -114,7 +118,13 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
       await refreshBranches();
       setActiveBranch(branchToPay);
     } catch (err: any) {
-      setCouponError(err?.data?.message || err?.message || "Invalid coupon code. Try 'FIRST25'.");
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Invalid coupon code. Try 'FIRST25'.";
+      setCouponError(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
   };
 

@@ -122,9 +122,13 @@ export default function SubscriptionRenewModal({
       });
     } catch (err: any) {
       console.error("Subscription initiation error:", err);
-      setErrorMessage(
-        err?.data?.message || err?.message || "Failed to initiate payment. Please try again."
-      );
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Failed to initiate payment. Please try again.";
+      setErrorMessage(typeof msg === "string" ? msg : JSON.stringify(msg));
       setPaymentStep("review");
     }
   };
@@ -144,7 +148,13 @@ export default function SubscriptionRenewModal({
       setPaymentStep("success");
       onSuccess?.();
     } catch (err: any) {
-      setCouponError(err?.data?.message || err?.message || "Invalid coupon code. Try 'FIRST25'.");
+      const msg =
+        err?.data?.error?.message ||
+        err?.data?.message ||
+        (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
+        err?.message ||
+        "Invalid coupon code. Try 'FIRST25'.";
+      setCouponError(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
   };
 

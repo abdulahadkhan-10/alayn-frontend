@@ -204,9 +204,11 @@ export default function ProcurementPage() {
         selectedSupplierTypeFilter === "ALL" ||
         (s.type || "OFFLINE") === selectedSupplierTypeFilter;
 
-      const matchesOutlet = isAllOutlets
-        ? (procurementOutletFilter === "ALL" || s.outlet?.id === procurementOutletFilter || s.outletId === procurementOutletFilter)
-        : (!s.outletId || s.outletId === activeBranch?.id || s.outlet?.id === activeBranch?.id);
+      const matchesOutlet =
+        procurementOutletFilter === "ALL" ||
+        !s.outletId ||
+        s.outlet?.id === procurementOutletFilter ||
+        s.outletId === procurementOutletFilter;
 
       return matchesSearch && matchesCategory && matchesType && matchesOutlet;
     });
@@ -244,7 +246,11 @@ export default function ProcurementPage() {
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await createSupplier(supplierForm).unwrap();
+      const payload = {
+        ...supplierForm,
+        ...(activeBranch?.id && activeBranch.id !== "all" ? { outletId: activeBranch.id } : {}),
+      };
+      const res = await createSupplier(payload).unwrap();
       setShowAddSupplierModal(false);
       setSupplierForm({
         name: "",

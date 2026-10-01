@@ -19,6 +19,7 @@ const baseQuery = fetchBaseQuery({
     baseUrl: BASE_URL,
     credentials: "include",
     prepareHeaders: (headers) => {
+        headers.set("x-portal", "tenant");
         if (typeof window !== "undefined") {
             const outletId = localStorage.getItem("alayn_active_branch_id");
             if (outletId && !headers.has("x-outlet-id")) {
