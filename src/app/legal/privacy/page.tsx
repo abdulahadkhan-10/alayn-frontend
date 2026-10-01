@@ -29,7 +29,7 @@ export default function PrivacyPolicyPage() {
         </p>
         <p>
           This Privacy Policy explains how BRAHM GLOBAL HOLDINGS, a sole
-          proprietorship owned and operated by Iyaan Khan Tauqir Khan, trading
+          proprietorship owned and operated by Iyaan Tauquir Khan, trading
           under the brand Alayn AI ("Alayn", "we", "us" or "our"), collects,
           uses, stores, discloses and otherwise processes personal data when you
           access or use our websites, applications, software, products and
@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Legal Name:</strong>{" "}
-            IYAAN KHAN TAUQUIR KHAN
+            IYAAN TAUQUIR KHAN
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Constitution:</strong>{" "}
@@ -876,7 +876,7 @@ export default function PrivacyPolicyPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 mt-4 space-y-4">
           <div>
             <strong className="block text-zinc-900">BRAHM GLOBAL HOLDINGS</strong>
-            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Khan Tauqir Khan</span>
+            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Tauquir Khan</span>
           </div>
           
           <div className="text-sm space-y-1">

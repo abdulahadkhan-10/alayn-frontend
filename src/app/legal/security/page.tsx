@@ -55,7 +55,7 @@ export default function SecurityPolicyPage() {
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Legal Name:</strong>{" "}
-            IYAAN KHAN TAUQUIR KHAN
+            IYAAN TAUQUIR KHAN
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Constitution:</strong>{" "}
@@ -705,7 +705,7 @@ export default function SecurityPolicyPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 mt-4 space-y-4">
           <div>
             <strong className="block text-zinc-900">BRAHM GLOBAL HOLDINGS</strong>
-            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Khan Tauquir Khan</span>
+            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Tauquir Khan</span>
           </div>
           
           <div className="text-sm space-y-1">

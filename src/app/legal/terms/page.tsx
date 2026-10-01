@@ -49,7 +49,7 @@ export default function TermsOfServicePage() {
         <p>Other features and services introduced by Alayn from time to time</p>
         <p>Alayn is operated in India by:</p>
         <p>BRAHM GLOBAL HOLDINGS</p>
-        <p>A sole proprietorship owned and operated by Iyaan Khan Tauqir Khan</p>
+        <p>A sole proprietorship owned and operated by Iyaan Tauquir Khan</p>
         <p>Principal Place of Business:</p>
         <p>Shop No. 6, Veena Beena Shopping Centre,</p>
         <p>Guru Nanak Marg, Bandra West,</p>
@@ -63,7 +63,7 @@ export default function TermsOfServicePage() {
           2. Definitions
         </h2>
         <p>For these Terms:</p>
-        <p>"Alayn", "we", "us" or "our" means BRAHM GLOBAL HOLDINGS, a sole proprietorship owned and operated by Iyaan Khan Tauqir Khan.</p>
+        <p>"Alayn", "we", "us" or "our" means BRAHM GLOBAL HOLDINGS, a sole proprietorship owned and operated by Iyaan Tauquir Khan.</p>
         <p>"Customer", "you" or "your" means the individual or business using or purchasing the Services.</p>
         <p>"Services" means Alayn's software platform, applications, website, features, functionality, APIs, integrations and related services.</p>
         <p>"Account" means an account created to access the Services.</p>
@@ -645,7 +645,7 @@ export default function TermsOfServicePage() {
         </h2>
         <p>If you have questions about these Terms or the Alayn Services, please contact us:</p>
         <p>BRAHM GLOBAL HOLDINGS</p>
-        <p>A sole proprietorship owned and operated by Iyaan Khan Tauqir Khan</p>
+        <p>A sole proprietorship owned and operated by Iyaan Tauquir Khan</p>
         <p>Principal Place of Business</p>
         <p>Shop No. 6, Veena Beena Shopping Centre</p>
         <p>Guru Nanak Marg, Bandra West</p>

@@ -73,7 +73,7 @@ export default function CorporateInformationPage() {
           </div>
           <div>
             <strong className="block text-zinc-900 mb-1">Legal Name:</strong>
-            Iyaan Khan Tauquir Khan
+            Iyaan Tauquir Khan
           </div>
           <div>
             <strong className="block text-zinc-900 mb-1">Constitution of Business:</strong>
@@ -293,7 +293,7 @@ export default function CorporateInformationPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 mt-4 space-y-4">
           <div>
             <strong className="block text-zinc-900">BRAHM GLOBAL HOLDINGS</strong>
-            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Khan Tauquir Khan</span>
+            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Tauquir Khan</span>
           </div>
           
           <div className="text-sm space-y-1">

@@ -1,7 +1,7 @@
 PRIVACY POLICY
 Effective Date: 14 August 2026 Last Updated: 14 August 2026
 Alayn AI is committed to protecting the privacy and security of personal data entrusted to us.
-This Privacy Policy explains how BRAHM GLOBAL HOLDINGS, a sole proprietorship owned and operated by Iyaan Khan Tauqir Khan, trading under the brand Alayn AI ("Alayn", "we", "us" or "our"), collects, uses, stores, discloses and otherwise processes personal data when you access or use our websites, applications, software, products and services.
+This Privacy Policy explains how BRAHM GLOBAL HOLDINGS, a sole proprietorship owned and operated by Iyaan Tauquir Khan, trading under the brand Alayn AI ("Alayn", "we", "us" or "our"), collects, uses, stores, discloses and otherwise processes personal data when you access or use our websites, applications, software, products and services.
 Alayn is a cloud-based, AI-powered business operating system developed primarily for hospitality businesses. Our platform may include Point of Sale (POS), Kitchen Display Systems (KDS), inventory management, workforce management, customer relationship management, analytics, automation, reporting and related business services.
 This Privacy Policy applies to:
 	•	visitors to our websites and digital properties;
@@ -14,7 +14,7 @@ If you use Alayn on behalf of a restaurant, café, QSR, cloud kitchen, bakery, h
 
 1. WHO WE ARE
 For customers and users in India, the relevant business entity is:
-Trade Name: BRAHM GLOBAL HOLDINGS Legal Name: IYAAN KHAN TAUQUIR KHAN Constitution: Sole Proprietorship Product: Alayn AI Principal Place of Business: Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West, Mumbai, Maharashtra 400050, India
+Trade Name: BRAHM GLOBAL HOLDINGS Legal Name: IYAAN TAUQUIR KHAN Constitution: Sole Proprietorship Product: Alayn AI Principal Place of Business: Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West, Mumbai, Maharashtra 400050, India
 GSTIN: 27KOBPK2043Q1ZH
 General Support: info@alaynai.com Privacy Contact: brahmglobalholdings@gmail.com
 For privacy-related enquiries, requests or concerns, please contact us using the Privacy Contact address above.
@@ -389,7 +389,7 @@ As Alayn expands into other jurisdictions, additional regional privacy notices, 
 
 26. CONTACT US
 For questions concerning this Privacy Policy or Alayn's handling of personal data, please contact:
-BRAHM GLOBAL HOLDINGS A sole proprietorship owned and operated by Iyaan Khan Tauqir Khan
+BRAHM GLOBAL HOLDINGS A sole proprietorship owned and operated by Iyaan Tauquir Khan
 Principal Place of Business Shop No. 6, Veena Beena Shopping Centre Guru Nanak Marg, Bandra West Mumbai, Maharashtra 400050 India
 General Support: info@alaynai.com
 Privacy & Data Protection: brahmglobalholdings@gmail.com

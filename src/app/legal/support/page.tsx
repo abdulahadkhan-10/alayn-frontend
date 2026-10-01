@@ -189,7 +189,7 @@ export default function SupportPolicyPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 text-sm">
           <p>
             <strong className="block text-zinc-900 mb-1">Grievance Officer</strong>
-            Iyaan Khan Tauquir Khan
+            Iyaan Tauquir Khan
           </p>
           <p className="mt-4">
             <strong className="block text-zinc-900 mb-1">Email:</strong>
@@ -323,7 +323,7 @@ export default function SupportPolicyPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 mt-4 space-y-4">
           <div>
             <strong className="block text-zinc-900">BRAHM GLOBAL HOLDINGS</strong>
-            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Khan Tauquir Khan</span>
+            <span className="text-sm">A sole proprietorship owned and operated by Iyaan Tauquir Khan</span>
           </div>
           
           <div className="text-sm space-y-1">
