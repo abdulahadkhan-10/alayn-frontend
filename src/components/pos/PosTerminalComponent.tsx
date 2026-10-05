@@ -134,6 +134,7 @@ export default function PosTerminalComponent() {
 
   // Customer & Receipt Printing States
   const [customerName, setCustomerName] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
   const [printingOrder, setPrintingOrder] = useState<any>(null);
   const [printingKOTOrder, setPrintingKOTOrder] = useState<any>(null);
   const [autoPrintKOT, setAutoPrintKOT] = useState<boolean>(() => {
