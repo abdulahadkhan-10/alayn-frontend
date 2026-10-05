@@ -23,6 +23,7 @@ export interface Branch {
   city?: string;
   state?: string;
   country?: string;
+  kitchenMode?: "KOT" | "KDS" | "HYBRID";
   subscription?: BranchSubscription | null;
 }
 
