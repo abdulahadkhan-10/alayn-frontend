@@ -37,6 +37,7 @@ import {
   Leaf,
 } from "lucide-react";
 import ThermalReceipt from "./ThermalReceipt";
+import ThermalKOT from "./ThermalKOT";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -135,6 +136,13 @@ export default function PosTerminalComponent() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [printingOrder, setPrintingOrder] = useState<any>(null);
+  const [printingKOTOrder, setPrintingKOTOrder] = useState<any>(null);
+  const [autoPrintKOT, setAutoPrintKOT] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("alayn_auto_print_kot") === "true";
+    }
+    return false;
+  });
 
   // Mobile & Modal UI States
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
@@ -375,6 +383,9 @@ export default function PosTerminalComponent() {
     try {
       const result = await createOrder(payload).unwrap();
       setCompletedOrder(result);
+      if (autoPrintKOT || (currentOutlet as any)?.kitchenMode === "KOT") {
+        setPrintingKOTOrder(result);
+      }
       setCart([]);
       setCustomerName("");
       setCustomerPhone("");
@@ -1522,14 +1533,58 @@ export default function PosTerminalComponent() {
                   </p>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl">
-                  Order saved & sent live to Kitchen (KDS).
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl flex items-center justify-between text-left">
+                  <div>
+                    <span className="block font-black">Order Recorded</span>
+                    <span className="text-[11px] font-medium text-emerald-700">
+                      {(currentOutlet as any)?.kitchenMode === "KOT"
+                        ? "KOT ready for thermal printer"
+                        : "Sent live to Kitchen Dispatch"}
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-950 font-black text-[10px] uppercase">
+                    {(currentOutlet as any)?.kitchenMode || "LIVE"}
+                  </span>
                 </div>
 
                 <div className="space-y-2">
+                  {/* Primary: Print Kitchen KOT Slip */}
+                  <button
+                    onClick={() => setPrintingKOTOrder(orderObj)}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Kitchen Order Ticket (KOT)
+                  </button>
+
+                  {/* Secondary: Print Customer Bill Receipt */}
+                  <button
+                    onClick={() => setPrintingOrder(orderObj)}
+                    className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-zinc-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Receipt className="w-4 h-4 text-zinc-600" />
+                    Print Customer Bill Receipt
+                  </button>
+
+                  {/* Auto-print toggle */}
+                  <label className="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={autoPrintKOT}
+                      onChange={(e) => {
+                        setAutoPrintKOT(e.target.checked);
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem("alayn_auto_print_kot", String(e.target.checked));
+                        }
+                      }}
+                      className="rounded text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>Auto-open KOT print on new orders</span>
+                  </label>
+
                   <button
                     onClick={() => setCompletedOrder(null)}
-                    className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
+                    className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer mt-1"
                   >
                     Start Next Order Ticket
                   </button>
@@ -1538,6 +1593,22 @@ export default function PosTerminalComponent() {
             </div>
           );
         })()}
+
+        {/* ── Printable Thermal KOT Slip Modal ── */}
+        {printingKOTOrder && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPrintingKOTOrder(null);
+            }}
+          >
+            <ThermalKOT
+              order={printingKOTOrder}
+              isCancellation={printingKOTOrder.status === "CANCELLED"}
+              onClose={() => setPrintingKOTOrder(null)}
+            />
+          </div>
+        )}
 
         {/* ── Printable Thermal Receipt Modal ── */}
         {printingOrder && (

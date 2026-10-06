@@ -22,7 +22,10 @@ import {
   Calendar,
   AlertTriangle,
   Tag,
-  Gift
+  Gift,
+  Printer,
+  Monitor,
+  Layers
 } from "lucide-react";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateOutletMutation } from "@/redux/slices/outletApiSlice";
@@ -83,7 +86,8 @@ export default function CreateOutletPage() {
     address: "",
     city: "",
     state: "",
-    country: "India"
+    country: "India",
+    kitchenMode: "HYBRID" as "KOT" | "KDS" | "HYBRID",
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -466,6 +470,107 @@ export default function CreateOutletPage() {
                   />
                 </div>
                 {errors.country && <p className="mt-1.5 text-xs font-semibold text-[#D3232A]">{errors.country}</p>}
+              </div>
+
+              {/* Kitchen Operating Mode Selection (KOT vs KDS vs HYBRID) */}
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                    Kitchen Operating Setup
+                  </label>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Choose how your kitchen team and cooks receive and process orders
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* KOT Mode Card */}
+                  <div
+                    onClick={() => setFormData((prev) => ({ ...prev, kitchenMode: "KOT" }))}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      formData.kitchenMode === "KOT"
+                        ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-sm ring-1 ring-[#1B2A4A]"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`p-2 rounded-xl ${formData.kitchenMode === "KOT" ? "bg-[#1B2A4A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                          <Printer className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                          Physical Slips
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-[#1B2A4A]">KOT Thermal Print</h4>
+                      <p className="text-[11px] text-zinc-500 mt-1 leading-snug">
+                        Thermal printer prints 80mm/58mm tickets for cooks. No screen operation required.
+                      </p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-400">Low digital barrier</span>
+                      {formData.kitchenMode === "KOT" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
+                    </div>
+                  </div>
+
+                  {/* KDS Mode Card */}
+                  <div
+                    onClick={() => setFormData((prev) => ({ ...prev, kitchenMode: "KDS" }))}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      formData.kitchenMode === "KDS"
+                        ? "border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`p-2 rounded-xl ${formData.kitchenMode === "KDS" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                          <Monitor className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Paperless
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-zinc-900">KDS Display</h4>
+                      <p className="text-[11px] text-zinc-500 mt-1 leading-snug">
+                        Interactive kitchen screen (Prep &rarr; Ready &rarr; Served) with 3-minute cancel retention.
+                      </p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-400">Digital workflow</span>
+                      {formData.kitchenMode === "KDS" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  </div>
+
+                  {/* HYBRID Mode Card */}
+                  <div
+                    onClick={() => setFormData((prev) => ({ ...prev, kitchenMode: "HYBRID" }))}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      formData.kitchenMode === "HYBRID"
+                        ? "border-[#D3232A] bg-red-50/40 shadow-sm ring-1 ring-[#D3232A]"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`p-2 rounded-xl ${formData.kitchenMode === "HYBRID" ? "bg-[#D3232A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                          Recommended
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-zinc-900">Hybrid (Both)</h4>
+                      <p className="text-[11px] text-zinc-500 mt-1 leading-snug">
+                        Prints physical thermal tickets for cooks AND displays live on KDS dispatch board.
+                      </p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-400">KOT + KDS Dual</span>
+                      {formData.kitchenMode === "HYBRID" && <CheckCircle2 className="w-4 h-4 text-[#D3232A]" />}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Promo Coupon Code Section */}

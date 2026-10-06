@@ -14,6 +14,7 @@ import {
   useUpdateReceiptDetailsMutation,
   useUpdateLocationMutation,
   useResolveMapLinkMutation,
+  useUpdateKitchenModeMutation,
 } from "@/redux/slices/outletApiSlice";
 import {
   Palmtree,
@@ -22,6 +23,9 @@ import {
   Trash2,
   Building2,
   Clock,
+  Printer,
+  Monitor,
+  Layers,
   CheckCircle2,
   AlertCircle,
   X,
@@ -78,6 +82,10 @@ export default function SettingsPage() {
   const [footerInput, setFooterInput] = useState<string>("");
   const [upiIdInput, setUpiIdInput] = useState<string>("");
   const [updateReceiptDetails, { isLoading: isUpdatingReceipt }] = useUpdateReceiptDetailsMutation();
+
+  // Kitchen Operating Mode State
+  const [kitchenModeInput, setKitchenModeInput] = useState<"KOT" | "KDS" | "HYBRID">("HYBRID");
+  const [updateKitchenMode, { isLoading: isUpdatingKitchenMode }] = useUpdateKitchenModeMutation();
 
   // Geofence State
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -159,6 +167,7 @@ export default function SettingsPage() {
       setTaglineInput(currentOutlet.receiptTagline || "Serving joy every day.");
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
       setUpiIdInput(currentOutlet.upiId || "");
+      setKitchenModeInput((currentOutlet as any).kitchenMode || "HYBRID");
       if (currentOutlet.latitude && currentOutlet.longitude) {
         setLatitude(Number(currentOutlet.latitude));
         setLongitude(Number(currentOutlet.longitude));
@@ -233,6 +242,23 @@ export default function SettingsPage() {
       setFeedbackMsg(`AlaynAI Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update receipt details.");
+    }
+  };
+
+  const handleSaveKitchenMode = async (mode: "KOT" | "KDS" | "HYBRID") => {
+    setKitchenModeInput(mode);
+    const targetOutletId = activeBranch?.id || "all";
+    try {
+      await updateKitchenMode({ outletId: targetOutletId, kitchenMode: mode }).unwrap();
+      const modeLabel =
+        mode === "KOT"
+          ? "KOT Thermal Print Mode"
+          : mode === "KDS"
+          ? "KDS Screen Mode"
+          : "Hybrid Mode (Both KOT + KDS)";
+      setFeedbackMsg(`Kitchen Operating Mode updated to ${modeLabel}!`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update kitchen operating mode.");
     }
   };
 
@@ -496,6 +522,125 @@ export default function SettingsPage() {
         ) : (
           /* General Store Preferences View */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Kitchen Operating Setup (KOT vs KDS) Card */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <Printer className="h-5 w-5 text-[#1B2A4A]" />
+                    Kitchen Dispatch & Order Setup (KOT vs KDS)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select how line cooks and kitchen staff receive order tickets at{" "}
+                    <span className="font-bold text-gray-800">
+                      {activeBranch?.id === "all" ? "All Outlets" : (currentOutlet?.name || activeBranch?.name || "selected branch")}
+                    </span>. Changes take effect immediately.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] font-bold text-gray-500">Active Mode:</span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${
+                    kitchenModeInput === "KOT"
+                      ? "bg-blue-50 text-blue-800 border-blue-200"
+                      : kitchenModeInput === "KDS"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-rose-50 text-rose-800 border-rose-200"
+                  }`}>
+                    {kitchenModeInput === "KOT" ? "KOT Thermal Only" : kitchenModeInput === "KDS" ? "KDS Screen Only" : "Hybrid (KOT + KDS)"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                {/* KOT Mode */}
+                <div
+                  onClick={() => handleSaveKitchenMode("KOT")}
+                  className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    kitchenModeInput === "KOT"
+                      ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-sm ring-1 ring-[#1B2A4A]"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KOT" ? "bg-[#1B2A4A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                        <Printer className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                        Paper Thermal
+                      </span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-[#1B2A4A]">KOT Thermal Print</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Orders trigger physical 80mm/58mm printed kitchen tickets. Cooks work off physical paper. Zero screen interaction needed in hot kitchens.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Standard Indian Kitchens</span>
+                    {kitchenModeInput === "KOT" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
+                  </div>
+                </div>
+
+                {/* KDS Mode */}
+                <div
+                  onClick={() => handleSaveKitchenMode("KDS")}
+                  className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    kitchenModeInput === "KDS"
+                      ? "border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KDS" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                        <Monitor className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Digital Screen
+                      </span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-zinc-900">KDS Digital Display</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Real-time interactive touchscreen Kanban board (Prep &rarr; Ready &rarr; Served) with 3-minute cancellation retention & countdown auto-dismiss.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Paperless Operations</span>
+                    {kitchenModeInput === "KDS" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  </div>
+                </div>
+
+                {/* HYBRID Mode */}
+                <div
+                  onClick={() => handleSaveKitchenMode("HYBRID")}
+                  className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    kitchenModeInput === "HYBRID"
+                      ? "border-[#D3232A] bg-red-50/40 shadow-sm ring-1 ring-[#D3232A]"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "HYBRID" ? "bg-[#D3232A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                        <Layers className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
+                        Recommended
+                      </span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-zinc-900">Hybrid (Both KOT + KDS)</h4>
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      Instantly prints physical thermal slips for cooking station cooks while manager/expediter tracks ticket statuses on digital KDS screen.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Full Dual Dispatch</span>
+                    {kitchenModeInput === "HYBRID" && <CheckCircle2 className="w-4 h-4 text-[#D3232A]" />}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Tax & GST Configuration Card */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 h-fit">
               <div>

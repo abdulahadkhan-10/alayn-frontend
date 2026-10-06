@@ -19,6 +19,7 @@ export interface Outlet {
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number;
+  kitchenMode?: "KOT" | "KDS" | "HYBRID";
   createdAt?: string;
   updatedAt?: string;
   subscription?: {
@@ -39,6 +40,7 @@ export interface CreateOutletInput {
   state: string;
   country: string;
   couponCode?: string;
+  kitchenMode?: "KOT" | "KDS" | "HYBRID";
 }
 
 export const outletApi = baseApi.injectEndpoints({
@@ -96,6 +98,16 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
+    updateKitchenMode: builder.mutation<any, { outletId?: string; kitchenMode: "KOT" | "KDS" | "HYBRID" }>({
+      query: ({ outletId, kitchenMode }) => ({
+        url: "/outlets/kitchen-mode",
+        method: "PATCH",
+        body: { kitchenMode },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
+
     resolveMapLink: builder.mutation<{ lat: number; lng: number; name?: string }, { url: string; outletId?: string }>({
       query: ({ url, outletId }) => ({
         url: "/outlets/resolve-map-link",
@@ -126,5 +138,6 @@ export const {
   useUpdateTaxRatesMutation,
   useUpdateReceiptDetailsMutation,
   useUpdateLocationMutation,
+  useUpdateKitchenModeMutation,
   useResolveMapLinkMutation,
 } = outletApi;

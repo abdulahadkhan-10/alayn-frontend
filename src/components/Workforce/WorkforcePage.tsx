@@ -37,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  EyeOff,
   Phone,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -105,6 +106,8 @@ export default function WorkforcePage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [editEmployeeItem, setEditEmployeeItem] = useState<any>(null);
@@ -153,6 +156,7 @@ export default function WorkforcePage() {
       await createEmployee(formData).unwrap();
       setFeedbackMsg("Employee created successfully!");
       setShowCreateModal(false);
+      setShowPassword(false);
       setFormData({
         name: "",
         email: "",
@@ -278,6 +282,7 @@ export default function WorkforcePage() {
                     password: "",
                     outletIds: defaultOutletId ? [defaultOutletId] : [],
                   });
+                  setShowPassword(false);
                   setShowCreateModal(true);
                 }}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-2xs hover:bg-[#b01e23] transition-colors cursor-pointer"
@@ -547,6 +552,7 @@ export default function WorkforcePage() {
                                     password: "",
                                     outletIds: assignedOutlets,
                                   });
+                                  setShowEditPassword(false);
                                 }}
                                 title="Edit Employee Profile"
                                 className="p-1.5 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer border border-gray-200 shadow-2xs"
@@ -744,13 +750,26 @@ export default function WorkforcePage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -964,12 +983,25 @@ export default function WorkforcePage() {
                   <div className="relative">
                     <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showEditPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       placeholder="Leave empty to keep existing password"
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      tabIndex={-1}
+                      aria-label={showEditPassword ? "Hide password" : "Show password"}
+                    >
+                      {showEditPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
@@ -1345,6 +1377,7 @@ export default function WorkforcePage() {
                       password: "",
                       outletIds: assignedOutlets,
                     });
+                    setShowEditPassword(false);
                   }}
                   className="px-4 py-2 text-xs font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-xl shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
                 >

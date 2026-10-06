@@ -34,6 +34,7 @@ import {
   Printer,
 } from "lucide-react";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
+import ThermalKOT from "@/components/pos/ThermalKOT";
 
 export default function CompletedOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -98,6 +99,7 @@ export default function CompletedOrdersPage() {
   // Detail & Print Modal state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [printingOrder, setPrintingOrder] = useState<any>(null);
+  const [printingKOT, setPrintingKOT] = useState<any>(null);
 
   // Fetch completed orders from backend
   const {
@@ -799,25 +801,53 @@ export default function CompletedOrdersPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setPrintingOrder(selectedOrder);
-                    setSelectedOrder(null);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                >
-                  <Printer className="w-4 h-4" />
-                  Print Thermal Bill
-                </button>
+              <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setPrintingOrder(selectedOrder);
+                      setSelectedOrder(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Bill
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPrintingKOT(selectedOrder);
+                      setSelectedOrder(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1B2A4A] hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4 text-emerald-400" />
+                    Print KOT
+                  </button>
+                </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="px-5 py-2 rounded-xl bg-[#1B2A4A] text-white text-xs font-bold hover:bg-[#283d6a] transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-bold transition cursor-pointer"
                 >
-                  Close Receipt
+                  Close
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Printable Thermal KOT Slip Modal ── */}
+        {printingKOT && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPrintingKOT(null);
+            }}
+          >
+            <ThermalKOT
+              order={printingKOT}
+              isCancellation={printingKOT.status === "CANCELLED"}
+              onClose={() => setPrintingKOT(null)}
+            />
           </div>
         )}
 

@@ -145,7 +145,7 @@ export default function LoginComponent() {
                   Password
                 </label>
                 <div className="text-xs">
-                  <Link href="#" className="font-semibold text-[#C41E2A] hover:text-[#b01e23] transition-colors">
+                  <Link href="/forgot-password" className="font-semibold text-[#C41E2A] hover:text-[#b01e23] transition-colors">
                     Forgot password?
                   </Link>
                 </div>
