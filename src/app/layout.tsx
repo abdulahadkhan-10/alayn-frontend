@@ -151,9 +151,10 @@ export default function RootLayout({
         "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
         "address": {
           "@type": "PostalAddress",
-          "addressLocality": "London",
-          "addressCountry": "GB",
-          "addressRegion": "Greater London"
+          "addressLocality": "Mumbai",
+          "addressRegion": "Maharashtra",
+          "postalCode": "400050",
+          "addressCountry": "IN"
         },
         "contactPoint": [
           {
