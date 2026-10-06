@@ -171,7 +171,8 @@ export default function RootLayout({
           }
         ],
         "sameAs": [
-          "https://www.instagram.com/alayn.ai/"
+          "https://www.instagram.com/alayn.ai/",
+          "https://share.google/CBr807mWPl3Ekx5os"
         ],
         "parentOrganization": {
           "@type": "Organization",
