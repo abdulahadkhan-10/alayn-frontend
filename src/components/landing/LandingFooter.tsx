@@ -63,7 +63,7 @@ export default function LandingFooter() {
             <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               info@alaynai.com
             </a>
-            <Link href="https://www.instagram.com/alayn.ai/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="https://www.instagram.com/alayn.si/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Instagram
             </Link>
           </div>
