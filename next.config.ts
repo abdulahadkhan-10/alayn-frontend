@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.alaynai.com" }],
+        destination: "https://alaynai.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
