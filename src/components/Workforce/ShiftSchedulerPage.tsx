@@ -8,6 +8,10 @@ import {
   useGetShiftsQuery,
   useCreateShiftMutation,
   useAssignShiftMutation,
+  useUpdateShiftAssignmentMutation,
+  useDeleteShiftAssignmentMutation,
+  useUpdateShiftMutation,
+  useDeleteShiftMutation,
   useRequestSwapMutation,
   useUpdateSwapStatusMutation,
 } from "@/redux/slices/shiftApiSlice";
@@ -31,6 +35,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Trash2,
+  Edit2,
+  AlertCircle,
 } from "lucide-react";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
@@ -140,6 +147,10 @@ export default function ShiftSchedulerPage() {
 
   const [createShift, { isLoading: isCreatingShift }] = useCreateShiftMutation();
   const [assignShift, { isLoading: isAssigning }] = useAssignShiftMutation();
+  const [updateShiftAssignment, { isLoading: isUpdatingAssignment }] = useUpdateShiftAssignmentMutation();
+  const [deleteShiftAssignment, { isLoading: isDeletingAssignment }] = useDeleteShiftAssignmentMutation();
+  const [updateShift, { isLoading: isUpdatingShift }] = useUpdateShiftMutation();
+  const [deleteShift, { isLoading: isDeletingShift }] = useDeleteShiftMutation();
   const [requestSwap, { isLoading: isSwapping }] = useRequestSwapMutation();
   const [updateSwapStatus, { isLoading: isUpdatingSwap }] = useUpdateSwapStatusMutation();
   const [setWeeklyRoster, { isLoading: isSettingRoster }] = useSetWeeklyRosterMutation();
@@ -164,6 +175,8 @@ export default function ShiftSchedulerPage() {
   // Modals
   const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
+  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showRosterModal, setShowRosterModal] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -174,6 +187,7 @@ export default function ShiftSchedulerPage() {
     shiftId: string;
     employeeIds: string[];
     date: string;
+    replaceExisting?: boolean;
     isSingleEmp?: boolean;
     singleEmpName?: string;
     singleEmpRole?: string;
@@ -184,6 +198,7 @@ export default function ShiftSchedulerPage() {
     shiftId: "",
     employeeIds: [],
     date: parseDateKey(new Date()),
+    replaceExisting: true,
     isSingleEmp: false,
     singleEmpName: "",
     singleEmpRole: "",
@@ -191,6 +206,44 @@ export default function ShiftSchedulerPage() {
     customStartTime: "09:00",
     customEndTime: "17:00",
   });
+
+  const [editAssignmentData, setEditAssignmentData] = useState<{
+    asgnId: string;
+    employeeId: string;
+    employeeName: string;
+    employeeRole: string;
+    date: string;
+    isRecurring: boolean;
+    shiftId: string;
+    shiftName: string;
+    startTime: string;
+    endTime: string;
+    isCustomHours: boolean;
+    customStartTime: string;
+    customEndTime: string;
+  }>({
+    asgnId: "",
+    employeeId: "",
+    employeeName: "",
+    employeeRole: "",
+    date: "",
+    isRecurring: false,
+    shiftId: "",
+    shiftName: "",
+    startTime: "",
+    endTime: "",
+    isCustomHours: false,
+    customStartTime: "",
+    customEndTime: "",
+  });
+
+  const [editTemplateForm, setEditTemplateForm] = useState({
+    shiftId: "",
+    name: "",
+    startTime: "09:00",
+    endTime: "17:00",
+  });
+
   const [swapForm, setSwapForm] = useState({ fromEmployeeId: "", toEmployeeId: "", shiftId: "", date: parseDateKey(new Date()) });
 
   // Roster Modal Form State
@@ -478,11 +531,17 @@ export default function ShiftSchedulerPage() {
         return;
       }
 
-      await assignShift({
+      const res: any = await assignShift({
         shiftId: targetShiftId,
         employeeIds: assignForm.employeeIds,
         date: assignForm.date,
+        replaceExisting: assignForm.replaceExisting,
       }).unwrap();
+
+      if (res?.data?.assignedCount === 0 && res?.data?.errors?.length > 0) {
+        setFeedbackMsg(`Conflict: ${res.data.errors[0]?.error}`);
+        return;
+      }
 
       const empLabel = assignForm.isSingleEmp && assignForm.singleEmpName
         ? assignForm.singleEmpName
@@ -491,7 +550,76 @@ export default function ShiftSchedulerPage() {
       setFeedbackMsg(`Successfully assigned shift to ${empLabel} for ${formatDateNice(assignForm.date)}!`);
       setShowAssignModal(false);
     } catch (err: any) {
-      setFeedbackMsg(err?.data?.message || "Failed to assign shift");
+      setFeedbackMsg(err?.data?.message || err?.message || "Failed to assign shift");
+    }
+  };
+
+  const handleUpdateAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editAssignmentData.asgnId) return;
+
+    try {
+      const payload: any = {
+        date: editAssignmentData.date,
+      };
+      if (editAssignmentData.isCustomHours) {
+        payload.startTime = editAssignmentData.customStartTime;
+        payload.endTime = editAssignmentData.customEndTime;
+      } else {
+        payload.shiftId = editAssignmentData.shiftId;
+      }
+
+      await updateShiftAssignment({
+        assignmentId: editAssignmentData.asgnId,
+        ...payload,
+      }).unwrap();
+
+      setFeedbackMsg(`Shift updated for ${editAssignmentData.employeeName} on ${formatDateNice(editAssignmentData.date)}.`);
+      setShowEditAssignmentModal(false);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || err?.message || "Failed to update shift");
+    }
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!editAssignmentData.asgnId) return;
+    if (editAssignmentData.isRecurring) {
+      setShowEditAssignmentModal(false);
+      openRosterModalForEmployee(editAssignmentData.employeeId);
+      return;
+    }
+    try {
+      await deleteShiftAssignment(editAssignmentData.asgnId).unwrap();
+      setFeedbackMsg(`Shift unassigned for ${editAssignmentData.employeeName} on ${formatDateNice(editAssignmentData.date)}.`);
+      setShowEditAssignmentModal(false);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || err?.message || "Failed to remove shift");
+    }
+  };
+
+  const handleUpdateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateShift({
+        shiftId: editTemplateForm.shiftId,
+        name: editTemplateForm.name,
+        startTime: editTemplateForm.startTime,
+        endTime: editTemplateForm.endTime,
+      }).unwrap();
+      setFeedbackMsg("Shift template updated successfully!");
+      setShowEditTemplateModal(false);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update shift template");
+    }
+  };
+
+  const handleDeleteTemplate = async (shiftId: string, shiftName: string) => {
+    if (!confirm(`Are you sure you want to delete shift template "${shiftName}"?`)) return;
+    try {
+      await deleteShift(shiftId).unwrap();
+      setFeedbackMsg(`Shift template "${shiftName}" deleted.`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to delete shift template");
     }
   };
 
@@ -788,11 +916,34 @@ export default function ShiftSchedulerPage() {
                                       {shiftItems.map((item, idx) => (
                                         <div
                                           key={idx}
-                                          className="p-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded text-gray-900 leading-snug transition-colors"
+                                          onClick={() => {
+                                            if (!isManagerOrOwner) return;
+                                            setEditAssignmentData({
+                                              asgnId: item.data.asgnId,
+                                              employeeId: emp.id,
+                                              employeeName: cleanName,
+                                              employeeRole: emp.role || "STAFF",
+                                              date: col.dateKey,
+                                              isRecurring: Boolean(item.data.isRecurring),
+                                              shiftId: item.data.shift.id,
+                                              shiftName: item.data.shift.name,
+                                              startTime: item.data.shift.startTime,
+                                              endTime: item.data.shift.endTime,
+                                              isCustomHours: false,
+                                              customStartTime: item.data.shift.startTime,
+                                              customEndTime: item.data.shift.endTime,
+                                            });
+                                            setShowEditAssignmentModal(true);
+                                          }}
+                                          className={`p-1.5 bg-gray-50 border border-gray-200 rounded text-gray-900 leading-snug transition-all ${
+                                            isManagerOrOwner
+                                              ? "cursor-pointer hover:bg-red-50/40 hover:border-red-300 hover:shadow-xs group/chip"
+                                              : ""
+                                          }`}
                                         >
                                           <div className="flex items-center justify-between gap-1">
                                             <span className="font-semibold text-[11px] text-gray-900 truncate">{item.data.shift.name}</span>
-                                            {item.data.isRecurring && (
+                                            {item.data.isRecurring ? (
                                               <span
                                                 onClick={(e) => {
                                                   e.stopPropagation();
@@ -803,7 +954,11 @@ export default function ShiftSchedulerPage() {
                                               >
                                                 Weekly
                                               </span>
-                                            )}
+                                            ) : isManagerOrOwner ? (
+                                              <span className="text-[9px] font-medium text-gray-400 group-hover/chip:text-[#D3232A] transition-colors">
+                                                Edit
+                                              </span>
+                                            ) : null}
                                           </div>
 
                                           <div className="text-[10px] text-gray-500 font-normal">
@@ -817,6 +972,32 @@ export default function ShiftSchedulerPage() {
                                           )}
                                         </div>
                                       ))}
+
+                                      {/* Quick Add Split / Extra Shift button */}
+                                      {isManagerOrOwner && col.dateKey >= parseDateKey(new Date()) && (
+                                        <button
+                                          onClick={() => {
+                                            const defaultShift = shifts[0];
+                                            setAssignForm({
+                                              shiftId: defaultShift?.id || "",
+                                              employeeIds: [emp.id],
+                                              date: col.dateKey,
+                                              replaceExisting: false,
+                                              isSingleEmp: true,
+                                              singleEmpName: cleanName,
+                                              singleEmpRole: emp.role || "STAFF",
+                                              isCustomHours: false,
+                                              customStartTime: defaultShift?.startTime || "09:00",
+                                              customEndTime: defaultShift?.endTime || "17:00",
+                                            });
+                                            setShowAssignModal(true);
+                                          }}
+                                          className="w-full py-0.5 text-[9px] text-gray-400 hover:text-[#D3232A] hover:bg-gray-100 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                        >
+                                          <Plus className="h-2.5 w-2.5" />
+                                          <span>Add shift</span>
+                                        </button>
+                                      )}
                                     </div>
                                   ) : (
                                     /* Unassigned Cell (Hover Quick Assign for managers only if date is not in the past) */
@@ -931,25 +1112,54 @@ export default function ShiftSchedulerPage() {
                         <td className="px-4 py-3 text-gray-600">{shift.outlet?.name || "All outlets"}</td>
                         <td className="px-4 py-3 text-gray-600">{shift.assignments?.length || 0} staff members</td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => {
-                              const todayKey = parseDateKey(new Date());
-                              const currentlyAssignedIds = (shift.assignments || [])
-                                .filter((asgn: any) => parseDateKey(asgn.date) === todayKey)
-                                .map((asgn: any) => asgn.employee?.id || asgn.employeeId)
-                                .filter(Boolean);
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                const todayKey = parseDateKey(new Date());
+                                const currentlyAssignedIds = (shift.assignments || [])
+                                  .filter((asgn: any) => parseDateKey(asgn.date) === todayKey)
+                                  .map((asgn: any) => asgn.employee?.id || asgn.employeeId)
+                                  .filter(Boolean);
 
-                              setAssignForm({
-                                shiftId: shift.id,
-                                employeeIds: currentlyAssignedIds,
-                                date: todayKey,
-                              });
-                              setShowAssignModal(true);
-                            }}
-                            className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-                          >
-                            Manage
-                          </button>
+                                setAssignForm({
+                                  shiftId: shift.id,
+                                  employeeIds: currentlyAssignedIds,
+                                  date: todayKey,
+                                  replaceExisting: true,
+                                });
+                                setShowAssignModal(true);
+                              }}
+                              className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                              Assign
+                            </button>
+                            {isManagerOrOwner && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditTemplateForm({
+                                      shiftId: shift.id,
+                                      name: shift.name,
+                                      startTime: shift.startTime,
+                                      endTime: shift.endTime,
+                                    });
+                                    setShowEditTemplateModal(true);
+                                  }}
+                                  className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTemplate(shift.id, shift.name)}
+                                  disabled={isDeletingShift}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                  title="Delete shift template"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1250,6 +1460,23 @@ export default function ShiftSchedulerPage() {
                       onChange={(date) => setAssignForm({ ...assignForm, date })}
                     />
                   </div>
+                  {/* Overlap / Replace Toggle */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(assignForm.replaceExisting)}
+                        onChange={(e) => setAssignForm({ ...assignForm, replaceExisting: e.target.checked })}
+                        className="h-3.5 w-3.5 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A]"
+                      />
+                      <span className="text-[11px] font-medium text-gray-700">
+                        Overwrite / replace existing conflicting shifts for selected staff
+                      </span>
+                    </label>
+                    <p className="text-[10px] text-gray-400 pl-5.5 mt-0.5">
+                      When enabled, any overlapping shift on this date will be replaced cleanly by the new shift.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Sticky Action Footer */}
@@ -1273,6 +1500,257 @@ export default function ShiftSchedulerPage() {
                     className="px-4 py-1.5 text-xs font-semibold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg disabled:opacity-50 cursor-pointer"
                   >
                     {isAssigning || isCreatingShift ? "Saving..." : "Assign shift"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Edit or Delete Shift Assignment */}
+        {showEditAssignmentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Edit Shift — {editAssignmentData.employeeName}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {formatDateNice(editAssignmentData.date)} • {editAssignmentData.employeeRole}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditAssignmentModal(false)}
+                  className="cursor-pointer text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form onSubmit={handleUpdateAssignment} className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                  {/* Current Shift Indicator */}
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Current Assigned Shift</span>
+                      <div className="font-semibold text-gray-900 text-sm">{editAssignmentData.shiftName}</div>
+                      <div className="text-gray-600 text-xs">
+                        {editAssignmentData.startTime} – {editAssignmentData.endTime}
+                      </div>
+                    </div>
+                    {editAssignmentData.isRecurring && (
+                      <span className="px-2 py-0.5 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded">
+                        Weekly Roster
+                      </span>
+                    )}
+                  </div>
+
+                  {editAssignmentData.isRecurring ? (
+                    <div className="p-3 bg-indigo-50/60 border border-indigo-200 rounded-lg space-y-2">
+                      <p className="text-indigo-900 text-xs leading-relaxed">
+                        This duty is automatically recurring from <strong>{editAssignmentData.employeeName}</strong>&apos;s weekly roster. To change or remove recurring shifts, use the weekly roster editor.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowEditAssignmentModal(false);
+                          openRosterModalForEmployee(editAssignmentData.employeeId);
+                        }}
+                        className="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors cursor-pointer"
+                      >
+                        Open Weekly Roster Editor
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Change Shift / Custom Hours */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="font-medium text-gray-700">Change shift timings</label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditAssignmentData({
+                                ...editAssignmentData,
+                                isCustomHours: !editAssignmentData.isCustomHours,
+                              })
+                            }
+                            className="text-xs font-medium text-[#D3232A] hover:underline cursor-pointer"
+                          >
+                            {editAssignmentData.isCustomHours ? "Use presets" : "Custom hours"}
+                          </button>
+                        </div>
+
+                        {!editAssignmentData.isCustomHours ? (
+                          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                            {shifts.map((s: any) => {
+                              const isSelected = editAssignmentData.shiftId === s.id;
+                              return (
+                                <div
+                                  key={s.id}
+                                  onClick={() =>
+                                    setEditAssignmentData({
+                                      ...editAssignmentData,
+                                      shiftId: s.id,
+                                      shiftName: s.name,
+                                      startTime: s.startTime,
+                                      endTime: s.endTime,
+                                      isCustomHours: false,
+                                      customStartTime: s.startTime,
+                                      customEndTime: s.endTime,
+                                    })
+                                  }
+                                  className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer flex items-center justify-between ${
+                                    isSelected
+                                      ? "bg-red-50/50 border-[#D3232A]"
+                                      : "bg-white border-gray-200 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  <div>
+                                    <span className="font-medium text-gray-900 block">{s.name}</span>
+                                    <span className="text-[11px] text-gray-500">{s.startTime} – {s.endTime}</span>
+                                  </div>
+                                  {isSelected && (
+                                    <span className="text-[10px] font-semibold text-[#D3232A]">Selected</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-medium text-gray-700 mb-1">Start time</label>
+                                <CustomTimePicker
+                                  value={editAssignmentData.customStartTime || "09:00"}
+                                  onChange={(time) =>
+                                    setEditAssignmentData({ ...editAssignmentData, customStartTime: time })
+                                  }
+                                  placeholder="09:00"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-medium text-gray-700 mb-1">End time</label>
+                                <CustomTimePicker
+                                  value={editAssignmentData.customEndTime || "17:00"}
+                                  onChange={(time) =>
+                                    setEditAssignmentData({ ...editAssignmentData, customEndTime: time })
+                                  }
+                                  placeholder="17:00"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Footer with Unassign / Delete Button and Save Button */}
+                <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                  {!editAssignmentData.isRecurring ? (
+                    <button
+                      type="button"
+                      disabled={isDeletingAssignment}
+                      onClick={handleDeleteAssignment}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>{isDeletingAssignment ? "Removing..." : "Delete shift"}</span>
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditAssignmentModal(false)}
+                      className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    {!editAssignmentData.isRecurring && (
+                      <button
+                        type="submit"
+                        disabled={isUpdatingAssignment}
+                        className="px-4 py-1.5 text-xs font-semibold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg disabled:opacity-50 cursor-pointer"
+                      >
+                        {isUpdatingAssignment ? "Saving..." : "Save changes"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Edit Shift Template */}
+        {showEditTemplateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
+                <h3 className="text-base font-semibold text-gray-900">Edit Shift Template</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowEditTemplateModal(false)}
+                  className="cursor-pointer text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateTemplate} className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                  <div>
+                    <label className="block font-medium text-gray-700 mb-1">Shift name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editTemplateForm.name}
+                      onChange={(e) => setEditTemplateForm({ ...editTemplateForm, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-gray-700 mb-1">Start time</label>
+                      <CustomTimePicker
+                        value={editTemplateForm.startTime}
+                        onChange={(time) => setEditTemplateForm({ ...editTemplateForm, startTime: time })}
+                        placeholder="09:00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-gray-700 mb-1">End time</label>
+                      <CustomTimePicker
+                        value={editTemplateForm.endTime}
+                        onChange={(time) => setEditTemplateForm({ ...editTemplateForm, endTime: time })}
+                        placeholder="17:00"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditTemplateModal(false)}
+                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdatingShift}
+                    className="px-4 py-1.5 text-xs font-semibold text-white bg-[#D3232A] hover:bg-[#b01e23] rounded-lg disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUpdatingShift ? "Saving..." : "Save changes"}
                   </button>
                 </div>
               </form>

@@ -25,6 +25,36 @@ export const shiftApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Shift"],
     }),
+    updateShiftAssignment: builder.mutation({
+      query: ({ assignmentId, ...body }) => ({
+        url: `/shifts/assignments/${assignmentId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Shift"],
+    }),
+    deleteShiftAssignment: builder.mutation({
+      query: (assignmentId: string) => ({
+        url: `/shifts/assignments/${assignmentId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Shift"],
+    }),
+    updateShift: builder.mutation({
+      query: ({ shiftId, ...body }) => ({
+        url: `/shifts/${shiftId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Shift"],
+    }),
+    deleteShift: builder.mutation({
+      query: (shiftId: string) => ({
+        url: `/shifts/${shiftId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Shift"],
+    }),
     requestSwap: builder.mutation({
       query: (body) => ({
         url: "/shifts/swaps",
@@ -48,6 +78,10 @@ export const {
   useGetShiftsQuery,
   useCreateShiftMutation,
   useAssignShiftMutation,
+  useUpdateShiftAssignmentMutation,
+  useDeleteShiftAssignmentMutation,
+  useUpdateShiftMutation,
+  useDeleteShiftMutation,
   useRequestSwapMutation,
   useUpdateSwapStatusMutation,
 } = shiftApi;

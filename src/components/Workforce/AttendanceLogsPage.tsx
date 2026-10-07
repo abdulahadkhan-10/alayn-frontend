@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Calendar,
+  CalendarCheck,
   Timer,
   UserCheck,
   ChevronLeft,
@@ -161,6 +162,14 @@ export default function AttendanceLogsPage() {
     return userLogs.slice(startIndex, startIndex + pageSize);
   }, [userLogs, startIndex, pageSize]);
 
+  const gracePeriodMins = React.useMemo(() => {
+    if (typeof window !== "undefined") {
+      const saved = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
+      if (saved) return Number(saved);
+    }
+    return 30;
+  }, [outletId]);
+
   const attendanceMetrics = React.useMemo(() => {
     const targetLogs = userLogs;
     const totalLogs = targetLogs.length;
@@ -168,17 +177,27 @@ export default function AttendanceLogsPage() {
     if (totalLogs === 0) {
       return {
         rate: "0%",
-        subtext: isManagerOrOwner ? "No store records yet" : "0 Shifts Present",
+        subtext: isManagerOrOwner ? "No store records yet" : "0 Shifts Scheduled",
+        daysWorkedStr: "0 Days",
+        daysWorkedSubtext: isManagerOrOwner ? "0 Store shifts completed" : "No shifts logged this month",
         totalHoursStr: "0 hrs",
         avgHoursSubtext: isManagerOrOwner ? "Average across outlet" : "Average 0 hrs / shift",
       };
     }
 
     const presentLogs = targetLogs.filter(
-      (l: any) => l.status === "PRESENT" || l.checkInTime || l.clockIn
+      (l: any) => l.status === "PRESENT" || l.status === "LATE" || l.checkInTime || l.clockIn
     );
+    const lateLogs = targetLogs.filter((l: any) => l.status === "LATE");
     const presentCount = presentLogs.length;
+    const lateCount = lateLogs.length;
+    const onTimeCount = Math.max(0, presentCount - lateCount);
     const rateNum = Math.round((presentCount / Math.max(totalLogs, 1)) * 100);
+
+    const daysWorkedStr = `${presentCount} ${presentCount === 1 ? "Day" : "Days"}`;
+    const daysWorkedSubtext = isManagerOrOwner
+      ? `${presentCount} shifts logged (${onTimeCount} on time${lateCount > 0 ? ` · ${lateCount} late` : ""})`
+      : `${presentCount} shifts completed (${onTimeCount} on time${lateCount > 0 ? ` · ${lateCount} late` : ""})`;
 
     let totalHours = 0;
     targetLogs.forEach((l: any) => {
@@ -214,6 +233,8 @@ export default function AttendanceLogsPage() {
       subtext: isManagerOrOwner
         ? `${presentCount} Present records out of ${totalLogs}`
         : `${presentCount} Shifts Present out of ${totalLogs}`,
+      daysWorkedStr,
+      daysWorkedSubtext,
       totalHoursStr: `${Math.round(totalHours)} hrs`,
       avgHoursSubtext: `Average ${avgHours} hrs / shift`,
     };
@@ -416,12 +437,12 @@ export default function AttendanceLogsPage() {
 
               <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Hours Worked</span>
-                  <Timer className="h-5 w-5 text-indigo-600" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Days Worked (This Month)</span>
+                  <CalendarCheck className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div className="mt-4">
-                  <div className="text-3xl font-bold text-gray-900">{attendanceMetrics.totalHoursStr}</div>
-                  <div className="text-xs text-gray-500 mt-1">{attendanceMetrics.avgHoursSubtext}</div>
+                  <div className="text-3xl font-bold text-gray-900">{attendanceMetrics.daysWorkedStr}</div>
+                  <div className="text-xs text-gray-500 mt-1">{attendanceMetrics.daysWorkedSubtext}</div>
                 </div>
               </div>
 
@@ -431,7 +452,7 @@ export default function AttendanceLogsPage() {
                   <Clock className="h-5 w-5 text-amber-600" />
                 </div>
                 <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                  Please remember to Clock In within 15 minutes of your scheduled shift start time. If you need to punch out for lunch or break, notify your manager or team supervisor.
+                  Please remember to Clock In within {gracePeriodMins} minutes of your scheduled shift start time (arrival grace window). If you need to punch out for lunch or break, notify your manager or team supervisor.
                 </p>
               </div>
             </div>
@@ -452,12 +473,12 @@ export default function AttendanceLogsPage() {
 
             <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Staff Work Hours</span>
-                <Timer className="h-5 w-5 text-indigo-600" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Store Shifts Completed</span>
+                <CalendarCheck className="h-5 w-5 text-indigo-600" />
               </div>
               <div className="mt-4">
-                <div className="text-3xl font-bold text-gray-900">{attendanceMetrics.totalHoursStr}</div>
-                <div className="text-xs text-gray-500 mt-1">{attendanceMetrics.avgHoursSubtext}</div>
+                <div className="text-3xl font-bold text-gray-900">{attendanceMetrics.daysWorkedStr}</div>
+                <div className="text-xs text-gray-500 mt-1">{attendanceMetrics.daysWorkedSubtext}</div>
               </div>
             </div>
 
@@ -467,7 +488,7 @@ export default function AttendanceLogsPage() {
                 <Clock className="h-5 w-5 text-amber-600" />
               </div>
               <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                Staff punch logs are recorded in real-time via store terminal and personal logins.
+                Staff punch logs are recorded in real-time via store terminal and personal logins with a {gracePeriodMins}-minute arrival grace window.
               </p>
             </div>
           </div>
