@@ -43,6 +43,20 @@ import {
 import { useAppSelector } from "@/redux/store/hooks";
 import { cn } from "@/lib/utils";
 
+const ROLE_OPTIONS = [
+  { value: "STAFF", label: "Staff (Basic Access)" },
+  { value: "MANAGER", label: "Manager (Shift & Outlets Access)" },
+  { value: "KITCHEN", label: "Kitchen (KDS Display Access)" },
+  { value: "BUSINESS_OWNER", label: "Business Owner (Full Admin)" },
+];
+
+// Which roles each logged-in role may grant — must match the backend (employee.permissions.ts)
+const ASSIGNABLE_ROLES: Record<string, string[]> = {
+  SUPER_ADMIN: ["BUSINESS_OWNER", "MANAGER", "STAFF", "KITCHEN"],
+  BUSINESS_OWNER: ["BUSINESS_OWNER", "MANAGER", "STAFF", "KITCHEN"],
+  MANAGER: ["STAFF", "KITCHEN"],
+};
+
 const DEMO_EMPLOYEES = [
   {
     id: "demo-1",
@@ -100,6 +114,14 @@ export default function WorkforcePage() {
     user?.role === "BUSINESS_OWNER" ||
     user?.role === "MANAGER" ||
     user?.role === "SUPER_ADMIN";
+
+  // Mirrors backend rules (employee.permissions.ts): managers may only hire/manage Staff & Kitchen,
+  // and nobody can change their own access level.
+  const assignableRoles = ASSIGNABLE_ROLES[user?.role || ""] || [];
+  const isSelf = (emp: any) => !!emp?.userId && emp.userId === user?.id;
+  const canEditEmployee = (emp: any) => isSelf(emp) || assignableRoles.includes(emp?.role);
+  const roleOptionsFor = (currentRole?: string) =>
+    ROLE_OPTIONS.filter((o) => assignableRoles.includes(o.value) || o.value === currentRole);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -180,6 +202,12 @@ export default function WorkforcePage() {
       const updateData: any = { ...formData };
       if (!updateData.password) {
         delete updateData.password;
+      }
+      if (isSelf(editEmployeeItem)) {
+        // Your own access level can't be changed (enforced by the backend too)
+        delete updateData.role;
+        delete updateData.status;
+        delete updateData.outletIds;
       }
 
       await updateEmployee({
@@ -534,7 +562,8 @@ export default function WorkforcePage() {
 
                            
 
-                              {/* Edit Profile Icon */}
+                              {/* Edit Profile Icon (only for employees this user is allowed to manage) */}
+                              {canEditEmployee(emp) && (
                               <button
                                 onClick={() => {
                                   setEditEmployeeItem(emp);
@@ -559,6 +588,7 @@ export default function WorkforcePage() {
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -819,10 +849,9 @@ export default function WorkforcePage() {
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
-                      <option value="STAFF">Staff (Basic Access)</option>
-                      <option value="MANAGER">Manager (Shift & Outlets Access)</option>
-                      <option value="KITCHEN">Kitchen (KDS Display Access)</option>
-                      <option value="BUSINESS_OWNER">Business Owner (Full Admin)</option>
+                      {roleOptionsFor().map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1031,6 +1060,13 @@ export default function WorkforcePage() {
                   />
                 </div>
 
+                {/* Your own role, status and outlets cannot be changed (enforced by the backend too) */}
+                {isSelf(editEmployeeItem) && (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                    You can update your own name, contact details and password. Your role, status and outlets can't be changed from your own profile.
+                  </p>
+                )}
+                <fieldset disabled={isSelf(editEmployeeItem)} className="space-y-4 disabled:opacity-60">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1050,10 +1086,9 @@ export default function WorkforcePage() {
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
-                      <option value="STAFF">Staff (Basic Access)</option>
-                      <option value="MANAGER">Manager (Shift & Outlets Access)</option>
-                      <option value="KITCHEN">Kitchen (KDS Display Access)</option>
-                      <option value="BUSINESS_OWNER">Business Owner (Full Admin)</option>
+                      {roleOptionsFor(editEmployeeItem?.role).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -1129,6 +1164,7 @@ export default function WorkforcePage() {
                     </select>
                   )}
                 </div>
+                </fieldset>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1358,6 +1394,7 @@ export default function WorkforcePage() {
                 >
                   Close
                 </button>
+                {canEditEmployee(selectedEmployeeDetail) && (
                 <button
                   onClick={() => {
                     const emp = selectedEmployeeDetail;
@@ -1384,6 +1421,7 @@ export default function WorkforcePage() {
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit Profile
                 </button>
+                )}
               </div>
             </div>
           </div>
