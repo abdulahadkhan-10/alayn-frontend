@@ -11,7 +11,7 @@ const CLIENTS = [
   { name: "Mezbaan", logo: "/mezbaan.webp", subtitle: "Fine Dining" },
   { name: "Origami Café", logo: "/origami.webp", subtitle: "Japanese Dining" },
   { name: "The Meatt Boys", logo: "/meatboys.jpeg", subtitle: "Burgers & Grills" },
-  { name: "MúrAbba", logo: "/murabba.jpeg", subtitle: "Luxury Cafe" },
+  { name: "MúrAbba", logo: "/murabba.jpeg", subtitle: "Luxury Café" },
 ];
 
 export default function TrustedByScene() {
