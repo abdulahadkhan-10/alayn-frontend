@@ -19,6 +19,8 @@ export interface Outlet {
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number;
+  earlyBufferMinutes?: number;
+  lateGraceMinutes?: number;
   kitchenMode?: "KOT" | "KDS" | "HYBRID";
   createdAt?: string;
   updatedAt?: string;
@@ -108,6 +110,16 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
+    updateAttendanceRules: builder.mutation<any, { outletId?: string; earlyBufferMinutes: number; lateGraceMinutes: number }>({
+      query: ({ outletId, earlyBufferMinutes, lateGraceMinutes }) => ({
+        url: "/outlets/attendance-rules",
+        method: "PATCH",
+        body: { earlyBufferMinutes, lateGraceMinutes },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
+
     resolveMapLink: builder.mutation<{ lat: number; lng: number; name?: string }, { url: string; outletId?: string }>({
       query: ({ url, outletId }) => ({
         url: "/outlets/resolve-map-link",
@@ -139,5 +151,6 @@ export const {
   useUpdateReceiptDetailsMutation,
   useUpdateLocationMutation,
   useUpdateKitchenModeMutation,
+  useUpdateAttendanceRulesMutation,
   useResolveMapLinkMutation,
 } = outletApi;

@@ -15,6 +15,7 @@ import {
   useUpdateLocationMutation,
   useResolveMapLinkMutation,
   useUpdateKitchenModeMutation,
+  useUpdateAttendanceRulesMutation,
 } from "@/redux/slices/outletApiSlice";
 import {
   Palmtree,
@@ -50,30 +51,10 @@ export default function SettingsPage() {
     user?.role === "SUPER_ADMIN";
 
   const [activeTab, setActiveTab] = useState<"HOLIDAYS" | "GENERAL">("HOLIDAYS");
-  const [earlyBufferMins, setEarlyBufferMins] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const saved = (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) || localStorage.getItem("alayn_early_buffer_mins");
-      if (saved) return Number(saved);
-    }
-    return 30;
-  });
-  const [lateGraceMins, setLateGraceMins] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const saved = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
-      if (saved) return Number(saved);
-    }
-    return 30;
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedEarly = (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) || localStorage.getItem("alayn_early_buffer_mins");
-      if (savedEarly) setEarlyBufferMins(Number(savedEarly));
-
-      const savedGrace = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
-      if (savedGrace) setLateGraceMins(Number(savedGrace));
-    }
-  }, [outletId]);
+  // Attendance rules are stored on the outlet in the backend so they apply to every employee's device
+  const [earlyBufferMins, setEarlyBufferMins] = useState<number>(30);
+  const [lateGraceMins, setLateGraceMins] = useState<number>(30);
+  const [updateAttendanceRules, { isLoading: isUpdatingAttendanceRules }] = useUpdateAttendanceRulesMutation();
   const { data: holidaysData, isLoading } = useGetHolidaysQuery(outletId ? { outletId } : undefined);
   const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
 
@@ -178,6 +159,8 @@ export default function SettingsPage() {
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
       setUpiIdInput(currentOutlet.upiId || "");
       setKitchenModeInput((currentOutlet as any).kitchenMode || "HYBRID");
+      setEarlyBufferMins(currentOutlet.earlyBufferMinutes ?? 30);
+      setLateGraceMins(currentOutlet.lateGraceMinutes ?? 30);
       if (currentOutlet.latitude && currentOutlet.longitude) {
         setLatitude(Number(currentOutlet.latitude));
         setLongitude(Number(currentOutlet.longitude));
@@ -269,6 +252,24 @@ export default function SettingsPage() {
       setFeedbackMsg(`Kitchen Operating Mode updated to ${modeLabel}!`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update kitchen operating mode.");
+    }
+  };
+
+  const handleSaveAttendanceRules = async (next: { earlyBufferMinutes: number; lateGraceMinutes: number }) => {
+    const previous = { early: earlyBufferMins, grace: lateGraceMins };
+    setEarlyBufferMins(next.earlyBufferMinutes);
+    setLateGraceMins(next.lateGraceMinutes);
+    const targetOutletId = activeBranch?.id || "all";
+    try {
+      await updateAttendanceRules({ outletId: targetOutletId, ...next }).unwrap();
+      const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
+      setFeedbackMsg(
+        `Attendance rules updated for ${scopeLabel}: early clock-in ${next.earlyBufferMinutes} mins, late grace ${next.lateGraceMinutes} mins.`
+      );
+    } catch (err: any) {
+      setEarlyBufferMins(previous.early);
+      setLateGraceMins(previous.grace);
+      setFeedbackMsg(err?.data?.message || "Failed to update attendance rules.");
     }
   };
 
@@ -865,15 +866,13 @@ export default function SettingsPage() {
                   </div>
                   <select
                     value={earlyBufferMins}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setEarlyBufferMins(val);
-                      localStorage.setItem("alayn_early_buffer_mins", String(val));
-                      if (outletId) {
-                        localStorage.setItem(`alayn_early_buffer_mins_${outletId}`, String(val));
-                      }
-                      setFeedbackMsg(`Early Clock-In Window updated to ${val} minutes prior to shift!`);
-                    }}
+                    disabled={!isManagerOrOwner || isUpdatingAttendanceRules}
+                    onChange={(e) =>
+                      handleSaveAttendanceRules({
+                        earlyBufferMinutes: Number(e.target.value),
+                        lateGraceMinutes: lateGraceMins,
+                      })
+                    }
                     className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value={15}>15 Mins Prior</option>
@@ -892,22 +891,20 @@ export default function SettingsPage() {
                   </div>
                   <select
                     value={lateGraceMins}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setLateGraceMins(val);
-                      localStorage.setItem("alayn_late_grace_mins", String(val));
-                      if (outletId) {
-                        localStorage.setItem(`alayn_late_grace_mins_${outletId}`, String(val));
-                      }
-                      setFeedbackMsg(`Late Arrival Grace Period updated to ${val} minutes after shift start!`);
-                    }}
+                    disabled={!isManagerOrOwner || isUpdatingAttendanceRules}
+                    onChange={(e) =>
+                      handleSaveAttendanceRules({
+                        earlyBufferMinutes: earlyBufferMins,
+                        lateGraceMinutes: Number(e.target.value),
+                      })
+                    }
                     className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value={5}>5 Mins Grace</option>
                     <option value={10}>10 Mins Grace</option>
-                    <option value={15}>15 Mins Grace (Default)</option>
+                    <option value={15}>15 Mins Grace</option>
                     <option value={20}>20 Mins Grace</option>
-                    <option value={30}>30 Mins Grace</option>
+                    <option value={30}>30 Mins Grace (Default)</option>
                   </select>
                 </div>
 

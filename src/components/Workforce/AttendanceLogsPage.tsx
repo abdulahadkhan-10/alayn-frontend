@@ -27,6 +27,7 @@ import {
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 
 const DEMO_ATTENDANCE_LOGS = [
   {
@@ -162,13 +163,9 @@ export default function AttendanceLogsPage() {
     return userLogs.slice(startIndex, startIndex + pageSize);
   }, [userLogs, startIndex, pageSize]);
 
-  const gracePeriodMins = React.useMemo(() => {
-    if (typeof window !== "undefined") {
-      const saved = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
-      if (saved) return Number(saved);
-    }
-    return 30;
-  }, [outletId]);
+  // Grace period is configured per outlet (Settings) and enforced by the backend; shown here for information only
+  const { data: outletsData = [] } = useGetOutletsQuery();
+  const gracePeriodMins = outletsData.find((o) => o.id === outletId)?.lateGraceMinutes ?? 30;
 
   const attendanceMetrics = React.useMemo(() => {
     const targetLogs = userLogs;
@@ -243,26 +240,13 @@ export default function AttendanceLogsPage() {
   const handleClockIn = async () => {
     setFeedbackMsg(null);
     setErrorMsg(null);
-    const earlyMins = Number(
-      (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) ||
-      localStorage.getItem("alayn_early_buffer_mins") ||
-      30
-    );
-    const graceMins = Number(
-      (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) ||
-      localStorage.getItem("alayn_late_grace_mins") ||
-      30
-    );
 
+    // Punch time and late/early rules are decided by the server; only location is sent
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
             await clockIn({
-              timestamp: new Date().toISOString(),
-              timezoneOffset: new Date().getTimezoneOffset(),
-              earlyBufferMinutes: earlyMins,
-              lateGraceMinutes: graceMins,
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }).unwrap();
@@ -292,8 +276,6 @@ export default function AttendanceLogsPage() {
         async (position) => {
           try {
             await clockOut({
-              timestamp: new Date().toISOString(),
-              timezoneOffset: new Date().getTimezoneOffset(),
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }).unwrap();

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "../layout/DashboardLayout";
+import { useAppSelector } from "@/redux/store/hooks";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import {
   useClockInMutation,
@@ -36,7 +38,36 @@ const DEMO_LOGS = [
   },
 ];
 
+// Resolves the tablet's location for outlets with a geofence. If location is unavailable we still
+// submit and let the backend decide (it only requires location when the outlet has a geofence set).
+function getDeviceLocation(): Promise<{ latitude: number; longitude: number } | Record<string, never>> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      resolve({});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+      () => resolve({}),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+// Only owners/managers may run the shared kiosk, since it can punch on behalf of any employee
+const TERMINAL_ROLES = ["BUSINESS_OWNER", "MANAGER", "SUPER_ADMIN"];
+
 export default function AttendanceTerminalPage() {
+  const router = useRouter();
+  const user = useAppSelector((state) => state.auth.user);
+  const canUseTerminal = !!user?.role && TERMINAL_ROLES.includes(user.role);
+
+  useEffect(() => {
+    if (user && !canUseTerminal) {
+      router.replace("/workforce/attendance");
+    }
+  }, [user, canUseTerminal, router]);
+
   const { data: logsApiData, isLoading: isLogsLoading } = useGetAttendanceLogsQuery(undefined);
   const { data: empApiData } = useGetEmployeesQuery(undefined);
 
@@ -82,17 +113,11 @@ export default function AttendanceTerminalPage() {
       setFeedback({ type: "error", msg: "Please select an employee first!" });
       return;
     }
-    const earlyMins = Number(localStorage.getItem("alayn_early_buffer_mins") || 30);
-    const graceMins = Number(localStorage.getItem("alayn_late_grace_mins") || 30);
 
     try {
-      await clockIn({
-        employeeId: selectedEmployeeId,
-        timestamp: new Date().toISOString(),
-        timezoneOffset: new Date().getTimezoneOffset(),
-        earlyBufferMinutes: earlyMins,
-        lateGraceMinutes: graceMins,
-      }).unwrap();
+      // Punch time and late/early rules are decided by the server; the terminal only sends who + where
+      const location = await getDeviceLocation();
+      await clockIn({ employeeId: selectedEmployeeId, ...location }).unwrap();
       const emp = employees.find((e: any) => e.id === selectedEmployeeId);
       setFeedback({
         type: "success",
@@ -113,11 +138,8 @@ export default function AttendanceTerminalPage() {
       return;
     }
     try {
-      await clockOut({
-        employeeId: selectedEmployeeId,
-        timestamp: new Date().toISOString(),
-        timezoneOffset: new Date().getTimezoneOffset(),
-      }).unwrap();
+      const location = await getDeviceLocation();
+      await clockOut({ employeeId: selectedEmployeeId, ...location }).unwrap();
       const emp = employees.find((e: any) => e.id === selectedEmployeeId);
       setFeedback({
         type: "success",
@@ -131,6 +153,10 @@ export default function AttendanceTerminalPage() {
       });
     }
   };
+
+  if (!canUseTerminal) {
+    return null;
+  }
 
   return (
     <DashboardLayout>
