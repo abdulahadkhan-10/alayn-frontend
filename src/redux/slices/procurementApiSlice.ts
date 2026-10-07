@@ -26,6 +26,7 @@ export interface PurchaseOrderItemApi {
   orderedQuantity: number;
   dispatchedQuantity?: number;
   receivedQuantity?: number;
+  damagedQuantity?: number;
   unitCostPaise: number;
   item?: InventoryItemApi;
 }
@@ -48,6 +49,8 @@ export interface PurchaseOrderApi {
   supplierNotes?: string;
   dispatchDate?: string;
   expectedNextDeliveryDate?: string;
+  closedReason?: string;
+  closedAt?: string;
   outletId?: string;
   outlet?: { id: string; name: string };
   supplier?: { id: string; name: string };
@@ -110,6 +113,7 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         items: {
           itemId: string;
           receivedQuantity: number;
+          damagedQuantity?: number;
           batchNumber: string;
           expiryDate: string;
         }[];
@@ -121,6 +125,24 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         body: { items },
       }),
       invalidatesTags: ["PurchaseOrder", "Inventory"],
+    }),
+    // Cancel an order that hasn't been received at all
+    cancelPurchaseOrder: builder.mutation<PurchaseOrderApi, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/purchase-orders/${id}/cancel`,
+        method: "PATCH",
+        body: { reason },
+      }),
+      invalidatesTags: ["PurchaseOrder"],
+    }),
+    // Close a partially received order — the remaining quantity is no longer expected
+    closePurchaseOrder: builder.mutation<PurchaseOrderApi, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/purchase-orders/${id}/close`,
+        method: "PATCH",
+        body: { reason },
+      }),
+      invalidatesTags: ["PurchaseOrder"],
     }),
 
     // --- Supplier Portal RTK Queries ---
@@ -157,6 +179,8 @@ export const {
   useGetPurchaseOrdersQuery,
   useCreatePurchaseOrderMutation,
   useReceivePOItemMutation,
+  useCancelPurchaseOrderMutation,
+  useClosePurchaseOrderMutation,
   useGetSupplierPortalOrdersQuery,
   useUpdateSupplierPOStatusMutation,
 } = procurementApiSlice;

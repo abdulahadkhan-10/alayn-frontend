@@ -110,7 +110,7 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
-    updateAttendanceRules: builder.mutation<any, { outletId?: string; earlyBufferMinutes: number; lateGraceMinutes: number }>({
+    updateAttendanceRules: builder.mutation<unknown, { outletId?: string; earlyBufferMinutes: number; lateGraceMinutes: number }>({
       query: ({ outletId, earlyBufferMinutes, lateGraceMinutes }) => ({
         url: "/outlets/attendance-rules",
         method: "PATCH",

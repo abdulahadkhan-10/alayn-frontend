@@ -118,8 +118,9 @@ export default function WorkforcePage() {
   // Mirrors backend rules (employee.permissions.ts): managers may only hire/manage Staff & Kitchen,
   // and nobody can change their own access level.
   const assignableRoles = ASSIGNABLE_ROLES[user?.role || ""] || [];
-  const isSelf = (emp: any) => !!emp?.userId && emp.userId === user?.id;
-  const canEditEmployee = (emp: any) => isSelf(emp) || assignableRoles.includes(emp?.role);
+  type EmployeeAccess = { userId?: string | null; role?: string } | null | undefined;
+  const isSelf = (emp: EmployeeAccess) => !!emp?.userId && emp.userId === user?.id;
+  const canEditEmployee = (emp: EmployeeAccess) => isSelf(emp) || assignableRoles.includes(emp?.role || "");
   const roleOptionsFor = (currentRole?: string) =>
     ROLE_OPTIONS.filter((o) => assignableRoles.includes(o.value) || o.value === currentRole);
 
@@ -866,6 +867,11 @@ export default function WorkforcePage() {
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
                     </select>
+                    {formData.status === "INACTIVE" && (
+                      <p className="mt-1 text-[11px] text-amber-700">
+                        Inactive employees are logged out immediately and can&apos;t sign in until reactivated.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1063,7 +1069,7 @@ export default function WorkforcePage() {
                 {/* Your own role, status and outlets cannot be changed (enforced by the backend too) */}
                 {isSelf(editEmployeeItem) && (
                   <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                    You can update your own name, contact details and password. Your role, status and outlets can't be changed from your own profile.
+                    You can update your own name, contact details and password. Your role, status and outlets can&apos;t be changed from your own profile.
                   </p>
                 )}
                 <fieldset disabled={isSelf(editEmployeeItem)} className="space-y-4 disabled:opacity-60">
@@ -1103,6 +1109,11 @@ export default function WorkforcePage() {
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
                     </select>
+                    {formData.status === "INACTIVE" && (
+                      <p className="mt-1 text-[11px] text-amber-700">
+                        Inactive employees are logged out immediately and can&apos;t sign in until reactivated.
+                      </p>
+                    )}
                   </div>
                 </div>
 

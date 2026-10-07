@@ -266,10 +266,11 @@ export default function SettingsPage() {
       setFeedbackMsg(
         `Attendance rules updated for ${scopeLabel}: early clock-in ${next.earlyBufferMinutes} mins, late grace ${next.lateGraceMinutes} mins.`
       );
-    } catch (err: any) {
+    } catch (err) {
       setEarlyBufferMins(previous.early);
       setLateGraceMins(previous.grace);
-      setFeedbackMsg(err?.data?.message || "Failed to update attendance rules.");
+      const message = (err as { data?: { message?: string } })?.data?.message;
+      setFeedbackMsg(message || "Failed to update attendance rules.");
     }
   };
 

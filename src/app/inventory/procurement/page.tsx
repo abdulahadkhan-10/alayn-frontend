@@ -14,6 +14,8 @@ import {
   useGetPurchaseOrdersQuery,
   useCreatePurchaseOrderMutation,
   useReceivePOItemMutation,
+  useCancelPurchaseOrderMutation,
+  useClosePurchaseOrderMutation,
   SupplierApi,
   PurchaseOrderApi,
 } from "@/redux/slices/procurementApiSlice";
@@ -100,6 +102,8 @@ export default function ProcurementPage() {
   const [updateSupplier, { isLoading: isUpdatingSupplier }] = useUpdateSupplierMutation();
   const [deleteSupplier, { isLoading: isDeletingSupplier }] = useDeleteSupplierMutation();
   const [receivePOItem, { isLoading: isReceiving }] = useReceivePOItemMutation();
+  const [cancelPurchaseOrder, { isLoading: isCancellingPO }] = useCancelPurchaseOrderMutation();
+  const [closePurchaseOrder, { isLoading: isClosingPO }] = useClosePurchaseOrderMutation();
 
   // Modals state
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
@@ -238,10 +242,32 @@ export default function ProcurementPage() {
   const [receiveItemInputs, setReceiveItemInputs] = useState<{
     [itemId: string]: {
       receivedQuantity: number;
+      damagedQuantity: number;
       batchNumber: string;
       expiryDate: string;
     };
   }>({});
+
+  // Cancel (nothing received yet) / Close short (partially received) confirmation
+  const [poAction, setPoAction] = useState<{ po: PurchaseOrderApi; mode: "CANCEL" | "CLOSE" } | null>(null);
+  const [poActionReason, setPoActionReason] = useState("");
+
+  const handleConfirmPoAction = async () => {
+    if (!poAction) return;
+    const payload = { id: poAction.po.id, reason: poActionReason.trim() || undefined };
+    try {
+      if (poAction.mode === "CANCEL") {
+        await cancelPurchaseOrder(payload).unwrap();
+      } else {
+        await closePurchaseOrder(payload).unwrap();
+      }
+      setPoAction(null);
+      refetchPOs();
+    } catch (err) {
+      const message = (err as { data?: { message?: string } })?.data?.message;
+      alert(message || `Failed to ${poAction.mode === "CANCEL" ? "cancel" : "close"} the purchase order`);
+    }
+  };
 
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,20 +314,26 @@ export default function ProcurementPage() {
     const initialInputs: {
       [itemId: string]: {
         receivedQuantity: number;
+        damagedQuantity: number;
         batchNumber: string;
         expiryDate: string;
       };
     } = {};
 
     po.items.forEach((item) => {
-      const remaining = Math.max(0, (item.orderedQuantity || 0) - (item.receivedQuantity || 0));
+      // Still expected = ordered − already accepted − already rejected as damaged
+      const remaining = Math.max(
+        0,
+        (item.orderedQuantity || 0) - (item.receivedQuantity || 0) - (item.damagedQuantity || 0)
+      );
       const prefillQty =
         item.dispatchedQuantity && item.dispatchedQuantity > 0
-          ? item.dispatchedQuantity
+          ? Math.min(item.dispatchedQuantity, remaining)
           : remaining;
 
       initialInputs[item.itemId] = {
         receivedQuantity: prefillQty,
+        damagedQuantity: 0,
         batchNumber: generateTimestampBatchNo(item.item?.category),
         expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       };
@@ -314,26 +346,26 @@ export default function ProcurementPage() {
 
     for (const [itemId, input] of Object.entries(receiveItemInputs)) {
       const qty = Number(input.receivedQuantity);
-      if (qty > 0) {
-        if (!Number.isFinite(qty)) {
-          return alert("Received quantity must be a valid number.");
-        }
-        if (!input.batchNumber.trim()) {
-          return alert("Batch number is required for receiving stock.");
-        }
+      const damaged = Number(input.damagedQuantity || 0);
+      if (!Number.isFinite(qty) || !Number.isFinite(damaged) || qty < 0 || damaged < 0) {
+        return alert("Received and damaged quantities must be valid numbers (0 or more).");
+      }
+      if (qty > 0 && !input.batchNumber.trim()) {
+        return alert("Batch number is required for receiving stock.");
       }
     }
 
     const itemsPayload = Object.entries(receiveItemInputs)
-      .filter(([_, input]) => Number(input.receivedQuantity) > 0)
+      .filter(([, input]) => Number(input.receivedQuantity) > 0 || Number(input.damagedQuantity) > 0)
       .map(([itemId, input]) => ({
         itemId,
         receivedQuantity: Number(input.receivedQuantity || 0),
-        batchNumber: input.batchNumber.trim(),
+        damagedQuantity: Number(input.damagedQuantity || 0),
+        batchNumber: input.batchNumber.trim() || generateTimestampBatchNo(),
         expiryDate: input.expiryDate,
       }));
 
-    if (itemsPayload.length === 0) return alert("Enter quantity greater than 0 for at least one item to receive.");
+    if (itemsPayload.length === 0) return alert("Enter a received or damaged quantity greater than 0 for at least one item.");
 
     try {
       await receivePOItem({ id: receivingPO.id, items: itemsPayload }).unwrap();
@@ -555,11 +587,15 @@ export default function ProcurementPage() {
                             OUT_OF_STOCK: { label: "Out of Stock", cls: "bg-rose-50 text-rose-700 border-rose-200" },
                             PARTIALLY_RECEIVED: { label: "Partial Recv", cls: "bg-amber-50 text-amber-700 border-amber-200" },
                             RECEIVED: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                            CLOSED: { label: "Closed", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+                            CLOSED: { label: "Closed (Short)", cls: "bg-zinc-100 text-zinc-500 border-zinc-200" },
                             CANCELLED: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border-rose-200" },
                           };
                           const statusInfo = statusConfig[po.status] || { label: po.status, cls: "bg-zinc-100 text-zinc-600 border-zinc-200" };
-                          const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED";
+                          const isReceivable = po.status !== "RECEIVED" && po.status !== "CLOSED" && po.status !== "CANCELLED";
+                          // Once anything has arrived (accepted or damaged) the order can only be closed short, not cancelled
+                          const hasAnyDelivery = po.items?.some(
+                            (i) => (i.receivedQuantity || 0) > 0 || (i.damagedQuantity || 0) > 0
+                          );
 
                           return (
                             <tr key={po.id} className="hover:bg-zinc-50/70 transition-colors">
@@ -582,10 +618,16 @@ export default function ProcurementPage() {
                               </td>
                               <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span
+                                  title={po.closedReason ? `Reason: ${po.closedReason}` : undefined}
                                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusInfo.cls}`}
                                 >
                                   {statusInfo.label}
                                 </span>
+                                {po.closedReason && (
+                                  <p className="mt-1 text-[10px] text-zinc-500 truncate" title={po.closedReason}>
+                                    {po.closedReason}
+                                  </p>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center text-xs text-zinc-500 whitespace-nowrap">
                                 {po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", {
@@ -597,12 +639,30 @@ export default function ProcurementPage() {
                               </td>
                               <td className="px-4 py-3 text-right whitespace-nowrap">
                                 {isReceivable ? (
-                                  <button
-                                    onClick={() => handleOpenReceive(po)}
-                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
-                                  >
-                                    Receive Stock
-                                  </button>
+                                  <div className="inline-flex items-center gap-1.5">
+                                    {canManageVendors && (
+                                      <button
+                                        onClick={() => {
+                                          setPoAction({ po, mode: hasAnyDelivery ? "CLOSE" : "CANCEL" });
+                                          setPoActionReason("");
+                                        }}
+                                        title={hasAnyDelivery ? "Stop expecting the remaining quantity" : "Cancel this order"}
+                                        className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-rose-700 transition-colors"
+                                      >
+                                        {hasAnyDelivery ? "Close" : "Cancel"}
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleOpenReceive(po)}
+                                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
+                                    >
+                                      Receive Stock
+                                    </button>
+                                  </div>
+                                ) : po.status === "CANCELLED" ? (
+                                  <span className="text-xs font-semibold text-rose-700">Cancelled</span>
+                                ) : po.status === "CLOSED" ? (
+                                  <span className="text-xs font-semibold text-zinc-500">Closed</span>
                                 ) : (
                                   <span className="text-xs font-semibold text-emerald-700">Completed</span>
                                 )}
@@ -1344,9 +1404,14 @@ export default function ProcurementPage() {
                   {receivingPO.items.map((poItem) => {
                     const input = receiveItemInputs[poItem.itemId] || {
                       receivedQuantity: 0,
+                      damagedQuantity: 0,
                       batchNumber: "",
                       expiryDate: "",
                     };
+                    const stillExpected = Math.max(
+                      0,
+                      (poItem.orderedQuantity || 0) - (poItem.receivedQuantity || 0) - (poItem.damagedQuantity || 0)
+                    );
                     return (
                       <div key={poItem.id} className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-3">
                         <div className="flex flex-wrap justify-between items-center gap-2">
@@ -1360,25 +1425,50 @@ export default function ProcurementPage() {
                           </div>
                           <span className="text-xs text-zinc-400 font-medium">
                             Ordered: <strong className="text-zinc-700">{poItem.orderedQuantity}</strong> | Prev Received: <strong className="text-zinc-700">{poItem.receivedQuantity || 0}</strong>
+                            {(poItem.damagedQuantity || 0) > 0 && (
+                              <> | Prev Damaged: <strong className="text-rose-700">{poItem.damagedQuantity}</strong></>
+                            )}
+                            {" "}| Still expected: <strong className="text-zinc-700">{stillExpected}</strong>
                           </span>
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Received Qty</label>
-                          <input
-                            type="number"
-                            step="any"
-                            min="0"
-                            value={input.receivedQuantity}
-                            onChange={(e) =>
-                              setReceiveItemInputs({
-                                ...receiveItemInputs,
-                                [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
-                              })
-                            }
-                            className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
-                          />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Received Qty (accepted)</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={input.receivedQuantity}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
+                                })
+                              }
+                              className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Damaged / Rejected Qty</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={input.damagedQuantity}
+                              onChange={(e) =>
+                                setReceiveItemInputs({
+                                  ...receiveItemInputs,
+                                  [poItem.itemId]: { ...input, damagedQuantity: Number(e.target.value) },
+                                })
+                              }
+                              className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-rose-500 focus:outline-none font-semibold text-rose-800 shadow-xs"
+                            />
+                          </div>
                         </div>
+                        <p className="text-[11px] text-zinc-500">
+                          Damaged items are recorded against the supplier but are not added to your stock.
+                        </p>
                       </div>
                     );
                   })}
@@ -1445,6 +1535,74 @@ export default function ProcurementPage() {
                 refetchPOs();
               }}
             />
+          </div>
+        )}
+
+        {/* MODAL: CANCEL / CLOSE PURCHASE ORDER */}
+        {poAction && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-zinc-200">
+              <button
+                onClick={() => setPoAction(null)}
+                className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 p-1 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex items-center gap-3 text-red-600 mb-3">
+                <div className="rounded-xl bg-red-100 p-2.5 text-red-600">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-zinc-900 text-base">
+                    {poAction.mode === "CANCEL" ? "Cancel Purchase Order" : "Close Purchase Order"}
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    Order #{formatUnderstandableOrderNo(poAction.po)} · {poAction.po.actualSupplier?.name || "Supplier"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-zinc-600 mb-4 leading-relaxed">
+                {poAction.mode === "CANCEL"
+                  ? "Nothing has been received on this order yet. Cancelling tells the supplier not to dispatch it, and no stock will be added."
+                  : "Part of this order has already been received. Closing it means the remaining quantity is no longer expected. Stock already received stays in your inventory."}
+              </p>
+
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Reason (optional)</label>
+              <input
+                type="text"
+                value={poActionReason}
+                onChange={(e) => setPoActionReason(e.target.value)}
+                maxLength={500}
+                placeholder={
+                  poAction.mode === "CANCEL"
+                    ? "e.g. Ordered by mistake, switched supplier"
+                    : "e.g. Supplier out of stock, rest not coming"
+                }
+                className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-red-500 focus:outline-none mb-5"
+              />
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setPoAction(null)}
+                  className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={handleConfirmPoAction}
+                  disabled={isCancellingPO || isClosingPO}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isCancellingPO || isClosingPO
+                    ? "Saving…"
+                    : poAction.mode === "CANCEL"
+                    ? "Cancel Order"
+                    : "Close Order"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
