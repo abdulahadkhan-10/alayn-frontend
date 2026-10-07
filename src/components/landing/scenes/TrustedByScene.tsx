@@ -11,6 +11,7 @@ const CLIENTS = [
   { name: "Mezbaan", logo: "/mezbaan.webp", subtitle: "Fine Dining" },
   { name: "Origami Café", logo: "/origami.webp", subtitle: "Japanese Dining" },
   { name: "The Meatt Boys", logo: "/meatboys.jpeg", subtitle: "Burgers & Grills" },
+  { name: "MúrAbba", logo: "/murabba.jpeg", subtitle: "Luxury Cafe" },
 ];
 
 export default function TrustedByScene() {
@@ -37,7 +38,7 @@ export default function TrustedByScene() {
         aria-hidden="true"
       />
 
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <Assemble
           as="div"
           delay={0.1}
@@ -77,18 +78,20 @@ export default function TrustedByScene() {
           </h2>
         </Assemble>
 
-        <Assemble delay={0.2} as="div" className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch justify-center">
+        <Assemble delay={0.2} as="div" className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 sm:gap-6 items-stretch justify-center">
           {CLIENTS.map((client, idx) => (
             <motion.div 
               key={`client-${idx}`} 
               whileHover={{ y: -4, transition: { duration: 0.2, ease: "easeOut" } }}
-              className="relative w-full max-w-[320px] mx-auto group"
+              className={`relative w-full max-w-[320px] mx-auto group ${
+                idx === 4 ? "sm:col-span-2 lg:col-span-1 sm:justify-self-center lg:justify-self-auto" : ""
+              }`}
             >
               {/* Double bezel container effect */}
               <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60" />
               <div className="absolute inset-[1px] rounded-[15px] border border-white" />
               
-              <div className="relative px-5 py-6 sm:px-6 sm:py-8 h-full flex flex-col items-center justify-center text-center">
+              <div className="relative px-4 py-6 sm:px-5 sm:py-8 h-full flex flex-col items-center justify-center text-center">
                 <h3 className="text-xs sm:text-sm font-semibold text-slate-700 tracking-tight block mb-2">{client.name} — {client.subtitle}</h3>
                 
                 <div className="relative w-36 h-28 sm:w-44 sm:h-32 transition-transform duration-500 ease-out group-hover:scale-105">
