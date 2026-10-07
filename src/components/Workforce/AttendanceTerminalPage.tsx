@@ -82,8 +82,17 @@ export default function AttendanceTerminalPage() {
       setFeedback({ type: "error", msg: "Please select an employee first!" });
       return;
     }
+    const earlyMins = Number(localStorage.getItem("alayn_early_buffer_mins") || 30);
+    const graceMins = Number(localStorage.getItem("alayn_late_grace_mins") || 30);
+
     try {
-      await clockIn({ employeeId: selectedEmployeeId }).unwrap();
+      await clockIn({
+        employeeId: selectedEmployeeId,
+        timestamp: new Date().toISOString(),
+        timezoneOffset: new Date().getTimezoneOffset(),
+        earlyBufferMinutes: earlyMins,
+        lateGraceMinutes: graceMins,
+      }).unwrap();
       const emp = employees.find((e: any) => e.id === selectedEmployeeId);
       setFeedback({
         type: "success",
@@ -104,7 +113,11 @@ export default function AttendanceTerminalPage() {
       return;
     }
     try {
-      await clockOut({ employeeId: selectedEmployeeId }).unwrap();
+      await clockOut({
+        employeeId: selectedEmployeeId,
+        timestamp: new Date().toISOString(),
+        timezoneOffset: new Date().getTimezoneOffset(),
+      }).unwrap();
       const emp = employees.find((e: any) => e.id === selectedEmployeeId);
       setFeedback({
         type: "success",

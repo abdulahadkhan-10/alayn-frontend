@@ -52,18 +52,28 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"HOLIDAYS" | "GENERAL">("HOLIDAYS");
   const [earlyBufferMins, setEarlyBufferMins] = useState<number>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("alayn_early_buffer_mins");
+      const saved = (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) || localStorage.getItem("alayn_early_buffer_mins");
       if (saved) return Number(saved);
     }
     return 30;
   });
   const [lateGraceMins, setLateGraceMins] = useState<number>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("alayn_late_grace_mins");
+      const saved = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
       if (saved) return Number(saved);
     }
-    return 15;
+    return 30;
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedEarly = (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) || localStorage.getItem("alayn_early_buffer_mins");
+      if (savedEarly) setEarlyBufferMins(Number(savedEarly));
+
+      const savedGrace = (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) || localStorage.getItem("alayn_late_grace_mins");
+      if (savedGrace) setLateGraceMins(Number(savedGrace));
+    }
+  }, [outletId]);
   const { data: holidaysData, isLoading } = useGetHolidaysQuery(outletId ? { outletId } : undefined);
   const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
 
@@ -859,6 +869,9 @@ export default function SettingsPage() {
                       const val = Number(e.target.value);
                       setEarlyBufferMins(val);
                       localStorage.setItem("alayn_early_buffer_mins", String(val));
+                      if (outletId) {
+                        localStorage.setItem(`alayn_early_buffer_mins_${outletId}`, String(val));
+                      }
                       setFeedbackMsg(`Early Clock-In Window updated to ${val} minutes prior to shift!`);
                     }}
                     className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
@@ -883,6 +896,9 @@ export default function SettingsPage() {
                       const val = Number(e.target.value);
                       setLateGraceMins(val);
                       localStorage.setItem("alayn_late_grace_mins", String(val));
+                      if (outletId) {
+                        localStorage.setItem(`alayn_late_grace_mins_${outletId}`, String(val));
+                      }
                       setFeedbackMsg(`Late Arrival Grace Period updated to ${val} minutes after shift start!`);
                     }}
                     className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"

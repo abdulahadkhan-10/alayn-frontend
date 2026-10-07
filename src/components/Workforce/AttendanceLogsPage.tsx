@@ -222,12 +222,26 @@ export default function AttendanceLogsPage() {
   const handleClockIn = async () => {
     setFeedbackMsg(null);
     setErrorMsg(null);
+    const earlyMins = Number(
+      (outletId && localStorage.getItem(`alayn_early_buffer_mins_${outletId}`)) ||
+      localStorage.getItem("alayn_early_buffer_mins") ||
+      30
+    );
+    const graceMins = Number(
+      (outletId && localStorage.getItem(`alayn_late_grace_mins_${outletId}`)) ||
+      localStorage.getItem("alayn_late_grace_mins") ||
+      30
+    );
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
             await clockIn({
               timestamp: new Date().toISOString(),
+              timezoneOffset: new Date().getTimezoneOffset(),
+              earlyBufferMinutes: earlyMins,
+              lateGraceMinutes: graceMins,
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }).unwrap();
@@ -258,6 +272,7 @@ export default function AttendanceLogsPage() {
           try {
             await clockOut({
               timestamp: new Date().toISOString(),
+              timezoneOffset: new Date().getTimezoneOffset(),
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             }).unwrap();
