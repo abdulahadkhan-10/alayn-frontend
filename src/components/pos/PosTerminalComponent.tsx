@@ -47,6 +47,7 @@ import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { fetchTables, TableItem } from "@/lib/api";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
+import { estimateBill, GstRegistrationType } from "@/lib/billing";
 
 interface CartItem {
   menuItem: MenuItem;
@@ -283,22 +284,36 @@ export default function PosTerminalComponent() {
     setDiscount(0);
   };
 
-  // Financial Calculations
-  const subtotal = useMemo(() => {
-    return cart.reduce((acc, ci) => acc + ci.menuItem.price * ci.quantity, 0);
-  }, [cart]);
+  // Bill Rates & Registration Type
+  const billRates = useMemo(() => ({
+    cgstRate: Number(currentOutlet?.cgstRateDecimal ?? 2.5),
+    sgstRate: Number(currentOutlet?.sgstRateDecimal ?? 2.5),
+    serviceChargeRate: Number(currentOutlet?.serviceTaxRateDecimal ?? 0),
+  }), [currentOutlet]);
+
+  const gstRegistrationType = (currentOutlet?.gstRegistrationType || "REGULAR") as GstRegistrationType;
+  const isDineIn = Boolean(selectedTableNo);
+
+  // Financial Calculations — Single source of truth mirrored from billing.ts
+  const billEstimate = useMemo(() => {
+    return estimateBill(
+      cart.map((ci) => ({ price: ci.menuItem.price, quantity: ci.quantity })),
+      billRates,
+      {
+        dineIn: isDineIn,
+        discount,
+        gstRegistrationType,
+      }
+    );
+  }, [cart, billRates, isDineIn, discount, gstRegistrationType]);
+
+  const subtotal = billEstimate.subtotal;
+  const grandTotal = billEstimate.total;
+  const taxAmount = billEstimate.cgst + billEstimate.sgst;
 
   const totalItemCount = useMemo(() => {
     return cart.reduce((acc, ci) => acc + ci.quantity, 0);
   }, [cart]);
-
-  const taxAmount = useMemo(() => {
-    return (subtotal * taxPercent) / 100;
-  }, [subtotal, taxPercent]);
-
-  const grandTotal = useMemo(() => {
-    return Math.max(0, subtotal + taxAmount - discount);
-  }, [subtotal, taxAmount, discount]);
 
   // Send to Kitchen Handler — Directly dispatches order ticket to Kitchen (KDS)
   const handleSendToKitchen = async () => {
@@ -1177,22 +1192,56 @@ export default function PosTerminalComponent() {
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-gray-600 font-medium">
                 <span>Subtotal</span>
-                <span className="font-bold text-gray-900">₹{subtotal.toFixed(2)}</span>
+                <span className="font-bold text-gray-900">₹{billEstimate.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-600 font-medium">
-                <span>Tax ({taxPercent}%)</span>
-                <span className="font-bold text-gray-900">₹{taxAmount.toFixed(2)}</span>
-              </div>
-              {discount > 0 && (
+              {billEstimate.discount > 0 && (
                 <div className="flex justify-between text-rose-600 font-extrabold">
                   <span>Discount Applied</span>
-                  <span>-₹{discount.toFixed(2)}</span>
+                  <span>-₹{billEstimate.discount.toFixed(2)}</span>
+                </div>
+              )}
+              {billEstimate.serviceCharge > 0 && (
+                <div className="flex justify-between text-gray-600 font-medium">
+                  <span>Service Charge ({billRates.serviceChargeRate}%)</span>
+                  <span className="font-bold text-gray-900">₹{billEstimate.serviceCharge.toFixed(2)}</span>
+                </div>
+              )}
+              {gstRegistrationType === "REGULAR" ? (
+                <>
+                  {billEstimate.cgst > 0 && (
+                    <div className="flex justify-between text-gray-600 font-medium">
+                      <span>CGST ({billRates.cgstRate}%)</span>
+                      <span className="font-bold text-gray-900">₹{billEstimate.cgst.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {billEstimate.sgst > 0 && (
+                    <div className="flex justify-between text-gray-600 font-medium">
+                      <span>SGST ({billRates.sgstRate}%)</span>
+                      <span className="font-bold text-gray-900">₹{billEstimate.sgst.toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex justify-between text-[11px] text-gray-400 italic">
+                  <span>{gstRegistrationType === "COMPOSITION" ? "Composition Scheme" : "Unregistered"}</span>
+                  <span>No GST</span>
+                </div>
+              )}
+              {billEstimate.roundOff !== 0 && (
+                <div className="flex justify-between text-gray-500 text-[11px]">
+                  <span>Round off</span>
+                  <span className="font-semibold text-gray-700">
+                    {billEstimate.roundOff > 0 ? `+₹${billEstimate.roundOff.toFixed(2)}` : `-₹${Math.abs(billEstimate.roundOff).toFixed(2)}`}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-black text-[#1B2A4A] pt-2 border-t border-gray-200">
                 <span>Total Payable</span>
-                <span className="text-[#D3232A] text-lg font-black">₹{grandTotal.toFixed(2)}</span>
+                <span className="text-[#D3232A] text-lg font-black">₹{billEstimate.total.toFixed(2)}</span>
               </div>
+              <p className="text-[10px] text-gray-400 text-right italic">
+                Estimated — final bill at settlement
+              </p>
             </div>
 
             {/* Primary Order Action Button: Send to Kitchen */}
@@ -1299,11 +1348,44 @@ export default function PosTerminalComponent() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-3">
-                <div className="flex justify-between text-sm font-black">
-                  <span>Total Payable</span>
-                  <span className="text-[#D3232A]">₹{grandTotal.toFixed(2)}</span>
+              <div className="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span className="font-semibold text-gray-900">₹{billEstimate.subtotal.toFixed(2)}</span>
+                  </div>
+                  {billEstimate.discount > 0 && (
+                    <div className="flex justify-between text-rose-600 font-semibold">
+                      <span>Discount</span>
+                      <span>-₹{billEstimate.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {billEstimate.serviceCharge > 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>Service Charge ({billRates.serviceChargeRate}%)</span>
+                      <span className="font-semibold text-gray-900">₹{billEstimate.serviceCharge.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {gstRegistrationType === "REGULAR" && (billEstimate.cgst > 0 || billEstimate.sgst > 0) && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>GST (CGST+SGST)</span>
+                      <span className="font-semibold text-gray-900">₹{(billEstimate.cgst + billEstimate.sgst).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {billEstimate.roundOff !== 0 && (
+                    <div className="flex justify-between text-gray-500 text-[11px]">
+                      <span>Round off</span>
+                      <span>{billEstimate.roundOff > 0 ? `+₹${billEstimate.roundOff.toFixed(2)}` : `-₹${Math.abs(billEstimate.roundOff).toFixed(2)}`}</span>
+                    </div>
+                  )}
                 </div>
+                <div className="flex justify-between text-sm font-black pt-2 border-t border-gray-200">
+                  <span>Total Payable</span>
+                  <span className="text-[#D3232A]">₹{billEstimate.total.toFixed(2)}</span>
+                </div>
+                <p className="text-[10px] text-gray-400 text-right italic">
+                  Estimated — final bill at settlement
+                </p>
 
                 <button
                   disabled={cart.length === 0 || isSubmitting || isAllOutletsSelected || (isStaffRole && !selectedTableNo)}

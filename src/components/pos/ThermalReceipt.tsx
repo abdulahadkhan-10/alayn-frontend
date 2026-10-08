@@ -155,23 +155,49 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
       ? Number(actualOrder.sgstAmount)
       : (subtotalRupees * 0.025);
 
-  const serviceTaxRupees = actualOrder.serviceTaxPaise !== undefined
-    ? actualOrder.serviceTaxPaise / 100
+  const serviceChargeRupees = actualOrder.serviceChargeAmount !== undefined
+    ? Number(actualOrder.serviceChargeAmount)
     : actualOrder.serviceTaxAmount !== undefined
       ? Number(actualOrder.serviceTaxAmount)
+      : actualOrder.serviceTaxPaise !== undefined
+        ? actualOrder.serviceTaxPaise / 100
+        : 0;
+
+  const roundOffRupees = actualOrder.roundOffAmount !== undefined
+    ? Number(actualOrder.roundOffAmount)
+    : actualOrder.roundOffPaise !== undefined
+      ? actualOrder.roundOffPaise / 100
       : 0;
 
-  const cgstRate = actualOrder.outlet?.cgstRateDecimal !== undefined
-    ? Number(actualOrder.outlet.cgstRateDecimal)
-    : subtotalRupees > 0 ? Number(((cgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+  const gstType = actualOrder.gstRegistrationType || actualOrder.outlet?.gstRegistrationType || "REGULAR";
+  const isComposition = gstType === "COMPOSITION";
+  const isUnregistered = gstType === "UNREGISTERED";
+  const isRegular = gstType === "REGULAR";
 
-  const sgstRate = actualOrder.outlet?.sgstRateDecimal !== undefined
-    ? Number(actualOrder.outlet.sgstRateDecimal)
-    : subtotalRupees > 0 ? Number(((sgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+  const invoiceTitle = isComposition
+    ? "BILL OF SUPPLY"
+    : isUnregistered
+      ? "RETAIL INVOICE"
+      : "TAX INVOICE";
 
-  const serviceTaxRate = actualOrder.outlet?.serviceTaxRateDecimal !== undefined
-    ? Number(actualOrder.outlet.serviceTaxRateDecimal)
-    : subtotalRupees > 0 && serviceTaxRupees > 0 ? Number(((serviceTaxRupees / subtotalRupees) * 100).toFixed(1)) : 0;
+  // Use snapshot rates if present on the order; fallback to outlet configured rates
+  const cgstRate = actualOrder.cgstRate !== undefined && actualOrder.cgstRate !== null
+    ? Number(actualOrder.cgstRate)
+    : actualOrder.outlet?.cgstRateDecimal !== undefined
+      ? Number(actualOrder.outlet.cgstRateDecimal)
+      : subtotalRupees > 0 ? Number(((cgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+
+  const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
+    ? Number(actualOrder.sgstRate)
+    : actualOrder.outlet?.sgstRateDecimal !== undefined
+      ? Number(actualOrder.outlet.sgstRateDecimal)
+      : subtotalRupees > 0 ? Number(((sgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+
+  const serviceChargeRate = actualOrder.serviceChargeRate !== undefined && actualOrder.serviceChargeRate !== null
+    ? Number(actualOrder.serviceChargeRate)
+    : actualOrder.outlet?.serviceTaxRateDecimal !== undefined
+      ? Number(actualOrder.outlet.serviceTaxRateDecimal)
+      : (subtotalRupees > 0 && serviceChargeRupees > 0 ? Number(((serviceChargeRupees / subtotalRupees) * 100).toFixed(1)) : 0);
 
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
@@ -193,7 +219,7 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Invoice — ${billNo} | ${outletName}</title>
+          <title>${invoiceTitle} — ${billNo} | ${outletName}</title>
           <meta charset="UTF-8" />
           <script src="https://cdn.tailwindcss.com"></script>
           <style>
@@ -252,7 +278,9 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-slate-900 font-bold text-sm leading-tight">Tax Invoice Preview</p>
+              <p className="text-slate-900 font-bold text-sm leading-tight">
+                {isComposition ? "Bill of Supply Preview" : isUnregistered ? "Retail Invoice Preview" : "Tax Invoice Preview"}
+              </p>
               {isPaid && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                   PAID ({paymentMethodLabel})
@@ -331,12 +359,20 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
             >
             {/* ── STORE HEADER ── */}
             <div className="text-center pt-4 pb-2 space-y-0.5">
+              <span className="text-[10px] font-black tracking-wider uppercase border border-black px-2 py-0.5 inline-block mb-1">
+                {invoiceTitle}
+              </span>
               <h2 className="text-[17px] font-black tracking-tight uppercase leading-none">{outletName}</h2>
               {tagline && <p className="text-[10.5px] italic font-medium mt-1">{tagline}</p>}
               {outletAddress && <p className="text-[10px] mt-0.5">{outletAddress}</p>}
               {outletPhone && <p className="text-[10.5px]">Mob: {outletPhone}</p>}
-              {outletGstin && (
+              {isRegular && outletGstin && (
                 <p className="text-[10.5px] font-bold mt-1">GSTIN: {outletGstin}</p>
+              )}
+              {isComposition && (
+                <p className="text-[9px] font-bold uppercase mt-1 leading-tight text-center px-1">
+                  Composition taxable person, not eligible to collect tax on supplies
+                </p>
               )}
             </div>
 
@@ -428,18 +464,30 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
                 </div>
               )}
 
-              <div className="flex justify-between">
-                <span>CGST @ {cgstRate}%</span>
-                <span>₹{cgstRupees.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>SGST @ {sgstRate}%</span>
-                <span>₹{sgstRupees.toFixed(2)}</span>
-              </div>
-              {serviceTaxRupees > 0 && (
+              {serviceChargeRupees > 0 && (
                 <div className="flex justify-between">
-                  <span>Service Tax {serviceTaxRate > 0 ? `@ ${serviceTaxRate}%` : ""}</span>
-                  <span>₹{serviceTaxRupees.toFixed(2)}</span>
+                  <span>Service Charge {serviceChargeRate > 0 ? `@ ${serviceChargeRate}%` : ""}</span>
+                  <span>₹{serviceChargeRupees.toFixed(2)}</span>
+                </div>
+              )}
+
+              {isRegular && cgstRupees > 0 && (
+                <div className="flex justify-between">
+                  <span>CGST @ {cgstRate}%</span>
+                  <span>₹{cgstRupees.toFixed(2)}</span>
+                </div>
+              )}
+              {isRegular && sgstRupees > 0 && (
+                <div className="flex justify-between">
+                  <span>SGST @ {sgstRate}%</span>
+                  <span>₹{sgstRupees.toFixed(2)}</span>
+                </div>
+              )}
+
+              {roundOffRupees !== 0 && (
+                <div className="flex justify-between">
+                  <span>Round off</span>
+                  <span>{roundOffRupees > 0 ? `+ ₹${roundOffRupees.toFixed(2)}` : `- ₹${Math.abs(roundOffRupees).toFixed(2)}`}</span>
                 </div>
               )}
             </div>

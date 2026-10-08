@@ -356,6 +356,9 @@ export default function MasterDashboardPage(props?: PageProps) {
                   positive: kpiData?.totalRevenue?.isPositive ?? true,
                   note: kpiData
                     ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
+                      (kpiData.serviceCharge && kpiData.serviceCharge.value && kpiData.serviceCharge.value !== "₹0"
+                        ? ` · Service charge ${kpiData.serviceCharge.value}`
+                        : "") +
                       (kpiData.openBills && kpiData.openBills.count > 0
                         ? ` · ${kpiData.openBills.value} in ${kpiData.openBills.count} open bill${kpiData.openBills.count === 1 ? "" : "s"}`
                         : "")

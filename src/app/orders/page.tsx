@@ -6,6 +6,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   useGetOrdersQuery,
   useUpdateOrderStatusMutation,
+  useSetServiceChargeWaiverMutation,
   Order,
 } from "@/redux/slices/orderApiSlice";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -232,6 +233,30 @@ export default function LiveOrdersPage() {
 
   const [updateOrderStatus, { isLoading: isUpdating }] =
     useUpdateOrderStatusMutation();
+  const [setServiceChargeWaiver, { isLoading: isUpdatingServiceCharge }] =
+    useSetServiceChargeWaiverMutation();
+  const [waivingServiceChargeOrder, setWaivingServiceChargeOrder] = useState<Order | null>(null);
+  const [waiveReason, setWaiveReason] = useState<string>("Customer requested removal");
+
+  const handleToggleServiceCharge = async (order: Order, waive: boolean, reason?: string) => {
+    try {
+      const updated = await setServiceChargeWaiver({
+        id: order.id,
+        waive,
+        reason: waive ? (reason || "Customer requested removal") : undefined,
+      }).unwrap();
+
+      if (selectedOrder && selectedOrder.id === order.id) {
+        setSelectedOrder(updated);
+      }
+      if (settlingOrder && settlingOrder.id === order.id) {
+        setSettlingOrder(updated);
+      }
+      setWaivingServiceChargeOrder(null);
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || "Failed to update service charge");
+    }
+  };
 
   const handleStatusChange = async (
     orderId: string,
@@ -927,16 +952,14 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).discountPaise / 100
                         : 0;
 
-                  let taxVal =
-                    selectedOrder.taxAmount !== undefined
-                      ? selectedOrder.taxAmount
-                      : (selectedOrder as any).taxPaise !== undefined
-                        ? (selectedOrder as any).taxPaise / 100
-                        : 0;
-
-                  if (taxVal === 0 && totalVal > 0 && subtotalVal > 0 && totalVal >= (subtotalVal - discountVal)) {
-                    taxVal = Math.max(0, totalVal - (subtotalVal - discountVal));
-                  }
+                  const serviceChargeVal =
+                    selectedOrder.serviceChargeAmount !== undefined
+                      ? selectedOrder.serviceChargeAmount
+                      : (selectedOrder as any).serviceTaxAmount !== undefined
+                        ? (selectedOrder as any).serviceTaxAmount
+                        : (selectedOrder as any).serviceTaxPaise !== undefined
+                          ? (selectedOrder as any).serviceTaxPaise / 100
+                          : 0;
 
                   const cgstVal =
                     selectedOrder.cgstAmount !== undefined
@@ -952,17 +975,28 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).sgstPaise / 100
                         : 0;
 
-                  const serviceTaxVal =
-                    (selectedOrder as any).serviceTaxAmount !== undefined
-                      ? (selectedOrder as any).serviceTaxAmount
-                      : (selectedOrder as any).serviceTaxPaise !== undefined
-                        ? (selectedOrder as any).serviceTaxPaise / 100
+                  const roundOffVal =
+                    selectedOrder.roundOffAmount !== undefined
+                      ? selectedOrder.roundOffAmount
+                      : (selectedOrder as any).roundOffPaise !== undefined
+                        ? (selectedOrder as any).roundOffPaise / 100
                         : 0;
 
-                  const cgstPct = subtotalVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const sgstPct = subtotalVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const serviceTaxPct = subtotalVal > 0 ? Number(((serviceTaxVal / subtotalVal) * 100).toFixed(2)) : 0;
-                  const totalTaxPct = Number((cgstPct + sgstPct + serviceTaxPct).toFixed(2));
+                  // Use snapshotted rates if available, else derive
+                  const scRate = selectedOrder.serviceChargeRate !== undefined && selectedOrder.serviceChargeRate !== null
+                    ? Number(selectedOrder.serviceChargeRate)
+                    : (subtotalVal > 0 && serviceChargeVal > 0 ? Number(((serviceChargeVal / subtotalVal) * 100).toFixed(1)) : 0);
+
+                  const cgstRate = selectedOrder.cgstRate !== undefined && selectedOrder.cgstRate !== null
+                    ? Number(selectedOrder.cgstRate)
+                    : (subtotalVal > 0 && cgstVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(1)) : 2.5);
+
+                  const sgstRate = selectedOrder.sgstRate !== undefined && selectedOrder.sgstRate !== null
+                    ? Number(selectedOrder.sgstRate)
+                    : (subtotalVal > 0 && sgstVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(1)) : 2.5);
+
+                  const isDineIn = selectedOrder.isDineIn ?? (selectedOrder.orderSource === "TABLE" || selectedOrder.orderSource === "QR");
+                  const isOrderOpen = selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED";
 
                   return (
                     <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
@@ -982,23 +1016,50 @@ export default function LiveOrdersPage() {
                         </div>
                       )}
 
-                      <div className="flex justify-between text-gray-600 font-medium items-baseline">
-                        <div className="flex flex-col">
-                          <span>Tax Amount ({serviceTaxVal > 0 ? "GST & Taxes" : "GST"}{totalTaxPct > 0 ? ` ${totalTaxPct}%` : ""})</span>
-                          {(cgstVal > 0 || sgstVal > 0 || serviceTaxVal > 0) && (
-                            <span className="text-[10px] text-gray-400 font-normal">
-                              ({[
-                                cgstVal > 0 ? `CGST${cgstPct > 0 ? ` ${cgstPct}%` : ""}: ₹${cgstVal.toFixed(2)}` : null,
-                                sgstVal > 0 ? `SGST${sgstPct > 0 ? ` ${sgstPct}%` : ""}: ₹${sgstVal.toFixed(2)}` : null,
-                                serviceTaxVal > 0 ? `Service Tax${serviceTaxPct > 0 ? ` ${serviceTaxPct}%` : ""}: ₹${serviceTaxVal.toFixed(2)}` : null,
-                              ].filter(Boolean).join(" + ")})
-                            </span>
-                          )}
+                      {serviceChargeVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>Service Charge ({scRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{serviceChargeVal.toFixed(2)}
+                          </span>
                         </div>
-                        <span className="font-semibold text-gray-800">
-                          ₹{taxVal.toFixed(2)}
-                        </span>
-                      </div>
+                      )}
+
+                      {selectedOrder.serviceChargeWaived && (
+                        <div className="flex justify-between items-center text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-1 rounded-lg text-[11px] font-medium">
+                          <span>Service Charge Waived</span>
+                          <span className="italic text-[10px] text-amber-600">
+                            {selectedOrder.serviceChargeWaiveReason || "Customer request"}
+                          </span>
+                        </div>
+                      )}
+
+                      {cgstVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>CGST ({cgstRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{cgstVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {sgstVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>SGST ({sgstRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{sgstVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {roundOffVal !== 0 && (
+                        <div className="flex justify-between text-gray-500 font-medium text-[11px]">
+                          <span>Round off</span>
+                          <span className="font-semibold text-gray-700">
+                            {roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
                         <span>Overall Total</span>
@@ -1006,6 +1067,29 @@ export default function LiveOrdersPage() {
                           ₹{totalVal.toFixed(2)}
                         </span>
                       </div>
+
+                      {/* Voluntary Service Charge action for open dine-in orders */}
+                      {isDineIn && isOrderOpen && (
+                        <div className="pt-2 border-t border-dashed border-gray-200">
+                          {!selectedOrder.serviceChargeWaived && (serviceChargeVal > 0 || scRate > 0) ? (
+                            <button
+                              type="button"
+                              onClick={() => setWaivingServiceChargeOrder(selectedOrder)}
+                              className="w-full py-1.5 px-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <span>Remove Service Charge (Voluntary)</span>
+                            </button>
+                          ) : selectedOrder.serviceChargeWaived ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleServiceCharge(selectedOrder, false)}
+                              className="w-full py-1.5 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <span>Restore Service Charge</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
 
                       {selectedOrder.paymentMethod && (
                         <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
@@ -1105,27 +1189,134 @@ export default function LiveOrdersPage() {
 
               {/* Modal Body */}
               <div className="p-5 space-y-4 overflow-y-auto flex-1">
-                {/* Total Amount Summary Box */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-semibold text-slate-500 block uppercase tracking-wider">
-                      Amount Due
-                    </span>
-                    <span className="text-2xl font-bold text-slate-900 tracking-tight">
-                      ₹
-                      {(
-                        settlingOrder.totalAmount !== undefined
-                          ? settlingOrder.totalAmount
-                          : (settlingOrder as any).totalPaise !== undefined
-                            ? (settlingOrder as any).totalPaise / 100
-                            : 0
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Unpaid
-                  </span>
-                </div>
+                {/* Total Amount & Bill Breakdown Summary Box */}
+                {(() => {
+                  const subtotalVal =
+                    settlingOrder.subtotal !== undefined
+                      ? settlingOrder.subtotal
+                      : (settlingOrder as any).subtotalPaise !== undefined
+                        ? (settlingOrder as any).subtotalPaise / 100
+                        : 0;
+
+                  const totalVal =
+                    settlingOrder.totalAmount !== undefined
+                      ? settlingOrder.totalAmount
+                      : (settlingOrder as any).totalPaise !== undefined
+                        ? (settlingOrder as any).totalPaise / 100
+                        : 0;
+
+                  const serviceChargeVal =
+                    settlingOrder.serviceChargeAmount !== undefined
+                      ? settlingOrder.serviceChargeAmount
+                      : (settlingOrder as any).serviceTaxAmount !== undefined
+                        ? (settlingOrder as any).serviceTaxAmount
+                        : (settlingOrder as any).serviceTaxPaise !== undefined
+                          ? (settlingOrder as any).serviceTaxPaise / 100
+                          : 0;
+
+                  const cgstVal =
+                    settlingOrder.cgstAmount !== undefined
+                      ? settlingOrder.cgstAmount
+                      : (settlingOrder as any).cgstPaise !== undefined
+                        ? (settlingOrder as any).cgstPaise / 100
+                        : 0;
+
+                  const sgstVal =
+                    settlingOrder.sgstAmount !== undefined
+                      ? settlingOrder.sgstAmount
+                      : (settlingOrder as any).sgstPaise !== undefined
+                        ? (settlingOrder as any).sgstPaise / 100
+                        : 0;
+
+                  const roundOffVal =
+                    settlingOrder.roundOffAmount !== undefined
+                      ? settlingOrder.roundOffAmount
+                      : (settlingOrder as any).roundOffPaise !== undefined
+                        ? (settlingOrder as any).roundOffPaise / 100
+                        : 0;
+
+                  const scRate = settlingOrder.serviceChargeRate !== undefined && settlingOrder.serviceChargeRate !== null
+                    ? Number(settlingOrder.serviceChargeRate)
+                    : (subtotalVal > 0 && serviceChargeVal > 0 ? Number(((serviceChargeVal / subtotalVal) * 100).toFixed(1)) : 0);
+
+                  const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
+
+                  return (
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+                        <div>
+                          <span className="text-[11px] font-semibold text-slate-500 block uppercase tracking-wider">
+                            Amount Due
+                          </span>
+                          <span className="text-2xl font-bold text-slate-900 tracking-tight">
+                            ₹{totalVal.toFixed(2)}
+                          </span>
+                        </div>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Unpaid
+                        </span>
+                      </div>
+
+                      {/* Line breakdown */}
+                      <div className="space-y-1 text-xs text-slate-600">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span className="font-semibold text-slate-800">₹{subtotalVal.toFixed(2)}</span>
+                        </div>
+                        {serviceChargeVal > 0 && (
+                          <div className="flex justify-between">
+                            <span>Service Charge ({scRate}%)</span>
+                            <span className="font-semibold text-slate-800">₹{serviceChargeVal.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {settlingOrder.serviceChargeWaived && (
+                          <div className="flex justify-between items-center text-amber-700 bg-amber-50/80 border border-amber-200/60 px-2 py-0.5 rounded text-[11px]">
+                            <span>Service Charge Waived</span>
+                            <span className="italic text-[10px] text-amber-600">{settlingOrder.serviceChargeWaiveReason || "Customer request"}</span>
+                          </div>
+                        )}
+                        {(cgstVal > 0 || sgstVal > 0) && (
+                          <div className="flex justify-between">
+                            <span>GST (CGST + SGST)</span>
+                            <span className="font-semibold text-slate-800">₹{(cgstVal + sgstVal).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {roundOffVal !== 0 && (
+                          <div className="flex justify-between text-[11px] text-slate-500">
+                            <span>Round off</span>
+                            <span>{roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Remove Service Charge Option (Voluntary customer request) */}
+                      {isDineIn && (
+                        <div className="pt-2 border-t border-dashed border-slate-200">
+                          {!settlingOrder.serviceChargeWaived && (serviceChargeVal > 0 || scRate > 0) ? (
+                            <button
+                              type="button"
+                              onClick={() => setWaivingServiceChargeOrder(settlingOrder)}
+                              className="w-full py-1.5 px-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <span>Remove Service Charge (Customer Request)</span>
+                            </button>
+                          ) : settlingOrder.serviceChargeWaived ? (
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="text-amber-800 text-[11px] font-medium">Service charge removed</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleServiceCharge(settlingOrder, false)}
+                                className="text-[11px] font-bold text-slate-700 underline hover:text-black cursor-pointer"
+                              >
+                                Restore
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Customer Details Form */}
                 <div className="space-y-2">
@@ -1413,6 +1604,92 @@ export default function LiveOrdersPage() {
               isCancellation={printingKOT.isCancellation}
               onClose={() => setPrintingKOT(null)}
             />
+          </div>
+        )}
+
+        {/* ── Modal: Voluntary Service Charge Removal ── */}
+        {waivingServiceChargeOrder && (
+          <div
+            className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setWaivingServiceChargeOrder(null);
+            }}
+          >
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 leading-tight">Remove Service Charge</h4>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Order #{waivingServiceChargeOrder.orderNo || (waivingServiceChargeOrder as any).orderNumber || waivingServiceChargeOrder.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWaivingServiceChargeOrder(null)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Under statutory CCPA guidelines, service charge is voluntary. Please select or enter the customer's reason for removal:
+                </p>
+                <div className="space-y-1.5">
+                  {[
+                    "Customer requested removal",
+                    "Dissatisfied with table service",
+                    "Management discretion / VIP guest",
+                    "Billing correction",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setWaiveReason(preset)}
+                      className={`w-full text-left text-xs px-3 py-2 rounded-xl border transition cursor-pointer ${
+                        waiveReason === preset
+                          ? "bg-amber-50 border-amber-300 text-amber-900 font-semibold"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                  <input
+                    type="text"
+                    value={waiveReason}
+                    onChange={(e) => setWaiveReason(e.target.value)}
+                    placeholder="Or type custom reason..."
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setWaivingServiceChargeOrder(null)}
+                  className="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isUpdatingServiceCharge || !waiveReason.trim()}
+                  onClick={() =>
+                    handleToggleServiceCharge(waivingServiceChargeOrder, true, waiveReason)
+                  }
+                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdatingServiceCharge ? "Removing..." : "Confirm Removal"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

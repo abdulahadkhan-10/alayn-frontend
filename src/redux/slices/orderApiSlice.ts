@@ -44,6 +44,16 @@ export interface Order {
   taxAmount: number;
   cgstAmount?: number;
   sgstAmount?: number;
+  serviceTaxAmount?: number;
+  serviceChargeAmount?: number;
+  serviceChargeRate?: number | null;
+  cgstRate?: number | null;
+  sgstRate?: number | null;
+  roundOffAmount?: number;
+  serviceChargeWaived?: boolean;
+  serviceChargeWaiveReason?: string | null;
+  isDineIn?: boolean;
+  gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED";
   discountAmount: number;
   paymentMethod: "CASH" | "CARD" | "UPI";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
@@ -119,6 +129,16 @@ export const orderApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data || response,
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),
+
+    setServiceChargeWaiver: builder.mutation<Order, { id: string; waive: boolean; reason?: string }>({
+      query: ({ id, waive, reason }) => ({
+        url: `/orders/${id}/service-charge`,
+        method: "PATCH",
+        body: { waive, reason },
+      }),
+      transformResponse: (response: any) => response?.data || response,
+      invalidatesTags: ["Orders", "KitchenTickets"],
+    }),
   }),
 });
 
@@ -127,4 +147,5 @@ export const {
   useGetKitchenTicketsQuery,
   useCreateOrderMutation,
   useUpdateOrderStatusMutation,
+  useSetServiceChargeWaiverMutation,
 } = orderApi;

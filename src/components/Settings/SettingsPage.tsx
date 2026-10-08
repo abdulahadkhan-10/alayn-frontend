@@ -64,6 +64,7 @@ export default function SettingsPage() {
   const [cgstInput, setCgstInput] = useState<string>("2.5");
   const [sgstInput, setSgstInput] = useState<string>("2.5");
   const [serviceTaxInput, setServiceTaxInput] = useState<string>("0.0");
+  const [gstRegistrationType, setGstRegistrationType] = useState<"REGULAR" | "COMPOSITION" | "UNREGISTERED">("REGULAR");
   const [updateTaxRates, { isLoading: isUpdatingTax }] = useUpdateTaxRatesMutation();
 
   // Receipt Details State
@@ -153,6 +154,7 @@ export default function SettingsPage() {
       setCgstInput(String(currentOutlet.cgstRateDecimal ?? 2.5));
       setSgstInput(String(currentOutlet.sgstRateDecimal ?? 2.5));
       setServiceTaxInput(String(currentOutlet.serviceTaxRateDecimal ?? 0.0));
+      setGstRegistrationType((currentOutlet.gstRegistrationType as any) || "REGULAR");
       setGstinInput(currentOutlet.gstin || "");
       setOutletPhoneInput(currentOutlet.phone || "");
       setTaglineInput(currentOutlet.receiptTagline || "Serving joy every day.");
@@ -210,10 +212,16 @@ export default function SettingsPage() {
       return;
     }
     try {
-      await updateTaxRates({ outletId: targetOutletId, cgstRate: cgst, sgstRate: sgst, serviceTaxRate: serviceTax }).unwrap();
+      await updateTaxRates({
+        outletId: targetOutletId,
+        cgstRate: cgst,
+        sgstRate: sgst,
+        serviceTaxRate: serviceTax,
+        gstRegistrationType,
+      }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
-      const totalCombined = (cgst + sgst + serviceTax).toFixed(2);
-      setFeedbackMsg(`Tax Rates updated successfully for ${scopeLabel}! (${cgst}% CGST + ${sgst}% SGST + ${serviceTax}% Service Tax = ${totalCombined}% Total Tax)`);
+      const gstSummary = gstRegistrationType === "REGULAR" ? `${cgst}% CGST + ${sgst}% SGST` : `${gstRegistrationType} Scheme (No GST)`;
+      setFeedbackMsg(`Tax Rates updated successfully for ${scopeLabel}! (${gstSummary} • ${serviceTax}% Service Charge)`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
     }
@@ -667,10 +675,31 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleSaveTaxRates} className="space-y-4">
+                {/* GST Registration Type Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    GST Registration Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={gstRegistrationType}
+                    onChange={(e) => setGstRegistrationType(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white cursor-pointer"
+                  >
+                    <option value="REGULAR">Regular (Standard GST — CGST + SGST charged on bills, prints "Tax Invoice")</option>
+                    <option value="COMPOSITION">Composition Scheme (No GST charged to customers, prints "Bill of Supply")</option>
+                    <option value="UNREGISTERED">Unregistered (Turnover below threshold — no GST collected on bills)</option>
+                  </select>
+                  {gstRegistrationType !== "REGULAR" && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl p-2.5 mt-2 font-medium">
+                      Under {gstRegistrationType === "COMPOSITION" ? "Composition Scheme" : "Unregistered status"}, GST (CGST/SGST) is legally barred from being charged on customer bills. Receipts will automatically display as "Bill of Supply".
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
+                  <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      CGST (%) <span className="text-red-500">*</span>
+                      CGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
                       <input
@@ -680,17 +709,18 @@ export default function SettingsPage() {
                         max="50"
                         value={cgstInput}
                         onChange={(e) => setCgstInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        disabled={gstRegistrationType !== "REGULAR"}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="2.5"
-                        required
+                        required={gstRegistrationType === "REGULAR"}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
                   </div>
 
-                  <div>
+                  <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      SGST (%) <span className="text-red-500">*</span>
+                      SGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
                       <input
@@ -700,9 +730,10 @@ export default function SettingsPage() {
                         max="50"
                         value={sgstInput}
                         onChange={(e) => setSgstInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        disabled={gstRegistrationType !== "REGULAR"}
+                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="2.5"
-                        required
+                        required={gstRegistrationType === "REGULAR"}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
@@ -710,7 +741,7 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Service Tax (%)
+                      Service Charge (%)
                     </label>
                     <div className="relative">
                       <input
@@ -725,13 +756,33 @@ export default function SettingsPage() {
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
+                    <p className="text-[10px] text-gray-500 mt-1 font-medium">
+                      Dine-in only • customer may ask to remove • GST applies on it
+                    </p>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-600">Total Combined Tax:</span>
+                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-bold text-gray-700 block">Applied Rates Summary:</span>
+                    <span className="text-xs text-gray-500">
+                      {gstRegistrationType === "REGULAR"
+                        ? `GST: ${((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% (${cgstInput}% CGST + ${sgstInput}% SGST)`
+                        : `No GST charged to customers (${gstRegistrationType})`}
+                      {parseFloat(serviceTaxInput) > 0 ? ` • Service Charge: ${serviceTaxInput}%` : " • No Service Charge"}
+                    </span>
+                  </div>
                   <span className="text-sm font-black text-[#D3232A]">
-                    {((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0) + (parseFloat(serviceTaxInput) || 0)).toFixed(2)}% Total Tax
+                    {gstRegistrationType === "REGULAR"
+                      ? `${((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% GST`
+                      : "0% GST"}
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-2 p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-900 text-xs leading-relaxed">
+                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Statutory Note:</strong> GST is now applied on service charge as required by GST law (part of value of supply, CGST Act s.15) — please inform your accountant.
                   </span>
                 </div>
 

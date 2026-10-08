@@ -11,6 +11,7 @@ export interface Outlet {
   cgstRateDecimal?: number | string;
   sgstRateDecimal?: number | string;
   serviceTaxRateDecimal?: number | string;
+  gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED";
   phone?: string;
   gstin?: string;
   receiptTagline?: string;
@@ -70,11 +71,11 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
-    updateTaxRates: builder.mutation<any, { outletId?: string; cgstRate: number; sgstRate: number; serviceTaxRate?: number }>({
-      query: ({ outletId, cgstRate, sgstRate, serviceTaxRate }) => ({
+    updateTaxRates: builder.mutation<any, { outletId?: string; cgstRate: number; sgstRate: number; serviceTaxRate?: number; gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED" }>({
+      query: ({ outletId, cgstRate, sgstRate, serviceTaxRate, gstRegistrationType }) => ({
         url: "/outlets/tax-rates",
         method: "PATCH",
-        body: { cgstRate, sgstRate, serviceTaxRate },
+        body: { cgstRate, sgstRate, serviceTaxRate, gstRegistrationType },
         headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       invalidatesTags: ["Outlet"],
