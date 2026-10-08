@@ -443,7 +443,10 @@ export default function ShiftSchedulerPage() {
 
   // Overall Pending Swap Requests List
   const allSwapRequests = useMemo(() => {
-    return shifts.flatMap((s: any) => s.swapRequests || []);
+    // Only swaps still in progress: waiting for the colleague (REQUESTED) or for a manager (ACCEPTED)
+    return shifts
+      .flatMap((s: { swapRequests?: { id: string; status?: string; date?: string }[] }) => s.swapRequests || [])
+      .filter((swap: { status?: string }) => swap.status === "REQUESTED" || swap.status === "ACCEPTED");
   }, [shifts]);
 
   // Open Weekly Roster Modal pre-filled for a specific employee
@@ -1193,20 +1196,22 @@ export default function ShiftSchedulerPage() {
                 >
                   <div className="space-y-0.5">
                     <div className="font-medium text-gray-900">
-                      Swap Request #{swap.id.slice(0, 6)} · {swap.status}
+                      Swap Request #{swap.id.slice(0, 6)} ·{" "}
+                      {swap.status === "ACCEPTED" ? "Accepted by colleague — needs approval" : "Waiting for colleague to accept"}
                     </div>
                     <p className="text-gray-500">Requested date: {formatDateNice(swap.date)}</p>
                   </div>
 
-                  {swap.status === "REQUESTED" && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleSwapAction(swap.id, "REJECTED")}
-                        disabled={isUpdatingSwap}
-                        className="px-3 py-1 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                      >
-                        Reject
-                      </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSwapAction(swap.id, "REJECTED")}
+                      disabled={isUpdatingSwap}
+                      className="px-3 py-1 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                    {/* A swap can only be approved after the colleague taking the shift has accepted it */}
+                    {swap.status === "ACCEPTED" && (
                       <button
                         onClick={() => handleSwapAction(swap.id, "APPROVED")}
                         disabled={isUpdatingSwap}
@@ -1214,8 +1219,8 @@ export default function ShiftSchedulerPage() {
                       >
                         Approve
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))
             )}

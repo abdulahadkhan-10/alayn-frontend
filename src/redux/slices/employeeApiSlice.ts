@@ -67,7 +67,8 @@ export const employeeApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { status },
       }),
-      invalidatesTags: ["Leave"],
+      // Approving leave removes the employee's shift assignments for those days
+      invalidatesTags: ["Leave", "Shift"],
     }),
   }),
 });

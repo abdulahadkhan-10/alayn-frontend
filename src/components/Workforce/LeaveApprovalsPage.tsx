@@ -136,6 +136,17 @@ export default function LeaveApprovalsPage() {
     }
   }, [showCreateModal, currentEmployee]);
 
+  // Anyone with an employee profile can apply (managers too); their requests go to a higher role.
+  const canApplyForLeave = !isManagerOrOwner || !!currentEmployee;
+
+  // Mirrors backend rules: nobody decides their own leave; managers decide Staff/Kitchen leave only.
+  const canDecideLeave = (leave: { status?: string; employee?: { userId?: string | null; role?: string } } | null) =>
+    !!leave &&
+    isManagerOrOwner &&
+    leave.status === "REQUESTED" &&
+    leave.employee?.userId !== user?.id &&
+    (user?.role !== "MANAGER" || ["STAFF", "KITCHEN"].includes(leave.employee?.role || ""));
+
   const userLeaves = React.useMemo(() => {
     if (!isManagerOrOwner) {
       return leaves.filter((l: any) => {
@@ -262,8 +273,14 @@ export default function LeaveApprovalsPage() {
 
   const handleStatusUpdate = async (id: string, status: "APPROVED" | "REJECTED") => {
     try {
-      await updateLeaveStatus({ id, status }).unwrap();
-      setFeedbackMsg(`Leave request ${status.toLowerCase()}!`);
+      const result = (await updateLeaveStatus({ id, status }).unwrap()) as {
+        data?: { removedShiftAssignments?: number };
+      };
+      const removed = result?.data?.removedShiftAssignments || 0;
+      setFeedbackMsg(
+        `Leave request ${status.toLowerCase()}!` +
+          (removed > 0 ? ` ${removed} assigned shift${removed === 1 ? " was" : "s were"} removed from the schedule for those days.` : "")
+      );
       setSelectedLeaveDetail(null);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || `Failed to update leave status`);
@@ -297,7 +314,7 @@ export default function LeaveApprovalsPage() {
                 : "Submit time-off requests and track the approval status of your applications."}
             </p>
           </div>
-          {!isManagerOrOwner && (
+          {canApplyForLeave && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-[#b01e23] transition-colors cursor-pointer"
@@ -525,7 +542,7 @@ export default function LeaveApprovalsPage() {
                       </span>
 
                       {/* Click Date to Apply for Leave (Only for Employees on Today & Future Dates) */}
-                      {!isManagerOrOwner && !isPastDate ? (
+                      {canApplyForLeave && !isPastDate ? (
                         <button
                           onClick={() => {
                             setLeaveForm({
@@ -639,7 +656,7 @@ export default function LeaveApprovalsPage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           {isManagerOrOwner ? (
-                            l.status === "REQUESTED" ? (
+                            canDecideLeave(l) ? (
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => handleStatusUpdate(l.id, "APPROVED")}
@@ -656,6 +673,9 @@ export default function LeaveApprovalsPage() {
                                   Reject
                                 </button>
                               </div>
+                            ) : l.status === "REQUESTED" ? (
+                              // Own leave, or a manager's leave seen by another manager: the owner decides
+                              <span className="text-xs text-gray-500 font-medium">Awaiting owner approval</span>
                             ) : (
                               <span className="text-xs text-gray-400">—</span>
                             )
@@ -767,7 +787,7 @@ export default function LeaveApprovalsPage() {
                 </div>
               </div>
 
-              {isManagerOrOwner && selectedLeaveDetail.status === "REQUESTED" && (
+              {canDecideLeave(selectedLeaveDetail) && (
                 <div className="pt-3 flex gap-3 border-t border-gray-100">
                   <button
                     onClick={() => handleStatusUpdate(selectedLeaveDetail.id, "APPROVED")}

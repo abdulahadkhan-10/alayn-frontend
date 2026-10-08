@@ -71,6 +71,16 @@ export const shiftApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Shift"],
     }),
+    // The colleague asked to take a shift accepts or declines it (before manager approval).
+    // Not used by any screen yet — ready for the staff swap UI.
+    respondToSwap: builder.mutation<unknown, { swapId: string; accept: boolean }>({
+      query: ({ swapId, accept }) => ({
+        url: `/shifts/swaps/${swapId}/respond`,
+        method: "PATCH",
+        body: { accept },
+      }),
+      invalidatesTags: ["Shift"],
+    }),
   }),
 });
 
@@ -84,4 +94,5 @@ export const {
   useDeleteShiftMutation,
   useRequestSwapMutation,
   useUpdateSwapStatusMutation,
+  useRespondToSwapMutation,
 } = shiftApi;

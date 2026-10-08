@@ -29,8 +29,10 @@ import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
+import { useGetLeaveRequestsQuery } from "@/redux/slices/employeeApiSlice";
 import {
   AttendanceLog,
+  approvedLeaveRows,
   attendanceTags,
   clockInWithConfirmation,
   employeeDayKey,
@@ -133,7 +135,21 @@ export default function AttendanceLogsPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const logs = apiLogsData?.data || (isLoading ? [] : DEMO_ATTENDANCE_LOGS);
+  const punchLogs: AttendanceLog[] = React.useMemo(
+    () => apiLogsData?.data || (isLoading ? [] : DEMO_ATTENDANCE_LOGS),
+    [apiLogsData, isLoading]
+  );
+
+  // Approved leave days appear as "On leave" rows, so they aren't mistaken for no-shows
+  const { data: leaveApiData } = useGetLeaveRequestsQuery(outletId ? { outletId } : undefined);
+  const logs = React.useMemo(() => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const leaveRows = approvedLeaveRows(leaveApiData?.data || [], punchLogs, todayStr);
+    if (leaveRows.length === 0) return punchLogs;
+    const sortKey = (l: AttendanceLog) => `${String(l.date || "").split("T")[0]}|${l.checkInTime || ""}`;
+    return [...punchLogs, ...leaveRows].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
+  }, [punchLogs, leaveApiData]);
 
   const userLogs = React.useMemo(() => {
     if (!isManagerOrOwner) {
@@ -209,6 +225,7 @@ export default function AttendanceLogsPage() {
 
   const canCorrect = (log: AttendanceLog) =>
     isManagerOrOwner &&
+    !log.onLeave &&
     !!log.id &&
     log.employee?.userId !== user?.id &&
     (user?.role !== "MANAGER" || ["STAFF", "KITCHEN"].includes(log.employee?.role || ""));
@@ -246,7 +263,8 @@ export default function AttendanceLogsPage() {
   const gracePeriodMins = outletsData.find((o) => o.id === outletId)?.lateGraceMinutes ?? 30;
 
   const attendanceMetrics = React.useMemo(() => {
-    const targetLogs = userLogs;
+    // Approved-leave days are shown in the table but aren't attendance records
+    const targetLogs = (userLogs as AttendanceLog[]).filter((l) => !l.onLeave);
     const totalLogs = targetLogs.length;
 
     if (totalLogs === 0) {
@@ -602,6 +620,7 @@ export default function AttendanceLogsPage() {
                       <td className="px-6 py-4 text-gray-700 font-medium">{formatAttendanceTime(log.clockOut || log.checkOutTime)}</td>
                       <td className="px-6 py-4 font-mono text-xs text-gray-700">
                         {(() => {
+                          if (log.onLeave) return "—";
                           if (log.totalHours) return log.totalHours;
                           if (log.missedClockOut) {
                             return <span className="text-rose-700">Not counted</span>;

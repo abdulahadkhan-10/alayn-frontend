@@ -42,6 +42,8 @@ export interface AttendanceLogFlags {
   missedClockOut?: boolean;
   editedAt?: string | null;
   status?: string;
+  // Synthetic row for a day covered by approved leave (no punch), so it isn't mistaken for a no-show
+  onLeave?: boolean;
 }
 
 export interface AttendanceLog extends AttendanceLogFlags {
@@ -65,6 +67,7 @@ export function employeeDayKey(log: AttendanceLog): string {
 /** Labels shown on an attendance row. Late and left-early are separate so neither hides the other. */
 export function attendanceTags(log: AttendanceLogFlags): { label: string; cls: string }[] {
   const tags: { label: string; cls: string }[] = [];
+  if (log.onLeave) return [{ label: "On leave (approved)", cls: "bg-sky-100 text-sky-800" }];
   const isLate = log.isLate ?? log.status === "LATE";
   const leftEarly = log.leftEarly ?? log.status === "EARLY_DEPARTURE";
   if (log.missedClockOut) tags.push({ label: "Missed clock-out", cls: "bg-rose-100 text-rose-800" });
@@ -83,6 +86,42 @@ export function formatMinutes(totalMins: number): string {
   const m = Math.round(totalMins % 60);
   if (h === 0) return `${m} mins`;
   return `${h} hrs ${m} mins`;
+}
+
+interface ApprovedLeave {
+  id: string;
+  status?: string;
+  employeeId?: string;
+  startDate: string;
+  endDate: string;
+  employee?: AttendanceLog["employee"];
+}
+
+/**
+ * One "On leave" row per approved-leave day up to today that has no punch for that employee,
+ * so approved leave can be told apart from a no-show in the attendance log.
+ */
+export function approvedLeaveRows(leaves: ApprovedLeave[], punches: AttendanceLog[], todayStr: string): AttendanceLog[] {
+  const punchedDays = new Set(punches.map(employeeDayKey));
+  const rows: AttendanceLog[] = [];
+  for (const leave of leaves) {
+    if (leave.status !== "APPROVED") continue;
+    const start = new Date(`${leave.startDate.split("T")[0]}T00:00:00.000Z`);
+    const end = new Date(`${leave.endDate.split("T")[0]}T00:00:00.000Z`);
+    for (let d = start; d <= end; d = new Date(d.getTime() + 24 * 60 * 60 * 1000)) {
+      const dateStr = d.toISOString().split("T")[0];
+      if (dateStr > todayStr) break;
+      const row: AttendanceLog = {
+        id: `leave-${leave.id}-${dateStr}`,
+        onLeave: true,
+        date: dateStr,
+        employeeId: leave.employeeId || leave.employee?.id,
+        employee: leave.employee,
+      };
+      if (!punchedDays.has(employeeDayKey(row))) rows.push(row);
+    }
+  }
+  return rows;
 }
 
 /** Value for <input type="datetime-local"> in the browser's local time. */
