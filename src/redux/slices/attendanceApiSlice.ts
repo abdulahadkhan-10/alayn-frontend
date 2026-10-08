@@ -18,6 +18,18 @@ export const attendanceApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Attendance"],
     }),
+    // Manager/owner correction of a punch (e.g. entering the real time of a missed clock-out)
+    correctAttendance: builder.mutation<
+      unknown,
+      { id: string; checkInTime?: string; checkOutTime?: string; reason: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/attendance/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
     getAttendanceLogs: builder.query({
       query: () => ({
         url: "/attendance",
@@ -31,5 +43,6 @@ export const attendanceApi = baseApi.injectEndpoints({
 export const {
   useClockInMutation,
   useClockOutMutation,
+  useCorrectAttendanceMutation,
   useGetAttendanceLogsQuery,
 } = attendanceApi;

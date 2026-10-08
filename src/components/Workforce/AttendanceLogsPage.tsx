@@ -7,6 +7,7 @@ import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
   useClockInMutation,
   useClockOutMutation,
+  useCorrectAttendanceMutation,
   useGetAttendanceLogsQuery,
 } from "@/redux/slices/attendanceApiSlice";
 import {
@@ -28,6 +29,15 @@ import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
+import {
+  AttendanceLog,
+  attendanceTags,
+  clockInWithConfirmation,
+  employeeDayKey,
+  formatMinutes,
+  getApiErrorMessage,
+  toDateTimeLocalValue,
+} from "@/lib/attendance";
 
 const DEMO_ATTENDANCE_LOGS = [
   {
@@ -146,6 +156,8 @@ export default function AttendanceLogsPage() {
       return;
     }
     const hasOpen = userLogs.some((log: any) => {
+      // A missed clock-out is closed (awaiting manager correction), not an active shift
+      if (log.missedClockOut) return false;
       const inTime = log.clockIn || log.checkInTime;
       const outTime = log.clockOut || log.checkOutTime;
       return inTime && (!outTime || outTime === "-- : --" || outTime === "--:--");
@@ -162,6 +174,72 @@ export default function AttendanceLogsPage() {
   const paginatedLogs = React.useMemo(() => {
     return userLogs.slice(startIndex, startIndex + pageSize);
   }, [userLogs, startIndex, pageSize]);
+
+  // Minutes worked in one punch. Open punches and missed clock-outs count 0 (no invented end time).
+  const punchMinutes = (log: AttendanceLog): number => {
+    if (log.missedClockOut) return 0;
+    const inStr = log.clockIn || log.checkInTime;
+    const outStr = log.clockOut || log.checkOutTime;
+    if (!inStr || !outStr || outStr === "-- : --" || outStr === "--:--") return 0;
+    const diff = new Date(outStr).getTime() - new Date(inStr).getTime();
+    return Number.isFinite(diff) && diff > 0 ? diff / 60000 : 0;
+  };
+
+  // Split shifts: total per employee per day, shown when a day has more than one punch
+  const dayTotals = React.useMemo(() => {
+    const totals = new Map<string, { minutes: number; punches: number }>();
+    for (const log of userLogs as AttendanceLog[]) {
+      const key = employeeDayKey(log);
+      const entry = totals.get(key) || { minutes: 0, punches: 0 };
+      entry.minutes += punchMinutes(log);
+      entry.punches += 1;
+      totals.set(key, entry);
+    }
+    return totals;
+  }, [userLogs]);
+
+  // Manager/owner correction of a punch (e.g. entering the real time of a missed clock-out).
+  // Mirrors backend rules: never your own record; managers only for Staff/Kitchen.
+  const [correctAttendance, { isLoading: isCorrecting }] = useCorrectAttendanceMutation();
+  const [editingLog, setEditingLog] = useState<AttendanceLog | null>(null);
+  const [editIn, setEditIn] = useState("");
+  const [editOut, setEditOut] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const canCorrect = (log: AttendanceLog) =>
+    isManagerOrOwner &&
+    !!log.id &&
+    log.employee?.userId !== user?.id &&
+    (user?.role !== "MANAGER" || ["STAFF", "KITCHEN"].includes(log.employee?.role || ""));
+
+  const openCorrection = (log: AttendanceLog) => {
+    setEditingLog(log);
+    setEditIn(toDateTimeLocalValue(log.checkInTime));
+    setEditOut(toDateTimeLocalValue(log.checkOutTime));
+    setEditReason("");
+    setEditError(null);
+  };
+
+  const handleSaveCorrection = async () => {
+    if (!editingLog?.id) return;
+    if (editReason.trim().length < 3) {
+      setEditError("Please give a reason for the correction.");
+      return;
+    }
+    try {
+      await correctAttendance({
+        id: editingLog.id,
+        checkInTime: editIn ? new Date(editIn).toISOString() : undefined,
+        checkOutTime: editOut ? new Date(editOut).toISOString() : undefined,
+        reason: editReason.trim(),
+      }).unwrap();
+      setEditingLog(null);
+      setFeedbackMsg("Attendance corrected.");
+    } catch (err) {
+      setEditError(getApiErrorMessage(err, "Failed to correct attendance"));
+    }
+  };
 
   // Grace period is configured per outlet (Settings) and enforced by the backend; shown here for information only
   const { data: outletsData = [] } = useGetOutletsQuery();
@@ -185,9 +263,11 @@ export default function AttendanceLogsPage() {
     const presentLogs = targetLogs.filter(
       (l: any) => l.status === "PRESENT" || l.status === "LATE" || l.checkInTime || l.clockIn
     );
-    const lateLogs = targetLogs.filter((l: any) => l.status === "LATE");
-    const presentCount = presentLogs.length;
-    const lateCount = lateLogs.length;
+    // Split shifts create several punches per day: count each employee-day once
+    const presentCount = new Set((presentLogs as AttendanceLog[]).map(employeeDayKey)).size;
+    const lateCount = new Set(
+      (targetLogs as AttendanceLog[]).filter((l) => l.isLate ?? l.status === "LATE").map(employeeDayKey)
+    ).size;
     const onTimeCount = Math.max(0, presentCount - lateCount);
     const rateNum = Math.round((presentCount / Math.max(totalLogs, 1)) * 100);
 
@@ -246,15 +326,19 @@ export default function AttendanceLogsPage() {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            await clockIn({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            }).unwrap();
+            // On a holiday / closed day / weekly off the backend asks "Clock in anyway?" first
+            const clockedIn = await clockInWithConfirmation((confirmOffDay) =>
+              clockIn({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                confirmOffDay,
+              }).unwrap()
+            );
+            if (!clockedIn) return;
             setIsShiftActive(true);
             setFeedbackMsg("Clock In successful! Have a great shift.");
-          } catch (err: any) {
-            const message = err?.data?.message || err?.message || "Failed to clock in";
-            setErrorMsg(message);
+          } catch (err) {
+            setErrorMsg(getApiErrorMessage(err, "Failed to clock in"));
             setIsShiftActive(false);
           }
         },
@@ -495,12 +579,13 @@ export default function AttendanceLogsPage() {
                   <th className="px-6 py-3.5">Clock Out</th>
                   <th className="px-6 py-3.5">Total Duration</th>
                   <th className="px-6 py-3.5">Status</th>
+                  {isManagerOrOwner && <th className="px-6 py-3.5 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200/60">
                 {paginatedLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={isManagerOrOwner ? 6 : 5} className="px-6 py-8 text-center text-xs text-gray-500">
+                    <td colSpan={isManagerOrOwner ? 7 : 5} className="px-6 py-8 text-center text-xs text-gray-500">
                       No attendance logs recorded yet.
                     </td>
                   </tr>
@@ -518,31 +603,55 @@ export default function AttendanceLogsPage() {
                       <td className="px-6 py-4 font-mono text-xs text-gray-700">
                         {(() => {
                           if (log.totalHours) return log.totalHours;
-                          const inStr = log.clockIn || log.checkInTime;
+                          if (log.missedClockOut) {
+                            return <span className="text-rose-700">Not counted</span>;
+                          }
                           const outStr = log.clockOut || log.checkOutTime;
-                          if (!inStr || !outStr || outStr === "-- : --" || outStr === "--:--") return "Working...";
-                          const inDate = new Date(inStr);
-                          const outDate = new Date(outStr);
-                          if (isNaN(inDate.getTime()) || isNaN(outDate.getTime())) return "8 hrs";
-                          const diffMs = outDate.getTime() - inDate.getTime();
-                          if (diffMs <= 0) return "8 hrs";
-                          const totalMins = Math.floor(diffMs / 60000);
-                          const h = Math.floor(totalMins / 60);
-                          const m = totalMins % 60;
-                          if (h === 0) return `${m} mins`;
-                          return `${h} hrs ${m} mins`;
+                          if (!outStr || outStr === "-- : --" || outStr === "--:--") return "Working...";
+                          return formatMinutes(Math.floor(punchMinutes(log)));
+                        })()}
+                        {(() => {
+                          const day = dayTotals.get(employeeDayKey(log));
+                          return day && day.punches > 1 ? (
+                            <div className="mt-0.5 text-[10px] font-sans font-semibold text-gray-500">
+                              Day total: {formatMinutes(Math.floor(day.minutes))}
+                            </div>
+                          ) : null;
                         })()}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                          log.status === "PRESENT" ? "bg-emerald-100 text-emerald-800" : 
-                          log.status === "LATE" ? "bg-amber-100 text-amber-800" :
-                          log.status === "EARLY_DEPARTURE" ? "bg-orange-100 text-orange-800" : 
-                          "bg-gray-100 text-gray-800"
-                        }`}>
-                          {log.status ? log.status.replace('_', ' ') : "PRESENT"}
-                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {attendanceTags(log).map((tag) => (
+                            <span
+                              key={tag.label}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${tag.cls}`}
+                            >
+                              {tag.label}
+                            </span>
+                          ))}
+                        </div>
+                        {log.editReason && (
+                          <p className="mt-1 text-[10px] text-gray-500" title={log.editReason}>
+                            Edited: {log.editReason}
+                          </p>
+                        )}
                       </td>
+                      {isManagerOrOwner && (
+                        <td className="px-6 py-4 text-right">
+                          {canCorrect(log) && (
+                            <button
+                              onClick={() => openCorrection(log)}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                                log.missedClockOut
+                                  ? "bg-rose-600 text-white hover:bg-rose-700"
+                                  : "border border-gray-200 text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {log.missedClockOut ? "Fix time" : "Edit"}
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -595,6 +704,84 @@ export default function AttendanceLogsPage() {
             </div>
           </div>
         </div>
+
+        {/* Manager correction popup (e.g. enter the real time of a missed clock-out) */}
+        {editingLog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-gray-200">
+              <button
+                onClick={() => setEditingLog(null)}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <h3 className="font-bold text-gray-900 text-base">Correct Attendance</h3>
+              <p className="text-xs text-gray-500 mt-0.5 mb-4">
+                {editingLog.employee?.name || "Staff Member"} · {formatAttendanceDate(editingLog.date || "")}
+              </p>
+
+              {editingLog.missedClockOut && (
+                <p className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 mb-4">
+                  This person forgot to clock out. Enter the time they actually left — until then, these hours are not counted.
+                </p>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Clock in</label>
+                  <input
+                    type="datetime-local"
+                    value={editIn}
+                    onChange={(e) => setEditIn(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs bg-white focus:border-[#D3232A] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Clock out</label>
+                  <input
+                    type="datetime-local"
+                    value={editOut}
+                    onChange={(e) => setEditOut(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs bg-white focus:border-[#D3232A] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Reason <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                    maxLength={300}
+                    placeholder="e.g. Forgot to punch out, left at 6 PM (confirmed with shift lead)"
+                    className="w-full rounded-xl border border-gray-300 px-3.5 py-2 text-xs bg-white focus:border-[#D3232A] focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-gray-500">Saved with your name so every change is traceable.</p>
+                </div>
+              </div>
+
+              {editError && <p className="mt-3 text-xs font-medium text-rose-700">{editError}</p>}
+
+              <div className="flex items-center justify-end gap-2 mt-5">
+                <button
+                  onClick={() => setEditingLog(null)}
+                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveCorrection}
+                  disabled={isCorrecting}
+                  className="rounded-lg bg-[#D3232A] px-4 py-2 text-xs font-bold text-white hover:bg-[#b01e23] disabled:opacity-50 cursor-pointer"
+                >
+                  {isCorrecting ? "Saving…" : "Save Correction"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useAppSelector } from "@/redux/store/hooks";
+import { clockInWithConfirmation, getApiErrorMessage } from "@/lib/attendance";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import {
   useClockInMutation,
@@ -117,17 +118,21 @@ export default function AttendanceTerminalPage() {
     try {
       // Punch time and late/early rules are decided by the server; the terminal only sends who + where
       const location = await getDeviceLocation();
-      await clockIn({ employeeId: selectedEmployeeId, ...location }).unwrap();
+      // On a holiday / closed day / weekly off the backend asks "Clock in anyway?" first
+      const clockedIn = await clockInWithConfirmation((confirmOffDay) =>
+        clockIn({ employeeId: selectedEmployeeId, ...location, confirmOffDay }).unwrap()
+      );
+      if (!clockedIn) return;
       const emp = employees.find((e: any) => e.id === selectedEmployeeId);
       setFeedback({
         type: "success",
         msg: `Checked In successfully for ${emp?.name || "Employee"}!`,
       });
       setSelectedEmployeeId("");
-    } catch (err: any) {
+    } catch (err) {
       setFeedback({
         type: "error",
-        msg: err?.data?.message || "Failed to check in (Already checked in or inactive)",
+        msg: getApiErrorMessage(err, "Failed to check in (Already checked in or inactive)"),
       });
     }
   };

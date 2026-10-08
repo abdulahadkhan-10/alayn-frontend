@@ -1,5 +1,6 @@
 import { Middleware, isFulfilled, isRejected } from "@reduxjs/toolkit";
 import { showToast } from "@/lib/toast";
+import { CLOCK_IN_CONFIRMATION_REQUIRED } from "@/lib/attendance";
 
 // Human-friendly success messages for RTK Query mutations across Alayn platform
 const mutationSuccessMessages: Record<string, { title: string; message?: string }> = {
@@ -95,6 +96,10 @@ export const rtkQueryToastMiddleware: Middleware = () => (next) => (action: any)
       }
     } else if (isRejected(action)) {
       if (endpointName === "logout") {
+        return next(action);
+      }
+      // Not a failure: the page asks the user "Clock in anyway?" (holiday / closed day / weekly off)
+      if (action.payload?.data?.error?.code === CLOCK_IN_CONFIRMATION_REQUIRED) {
         return next(action);
       }
       const title = `${formatEndpointTitle(endpointName)} Failed`;
