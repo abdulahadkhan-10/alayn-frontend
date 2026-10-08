@@ -84,6 +84,8 @@ export default function KitchenDispatchBoardComponent() {
 
   // Real-time WebSocket connection
   const { isConnected } = useSocket(currentOutletId, {
+    // After a reconnect, reload tickets so orders placed while disconnected aren't missed
+    onConnect: () => refetch(),
     onKDSUpdate: (data: any) => {
       refetch();
       if (data?.status === "CANCELLED") {

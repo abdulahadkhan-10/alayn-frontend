@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAppSelector } from "@/redux/store/hooks";
+import { BASE_URL } from "@/redux/store/baseApi";
 
 export function getSocketUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -95,7 +96,38 @@ export function useSocket(
       optionsRef.current.onNotification?.(data);
     };
 
+    // The server refuses connections whose login cookie has expired (it lasts 15 min and is normally renewed
+    // by API calls). A kitchen screen can sit idle for hours, so when that happens: renew the login in the
+    // background and reconnect, backing off up to 30s. socket.io does not retry rejected logins by itself.
+    let authRetryTimer: ReturnType<typeof setTimeout> | null = null;
+    let authRetryDelay = 1000;
+    let stopped = false;
+
+    const handleConnectError = () => {
+      if (socket.active || authRetryTimer || stopped) return; // network errors: socket.io retries itself
+      authRetryTimer = setTimeout(async () => {
+        authRetryTimer = null;
+        try {
+          const res = await fetch(`${BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" });
+          if (res.status === 401 || res.status === 403) {
+            stopped = true; // genuinely logged out / deactivated: stop trying
+            return;
+          }
+        } catch {
+          // Offline: just try to reconnect again below
+        }
+        if (!stopped) socket.connect();
+      }, authRetryDelay);
+      authRetryDelay = Math.min(authRetryDelay * 2, 30000);
+    };
+
+    const handleConnectReset = () => {
+      authRetryDelay = 1000;
+    };
+
+    socket.on("connect", handleConnectReset);
     socket.on("connect", handleConnect);
+    socket.on("connect_error", handleConnectError);
     socket.on("disconnect", handleDisconnect);
     socket.on("kds_update", handleKDSUpdate);
     socket.on("notification", handleNotification);
@@ -105,6 +137,10 @@ export function useSocket(
     }
 
     return () => {
+      stopped = true;
+      if (authRetryTimer) clearTimeout(authRetryTimer);
+      socket.off("connect", handleConnectReset);
+      socket.off("connect_error", handleConnectError);
       if (outletId && outletId !== "all" && socket.connected) {
         socket.emit("leave_outlet", outletId);
       }
