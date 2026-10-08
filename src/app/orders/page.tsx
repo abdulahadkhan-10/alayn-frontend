@@ -36,6 +36,8 @@ import {
   Printer,
   Receipt,
   User,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
@@ -1028,16 +1030,26 @@ export default function LiveOrdersPage() {
                 {selectedOrder.status !== "COMPLETED" &&
                   selectedOrder.status !== "CANCELLED" && (
                     <>
-                      <button
-                        onClick={() => {
-                          setCancellingOrder(selectedOrder);
-                          setSelectedOrder(null);
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
-                      >
-                        <XCircle className="w-4 h-4 text-rose-600" />
-                        Cancel
-                      </button>
+                      {isManagerOrOwner ? (
+                        <button
+                          onClick={() => {
+                            setCancellingOrder(selectedOrder);
+                            setSelectedOrder(null);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                        >
+                          <XCircle className="w-4 h-4 text-rose-600" />
+                          Cancel
+                        </button>
+                      ) : (
+                        <div
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-400 font-semibold text-[11px] rounded-xl cursor-not-allowed select-none"
+                          title="Only a Manager or Business Owner can cancel an order"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Cancel (Manager Only)</span>
+                        </div>
+                      )}
                       {kitchenCaps.supportsKotPrint && (
                         <button
                           onClick={() => setPrintingKOT({ order: selectedOrder, isCancellation: selectedOrder.status === "CANCELLED" })}
@@ -1284,6 +1296,22 @@ export default function LiveOrdersPage() {
                   The order status will be updated to <strong className="font-extrabold uppercase">CANCELLED</strong>, linked table will be marked as available, and kitchen screen will alert for 3 minutes.
                 </p>
               </div>
+
+              {/* Manager Authorization Audit Badge */}
+              <div className="flex items-center gap-2 text-[11px] text-gray-600 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>
+                  Authorizing: <strong className="text-[#1B2A4A]">{user?.name || "Manager"}</strong> ({user?.role?.replace("_", " ")})
+                </span>
+              </div>
+
+              {/* High-risk warning if cancelling after food was already served */}
+              {cancellingOrder.status === "SERVED" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-900 font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Food already served. This cancellation will be logged for stock wastage audit.</span>
+                </div>
+              )}
 
               {/* Cancellation Reason Dropdown & Quick Select */}
               <div className="space-y-2.5">
