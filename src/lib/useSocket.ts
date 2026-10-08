@@ -37,21 +37,18 @@ export function useSocket(
 
   useEffect(() => {
     const socketUrl = getSocketUrl();
+    // Only logged-in users get live updates; the server authenticates with the login cookie and works out
+    // who we are (user, role, business) itself — the client only says which outlet it is viewing.
+    if (!user?.id) return;
+
     const socket: Socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       withCredentials: true,
-      reconnectionAttempts: 10,
+      // Keep retrying: if the login cookie expired, the next API call refreshes it and we reconnect
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      query: {
-        userId: user?.id || "",
-        role: user?.role || "",
-        businessId: user?.businessId || "",
-        outletId: outletId && outletId !== "all" ? outletId : "",
-      },
+      reconnectionDelayMax: 30000,
       auth: {
-        userId: user?.id || "",
-        role: user?.role || "",
-        businessId: user?.businessId || "",
         outletId: outletId && outletId !== "all" ? outletId : "",
       },
     });
@@ -60,10 +57,8 @@ export function useSocket(
 
     const handleConnect = () => {
       setIsConnected(true);
-      if (user?.id) socket.emit("join_user", user.id);
-      if (user?.role) socket.emit("join_role", { role: user.role, businessId: user?.businessId, outletId });
+      // Personal, role and business rooms are joined by the server from the login; only the outlet is requested
       if (outletId && outletId !== "all") socket.emit("join_outlet", outletId);
-      if (user?.businessId) socket.emit("join_business", user.businessId);
       optionsRef.current.onConnect?.();
     };
 

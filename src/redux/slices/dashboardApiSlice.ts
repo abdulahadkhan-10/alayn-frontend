@@ -7,6 +7,11 @@ export interface KpiResponse {
   laborCosts: { value: string; change: string; isPositive: boolean; prev?: string };
   netMargin: { value: string; change: string; isPositive: boolean; prev?: string };
   avgOrderValue?: { value: string; change: string; isPositive: boolean; prev?: string };
+  // Revenue = settled sales before tax; these are reported separately
+  taxCollected?: { value: string };
+  openBills?: { value: string; count: number };
+  // False when no menu item has recipe costs, so food cost / margin can't be computed yet
+  cogsConfigured?: boolean;
 }
 
 export interface SalesForecastPoint {

@@ -348,11 +348,18 @@ export default function MasterDashboardPage(props?: PageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
-                  label: "NET REVENUE",
-                  value: kpiData?.totalRevenue?.value || (realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) > 0 ? `₹${realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0).toLocaleString()}` : "₹0"),
+                  // Settled orders only, before GST (GST and unpaid bills are shown underneath, not counted)
+                  label: "NET SALES (EXCL. GST)",
+                  value: kpiData?.totalRevenue?.value || "₹0",
                   prev: kpiData?.totalRevenue?.prev || "₹0",
                   trend: kpiData?.totalRevenue?.change || "0%",
                   positive: kpiData?.totalRevenue?.isPositive ?? true,
+                  note: kpiData
+                    ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
+                      (kpiData.openBills && kpiData.openBills.count > 0
+                        ? ` · ${kpiData.openBills.value} in ${kpiData.openBills.count} open bill${kpiData.openBills.count === 1 ? "" : "s"}`
+                        : "")
+                    : undefined,
                   route: "/performance"
                 },
                 {
@@ -361,22 +368,29 @@ export default function MasterDashboardPage(props?: PageProps) {
                   prev: "0",
                   trend: activeStats.activeCount > 0 ? `+${activeStats.activeCount}` : "0%",
                   positive: true,
+                  note: undefined,
                   route: "/orders"
                 },
                 {
                   label: "AVG ORDER VALUE",
-                  value: kpiData?.avgOrderValue?.value || (realOrders.length > 0 ? `₹${Math.round(realOrders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0) / realOrders.length)}` : "₹0"),
-                  prev: "₹0",
+                  value: kpiData?.avgOrderValue?.value || "₹0",
+                  prev: kpiData?.avgOrderValue?.prev || "₹0",
                   trend: kpiData?.avgOrderValue?.change || "0%",
                   positive: kpiData?.avgOrderValue?.isPositive ?? true,
+                  note: "Settled orders, excl. GST",
                   route: "/orders"
                 },
                 {
                   label: "GROSS MARGIN",
-                  value: kpiData?.netMargin?.value || "0%",
-                  prev: "0%",
-                  trend: kpiData?.netMargin?.change || "0%",
+                  value: kpiData?.netMargin?.value || "—",
+                  prev: "—",
+                  trend: kpiData?.netMargin?.change || "",
                   positive: kpiData?.netMargin?.isPositive ?? true,
+                  // Margin needs ingredient (recipe) costs; without them it would just mirror sales
+                  note:
+                    kpiData && kpiData.cogsConfigured === false
+                      ? "Food cost not set up yet — add recipe costs to see your real margin"
+                      : undefined,
                   route: "/performance"
                 },
               ].map((kpi, idx) => (
@@ -390,12 +404,15 @@ export default function MasterDashboardPage(props?: PageProps) {
                     <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                   <div className="mt-3 flex items-end justify-between">
-                    <span className="text-2xl font-bold text-slate-800 tabular-nums tracking-tight">{kpi.value}</span>
-                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
-                      {kpi.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                      {kpi.trend}
-                    </div>
+                    <span className={`text-2xl font-bold tabular-nums tracking-tight ${kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"}`}>{kpi.value}</span>
+                    {kpi.trend && (
+                      <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+                        {kpi.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                        {kpi.trend}
+                      </div>
+                    )}
                   </div>
+                  {kpi.note && <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{kpi.note}</p>}
                   <div className="mt-2 text-[11px] text-slate-400 font-normal font-mono border-t border-slate-100 pt-2 flex justify-between items-center">
                     <span>Prev: {kpi.prev}</span>
                     <span className="text-[10px] text-blue-600 font-semibold group-hover:underline">View details</span>
