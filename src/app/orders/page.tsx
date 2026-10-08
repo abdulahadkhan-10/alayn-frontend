@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
+import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -124,6 +125,7 @@ const getStatusMeta = (status: string) =>
 export default function LiveOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
   const { activeBranch, branches = [] } = useBranch();
+  const kitchenCaps = getKitchenModeCapabilities(activeBranch?.kitchenMode);
   const currentOutletId =
     activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
   const isStaffRole = user?.role === "STAFF";
@@ -185,7 +187,16 @@ export default function LiveOrdersPage() {
   const [printingOrder, setPrintingOrder] = useState<any>(null);
   const [printingKOT, setPrintingKOT] = useState<{ order: any; isCancellation: boolean } | null>(null);
   const [printCancelKOTOnConfirm, setPrintCancelKOTOnConfirm] = useState<boolean>(true);
-  const [cancelReasonInput, setCancelReasonInput] = useState<string>("");
+  const CANCELLATION_PRESETS = [
+    "Customer changed mind",
+    "Punch / Billing error (Duplicate)",
+    "Item unavailable / Out of stock",
+    "Long preparation delay",
+    "Customer walked out",
+    "Other (Specify reason)",
+  ];
+  const [selectedCancelPreset, setSelectedCancelPreset] = useState<string>("Customer changed mind");
+  const [customCancelReason, setCustomCancelReason] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">(
     "UPI"
   );
@@ -260,10 +271,32 @@ export default function LiveOrdersPage() {
       ? (orders as any).data
       : [];
 
-  // Strictly exclude COMPLETED orders from Live Orders when status filter is "ALL"
-  const orderList = selectedStatusFilter === "ALL"
-    ? rawList.filter((o: Order) => o.status !== "COMPLETED")
-    : rawList;
+  // Real-time ticker for 5-minute cancellation retention in "ALL" tab
+  const [now, setNow] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Cancelled order IDs manually dismissed from "ALL" view by user
+  const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(new Set());
+
+  // 5 minutes (300 seconds) retention window for recently cancelled orders in "ALL" view
+  const CANCELLED_RETENTION_SECONDS = 300;
+
+  const getIsRecentlyCancelled = (order: Order) => {
+    if (order.status !== "CANCELLED") return false;
+    if (dismissedCancelledIds.has(order.id)) return false;
+    const cancelTime = new Date((order as any).cancelledAt || order.updatedAt || order.createdAt).getTime();
+    const elapsedSeconds = Math.floor((now - cancelTime) / 1000);
+    return elapsedSeconds >= 0 && elapsedSeconds < CANCELLED_RETENTION_SECONDS;
+  };
+
+  const getRemainingCancelSeconds = (order: Order) => {
+    const cancelTime = new Date((order as any).cancelledAt || order.updatedAt || order.createdAt).getTime();
+    const elapsedSeconds = Math.floor((now - cancelTime) / 1000);
+    return Math.max(0, CANCELLED_RETENTION_SECONDS - elapsedSeconds);
+  };
 
   const getOrderSource = (order: Order) => {
     const tableNum =
@@ -278,43 +311,82 @@ export default function LiveOrdersPage() {
     return tableNum !== null ? "TABLE" : "COUNTER";
   };
 
-  const counterOrdersCount = orderList.filter(
+  // Base live orders matching role & table assignments (COMPLETED always excluded from live board)
+  const baseLiveOrders = useMemo(() => {
+    return rawList.filter((order: Order) => {
+      if (order.status === "COMPLETED") return false;
+      const tableNum =
+        order.tableNo !== undefined && order.tableNo !== null
+          ? Number(order.tableNo)
+          : (order as any).tableNumber !== undefined &&
+            (order as any).tableNumber !== null
+            ? Number((order as any).tableNumber)
+            : null;
+
+      if (isStaffRole) {
+        if (tableNum === null) return false;
+        if (!assignedTableNumbers.includes(tableNum)) return false;
+      }
+      return true;
+    });
+  }, [rawList, isStaffRole, assignedTableNumbers]);
+
+  const channelFilteredOrders = useMemo(() => {
+    return baseLiveOrders.filter((order: Order) => {
+      if (selectedSourceFilter !== "ALL") {
+        if (getOrderSource(order) !== selectedSourceFilter) return false;
+      }
+      return true;
+    });
+  }, [baseLiveOrders, selectedSourceFilter]);
+
+  const counterOrdersCount = baseLiveOrders.filter(
     (o: Order) => getOrderSource(o) === "COUNTER"
   ).length;
-  const tableOrdersCount = orderList.filter(
+  const tableOrdersCount = baseLiveOrders.filter(
     (o: Order) => getOrderSource(o) === "TABLE"
   ).length;
 
-  const filteredOrders = orderList.filter((order: Order) => {
-    // If viewing ALL live orders, exclude COMPLETED
-    if (selectedStatusFilter === "ALL" && order.status === "COMPLETED") return false;
+  const filteredOrders = useMemo(() => {
+    return channelFilteredOrders.filter((order: Order) => {
+      // If viewing "ALL" tab: hide cancelled orders older than 5 minutes or dismissed
+      if (selectedStatusFilter === "ALL") {
+        if (order.status === "CANCELLED" && !getIsRecentlyCancelled(order)) {
+          return false;
+        }
+      } else if (selectedStatusFilter === "SENT_TO_KITCHEN") {
+        if (order.status !== "SENT_TO_KITCHEN" && (order.status as string) !== "RECEIVED") return false;
+      } else if (order.status !== selectedStatusFilter) {
+        return false;
+      }
 
-    const tableNum =
-      order.tableNo !== undefined && order.tableNo !== null
-        ? Number(order.tableNo)
-        : (order as any).tableNumber !== undefined &&
-          (order as any).tableNumber !== null
-          ? Number((order as any).tableNumber)
-          : null;
+      const tableNum =
+        order.tableNo !== undefined && order.tableNo !== null
+          ? Number(order.tableNo)
+          : (order as any).tableNumber !== undefined &&
+            (order as any).tableNumber !== null
+            ? Number((order as any).tableNumber)
+            : null;
 
-    if (isStaffRole) {
-      if (tableNum === null) return false;
-      if (!assignedTableNumbers.includes(tableNum)) return false;
-    } else if (selectedSourceFilter !== "ALL") {
-      if (getOrderSource(order) !== selectedSourceFilter) return false;
-    }
+      const matchesSearch =
+        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.orderNo &&
+          order.orderNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        ((order as any).orderNumber &&
+          (order as any).orderNumber
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
+        (tableNum !== null && String(tableNum).includes(searchQuery));
+      return matchesSearch;
+    });
+  }, [channelFilteredOrders, selectedStatusFilter, searchQuery, now, dismissedCancelledIds]);
 
-    const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (order.orderNo &&
-        order.orderNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      ((order as any).orderNumber &&
-        (order as any).orderNumber
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())) ||
-      (tableNum !== null && String(tableNum).includes(searchQuery));
-    return matchesSearch;
-  });
+  const getTabBadgeCount = (tabId: string) => {
+    return channelFilteredOrders.filter((o: Order) => {
+      if (tabId === "SENT_TO_KITCHEN") return o.status === "SENT_TO_KITCHEN" || (o.status as string) === "RECEIVED";
+      return o.status === tabId;
+    }).length;
+  };
 
   const getItemPrice = (item: any) =>
     ((item.unitPricePaise !== undefined
@@ -331,7 +403,7 @@ export default function LiveOrdersPage() {
       id: "ALL",
       label: "All Channels",
       sublabel: "Every order, unified",
-      count: orderList.length,
+      count: baseLiveOrders.length,
       icon: Layers,
       activeGradient: "from-[#1B2A4A] to-[#2d4272]",
       activeDot: "bg-white",
@@ -498,11 +570,7 @@ export default function LiveOrdersPage() {
                         active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
                       }`}
                     >
-                      {filteredOrders.filter(
-                        (o: any) =>
-                          o.status === tab.id ||
-                          (tab.id === "SENT_TO_KITCHEN" && o.status === "RECEIVED")
-                      ).length}
+                      {getTabBadgeCount(tab.id)}
                     </span>
                   )}
                 </button>
@@ -573,13 +641,35 @@ export default function LiveOrdersPage() {
                     <div className="flex flex-col gap-2 relative pt-1">
                       {/* Top Line: Status Badge & Time */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
-                          <span className={`w-1 h-1 rounded-full ${meta.dot}`} />
-                          {meta.label}
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">
-                          {formattedTime}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
+                            <span className={`w-1 h-1 rounded-full ${meta.dot}`} />
+                            {meta.label}
+                          </span>
+                          {order.status === "CANCELLED" && selectedStatusFilter === "ALL" && (
+                            <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              Dismisses in {Math.floor(getRemainingCancelSeconds(order) / 60)}m {getRemainingCancelSeconds(order) % 60}s
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {order.status === "CANCELLED" && selectedStatusFilter === "ALL" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedCancelledIds((prev) => new Set(prev).add(order.id));
+                              }}
+                              className="text-[9px] font-bold text-gray-500 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-gray-200 hover:border-rose-200 transition cursor-pointer"
+                              title="Dismiss from All tab (still visible in Cancelled tab)"
+                            >
+                              Dismiss
+                            </button>
+                          )}
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">
+                            {formattedTime}
+                          </span>
+                        </div>
                       </div>
                       
                       {/* Bottom Area: ID & Table */}
@@ -671,16 +761,18 @@ export default function LiveOrdersPage() {
                           Settle
                         </button>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPrintingKOT({ order, isCancellation: order.status === "CANCELLED" });
-                        }}
-                        className="px-2.5 py-2 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl transition cursor-pointer shrink-0"
-                        title="Print Kitchen Order Ticket (KOT)"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-zinc-700" />
-                      </button>
+                      {kitchenCaps.supportsKotPrint && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrintingKOT({ order, isCancellation: order.status === "CANCELLED" });
+                          }}
+                          className="px-2.5 py-2 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl transition cursor-pointer shrink-0"
+                          title="Print Kitchen Order Ticket (KOT)"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-zinc-700" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -946,14 +1038,16 @@ export default function LiveOrdersPage() {
                         <XCircle className="w-4 h-4 text-rose-600" />
                         Cancel
                       </button>
-                      <button
-                        onClick={() => setPrintingKOT({ order: selectedOrder, isCancellation: selectedOrder.status === "CANCELLED" })}
-                        className="inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#1B2A4A] font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
-                        title="Print Kitchen Order Ticket (KOT)"
-                      >
-                        <Printer className="w-4 h-4 text-blue-600" />
-                        Print KOT
-                      </button>
+                      {kitchenCaps.supportsKotPrint && (
+                        <button
+                          onClick={() => setPrintingKOT({ order: selectedOrder, isCancellation: selectedOrder.status === "CANCELLED" })}
+                          className="inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#1B2A4A] font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                          title="Print Kitchen Order Ticket (KOT)"
+                        >
+                          <Printer className="w-4 h-4 text-blue-600" />
+                          Print KOT
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setCustomerName(selectedOrder.customerName || "");
@@ -1191,47 +1285,97 @@ export default function LiveOrdersPage() {
                 </p>
               </div>
 
-              {/* Cancellation Reason Input */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Reason for Cancellation
-                </label>
-                <input
-                  type="text"
-                  value={cancelReasonInput}
-                  onChange={(e) => setCancelReasonInput(e.target.value)}
-                  placeholder="e.g. Customer changed mind, punch error"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
-                />
+              {/* Cancellation Reason Dropdown & Quick Select */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                    Reason for Cancellation
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-medium">Select or specify</span>
+                </div>
+
+                {/* Dropdown Selector */}
+                <select
+                  value={selectedCancelPreset}
+                  onChange={(e) => setSelectedCancelPreset(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-xs transition"
+                >
+                  {CANCELLATION_PRESETS.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Quick-Select Reason Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {CANCELLATION_PRESETS.map((preset) => {
+                    const isSelected = selectedCancelPreset === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setSelectedCancelPreset(preset)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
+                      >
+                        {preset === "Other (Specify reason)" ? "Custom Other..." : preset}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom reason text input if "Other" is selected */}
+                {selectedCancelPreset === "Other (Specify reason)" && (
+                  <div className="pt-1 animate-in fade-in duration-200">
+                    <input
+                      type="text"
+                      value={customCancelReason}
+                      onChange={(e) => setCustomCancelReason(e.target.value)}
+                      placeholder="Type specific reason for audit log..."
+                      autoFocus
+                      className="w-full px-3 py-2 border border-rose-300 bg-rose-50/30 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Print Cancellation KOT Checkbox */}
-              <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={printCancelKOTOnConfirm}
-                  onChange={(e) => setPrintCancelKOTOnConfirm(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
-                />
-                <Printer className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>Print Cancellation KOT to Kitchen Printer</span>
-              </label>
+              {/* Print Cancellation KOT Checkbox - only shown if outlet supports KOT */}
+              {kitchenCaps.supportsKotPrint && (
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={printCancelKOTOnConfirm}
+                    onChange={(e) => setPrintCancelKOTOnConfirm(e.target.checked)}
+                    className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
+                  />
+                  <Printer className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Print Cancellation KOT to Kitchen Printer</span>
+                </label>
+              )}
 
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={async () => {
                     const idToCancel = cancellingOrder.id;
-                    const reason = cancelReasonInput.trim() || undefined;
+                    const finalReason =
+                      selectedCancelPreset === "Other (Specify reason)"
+                        ? customCancelReason.trim() || "Cancelled by staff"
+                        : selectedCancelPreset;
                     const orderToVoid = {
                       ...cancellingOrder,
-                      comment: reason,
+                      comment: finalReason,
                       status: "CANCELLED",
                       cancelledAt: new Date().toISOString(),
                     };
                     setCancellingOrder(null);
-                    setCancelReasonInput("");
-                    await handleStatusChange(idToCancel, "CANCELLED", reason);
-                    if (printCancelKOTOnConfirm) {
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
+                    await handleStatusChange(idToCancel, "CANCELLED", finalReason);
+                    if (kitchenCaps.supportsKotPrint && printCancelKOTOnConfirm) {
                       setPrintingKOT({ order: orderToVoid, isCancellation: true });
                     }
                   }}
@@ -1244,7 +1388,8 @@ export default function LiveOrdersPage() {
                 <button
                   onClick={() => {
                     setCancellingOrder(null);
-                    setCancelReasonInput("");
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
                   }}
                   className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
