@@ -37,6 +37,7 @@ import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
 import { useBranch } from "@/lib/BranchContext";
 import { baseApi } from "@/redux/store/baseApi";
+import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 
 type Role = "BUSINESS_OWNER" | "SUPER_ADMIN" | "MANAGER" | "STAFF" | "KITCHEN" | "SUPPLIER";
 
@@ -218,7 +219,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   const pathname = usePathname();
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
-  const { hasActiveSubscription, isDemo } = useBranch();
+  const { hasActiveSubscription, isDemo, activeBranch } = useBranch();
   const role: Role = useMemo(() => (user?.role as Role) || "BUSINESS_OWNER", [user?.role]);
   const [mounted, setMounted] = useState(false);
 
@@ -248,12 +249,19 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   };
 
   const navItems = useMemo(() => {
-    if (role === "MANAGER") return managerNavItems;
-    if (role === "STAFF") return staffNavItems;
-    if (role === "KITCHEN") return kitchenNavItems;
-    if (role === "SUPPLIER") return supplierNavItems;
-    return ownerNavItems;
-  }, [role]);
+    let items = ownerNavItems;
+    if (role === "MANAGER") items = managerNavItems;
+    else if (role === "STAFF") items = staffNavItems;
+    else if (role === "KITCHEN") items = kitchenNavItems;
+    else if (role === "SUPPLIER") items = supplierNavItems;
+
+    const { supportsKdsScreen } = getKitchenModeCapabilities(activeBranch?.kitchenMode);
+    // If the active outlet is pure KOT, hide Kitchen Dispatch from navigation
+    if (!supportsKdsScreen) {
+      return items.filter((item) => item.href !== "/kitchen");
+    }
+    return items;
+  }, [role, activeBranch?.kitchenMode]);
 
   return (
     <aside

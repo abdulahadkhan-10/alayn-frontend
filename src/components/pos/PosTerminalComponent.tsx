@@ -43,6 +43,7 @@ import { getImageUrl } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
+import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { fetchTables, TableItem } from "@/lib/api";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
@@ -164,6 +165,11 @@ export default function PosTerminalComponent() {
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
 
   const currentOutlet = outletsData.find((o) => o.id === currentOutletId);
+
+  const kitchenCaps = useMemo(() => {
+    const rawMode = (currentOutlet as any)?.kitchenMode || activeBranch?.kitchenMode;
+    return getKitchenModeCapabilities(rawMode);
+  }, [currentOutlet, activeBranch?.kitchenMode]);
 
   useEffect(() => {
     if (currentOutlet) {
@@ -383,7 +389,7 @@ export default function PosTerminalComponent() {
     try {
       const result = await createOrder(payload).unwrap();
       setCompletedOrder(result);
-      if (autoPrintKOT || (currentOutlet as any)?.kitchenMode === "KOT") {
+      if (kitchenCaps.supportsKotPrint && (autoPrintKOT || kitchenCaps.isKotOnly)) {
         setPrintingKOTOrder(result);
       }
       setCart([]);
@@ -1537,50 +1543,60 @@ export default function PosTerminalComponent() {
                   <div>
                     <span className="block font-black">Order Recorded</span>
                     <span className="text-[11px] font-medium text-emerald-700">
-                      {(currentOutlet as any)?.kitchenMode === "KOT"
+                      {kitchenCaps.isKotOnly
                         ? "KOT ready for thermal printer"
-                        : "Sent live to Kitchen Dispatch"}
+                        : kitchenCaps.isKdsOnly
+                        ? "Dispatched to Kitchen Display System (Paperless)"
+                        : "Sent live to KDS & KOT ready to print"}
                     </span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-950 font-black text-[10px] uppercase">
-                    {(currentOutlet as any)?.kitchenMode || "LIVE"}
+                    {kitchenCaps.mode}
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  {/* Primary: Print Kitchen KOT Slip */}
-                  <button
-                    onClick={() => setPrintingKOTOrder(orderObj)}
-                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Kitchen Order Ticket (KOT)
-                  </button>
+                  {/* Primary: Print Kitchen KOT Slip - only when outlet mode supports KOT */}
+                  {kitchenCaps.supportsKotPrint && (
+                    <button
+                      onClick={() => setPrintingKOTOrder(orderObj)}
+                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print Kitchen Order Ticket (KOT)
+                    </button>
+                  )}
 
-                  {/* Secondary: Print Customer Bill Receipt */}
+                  {/* Secondary/Primary: Print Customer Bill Receipt */}
                   <button
                     onClick={() => setPrintingOrder(orderObj)}
-                    className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-zinc-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    className={`w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+                      kitchenCaps.isKdsOnly
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        : "bg-gray-100 hover:bg-gray-200 text-zinc-800"
+                    }`}
                   >
-                    <Receipt className="w-4 h-4 text-zinc-600" />
+                    <Receipt className="w-4 h-4 text-inherit" />
                     Print Customer Bill Receipt
                   </button>
 
-                  {/* Auto-print toggle */}
-                  <label className="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold cursor-pointer pt-1">
-                    <input
-                      type="checkbox"
-                      checked={autoPrintKOT}
-                      onChange={(e) => {
-                        setAutoPrintKOT(e.target.checked);
-                        if (typeof window !== "undefined") {
-                          localStorage.setItem("alayn_auto_print_kot", String(e.target.checked));
-                        }
-                      }}
-                      className="rounded text-rose-600 focus:ring-rose-500"
-                    />
-                    <span>Auto-open KOT print on new orders</span>
-                  </label>
+                  {/* Auto-print toggle - only when outlet mode supports KOT */}
+                  {kitchenCaps.supportsKotPrint && (
+                    <label className="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={autoPrintKOT}
+                        onChange={(e) => {
+                          setAutoPrintKOT(e.target.checked);
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem("alayn_auto_print_kot", String(e.target.checked));
+                          }
+                        }}
+                        className="rounded text-rose-600 focus:ring-rose-500"
+                      />
+                      <span>Auto-open KOT print on new orders</span>
+                    </label>
+                  )}
 
                   <button
                     onClick={() => setCompletedOrder(null)}

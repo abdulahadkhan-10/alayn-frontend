@@ -35,10 +35,12 @@ import {
 } from "lucide-react";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
+import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 
 export default function CompletedOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
   const { activeBranch } = useBranch();
+  const kitchenCaps = getKitchenModeCapabilities(activeBranch?.kitchenMode);
   const currentOutletId =
     activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
 
@@ -813,16 +815,18 @@ export default function CompletedOrdersPage() {
                     <Printer className="w-4 h-4" />
                     Print Bill
                   </button>
-                  <button
-                    onClick={() => {
-                      setPrintingKOT(selectedOrder);
-                      setSelectedOrder(null);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1B2A4A] hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                  >
-                    <Printer className="w-4 h-4 text-emerald-400" />
-                    Print KOT
-                  </button>
+                  {kitchenCaps.supportsKotPrint && (
+                    <button
+                      onClick={() => {
+                        setPrintingKOT(selectedOrder);
+                        setSelectedOrder(null);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1B2A4A] hover:bg-black text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 text-emerald-400" />
+                      Print KOT
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
