@@ -187,7 +187,16 @@ export default function LiveOrdersPage() {
   const [printingOrder, setPrintingOrder] = useState<any>(null);
   const [printingKOT, setPrintingKOT] = useState<{ order: any; isCancellation: boolean } | null>(null);
   const [printCancelKOTOnConfirm, setPrintCancelKOTOnConfirm] = useState<boolean>(true);
-  const [cancelReasonInput, setCancelReasonInput] = useState<string>("");
+  const CANCELLATION_PRESETS = [
+    "Customer changed mind",
+    "Punch / Billing error (Duplicate)",
+    "Item unavailable / Out of stock",
+    "Long preparation delay",
+    "Customer walked out",
+    "Other (Specify reason)",
+  ];
+  const [selectedCancelPreset, setSelectedCancelPreset] = useState<string>("Customer changed mind");
+  const [customCancelReason, setCustomCancelReason] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">(
     "UPI"
   );
@@ -1276,18 +1285,62 @@ export default function LiveOrdersPage() {
                 </p>
               </div>
 
-              {/* Cancellation Reason Input */}
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Reason for Cancellation
-                </label>
-                <input
-                  type="text"
-                  value={cancelReasonInput}
-                  onChange={(e) => setCancelReasonInput(e.target.value)}
-                  placeholder="e.g. Customer changed mind, punch error"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
-                />
+              {/* Cancellation Reason Dropdown & Quick Select */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                    Reason for Cancellation
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-medium">Select or specify</span>
+                </div>
+
+                {/* Dropdown Selector */}
+                <select
+                  value={selectedCancelPreset}
+                  onChange={(e) => setSelectedCancelPreset(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-xs transition"
+                >
+                  {CANCELLATION_PRESETS.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Quick-Select Reason Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {CANCELLATION_PRESETS.map((preset) => {
+                    const isSelected = selectedCancelPreset === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setSelectedCancelPreset(preset)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
+                      >
+                        {preset === "Other (Specify reason)" ? "Custom Other..." : preset}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom reason text input if "Other" is selected */}
+                {selectedCancelPreset === "Other (Specify reason)" && (
+                  <div className="pt-1 animate-in fade-in duration-200">
+                    <input
+                      type="text"
+                      value={customCancelReason}
+                      onChange={(e) => setCustomCancelReason(e.target.value)}
+                      placeholder="Type specific reason for audit log..."
+                      autoFocus
+                      className="w-full px-3 py-2 border border-rose-300 bg-rose-50/30 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Print Cancellation KOT Checkbox - only shown if outlet supports KOT */}
@@ -1308,16 +1361,20 @@ export default function LiveOrdersPage() {
                 <button
                   onClick={async () => {
                     const idToCancel = cancellingOrder.id;
-                    const reason = cancelReasonInput.trim() || undefined;
+                    const finalReason =
+                      selectedCancelPreset === "Other (Specify reason)"
+                        ? customCancelReason.trim() || "Cancelled by staff"
+                        : selectedCancelPreset;
                     const orderToVoid = {
                       ...cancellingOrder,
-                      comment: reason,
+                      comment: finalReason,
                       status: "CANCELLED",
                       cancelledAt: new Date().toISOString(),
                     };
                     setCancellingOrder(null);
-                    setCancelReasonInput("");
-                    await handleStatusChange(idToCancel, "CANCELLED", reason);
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
+                    await handleStatusChange(idToCancel, "CANCELLED", finalReason);
                     if (kitchenCaps.supportsKotPrint && printCancelKOTOnConfirm) {
                       setPrintingKOT({ order: orderToVoid, isCancellation: true });
                     }
@@ -1331,7 +1388,8 @@ export default function LiveOrdersPage() {
                 <button
                   onClick={() => {
                     setCancellingOrder(null);
-                    setCancelReasonInput("");
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
                   }}
                   className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
