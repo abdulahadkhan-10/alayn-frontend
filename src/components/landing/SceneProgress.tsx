@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 const SCENES = [
-  { id: "scene-boot", label: "Boot" },
-  { id: "how-it-works", label: "Chaos" },
-  { id: "scene-convergence", label: "Convergence" },
-  { id: "scene-running", label: "Running" },
-  { id: "scene-verticals", label: "Verticals" },
-  { id: "scene-calm", label: "Calm" },
-  { id: "scene-waiting", label: "Waiting" },
+  { id: "scene-boot", label: "Overview" },
+  { id: "how-it-works", label: "How it works" },
+  { id: "scene-convergence", label: "Modules" },
+  { id: "scene-running", label: "Alerts" },
+  { id: "scene-verticals", label: "Who it's for" },
+  { id: "scene-calm", label: "Closeout" },
+  { id: "scene-waiting", label: "Get started" },
 ];
 
 /**
@@ -99,7 +99,7 @@ export default function SceneProgress() {
                 padding: "3px 9px",
               }}
             >
-              {s.label.toLowerCase()}
+              {s.label}
             </motion.span>
           )}
           <motion.span

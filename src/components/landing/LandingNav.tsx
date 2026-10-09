@@ -264,22 +264,22 @@ export default function LandingNav() {
             ) : (
               <div className="flex flex-col gap-3">
                 <Link
-                  href="/signup"
+                  href="/contact"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center rounded-xl bg-[#C41E2A] px-4 py-3 text-[13px] font-bold text-white shadow-md transition-transform active:scale-95 min-h-[48px] mb-2"
                 >
-                  Book a Demonstration
+                  Book a demo
                 </Link>
                 
                 <div className="flex flex-col gap-1 py-2 border-y border-zinc-100 mb-2">
                   <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Platform
                   </Link>
-                  <Link href="#modules" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                  <Link href="#scene-convergence" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Modules
                   </Link>
-                  <Link href="#pricing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
-                    Pricing
+                  <Link href="#scene-verticals" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                    Who it&apos;s for
                   </Link>
                 </div>
 

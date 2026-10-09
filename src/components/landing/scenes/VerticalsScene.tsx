@@ -4,42 +4,46 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldScene, useField, DEFAULT_NODES, type FieldNode } from "../motion/GlobalField";
 
+// Every outcome below maps to a shipped feature (POS with UPI/card/cash,
+// tables, kitchen display + KOT, menu availability, stock minimums and
+// expiry, suppliers and POs, waste logging, shifts, multi-outlet). Metrics
+// are illustrative and labelled "Example" in the UI.
 const VERTICALS = [
-  { 
-    name: "Restaurants", 
-    labels: ["Tables", "Kitchen", "Orders", "Stock", "Staff", "Guests"], 
-    outcome: "Optimize table turns, coordinate kitchen fires, and link guest history to profiles.",
-    data: { metric1: "42 mins", label1: "Avg. Table Turn", metric2: "92.4%", label2: "Kitchen Prep Accuracy" }
+  {
+    name: "Restaurants",
+    labels: ["Tables", "Kitchen", "Orders", "Stock", "Staff", "Waste"],
+    outcome: "Take orders by table at the POS, send them to the kitchen display, and print KOTs for the pass.",
+    data: { metric1: "9", label1: "Tables with open orders", metric2: "14", label2: "Tickets on the kitchen screen" }
   },
-  { 
-    name: "Cafés", 
-    labels: ["Orders", "Kitchen", "Stock", "Staff", "Loyalty", "Payments"], 
-    outcome: "Coordinate heavy morning rushes, automate oat milk restocks, and track daily tallies.",
-    data: { metric1: "3.2 mins", label1: "Avg. Service Time", metric2: "₹82K", label2: "Morning Rush Gross" }
+  {
+    name: "Cafés",
+    labels: ["Orders", "Kitchen", "Stock", "Staff", "Payments", "Menu"],
+    outcome: "Bill fast at the counter with UPI, card or cash, switch sold-out items off the menu, and get a low-stock alert before the oat milk runs out.",
+    data: { metric1: "3 cartons", label1: "Oat milk left · low-stock alert sent", metric2: "212", label2: "Orders before 10 am" }
   },
-  { 
-    name: "Quick Service Restaurants (QSRs)", 
-    labels: ["Orders", "Speed", "Stock", "Staff", "Delivery", "Payments"], 
-    outcome: "Optimize drive-thrus, manage third-party delivery dispatch, and coordinate payments.",
-    data: { metric1: "90s", label1: "Order-to-Pack Time", metric2: "4.8/5.0", label2: "Delivery Dispatch Rating" }
+  {
+    name: "Quick Service Restaurants (QSRs)",
+    labels: ["Orders", "Kitchen", "Stock", "Staff", "Payments", "Menu"],
+    outcome: "Keep the counter queue moving with quick billing, live kitchen tickets, and cancellations the kitchen sees straight away.",
+    data: { metric1: "9", label1: "Orders on the kitchen screen", metric2: "143", label2: "UPI payments today" }
   },
-  { 
-    name: "Cloud Kitchens", 
-    labels: ["Orders", "Kitchen", "Delivery", "Stock", "Staff", "Payments"], 
-    outcome: "Manage 4 brands under one kitchen, aggregate ticket printer outputs, and optimize inventory.",
-    data: { metric1: "4 Brands", label1: "Coordinated Matrix", metric2: "0.2s", label2: "Omnichannel Sync Delay" }
+  {
+    name: "Cloud Kitchens",
+    labels: ["Orders", "Kitchen", "Stock", "Staff", "Suppliers", "Waste"],
+    outcome: "Track stock, suppliers and purchase orders for a busy kitchen, and log waste against every item.",
+    data: { metric1: "3", label1: "Purchase orders on the way", metric2: "6.5 kg", label2: "Waste logged this week" }
   },
-  { 
-    name: "Bakeries", 
-    labels: ["Orders", "Production", "Stock", "Staff", "Wholesale", "Payments"], 
-    outcome: "Calculate recipe preps, manage wholesale distributor orders, and track shelf waste.",
-    data: { metric1: "₹420", label1: "Wholesale Margin Peak", metric2: "2% target", label2: "Daily Bread Waste" }
+  {
+    name: "Bakeries",
+    labels: ["Orders", "Stock", "Expiry", "Staff", "Suppliers", "Waste"],
+    outcome: "Watch expiry dates on dairy and fresh stock, reorder flour from your suppliers, and log what didn't sell as waste.",
+    data: { metric1: "5", label1: "Items expiring in the next 2 days", metric2: "3.5 kg", label2: "Unsold bread logged today" }
   },
-  { 
-    name: "Hotel Restaurants", 
-    labels: ["Reservations", "Housekeeping", "F&B", "Staff", "Guests", "Payments"], 
-    outcome: "Link room folios to restaurant tabs, automate morning room service, and coordinate staff.",
-    data: { metric1: "0.4s", label1: "Room Tab Verification", metric2: "98%", label2: "Room Service Sync Rate" }
+  {
+    name: "Hotel Restaurants",
+    labels: ["Outlets", "Orders", "Kitchen", "Stock", "Staff", "Waste"],
+    outcome: "Run the restaurant, café and bar as separate outlets, each with its own stock and rota, from one login.",
+    data: { metric1: "3", label1: "Outlets on one login", metric2: "18", label2: "Staff clocked in now" }
   },
 ];
 
@@ -80,11 +84,9 @@ export default function VerticalsScene() {
             color: "var(--espresso)",
             marginBottom: "20px",
           }}>
-            One intelligent platform.
+            Set up for the way
             <br />
-            <span style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: "400" }}>
-              Built for every hospitality business.
-            </span>
+            your kitchen runs.
           </h2>
         </div>
 
@@ -113,7 +115,7 @@ export default function VerticalsScene() {
             {/* Context Details */}
             <div>
               <span style={{ display: "inline-block", fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--amber)", marginBottom: "14px" }}>
-                Target Architecture
+                What changes
               </span>
               
               <AnimatePresence mode="wait">
@@ -127,15 +129,18 @@ export default function VerticalsScene() {
                   <h3 className="text-xl sm:text-2xl font-bold text-[var(--espresso)] mb-3">
                     Alayn for {activeVertical.name}
                   </h3>
-                  <p className="text-xs sm:text-base text-[var(--muted)] leading-relaxed">
+                  <p className="text-sm sm:text-base text-[var(--muted)] leading-relaxed">
                     {activeVertical.outcome}
                   </p>
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            {/* Simulated Live Analytics Widgets */}
+            {/* Example screen — illustrative values, labelled so they never read as customer results */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--muted)" }}>
+                Example of what you&apos;d see
+              </span>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={active}

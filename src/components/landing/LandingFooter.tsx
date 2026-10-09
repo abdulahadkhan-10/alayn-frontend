@@ -31,7 +31,7 @@ export default function LandingFooter() {
               </div>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm tracking-wide">
-              The Intelligent Operating System for Hospitality. Built for scale, designed for clarity.
+              Billing, stock, staff and kitchen for restaurants, cafés and cloud kitchens, on one screen.
             </p>
           </div>
 

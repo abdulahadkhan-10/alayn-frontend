@@ -43,7 +43,7 @@ export default function WaitingScene() {
         >
           The AI Operating System for
           <br />
-          <em style={{ fontStyle: "italic", color: "var(--thread)" }}>Modern Business.</em>
+          <em style={{ fontStyle: "italic", color: "var(--amber-display-dark)", fontWeight: 400 }}>Modern Business.</em>
         </Assemble>
 
         <Assemble

@@ -187,7 +187,7 @@ export default function HeroScene() {
               <span className="text-[12px] font-bold text-slate-700">Trusted by leading restaurants</span>
             </Assemble>
 
-            <Assemble as="p" delay={0.24} className="hidden sm:block" style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.75, margin: 0 }}>
+            <Assemble as="p" delay={0.24} className="hidden sm:block" style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0 }}>
               We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
             </Assemble>
           </div>
@@ -252,7 +252,7 @@ export default function HeroScene() {
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
-                    alayn.com/dashboard
+                    alaynai.com/dashboard
                   </div>
                 </div>
 
@@ -367,7 +367,7 @@ export default function HeroScene() {
 
           {/* Mobile-only paragraph below the fold */}
           <div className="sm:hidden mt-8 px-2 text-center w-full max-w-[320px] mx-auto">
-            <Assemble as="p" delay={0.4} style={{ fontSize: "0.8125rem", color: "var(--muted)", opacity: 0.85, margin: 0, lineHeight: 1.5 }}>
+            <Assemble as="p" delay={0.4} style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>
               We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
             </Assemble>
           </div>

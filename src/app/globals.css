@@ -22,8 +22,16 @@
   --thread: rgba(196, 30, 42, 0.75);
   --thread-warm: rgba(212, 41, 58, 0.6);
 
-  /* Muted blue-gray (echoes the navy) */
-  --muted: #6B7A90;
+  /* Brand red lifted for text on navy sections (~6.5:1 on --espresso);
+     the base crimson only reaches 2.4:1 there */
+  --amber-on-dark: #FF8A8F;
+  /* Exact brand crimson for large headings on navy, matching the hero.
+     Deliberate brand choice: 2.4:1 on --espresso, below WCAG 3:1 for large text */
+  --amber-display-dark: #C41E2A;
+
+  /* Muted blue-gray (echoes the navy) — darkened from #6B7A90 to clear
+     4.5:1 on both white and --cream-light */
+  --muted: #56657C;
 
   /* Borders — navy-tinted */
   --border-warm: rgba(27, 42, 74, 0.1);
@@ -229,7 +237,7 @@ html {
   height: 40vw;
   max-width: 560px;
   max-height: 560px;
-  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.16), transparent 68%);
+  background: radial-gradient(circle at 50% 50%, rgba(196, 30, 42, 0.08), transparent 68%);
   animation: aurora-drift-c 38s ease-in-out infinite alternate;
 }
 
