@@ -5,7 +5,7 @@ import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
 const title = "Alayn AI Developer Platform — API Reference, OpenAPI & Webhooks";
-const description = "Complete REST API reference, official @alayn/cli, RFC 9457 typed errors, webhooks, rate limiting, and multi-tenant authentication for Alayn AI.";
+const description = "Complete REST API reference, official @alayn/cli, RFC 9457 typed errors, webhooks, rate limits, and multi-tenant authentication for Alayn AI.";
 
 export const metadata: Metadata = {
   title: "Developer Platform & API Reference",
@@ -91,16 +91,16 @@ export default function ApiDocsPage() {
 
           {/* Rate Limiting */}
           <section id="rate-limits" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">IETF RATE LIMITING</span>
-            <h2 className="text-2xl font-bold text-white mb-3">Self-Throttling &amp; Rate Limit Headers</h2>
+            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">RATE LIMITING</span>
+            <h2 className="text-2xl font-bold text-white mb-3">Rate Limits</h2>
             <p className="text-sm text-slate-400 font-light mb-4">
-              Alayn AI returns standard RFC rate-limiting headers on all API responses so autonomous agents and integrations can self-throttle in real time:
+              Authenticated endpoints are not rate limited today. Public, unauthenticated endpoints are limited per IP address:
             </p>
             <ul className="list-disc pl-6 space-y-1 text-xs sm:text-sm text-slate-300 font-mono">
-              <li><strong className="text-amber-400">RateLimit-Limit:</strong> 100 (requests allowed per 60-second window)</li>
-              <li><strong className="text-amber-400">RateLimit-Remaining:</strong> Count of remaining requests in the active window</li>
-              <li><strong className="text-amber-400">RateLimit-Reset:</strong> Seconds until window reset</li>
-              <li><strong className="text-amber-400">Retry-After:</strong> Provided on HTTP 429 responses indicating backoff duration</li>
+              <li><strong className="text-amber-400">QR table menu</strong> (<code>GET /api/v1/orders/tables/:token/menu</code>): 10 requests per minute</li>
+              <li><strong className="text-amber-400">Customer feedback</strong> (<code>POST /api/v1/tickets/feedback</code>): 5 requests per 15 minutes</li>
+              <li><strong className="text-amber-400">Password reset</strong> (<code>POST /api/v1/auth/forgot-password</code>): 5 requests per 15 minutes</li>
+              <li><strong className="text-amber-400">HTTP 429:</strong> returned when a limit is exceeded, with a <code>Retry-After</code> header</li>
             </ul>
           </section>
 

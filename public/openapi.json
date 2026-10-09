@@ -116,17 +116,6 @@
         "responses": {
           "200": {
             "description": "Successful retrieval of orders list",
-            "headers": {
-              "RateLimit-Limit": {
-                "$ref": "#/components/headers/RateLimit-Limit"
-              },
-              "RateLimit-Remaining": {
-                "$ref": "#/components/headers/RateLimit-Remaining"
-              },
-              "RateLimit-Reset": {
-                "$ref": "#/components/headers/RateLimit-Reset"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -182,29 +171,6 @@
           },
           "404": {
             "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -360,29 +326,6 @@
               }
             }
           },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "RFC 9457 Problem Details Error Response",
             "content": {
@@ -483,29 +426,6 @@
           },
           "404": {
             "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -634,29 +554,6 @@
           },
           "404": {
             "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -813,29 +710,6 @@
               }
             }
           },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "RFC 9457 Problem Details Error Response",
             "content": {
@@ -946,29 +820,6 @@
           },
           "404": {
             "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1125,29 +976,6 @@
               }
             }
           },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "RFC 9457 Problem Details Error Response",
             "content": {
@@ -1268,29 +1096,6 @@
               }
             }
           },
-          "429": {
-            "description": "Rate Limit Exceeded",
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "example": 60
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "RFC 9457 Problem Details Error Response",
             "content": {
@@ -1333,29 +1138,6 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Authenticate requests using standard JWT Bearer token."
-      }
-    },
-    "headers": {
-      "RateLimit-Limit": {
-        "schema": {
-          "type": "integer",
-          "example": 100
-        },
-        "description": "The maximum number of requests allowed in the current time window."
-      },
-      "RateLimit-Remaining": {
-        "schema": {
-          "type": "integer",
-          "example": 99
-        },
-        "description": "The number of remaining requests in the current time window."
-      },
-      "RateLimit-Reset": {
-        "schema": {
-          "type": "integer",
-          "example": 60
-        },
-        "description": "The number of seconds remaining until the rate limit window resets."
       }
     },
     "parameters": {
@@ -1443,30 +1225,6 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ValidationErrorResponse"
-            }
-          }
-        }
-      },
-      "RateLimitError": {
-        "description": "Rate limit exceeded. Client must self-throttle.",
-        "headers": {
-          "Retry-After": {
-            "schema": {
-              "type": "integer",
-              "example": 60
-            },
-            "description": "Seconds to wait before retrying request."
-          }
-        },
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
             }
           }
         }

@@ -43,7 +43,7 @@
 - **Base URL**: `https://api.alaynai.com/v1`
 - **Authentication**: JWT Bearer token via `Authorization: Bearer <token>`
 - **Outlet Scoping Header**: `x-outlet-id: <uuid>`
-- **Rate Limit Headers**: `RateLimit-Limit: 100`, `RateLimit-Remaining: 99`, `RateLimit-Reset: 60`
+- **Rate Limits**: Only public, unauthenticated endpoints are rate limited (QR table menu: 10 requests/min per IP; customer feedback and password reset: 5 requests per 15 min). Exceeding a limit returns HTTP 429 with `Retry-After`.
 - **Error Model**: RFC 9457 `application/problem+json` with typed codes (`ERR_INVALID_OUTLET_SCOPE`, `ERR_PAYLOAD_VALIDATION`, etc.)
 - **Deprecation Policy**: 12-month sunset window signaled via `Deprecation` and `Sunset` headers.
 
