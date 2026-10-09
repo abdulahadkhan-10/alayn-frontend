@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck } from "lucide-react";
+import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck, Tag } from "lucide-react";
 
 interface SubscriptionMonthSelectorProps {
   months: number;
@@ -10,6 +10,11 @@ interface SubscriptionMonthSelectorProps {
   gstRatePercent?: number; // default 18
   currentPeriodEnd?: string | null;
   disabled?: boolean;
+  coupon?: {
+    code: string;
+    discountType: string;
+    discountValue: number;
+  } | null;
 }
 
 export const PRESET_OPTIONS = [
@@ -22,15 +27,27 @@ export const PRESET_OPTIONS = [
 export function calculateSubscriptionPricing(
   months: number,
   baseMonthlyFee: number = 1999,
-  gstRatePercent: number = 18
+  gstRatePercent: number = 18,
+  coupon?: { discountType: string; discountValue: number } | null
 ) {
   const safeMonths = Math.max(1, Math.min(36, months || 1));
-  const baseTotal = safeMonths * baseMonthlyFee;
-  const gstTotal = Math.round((baseTotal * gstRatePercent) / 100 * 100) / 100;
+  const rawBaseTotal = safeMonths * baseMonthlyFee;
+  let discountRupees = 0;
+  if (coupon) {
+    if (coupon.discountType === "PERCENTAGE") {
+      discountRupees = Math.round(((rawBaseTotal * coupon.discountValue) / 100) * 100) / 100;
+    } else {
+      discountRupees = Math.min(rawBaseTotal, coupon.discountValue);
+    }
+  }
+  const baseTotal = Math.max(0, rawBaseTotal - discountRupees);
+  const gstTotal = Math.round(((baseTotal * gstRatePercent) / 100) * 100) / 100;
   const grandTotal = Math.round((baseTotal + gstTotal) * 100) / 100;
 
   return {
     months: safeMonths,
+    rawBaseTotal,
+    discountRupees,
     baseTotal,
     gstTotal,
     grandTotal,
@@ -67,8 +84,9 @@ export default function SubscriptionMonthSelector({
   gstRatePercent = 18,
   currentPeriodEnd,
   disabled = false,
+  coupon = null,
 }: SubscriptionMonthSelectorProps) {
-  const pricing = calculateSubscriptionPricing(months, baseMonthlyFee, gstRatePercent);
+  const pricing = calculateSubscriptionPricing(months, baseMonthlyFee, gstRatePercent, coupon);
   const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd);
 
   const handlePresetSelect = (m: number) => {
@@ -202,8 +220,17 @@ export default function SubscriptionMonthSelector({
           <span>
             Branch Operational Fee ({months} {months === 1 ? "month" : "months"})
           </span>
-          <span>₹{pricing.baseTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+          <span>₹{pricing.rawBaseTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
+        {pricing.discountRupees > 0 && coupon && (
+          <div className="flex justify-between items-center text-xs text-emerald-700 font-bold bg-emerald-50/90 px-2.5 py-1.5 rounded-xl border border-emerald-200">
+            <span className="flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Coupon Discount ({coupon.code})</span>
+            </span>
+            <span>-₹{pricing.discountRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
         <div className="flex justify-between text-xs text-zinc-600 font-medium">
           <span>GST (18%)</span>
           <span>₹{pricing.gstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>

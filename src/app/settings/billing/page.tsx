@@ -34,8 +34,9 @@ export default function BillingPage() {
   const billingHistory = Array.isArray(billingData) ? billingData : [];
   const outlets = Array.isArray(outletsData) ? outletsData : (outletsData as any)?.data || [];
 
-  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && o.subscription?.planCode !== "COUPON_FIRST25").length * 2358.82;
-  const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && o.subscription?.planCode === "COUPON_FIRST25").length;
+  const isPromoPlan = (planCode?: string) => planCode?.startsWith("COUPON_");
+  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * 2358.82;
+  const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && isPromoPlan(o.subscription?.planCode)).length;
 
   return (
     <AuthGuard>
@@ -175,7 +176,7 @@ export default function BillingPage() {
                           <div>
                             <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-semibold">Tier</span>
                             <span className="font-bold text-zinc-800">
-                              {sub?.planCode === "COUPON_FIRST25" ? "FIRST25 VIP Access" : "Smart Branch Pro"}
+                              {sub?.planCode?.startsWith("COUPON_") ? (sub?.planName || "VIP Access") : "Smart Branch Pro"}
                             </span>
                           </div>
                           <div className="text-right">
@@ -190,9 +191,9 @@ export default function BillingPage() {
 
                       <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-200/60">
                         <span className="text-xs font-bold font-mono text-zinc-900">
-                          {sub?.planCode === "COUPON_FIRST25" ? (
+                          {sub?.planCode?.startsWith("COUPON_") ? (
                             <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-sans">
-                              100% Free Promo (Dec 2026)
+                              {sub?.planName || "Free VIP License"}
                             </span>
                           ) : (
                             "₹2,358.82 / mo"

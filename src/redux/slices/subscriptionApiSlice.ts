@@ -70,7 +70,7 @@ export const subscriptionApi = baseApi.injectEndpoints({
 
     initiateOutletSubscription: builder.mutation<
       InitiateSubscriptionResponse,
-      { outletId: string; planCode?: string; months?: number }
+      { outletId: string; planCode?: string; months?: number; couponCode?: string }
     >({
       query: (body) => ({
         url: "/subscriptions/outlets/initiate",
@@ -122,7 +122,16 @@ export const subscriptionApi = baseApi.injectEndpoints({
     }),
 
     applyCoupon: builder.mutation<
-      { success: boolean; message: string; couponCode: string; validUntil: string; businessSubscription?: any },
+      {
+        success: boolean;
+        message: string;
+        couponCode: string;
+        validUntil?: string;
+        applied?: boolean;
+        discountType?: string;
+        discountValue?: number;
+        businessSubscription?: any;
+      },
       { couponCode: string; outletId?: string }
     >({
       query: (body) => ({
@@ -138,7 +147,16 @@ export const subscriptionApi = baseApi.injectEndpoints({
     }),
 
     validateCoupon: builder.query<
-      { valid: boolean; code: string; description?: string; discountPercent?: number; validUntil?: string; message?: string },
+      {
+        valid: boolean;
+        code: string;
+        description?: string;
+        discountType?: string;
+        discountValue?: number;
+        discountPercent?: number;
+        validUntil?: string | null;
+        message?: string;
+      },
       string
     >({
       query: (code) => `/subscriptions/validate-coupon?code=${encodeURIComponent(code)}`,
@@ -158,5 +176,6 @@ export const {
   useGetBillingHistoryQuery,
   useApplyCouponMutation,
   useValidateCouponQuery,
+  useLazyValidateCouponQuery,
 } = subscriptionApi;
 

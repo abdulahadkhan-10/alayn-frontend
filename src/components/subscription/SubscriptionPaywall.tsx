@@ -39,16 +39,22 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
   const [months, setMonths] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [couponInput, setCouponInput] = useState("FIRST25");
+  const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountType: string;
+    discountValue: number;
+    message?: string;
+  } | null>(null);
 
   // Determine which outlet to pay for
   // If targetBranch is provided, use that; otherwise activeBranch; otherwise first branch in list
   const branchToPay = targetBranch || (activeBranch?.id !== "all" ? activeBranch : null) || branches.find(b => b.id !== "all") || null;
 
   const hasOutlets = branches.filter(b => b.id !== "all").length > 0;
-  const pricing = calculateSubscriptionPricing(months);
+  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
 
   const handlePayNow = async () => {
     if (!branchToPay) return;
@@ -60,6 +66,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
         outletId: branchToPay.id,
         planCode: "MONTHLY_STANDARD",
         months,
+        couponCode: appliedCoupon?.code,
       }).unwrap();
 
       const { paymentSessionId, orderId } = res;
@@ -105,27 +112,46 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
 
   const handleApplyCoupon = async () => {
     if (!branchToPay) return;
+    const cleanCode = couponInput.trim().toUpperCase();
+    if (!cleanCode) return;
     setCouponError("");
     setCouponSuccess(false);
 
     try {
-      await applyCoupon({
-        couponCode: couponInput.trim(),
+      const res = await applyCoupon({
+        couponCode: cleanCode,
         outletId: branchToPay.id,
       }).unwrap();
 
-      setCouponSuccess(true);
-      await refreshBranches();
-      setActiveBranch(branchToPay);
+      if ((res.discountValue ?? 0) >= 100 || (res.businessSubscription && !res.applied)) {
+        setCouponSuccess(true);
+        await refreshBranches();
+        setActiveBranch(branchToPay);
+      } else {
+        setAppliedCoupon({
+          code: cleanCode,
+          discountType: res.discountType || "PERCENTAGE",
+          discountValue: res.discountValue || 0,
+          message: res.message,
+        });
+        setCouponSuccess(true);
+      }
     } catch (err: any) {
       const msg =
         err?.data?.error?.message ||
         err?.data?.message ||
         (typeof err?.data?.error === "string" ? err?.data?.error : null) ||
         err?.message ||
-        "Invalid coupon code. Try 'FIRST25'.";
+        "Invalid coupon code. Please check and try again.";
       setCouponError(typeof msg === "string" ? msg : JSON.stringify(msg));
     }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponSuccess(false);
+    setCouponError("");
   };
 
   // State A: User has NO outlets registered at all
@@ -254,60 +280,79 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
             onChange={setMonths}
             currentPeriodEnd={branchToPay?.subscription?.currentPeriodEnd}
             disabled={isProcessing || isInitiating || isVerifying || isApplyingCoupon}
+            coupon={appliedCoupon}
           />
 
-          {/* Promo Coupon Redemption Box */}
-          <div className="rounded-2xl border border-dashed border-[#D3232A]/30 bg-gradient-to-r from-red-50/40 via-white to-amber-50/30 p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-100 text-[#D3232A]">
-                  <Gift className="h-4 w-4" />
+          {/* Dynamic Coupon Box */}
+          {appliedCoupon ? (
+            <div className="rounded-2xl border border-emerald-300 bg-emerald-50/70 p-4 flex items-center justify-between animate-in fade-in-50 duration-200">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <Tag className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
-                    <span>Have Coupon Code FIRST25?</span>
-                    <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">100% Free Access</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm font-black text-emerald-900 tracking-wider uppercase">
+                      {appliedCoupon.code}
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full">
+                      {appliedCoupon.discountType === "PERCENTAGE"
+                        ? `${appliedCoupon.discountValue}% OFF`
+                        : `₹${appliedCoupon.discountValue} OFF`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Discount applied to your subscription fee
                   </p>
-                  <p className="text-[11px] text-zinc-500">Apply coupon <strong className="font-mono text-zinc-900">FIRST25</strong> to unlock free access through December 31, 2026!</p>
                 </div>
               </div>
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={couponInput}
-                onChange={(e) => {
-                  setCouponInput(e.target.value.toUpperCase());
-                  setCouponError("");
-                }}
-                placeholder="Enter FIRST25"
-                className="block flex-1 rounded-xl border-0 py-2.5 px-3.5 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
-              />
               <button
                 type="button"
-                onClick={handleApplyCoupon}
-                disabled={isApplyingCoupon || !couponInput.trim()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B1221] hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                onClick={handleRemoveCoupon}
+                className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline px-2.5 py-1.5 cursor-pointer"
               >
-                {isApplyingCoupon ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                )}
-                Apply Code
+                Remove
               </button>
             </div>
-            {couponError && (
-              <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
-            )}
-            {couponSuccess && (
-              <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                FIRST25 Applied! Refreshing branch access...
-              </p>
-            )}
-          </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-4 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[#D3232A]">
+                  <Tag className="h-3.5 w-3.5" />
+                </div>
+                <p className="text-xs font-bold text-zinc-900">Have a Promo or Coupon Code?</p>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    setCouponError("");
+                  }}
+                  placeholder="Enter coupon code"
+                  className="block flex-1 rounded-xl border-0 py-2.5 px-3.5 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={isApplyingCoupon || !couponInput.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B1221] hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {isApplyingCoupon ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  )}
+                  Apply Code
+                </button>
+              </div>
+              {couponError && (
+                <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
+              )}
+            </div>
+          )}
 
           {/* Action Button */}
           <div className="space-y-3 pt-2">
