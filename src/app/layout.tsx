@@ -41,7 +41,6 @@ export const metadata: Metadata = {
     "Alayn",
     "Alayn AI",
     "alaynai.com",
-    "Alayn AI Official",
     "Restaurant Operating System",
     "Hospitality AI",
     "Cafe POS",
@@ -105,7 +104,7 @@ export default function RootLayout({
         "@id": `${siteUrl}/#website`,
         "url": siteUrl,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "AlaynAI", "alaynai.com", "Alayn Hospitality Operating System", "Alayn AI Official"],
+        "alternateName": ["Alayn", "AlaynAI"],
         "description": "The Official Intelligent Operating System for Modern Hospitality.",
         "disambiguatingDescription": "The official Alayn AI software platform and operating system for hospitality, restaurants, and cafes at alaynai.com.",
         "publisher": {
@@ -117,7 +116,7 @@ export default function RootLayout({
         "@type": "Brand",
         "@id": `${siteUrl}/#brand`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com", "Alayn AI Platform"],
+        "alternateName": ["Alayn", "AlaynAI"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`
       },
@@ -125,7 +124,7 @@ export default function RootLayout({
         "@type": "SoftwareApplication",
         "@id": `${siteUrl}/#software`,
         "name": "Alayn AI",
-        "alternateName": ["Alayn", "Alayn Hospitality Operating System", "alaynai.com", "Alayn AI Platform"],
+        "alternateName": ["Alayn", "AlaynAI"],
         "operatingSystem": "Web, iOS, Android",
         "applicationCategory": "BusinessApplication",
         "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling for restaurants and cafes.",
@@ -141,7 +140,7 @@ export default function RootLayout({
         "@id": `${siteUrl}/#organization`,
         "name": "Alayn AI",
         "legalName": "Alayn AI Ltd",
-        "alternateName": ["Alayn", "Alayn Hospitality", "alaynai.com", "Alayn AI Official"],
+        "alternateName": ["Alayn", "AlaynAI"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`,
         "brand": {
@@ -170,6 +169,9 @@ export default function RootLayout({
             "availableLanguage": ["English", "Hindi"]
           }
         ],
+        // Add every official profile here (LinkedIn, Google Business Profile,
+        // Crunchbase, G2/Capterra listings) — these links are how Google
+        // learns "Alayn" is a distinct brand from similarly named products.
         "sameAs": [
           "https://www.instagram.com/alayn.si/",
           "https://share.google/CBr807mWPl3Ekx5os"

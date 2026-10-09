@@ -2,15 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { MARKDOWN_PAGES, getAgent404Markdown } from "./lib/agent-markdown";
 
+// Only the API version header is sent. Deprecation/Sunset/RateLimit headers
+// were attached to every page, declaring the whole site deprecated (sunset
+// 2028) to crawlers and agents, and the rate-limit values weren't enforced.
 function attachHeaders(res: NextResponse) {
-  res.headers.set("RateLimit-Limit", "100");
-  res.headers.set("RateLimit-Remaining", "99");
-  res.headers.set("RateLimit-Reset", "60");
-  res.headers.set("RateLimit-Policy", "100;w=60");
   res.headers.set("x-api-version", "1.0.0");
-  res.headers.set("Deprecation", "@1798761600");
-  res.headers.set("Sunset", "Sat, 01 Jan 2028 00:00:00 GMT");
-  res.headers.set("Link", '<https://alaynai.com/deprecation>; rel="deprecation"');
 }
 
 export function proxy(request: NextRequest) {
