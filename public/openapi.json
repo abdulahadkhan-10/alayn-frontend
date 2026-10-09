@@ -1,617 +1,259 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
-    "title": "Alayn AI Hospitality & Restaurant API",
+    "title": "Alayn API",
     "version": "1.0.0",
-    "description": "Enterprise REST API for Alayn AI restaurant operating system, point of sale (POS), kitchen display systems (KDS), smart FEFO inventory, and workforce scheduling.",
-    "contact": {
-      "name": "Alayn AI Developer Platform",
-      "email": "info@alaynai.com",
-      "url": "https://alaynai.com/api-docs"
-    },
-    "license": {
-      "name": "Proprietary",
-      "url": "https://alaynai.com/legal/terms"
-    },
-    "x-cli": {
-      "package": "@alayn/cli",
-      "registry": "https://www.npmjs.com/package/@alayn/cli",
-      "command": "alayn",
-      "install": "npm install -g @alayn/cli",
-      "docs": "https://alaynai.com/api-docs#cli",
-      "repository": "https://github.com/Akshi1277/alayn"
-    },
-    "x-deprecation-policy": {
-      "sunsetWindowMonths": 12,
-      "headerConventions": [
-        "Deprecation",
-        "Sunset",
-        "Link"
-      ],
-      "policyUrl": "https://alaynai.com/api-docs#deprecation-policy"
-    },
-    "x-sunset-policy": {
-      "noticePeriod": "12 months",
-      "documentation": "https://alaynai.com/api-docs#deprecation-policy"
-    }
+    "description": "The REST API behind the Alayn app. Authenticate with POST /api/v1/auth/login and send the returned JWT as `Authorization: Bearer <token>`. Outlet-scoped endpoints read the `x-outlet-id` header. Responses use `{ success, data }` (lists add `meta`); errors use `{ success: false, error: { code, message } }`. This document covers a subset of the API and is generated from the backend's own specification."
   },
   "servers": [
     {
-      "url": "https://api.alaynai.com/v1",
-      "description": "Production API Server (v1)"
+      "url": "https://api.alaynai.com",
+      "description": "Production"
     }
   ],
-  "tags": [
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
     {
-      "name": "Orders",
-      "description": "Counter, table dining, QR self-order, and KDS ticket dispatch"
-    },
-    {
-      "name": "Inventory",
-      "description": "FEFO/FIFO batch tracking, recipe ingredient deductions, and supplier POs"
-    },
-    {
-      "name": "Workforce",
-      "description": "Employee matrix rosters, shifts, and tablet clock-in terminal"
-    },
-    {
-      "name": "Analytics",
-      "description": "Real-time revenue, P&L, and food waste telemetry"
+      "BearerAuth": []
     }
   ],
   "paths": {
-    "/orders": {
-      "get": {
-        "operationId": "listOrders",
-        "summary": "List active and historical restaurant orders",
-        "description": "Retrieve a paginated list of dining, counter, and delivery orders for the specified outlet with live status filtering.",
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "User Login",
         "tags": [
-          "Orders"
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "owner@alayn.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Invalid Credentials"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh Access Token",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Logout User",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/employees": {
+      "post": {
+        "summary": "Create Employee Profile",
+        "tags": [
+          "Employees"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/OutletIdHeader"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "description": "Filter orders by operational status",
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
             "schema": {
-              "type": "string",
-              "enum": [
-                "PENDING",
-                "ACCEPTED",
-                "IN_PREPARATION",
-                "READY",
-                "DELIVERED",
-                "COMPLETED",
-                "CANCELLED"
-              ]
+              "type": "string"
             }
-          },
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Sam Staff"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "9876543210"
+                  },
+                  "role": {
+                    "type": "string",
+                    "example": "STAFF"
+                  },
+                  "joiningDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-02-01"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone",
+                  "role",
+                  "joiningDate"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Employees",
+        "tags": [
+          "Employees"
+        ],
+        "parameters": [
           {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "description": "Page number (1-indexed)",
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "default": 1,
-              "minimum": 1
+              "type": "string"
             }
           },
           {
             "name": "limit",
             "in": "query",
-            "required": false,
-            "description": "Number of records per page",
             "schema": {
-              "type": "integer",
-              "default": 20,
-              "maximum": 100
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful retrieval of orders list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
+            "description": "Success"
           }
-        },
-        "deprecated": false
-      },
-      "post": {
-        "operationId": "createOrder",
-        "summary": "Submit a new dining or counter order",
-        "description": "Create an order, deduct initial recipe stock batches, and dispatch live Kitchen Order Tickets (KOT) to assigned prep stations.",
-        "tags": [
-          "Orders"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/OutletIdHeader"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "description": "Order creation payload including table number, items, and billing details",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateOrderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Order successfully created and dispatched to KDS",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
+        }
       }
     },
-    "/orders/{orderId}": {
-      "get": {
-        "operationId": "getOrderById",
-        "summary": "Get specific order details by ID",
-        "description": "Retrieve comprehensive details for an order including items, modifiers, status history, and payment ledger.",
+    "/api/v1/employees/{id}": {
+      "patch": {
+        "summary": "Update Employee Profile",
         "tags": [
-          "Orders"
+          "Employees"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/OutletIdHeader"
-          },
-          {
-            "name": "orderId",
+            "name": "id",
             "in": "path",
             "required": true,
-            "description": "Unique identifier of the order",
             "schema": {
               "type": "string",
               "format": "uuid"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Order details successfully retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/inventory/items": {
-      "get": {
-        "operationId": "listInventoryItems",
-        "summary": "Query inventory stock levels and FEFO batches",
-        "description": "Fetch real-time stock balances, unit measurements, minimum safety thresholds, and active manufacturing/expiry batches.",
-        "tags": [
-          "Inventory"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/OutletIdHeader"
           },
           {
-            "name": "lowStockOnly",
-            "in": "query",
-            "required": false,
-            "description": "Filter items currently at or below minimum safety threshold",
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
             "schema": {
-              "type": "boolean",
-              "default": false
+              "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Inventory items and batch stock successfully retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InventoryItemListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/inventory/purchase-orders": {
-      "post": {
-        "operationId": "createPurchaseOrder",
-        "summary": "Generate and dispatch a supplier purchase order",
-        "description": "Create an automated or manual PO to restock depleted raw ingredients with supplier lead time tracking.",
-        "tags": [
-          "Inventory"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/OutletIdHeader"
           }
         ],
         "requestBody": {
@@ -619,133 +261,1398 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePurchaseOrderRequest"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "ACTIVE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/documents": {
+      "post": {
+        "summary": "Upload Employee Document",
+        "tags": [
+          "Employees"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "document": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "document"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Purchase order created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PurchaseOrderResponse"
-                }
-              }
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/shifts": {
+      "post": {
+        "summary": "Create Shift Template",
+        "tags": [
+          "Shifts"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Morning Shift"
+                  },
+                  "startTime": {
+                    "type": "string",
+                    "example": "09:00"
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "example": "12:00"
+                  }
+                },
+                "required": [
+                  "name",
+                  "startTime",
+                  "endTime"
+                ]
               }
             }
           }
         },
-        "deprecated": false
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
       }
     },
-    "/workforce/roster": {
-      "get": {
-        "operationId": "getWorkforceRoster",
-        "summary": "Retrieve employee shift matrix roster",
-        "description": "Fetch scheduled shifts mapped by employee and date grid for the specified outlet.",
+    "/api/v1/shifts/{id}/assign": {
+      "post": {
+        "summary": "Assign Employee to Shift",
         "tags": [
-          "Workforce"
+          "Shifts"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/OutletIdHeader"
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "employeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-06-15"
+                  }
+                },
+                "required": [
+                  "employeeId",
+                  "date"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Shift Overlap"
+          }
+        }
+      }
+    },
+    "/api/v1/shifts/swaps": {
+      "post": {
+        "summary": "Request Shift Swap",
+        "tags": [
+          "Shifts"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fromEmployeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "toEmployeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "shiftId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-06-15"
+                  }
+                },
+                "required": [
+                  "fromEmployeeId",
+                  "toEmployeeId",
+                  "shiftId",
+                  "date"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/shifts/swaps/{id}": {
+      "patch": {
+        "summary": "Approve or Reject Shift Swap",
+        "tags": [
+          "Shifts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/attendance/check-in": {
+      "post": {
+        "summary": "Employee Attendance Check-In",
+        "tags": [
+          "Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "employeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "employeeId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/attendance/check-out": {
+      "post": {
+        "summary": "Employee Attendance Check-Out",
+        "tags": [
+          "Attendance"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "employeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "employeeId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/leave-requests": {
+      "post": {
+        "summary": "Create Leave Request",
+        "tags": [
+          "Leave Requests"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "employeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-07-01"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2025-07-05"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Family function"
+                  }
+                },
+                "required": [
+                  "employeeId",
+                  "startDate",
+                  "endDate",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/leave-requests/{id}": {
+      "patch": {
+        "summary": "Approve or Reject Leave Request",
+        "tags": [
+          "Leave Requests"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/items": {
+      "post": {
+        "summary": "Create Inventory Item",
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Milk"
+                  },
+                  "sku": {
+                    "type": "string",
+                    "example": "MILK-001"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "Dairy"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "example": "liters"
+                  },
+                  "reorderThreshold": {
+                    "type": "number",
+                    "example": 5
+                  },
+                  "unitCostPaise": {
+                    "type": "integer",
+                    "example": 6000
+                  }
+                },
+                "required": [
+                  "name",
+                  "sku",
+                  "category",
+                  "unit",
+                  "reorderThreshold",
+                  "unitCostPaise"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/items/{id}/stock": {
+      "get": {
+        "summary": "Get Stock Balance of Item",
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/items/{id}/adjust": {
+      "post": {
+        "summary": "Manually Adjust Stock",
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "change": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "SALE",
+                      "WASTE",
+                      "PURCHASE",
+                      "ADJUSTMENT"
+                    ]
+                  }
+                },
+                "required": [
+                  "change"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/inventory/recipes": {
+      "post": {
+        "summary": "Create Recipe Link",
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuItemId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "itemId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "quantityPerUnit": {
+                    "type": "number",
+                    "example": 0.1
+                  }
+                },
+                "required": [
+                  "menuItemId",
+                  "itemId",
+                  "quantityPerUnit"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/purchase-orders": {
+      "post": {
+        "summary": "Create Purchase Order",
+        "tags": [
+          "Purchase Orders"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "supplierId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "itemId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "orderedQuantity": {
+                          "type": "number",
+                          "example": 100
+                        },
+                        "unitCostPaise": {
+                          "type": "integer",
+                          "example": 5500
+                        }
+                      },
+                      "required": [
+                        "itemId",
+                        "orderedQuantity",
+                        "unitCostPaise"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "supplierId",
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/purchase-orders/{id}/receive": {
+      "patch": {
+        "summary": "Receive Goods on Purchase Order",
+        "tags": [
+          "Purchase Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "itemId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "receivedQuantity": {
+                          "type": "number",
+                          "example": 50
+                        },
+                        "batchNumber": {
+                          "type": "string",
+                          "example": "BAT-XYZ"
+                        },
+                        "expiryDate": {
+                          "type": "string",
+                          "format": "date",
+                          "example": "2026-07-01"
+                        }
+                      },
+                      "required": [
+                        "itemId",
+                        "receivedQuantity",
+                        "batchNumber",
+                        "expiryDate"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/menu": {
+      "get": {
+        "summary": "Get Public Outlet Menu",
+        "tags": [
+          "Menu"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/menu/categories": {
+      "post": {
+        "summary": "Create Menu Category",
+        "tags": [
+          "Menu"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Beverages"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/menu/items": {
+      "post": {
+        "summary": "Create Menu Item",
+        "tags": [
+          "Menu"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Cappuccino"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "pricePaise": {
+                    "type": "integer",
+                    "example": 12000
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "pricePaise",
+                  "categoryId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/menu/items/{id}/cost": {
+      "get": {
+        "summary": "Calculate Menu Item Ingredient Cost",
+        "tags": [
+          "Menu"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/orders": {
+      "post": {
+        "summary": "Place Order",
+        "tags": [
+          "Orders"
+        ],
+        "description": "Accepts employee authentication or a valid QR TableToken in body",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableNumber": {
+                    "type": "integer"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "COUNTER",
+                      "QR",
+                      "DELIVERY"
+                    ]
+                  },
+                  "tableToken": {
+                    "type": "string"
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "menuItemId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "example": 2
+                        }
+                      },
+                      "required": [
+                        "menuItemId",
+                        "quantity"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "source",
+                  "items"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{id}/status": {
+      "patch": {
+        "summary": "Update Order Status",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "RECEIVED",
+                      "PREPARING",
+                      "READY",
+                      "SERVED",
+                      "DISPATCHED",
+                      "COMPLETED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Insufficient stock on completing"
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{id}/payments": {
+      "post": {
+        "summary": "Record Payment",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountPaise": {
+                    "type": "integer",
+                    "example": 10000
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "UPI",
+                      "CARD",
+                      "CASH"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "CONFIRMED",
+                      "FAILED"
+                    ]
+                  }
+                },
+                "required": [
+                  "amountPaise",
+                  "method"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/v1/kitchen/orders": {
+      "get": {
+        "summary": "Get Active Kitchen Orders",
+        "tags": [
+          "Kitchen"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/orders/tables/{token}/menu": {
+      "get": {
+        "summary": "Get Table Menu via QR Token",
+        "tags": [
+          "QR Ordering"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": [],
+        "description": "Rate limited to 10 requests per minute per IP."
+      }
+    },
+    "/api/v1/waste-logs": {
+      "post": {
+        "summary": "Log Food Waste",
+        "tags": [
+          "Waste Management"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "itemId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "example": 1.5
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "SPOILAGE",
+                      "OVER_PREP",
+                      "RETURN",
+                      "ERROR"
+                    ]
+                  }
+                },
+                "required": [
+                  "itemId",
+                  "quantity",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List Waste Logs",
+        "tags": [
+          "Waste Management"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/waste-logs/summary": {
+      "get": {
+        "summary": "Get Waste Summary",
+        "tags": [
+          "Waste Management"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/daily-summary": {
+      "get": {
+        "summary": "Get Daily Sales Summaries",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "startDate",
             "in": "query",
-            "required": true,
-            "description": "Start date for roster query (YYYY-MM-DD)",
             "schema": {
               "type": "string",
               "format": "date"
@@ -754,8 +1661,6 @@
           {
             "name": "endDate",
             "in": "query",
-            "required": true,
-            "description": "End date for roster query (YYYY-MM-DD)",
             "schema": {
               "type": "string",
               "format": "date"
@@ -764,120 +1669,144 @@
         ],
         "responses": {
           "200": {
-            "description": "Roster matrix returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RosterMatrixResponse"
-                }
-              }
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/best-worst-sellers": {
+      "get": {
+        "summary": "Get Best and Worst Sellers",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/reports": {
+      "get": {
+        "summary": "Get Sales Performance Reports",
+        "tags": [
+          "Analytics"
+        ],
+        "parameters": [
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
             }
           },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
             }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/outlet-comparison": {
+      "get": {
+        "summary": "Compare Outlets (Cached)",
+        "tags": [
+          "Analytics"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/feedback": {
+      "post": {
+        "summary": "Submit Customer Feedback",
+        "tags": [
+          "Feedback & Tickets"
+        ],
+        "description": "Public endpoint, rate-limited Rate limited to 5 requests per 15 minutes per IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "rating": {
+                    "type": "integer",
+                    "example": 5
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Great food, minor allergy concern"
+                  }
+                },
+                "required": [
+                  "orderId",
+                  "rating",
+                  "comment"
+                ]
               }
             }
           }
         },
-        "deprecated": false
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "security": []
       }
     },
-    "/workforce/attendance": {
+    "/api/v1/tickets/staff-queries": {
       "post": {
-        "operationId": "recordAttendanceClockIn",
-        "summary": "Record employee PIN attendance clock-in or clock-out",
-        "description": "Log attendance from tablet terminal kiosks (/attendance-terminal) with PIN authentication and timestamp verification.",
+        "summary": "Log Staff Query",
         "tags": [
-          "Workforce"
+          "Feedback & Tickets"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/OutletIdHeader"
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -885,1057 +1814,131 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AttendanceClockRequest"
+                "type": "object",
+                "properties": {
+                  "employeeId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "Payroll"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Incorrect shift calculation"
+                  }
+                },
+                "required": [
+                  "employeeId",
+                  "category",
+                  "description"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Attendance event recorded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AttendanceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Created"
           }
-        },
-        "deprecated": false
+        }
       }
     },
-    "/analytics/summary": {
+    "/api/v1/tickets": {
       "get": {
-        "operationId": "getAnalyticsSummary",
-        "summary": "Retrieve live revenue, P&L, and food cost telemetry",
-        "description": "Fetch consolidated outlet performance metrics including gross sales, COGS, labor cost percentage, and table turnover velocity.",
+        "summary": "List Tickets",
         "tags": [
-          "Analytics"
+          "Feedback & Tickets"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/OutletIdHeader"
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           },
           {
-            "name": "period",
+            "name": "limit",
             "in": "query",
-            "required": false,
-            "description": "Time range for analytics calculation",
             "schema": {
-              "type": "string",
-              "enum": [
-                "TODAY",
-                "YESTERDAY",
-                "THIS_WEEK",
-                "THIS_MONTH",
-                "LAST_MONTH"
-              ],
-              "default": "TODAY"
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Analytics summary metrics returned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AnalyticsSummaryResponse"
-                }
-              }
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{id}": {
+      "patch": {
+        "summary": "Update Ticket Status/Resolve",
+        "tags": [
+          "Feedback & Tickets"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
-          "400": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
+          {
+            "name": "x-outlet-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
-          },
-          "401": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "RFC 9457 Problem Details Error Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error (RFC 9457)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationErrorResponse"
-                }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "OPEN",
+                      "IN_PROGRESS",
+                      "RESOLVED"
+                    ]
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
               }
             }
           }
         },
-        "deprecated": false
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Authenticate requests using standard JWT Bearer token."
-      }
-    },
-    "parameters": {
-      "OutletIdHeader": {
-        "name": "x-outlet-id",
-        "in": "header",
-        "required": true,
-        "description": "Unique UUID scoping the request to a specific restaurant outlet/branch.",
-        "schema": {
-          "type": "string",
-          "format": "uuid",
-          "example": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
-        }
-      }
-    },
-    "responses": {
-      "BadRequestError": {
-        "description": "Invalid input parameters (RFC 9457)",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "UnauthorizedError": {
-        "description": "Missing or invalid authentication credentials",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "ForbiddenError": {
-        "description": "Authenticated user lacks permission for this outlet or resource",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "NotFoundError": {
-        "description": "The requested resource was not found",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "ValidationError": {
-        "description": "Payload failed schema validation (RFC 9457)",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ValidationErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ValidationErrorResponse"
-            }
-          }
-        }
-      },
-      "InternalServerError": {
-        "description": "An unexpected server error occurred",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "schemas": {
-      "ErrorResponse": {
-        "type": "object",
-        "description": "Standard RFC 9457 Problem Details for HTTP APIs",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "code"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://alaynai.com/errors/invalid-request"
-          },
-          "title": {
-            "type": "string",
-            "example": "Invalid Request"
-          },
-          "status": {
-            "type": "integer",
-            "example": 400
-          },
-          "detail": {
-            "type": "string",
-            "example": "The request body failed validation."
-          },
-          "instance": {
-            "type": "string",
-            "example": "/orders"
-          },
-          "code": {
-            "type": "string",
-            "example": "ERR_INVALID_OUTLET_SCOPE"
-          }
-        }
-      },
-      "ValidationErrorResponse": {
-        "type": "object",
-        "description": "Standard RFC 9457 Validation Problem Details",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "code",
-          "invalidParams"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "https://alaynai.com/errors/validation"
-          },
-          "title": {
-            "type": "string",
-            "example": "Validation Failed"
-          },
-          "status": {
-            "type": "integer",
-            "example": 422
-          },
-          "detail": {
-            "type": "string",
-            "example": "One or more fields in the request body are invalid."
-          },
-          "code": {
-            "type": "string",
-            "example": "ERR_PAYLOAD_VALIDATION"
-          },
-          "invalidParams": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "name",
-                "reason"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "items[0].quantity"
-                },
-                "reason": {
-                  "type": "string",
-                  "example": "Quantity must be greater than zero."
-                }
-              }
-            }
-          }
-        }
-      },
-      "CreateOrderRequest": {
-        "type": "object",
-        "required": [
-          "orderType",
-          "items"
-        ],
-        "properties": {
-          "tableNumber": {
-            "type": "string",
-            "example": "T-14"
-          },
-          "orderType": {
-            "type": "string",
-            "enum": [
-              "DINE_IN",
-              "TAKEAWAY",
-              "DELIVERY",
-              "COUNTER"
-            ],
-            "example": "DINE_IN"
-          },
-          "customerName": {
-            "type": "string",
-            "example": "Akshat"
-          },
-          "customerPhone": {
-            "type": "string",
-            "example": "+919876543210"
-          },
-          "notes": {
-            "type": "string",
-            "example": "Extra spicy, dressing on the side"
-          },
-          "items": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "required": [
-                "menuItemId",
-                "quantity",
-                "unitPriceCents"
-              ],
-              "properties": {
-                "menuItemId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string",
-                  "example": "Artisan Cappuccino"
-                },
-                "quantity": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "example": 2
-                },
-                "unitPriceCents": {
-                  "type": "integer",
-                  "description": "Price in sub-unit cents/paise",
-                  "example": 24000
-                },
-                "modifiers": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "example": "Oat Milk"
-                      },
-                      "priceCents": {
-                        "type": "integer",
-                        "example": 4000
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "OrderResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "orderNumber",
-          "status",
-          "orderType",
-          "totalAmountCents",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "outletId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "orderNumber": {
-            "type": "string",
-            "example": "ORD-1082"
-          },
-          "tableNumber": {
-            "type": "string",
-            "example": "T-14"
-          },
-          "orderType": {
-            "type": "string",
-            "example": "DINE_IN"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "ACCEPTED",
-              "IN_PREPARATION",
-              "READY",
-              "DELIVERED",
-              "COMPLETED",
-              "CANCELLED"
-            ]
-          },
-          "subtotalCents": {
-            "type": "integer",
-            "example": 48000
-          },
-          "taxCents": {
-            "type": "integer",
-            "example": 2400
-          },
-          "totalAmountCents": {
-            "type": "integer",
-            "example": 50400
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "OrderListResponse": {
-        "type": "object",
-        "required": [
-          "data",
-          "pagination"
-        ],
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OrderResponse"
-            }
-          },
-          "pagination": {
-            "type": "object",
-            "required": [
-              "total",
-              "page",
-              "limit",
-              "totalPages"
-            ],
-            "properties": {
-              "total": {
-                "type": "integer",
-                "example": 128
-              },
-              "page": {
-                "type": "integer",
-                "example": 1
-              },
-              "limit": {
-                "type": "integer",
-                "example": 20
-              },
-              "totalPages": {
-                "type": "integer",
-                "example": 7
-              }
-            }
-          }
-        }
-      },
-      "InventoryItem": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "category",
-          "unit",
-          "currentStock",
-          "minStockThreshold"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "example": "Organic Whole Milk"
-          },
-          "category": {
-            "type": "string",
-            "example": "Dairy"
-          },
-          "unit": {
-            "type": "string",
-            "example": "L"
-          },
-          "currentStock": {
-            "type": "number",
-            "example": 14.5
-          },
-          "minStockThreshold": {
-            "type": "number",
-            "example": 20.0
-          },
-          "isLowStock": {
-            "type": "boolean",
-            "example": true
-          },
-          "activeBatches": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "batchNumber": {
-                  "type": "string",
-                  "example": "B-202608-01"
-                },
-                "quantity": {
-                  "type": "number",
-                  "example": 14.5
-                },
-                "expiryDate": {
-                  "type": "string",
-                  "format": "date",
-                  "example": "2026-09-02"
-                }
-              }
-            }
-          }
-        }
-      },
-      "InventoryItemListResponse": {
-        "type": "object",
-        "required": [
-          "items",
-          "totalCount",
-          "lowStockCount"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InventoryItem"
-            }
-          },
-          "totalCount": {
-            "type": "integer",
-            "example": 84
-          },
-          "lowStockCount": {
-            "type": "integer",
-            "example": 3
-          }
-        }
-      },
-      "CreatePurchaseOrderRequest": {
-        "type": "object",
-        "required": [
-          "supplierId",
-          "items"
-        ],
-        "properties": {
-          "supplierId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expectedDeliveryDate": {
-            "type": "string",
-            "format": "date",
-            "example": "2026-08-31"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "inventoryItemId",
-                "quantityOrdered"
-              ],
-              "properties": {
-                "inventoryItemId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "quantityOrdered": {
-                  "type": "number",
-                  "example": 50
-                }
-              }
-            }
-          }
-        }
-      },
-      "PurchaseOrderResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "poNumber",
-          "status",
-          "supplierId",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "poNumber": {
-            "type": "string",
-            "example": "PO-2026-041"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "DRAFT",
-              "SENT",
-              "PARTIALLY_RECEIVED",
-              "RECEIVED",
-              "CLOSED"
-            ]
-          },
-          "supplierId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "RosterMatrixResponse": {
-        "type": "object",
-        "required": [
-          "outletId",
-          "startDate",
-          "endDate",
-          "matrix"
-        ],
-        "properties": {
-          "outletId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "startDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "endDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "matrix": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "employeeId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "employeeName": {
-                  "type": "string",
-                  "example": "Priya Sharma"
-                },
-                "role": {
-                  "type": "string",
-                  "example": "Head Barista"
-                },
-                "shifts": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "date": {
-                        "type": "string",
-                        "format": "date"
-                      },
-                      "shiftType": {
-                        "type": "string",
-                        "enum": [
-                          "MORNING",
-                          "EVENING",
-                          "NIGHT",
-                          "OFF"
-                        ]
-                      },
-                      "startTime": {
-                        "type": "string",
-                        "example": "07:00"
-                      },
-                      "endTime": {
-                        "type": "string",
-                        "example": "15:30"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "AttendanceClockRequest": {
-        "type": "object",
-        "required": [
-          "employeePin",
-          "eventType"
-        ],
-        "properties": {
-          "employeePin": {
-            "type": "string",
-            "example": "4819"
-          },
-          "eventType": {
-            "type": "string",
-            "enum": [
-              "CLOCK_IN",
-              "CLOCK_OUT",
-              "BREAK_START",
-              "BREAK_END"
-            ]
-          }
-        }
-      },
-      "AttendanceResponse": {
-        "type": "object",
-        "required": [
-          "id",
-          "employeeName",
-          "eventType",
-          "timestamp",
-          "status"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "employeeName": {
-            "type": "string",
-            "example": "Rajesh Kumar"
-          },
-          "eventType": {
-            "type": "string",
-            "example": "CLOCK_IN"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "ON_TIME",
-              "LATE",
-              "EARLY"
-            ]
-          }
-        }
-      },
-      "AnalyticsSummaryResponse": {
-        "type": "object",
-        "required": [
-          "period",
-          "grossRevenueCents",
-          "ordersCount",
-          "cogsPercentage",
-          "foodWasteCents"
-        ],
-        "properties": {
-          "period": {
-            "type": "string",
-            "example": "TODAY"
-          },
-          "grossRevenueCents": {
-            "type": "integer",
-            "example": 1428000
-          },
-          "ordersCount": {
-            "type": "integer",
-            "example": 142
-          },
-          "averageTicketCents": {
-            "type": "integer",
-            "example": 10056
-          },
-          "cogsPercentage": {
-            "type": "number",
-            "example": 28.4
-          },
-          "foodWasteCents": {
-            "type": "integer",
-            "example": 34000
-          }
-        }
-      },
-      "ProblemDetails": {
-        "type": "object",
-        "description": "Standard RFC 9457 Problem Details for HTTP APIs",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "code"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://alaynai.com/errors/invalid-request"
-          },
-          "title": {
-            "type": "string",
-            "example": "Invalid Request"
-          },
-          "status": {
-            "type": "integer",
-            "example": 400
-          },
-          "detail": {
-            "type": "string",
-            "example": "The request body failed validation."
-          },
-          "instance": {
-            "type": "string",
-            "example": "/orders"
-          },
-          "code": {
-            "type": "string",
-            "example": "ERR_INVALID_OUTLET_SCOPE"
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "description": "Standard RFC 9457 Problem Details for HTTP APIs",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "code"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://alaynai.com/errors/invalid-request"
-          },
-          "title": {
-            "type": "string",
-            "example": "Invalid Request"
-          },
-          "status": {
-            "type": "integer",
-            "example": 400
-          },
-          "detail": {
-            "type": "string",
-            "example": "The request body failed validation."
-          },
-          "instance": {
-            "type": "string",
-            "example": "/orders"
-          },
-          "code": {
-            "type": "string",
-            "example": "ERR_INVALID_OUTLET_SCOPE"
+        "responses": {
+          "200": {
+            "description": "Success"
           }
         }
       }
     }
-  },
-  "externalDocs": {
-    "description": "Official API Deprecation & Sunset Policy",
-    "url": "https://alaynai.com/deprecation"
   }
 }

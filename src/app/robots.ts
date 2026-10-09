@@ -9,8 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         "/about",
         "/contact",
         "/api-docs",
-        "/cli",
-        "/deprecation",
         "/openapi.json",
         "/llms.txt",
         "/llms-full.txt",

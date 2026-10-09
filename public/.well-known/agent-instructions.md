@@ -17,7 +17,7 @@
 - `/` -> Product overview, capabilities, and booking
 - `/about` -> Founding mission, operating philosophy, and multi-tenant architecture
 - `/contact` -> Sales routing, demo booking, and support
-- `/api-docs` -> Developer API documentation, headers, and webhooks
+- `/api-docs` -> REST API reference: authentication, outlet scoping, responses, rate limits
 - `/legal/privacy` -> Data protection and GDPR compliance
 - `/legal/terms` -> Terms of service
 - `/llms.txt` -> Standard LLM index

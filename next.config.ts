@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
         destination: "https://alaynai.com/:path*",
         permanent: true,
       },
+      // There is no Alayn CLI or separate deprecation programme; both pages
+      // described things that don't exist. Send visitors to the real API docs.
+      { source: "/cli", destination: "/api-docs#versioning", permanent: true },
+      { source: "/deprecation", destination: "/api-docs#versioning", permanent: true },
     ];
   },
   async headers() {
