@@ -159,7 +159,7 @@ export default function ConvergenceScene() {
       chaos={0.04}
       sync={0.85}
       presence={0.9}
-      className="landing-section py-16 sm:py-24"
+      className="landing-section pt-16 pb-12 sm:pt-24 sm:pb-16"
       style={{
         background: "#F4F5F8",
         display: "flex",
@@ -237,8 +237,9 @@ export default function ConvergenceScene() {
 
           <ul
             className="relative z-0 flex gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible snap-x snap-mandatory px-2 pt-[8px] pb-4 lg:justify-center [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
-            // Tall enough for the longest pulled ticket, so switching tickets never shifts the page
-            style={{ minHeight: "440px" }}
+            // Measured: the longest pulled ticket (Orders & POS) ends 326px below the rail,
+            // plus room for its shadow, so switching tickets never shifts the page
+            style={{ minHeight: "346px" }}
           >
             {TICKETS.map((ticket, i) => (
               <Slip key={ticket.name} ticket={ticket} index={i} open={openIndex === i} onOpen={() => setOpenIndex(i)} />
