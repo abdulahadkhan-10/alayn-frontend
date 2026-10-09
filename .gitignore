@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local design-review artifacts (Playwright screenshots, impeccable critiques)
+.playwright-mcp/
+.impeccable/
