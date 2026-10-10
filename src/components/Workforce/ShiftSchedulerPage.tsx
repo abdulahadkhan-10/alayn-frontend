@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabsPill } from "@/lib/useTabsPill";
 import React, { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
@@ -28,6 +29,7 @@ import {
 } from "@/redux/slices/rosterApiSlice";
 import { CustomDatePicker } from "../ui/custom-date-picker";
 import { CustomTimePicker } from "../ui/custom-time-picker";
+import { TModal } from "../ui/TModal";
 import {
   Clock,
   Plus,
@@ -171,6 +173,7 @@ export default function ShiftSchedulerPage() {
   const [viewRange, setViewRange] = useState<"7" | "14" | "30">("7");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"roster" | "templates">("roster");
+  const tabsBarRef = useTabsPill(activeTab);
 
   // Modals
   const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
@@ -785,19 +788,24 @@ export default function ShiftSchedulerPage() {
 
               {/* Tab Switcher */}
               {isManagerOrOwner && (
-                <div className="flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                <div ref={tabsBarRef} role="tablist" className="relative flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                  <span className="t-tabs-pill shadow-2xs" aria-hidden="true" />
                   <button
+                    role="tab"
+                    aria-selected={activeTab === "roster"}
                     onClick={() => setActiveTab("roster")}
-                    className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                      activeTab === "roster" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                    className={`relative z-[1] px-2 py-0.5 rounded font-medium transition-colors cursor-pointer ${
+                      activeTab === "roster" ? "text-gray-900 font-semibold" : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
                     Schedule
                   </button>
                   <button
+                    role="tab"
+                    aria-selected={activeTab === "templates"}
                     onClick={() => setActiveTab("templates")}
-                    className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                      activeTab === "templates" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                    className={`relative z-[1] px-2 py-0.5 rounded font-medium transition-colors cursor-pointer ${
+                      activeTab === "templates" ? "text-gray-900 font-semibold" : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
                     Shift templates ({shifts.length})
@@ -1228,8 +1236,8 @@ export default function ShiftSchedulerPage() {
         </div>
 
         {/* Modal 1: Create Shift Slot */}
-        {showCreateShiftModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showCreateShiftModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showCreateShiftModal && (
             <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
                 <h3 className="text-base font-semibold text-gray-900">Create shift</h3>
@@ -1293,12 +1301,12 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal 2: Assign Shift (CONTAINED IN VIEWPORT WITH STICKY FOOTER) */}
-        {showAssignModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showAssignModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showAssignModal && (
             <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               
               {/* Header */}
@@ -1509,12 +1517,12 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Edit or Delete Shift Assignment */}
-        {showEditAssignmentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showEditAssignmentModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showEditAssignmentModal && (
             <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
@@ -1694,12 +1702,12 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Edit Shift Template */}
-        {showEditTemplateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showEditTemplateModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showEditTemplateModal && (
             <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
                 <h3 className="text-base font-semibold text-gray-900">Edit Shift Template</h3>
@@ -1760,12 +1768,12 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal 3: Request Swap */}
-        {showSwapModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showSwapModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showSwapModal && (
             <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
                 <h3 className="text-base font-semibold text-gray-900">Request shift swap</h3>
@@ -1846,12 +1854,12 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal 4: Set Weekly Roster */}
-        {showRosterModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-y-auto">
+        <TModal open={showRosterModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
+          {showRosterModal && (
             <div className="w-full max-w-lg bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
                 <div>
@@ -1952,8 +1960,8 @@ export default function ShiftSchedulerPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
       </div>
     </DashboardLayout>

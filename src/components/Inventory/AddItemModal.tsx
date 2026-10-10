@@ -106,7 +106,7 @@ export default function AddItemModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-item-title"
-      className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden"
     >
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white">

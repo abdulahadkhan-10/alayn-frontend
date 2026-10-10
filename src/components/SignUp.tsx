@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import { useShake } from "@/lib/useShake";
+import React, { createContext, useContext, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -53,6 +54,9 @@ const STEPS = [
 
 type StepId = (typeof STEPS)[number]["id"];
 
+// Bumped on every failed validation so fields that are still invalid shake again.
+const ShakeContext = createContext(0);
+
 function Field({
     id,
     label,
@@ -66,12 +70,15 @@ function Field({
     error?: string;
     children: React.ReactNode;
 }) {
+    const shakeKey = useContext(ShakeContext);
+    const shakeRef = useShake<HTMLDivElement>(error ? shakeKey : 0);
+
     return (
         <div>
             <label htmlFor={id} className="block text-[10px] font-bold uppercase tracking-wider text-[#6B7A90] mb-1">
                 {label}
             </label>
-            <div className="relative mt-1 group">
+            <div ref={shakeRef} className="t-input relative mt-1 group">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-1">
                     {icon}
                 </div>
@@ -90,6 +97,7 @@ export default function SignupComponent() {
     const [step, setStep] = useState<StepId>(1);
     const [formData, setFormData] = useState<SignupFormState>(INITIAL_FORM_STATE);
     const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
+    const [shakeKey, setShakeKey] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [submitError, setSubmitError] = useState("");
@@ -138,6 +146,7 @@ export default function SignupComponent() {
         }
 
         setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) setShakeKey((k) => k + 1);
         return Object.keys(errors).length === 0;
     };
 
@@ -154,6 +163,7 @@ export default function SignupComponent() {
         }
 
         setFieldErrors(errors);
+        if (Object.keys(errors).length > 0) setShakeKey((k) => k + 1);
         return Object.keys(errors).length === 0;
     };
 
@@ -278,6 +288,7 @@ export default function SignupComponent() {
                         })}
                     </div>
 
+                    <ShakeContext.Provider value={shakeKey}>
                     <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
                         {submitError && (
                             <div role="alert" className="rounded-lg bg-[#C41E2A]/10 p-2.5 text-xs text-[#C41E2A] border border-[#C41E2A]/20 font-medium">
@@ -538,6 +549,7 @@ export default function SignupComponent() {
                             </Link>
                         </p>
                     </form>
+                    </ShakeContext.Provider>
                 </div>
 
                 {/* Footer */}

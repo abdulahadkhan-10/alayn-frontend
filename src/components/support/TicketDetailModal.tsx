@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, Clock, CheckCircle2, AlertCircle, MessageSquare, User, Building2, Star, Send, ShieldAlert } from "lucide-react";
 import { Ticket, useUpdateTicketStatusMutation } from "@/redux/slices/ticketApiSlice";
 import { cn } from "@/lib/utils";
+import { useModalTransition } from "@/components/ui/TModal";
 
 interface TicketDetailModalProps {
   ticket: Ticket | null;
@@ -12,14 +13,21 @@ interface TicketDetailModalProps {
   canManage?: boolean;
 }
 
-export default function TicketDetailModal({ ticket, isOpen, onClose, canManage = true }: TicketDetailModalProps) {
+export default function TicketDetailModal({ ticket: ticketProp, isOpen, onClose, canManage = true }: TicketDetailModalProps) {
   const [newStatus, setNewStatus] = useState<"OPEN" | "IN_PROGRESS" | "RESOLVED">("IN_PROGRESS");
   const [comment, setComment] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const [updateTicketStatus, { isLoading }] = useUpdateTicketStatusMutation();
 
-  if (!isOpen || !ticket) return null;
+  const { mounted, stateClass } = useModalTransition(isOpen);
+
+  // The parent clears the ticket on close; keep showing it while the modal animates out.
+  const [lastTicket, setLastTicket] = useState(ticketProp);
+  if (ticketProp && ticketProp !== lastTicket) setLastTicket(ticketProp);
+  const ticket = ticketProp ?? lastTicket;
+
+  if (!mounted || !ticket) return null;
 
   const isStaffQuery = ticket.sourceTable === "StaffQuery";
   const staffQuery = ticket.staffQuery;
@@ -44,8 +52,8 @@ export default function TicketDetailModal({ ticket, isOpen, onClose, canManage =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 my-8 flex flex-col max-h-[90vh]">
+    <div className={cn("t-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto", stateClass)}>
+      <div className={cn("t-modal w-full max-w-2xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 my-8 flex flex-col max-h-[90vh]", stateClass)}>
         {/* Modal Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
           <div className="flex items-start gap-3.5 min-w-0 pr-4">

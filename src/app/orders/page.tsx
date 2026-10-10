@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -809,8 +810,8 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Modal: Full Order Details ── */}
-        {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!selectedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {selectedOrder && (
             <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full shadow-2xl overflow-hidden">
               {/* Modal header */}
               <div className="flex justify-between items-center p-5 border-b border-gray-100">
@@ -1166,16 +1167,13 @@ export default function LiveOrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── Modal: Settle Payment & Generate Thermal Invoice ── */}
-        {settlingOrder && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
-            onClick={(e) => { if (e.target === e.currentTarget) setSettlingOrder(null); }}
-          >
-            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[88vh]">
+        <TModal open={!!settlingOrder} onClose={() => setSettlingOrder(null)} className="p-4 bg-slate-900/60 backdrop-blur-sm">
+          {settlingOrder && (
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-xl overflow-hidden flex flex-col max-h-[88vh]">
               {/* Clean Modal Header */}
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-3">
@@ -1441,8 +1439,8 @@ export default function LiveOrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── Printable Thermal Receipt Modal ── */}
         {printingOrder && (
@@ -1460,8 +1458,8 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Modal: Cancel Order Confirmation ── */}
-        {cancellingOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <TModal open={!!cancellingOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {cancellingOrder && (
             <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
@@ -1616,8 +1614,8 @@ export default function LiveOrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── Printable Thermal KOT Slip Modal ── */}
         {printingKOT && (
@@ -1636,13 +1634,8 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Modal: Voluntary Service Charge Removal ── */}
-        {waivingServiceChargeOrder && (
-          <div
-            className="fixed inset-0 z-[75] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setWaivingServiceChargeOrder(null);
-            }}
-          >
+        <TModal open={!!waivingServiceChargeOrder} onClose={() => setWaivingServiceChargeOrder(null)} className="z-[75] p-4 bg-slate-950/60 backdrop-blur-sm">
+          {waivingServiceChargeOrder && (
             <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -1718,8 +1711,8 @@ export default function LiveOrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Bell,
   Check,
@@ -28,12 +28,20 @@ import {
   useDeleteNotificationMutation,
   NotificationItem,
 } from "@/redux/slices/notificationApiSlice";
+import { useOpenTransition } from "@/lib/useOpenTransition";
+import { useDismiss } from "@/lib/useDismiss";
+
+const DROPDOWN_TIMING = { openVar: "--dropdown-open-dur", closeVar: "--dropdown-close-dur" };
 
 export default function NotificationDropdown() {
   const router = useRouter();
   const { activeBranch } = useBranch();
   const [isOpen, setIsOpen] = useState(false);
+  const { mounted, stateClass } = useOpenTransition(isOpen, DROPDOWN_TIMING);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const closeDropdown = useCallback(() => setIsOpen(false), []);
+  // Close on a click outside the bell + panel, or on Escape.
+  useDismiss(dropdownRef, isOpen, closeDropdown);
 
   const { data: notificationsData, isLoading, refetch } = useGetNotificationsQuery({ limit: 20 });
   const { data: unreadCountData, refetch: refetchUnreadCount } = useGetUnreadCountQuery();
@@ -52,6 +60,10 @@ export default function NotificationDropdown() {
 
   const rawUnreadCount = unreadCountData?.data?.unreadCount || 0;
   const unreadCount = Math.max(0, rawUnreadCount - readIds.size);
+
+  // Keep the last non-zero count on the badge while it pops out, so it never shows "0".
+  const [badgeCount, setBadgeCount] = useState(unreadCount);
+  if (unreadCount > 0 && unreadCount !== badgeCount) setBadgeCount(unreadCount);
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -180,16 +192,21 @@ export default function NotificationDropdown() {
         <Bell className="h-5 w-5 text-gray-700 stroke-[1.8]" />
 
         {/* Unread Counter Badge */}
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#D3232A] text-[10px] font-bold text-white shadow-xs animate-in zoom-in">
-            {unreadCount > 99 ? "99+" : unreadCount}
+        <span className="t-badge" data-open={unreadCount > 0} aria-hidden={unreadCount === 0}>
+          <span className="t-badge-dot">
+            <span className="flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#D3232A] text-[10px] font-bold text-white shadow-xs">
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </span>
           </span>
-        )}
+        </span>
       </button>
 
       {/* Popover Dropdown Container */}
-      {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-[410px] rounded-[22px] bg-white p-5 shadow-2xl ring-1 ring-black/5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+      {mounted && (
+        <div
+          data-origin="top-right"
+          className={`t-dropdown ${stateClass} absolute right-0 mt-3 w-80 sm:w-[410px] rounded-[22px] bg-white p-5 shadow-2xl ring-1 ring-black/5 z-50`}
+        >
           {/* Top Header */}
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100">
             <h3 className="text-base font-bold text-gray-900 tracking-tight">Notifications</h3>

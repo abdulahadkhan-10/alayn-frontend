@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { TModal } from "@/components/ui/TModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import {
@@ -613,8 +614,8 @@ export default function TableManagementComponent() {
       </div>
 
       {/* Add Tables Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <TModal open={showAddModal} className="bg-black/40 backdrop-blur-sm p-4">
+        {showAddModal && (
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex items-center gap-2">
@@ -690,12 +691,12 @@ export default function TableManagementComponent() {
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </TModal>
 
       {/* Assign Staff Modal */}
-      {assignStaffTable && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <TModal open={!!assignStaffTable} className="bg-black/40 backdrop-blur-sm p-4">
+        {assignStaffTable && (
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex items-center gap-2">
@@ -798,8 +799,8 @@ export default function TableManagementComponent() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </TModal>
 
       {/* Custom print stylesheet */}
       <style dangerouslySetInnerHTML={{ __html: `
@@ -863,8 +864,8 @@ export default function TableManagementComponent() {
       ` }} />
 
       {/* Print Single Table Sticker Modal */}
-      {printTable && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <TModal open={!!printTable} className="bg-black/50 backdrop-blur-sm p-4">
+        {printTable && (
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 overflow-hidden text-center">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <h3 className="text-sm font-bold text-[#1B2A4A]">Table #{printTable.tableNumber} QR Sticker</h3>
@@ -912,12 +913,12 @@ export default function TableManagementComponent() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </TModal>
 
       {/* Bulk Print All QRs Modal */}
-      {showBulkPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <TModal open={showBulkPrint} className="bg-black/50 backdrop-blur-sm p-4">
+        {showBulkPrint && (
           <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
               <h3 className="text-sm font-bold text-[#1B2A4A]">Bulk QR Stickers ({tables.length} Tables)</h3>
@@ -967,8 +968,8 @@ export default function TableManagementComponent() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </TModal>
 
       {/* Print-Only Container (Rendered outside modals to prevent max-height layout clipping during print) */}
       <div id="print-section-container" className="hidden">

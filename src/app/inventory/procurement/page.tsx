@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
+import { TModal } from "@/components/ui/TModal";
 import CreatePurchaseOrderModal from "@/components/Inventory/CreatePurchaseOrderModal";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
@@ -996,9 +997,9 @@ export default function ProcurementPage() {
         )}
 
         {/* MODAL 1: ADD SUPPLIER */}
-        {showAddSupplierModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+        <TModal open={showAddSupplierModal} className="bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
+          {showAddSupplierModal && (
+            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] relative overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white shrink-0">
                 <div>
@@ -1197,13 +1198,13 @@ export default function ProcurementPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 2.5: EDIT SUPPLIER */}
-        {editingSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+        <TModal open={!!editingSupplier} className="bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
+          {editingSupplier && (
+            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] relative overflow-hidden">
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white shrink-0">
                 <div>
                   <h2 className="text-lg font-semibold text-zinc-900 tracking-tight">
@@ -1350,13 +1351,13 @@ export default function ProcurementPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 3: RECEIVE PO ITEMS */}
-        {receivingPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
+        <TModal open={!!receivingPO} className="bg-black/40 backdrop-blur-xs p-4 overflow-y-auto">
+          {receivingPO && (
+            <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] relative overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white shrink-0">
                 <div>
@@ -1495,12 +1496,12 @@ export default function ProcurementPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 4: 1-CLICK SMART PO GENERATOR */}
-        {showSmartPOModal && activeBranch && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={showSmartPOModal && !!activeBranch} className="bg-black/40 backdrop-blur-xs p-4">
+          {activeBranch && (
             <SmartPOModal
               outletId={activeBranch.id}
               lowStockItems={lowStockItems}
@@ -1515,12 +1516,12 @@ export default function ProcurementPage() {
                 refetchPOs();
               }}
             />
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 4B: CREATE CUSTOM PURCHASE ORDER MODAL */}
-        {showCreateCustomPOModal && activeBranch && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={Boolean(showCreateCustomPOModal && activeBranch)} className="bg-black/40 backdrop-blur-xs p-4">
+          {showCreateCustomPOModal && activeBranch && (
             <CreatePurchaseOrderModal
               outletId={activeBranch.id}
               allItems={items}
@@ -1535,12 +1536,12 @@ export default function ProcurementPage() {
                 refetchPOs();
               }}
             />
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL: CANCEL / CLOSE PURCHASE ORDER */}
-        {poAction && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={!!poAction} className="bg-black/40 backdrop-blur-xs p-4">
+          {poAction && (
             <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-zinc-200">
               <button
                 onClick={() => setPoAction(null)}
@@ -1603,12 +1604,12 @@ export default function ProcurementPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 5: DELETE SUPPLIER CONFIRMATION */}
-        {deletingSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={!!deletingSupplier} className="bg-black/40 backdrop-blur-xs p-4">
+          {deletingSupplier && (
             <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-zinc-200">
               <button
                 onClick={() => setDeletingSupplier(null)}
@@ -1647,12 +1648,12 @@ export default function ProcurementPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 6: VIEW SUPPLIER DETAILS */}
-        {viewingSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={!!viewingSupplier} className="bg-black/40 backdrop-blur-xs p-4">
+          {viewingSupplier && (
             <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-zinc-200 relative max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setViewingSupplier(null)}
@@ -1792,8 +1793,8 @@ export default function ProcurementPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );

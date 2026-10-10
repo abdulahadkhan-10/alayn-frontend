@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
@@ -904,8 +905,8 @@ export default function WasteManagementPage() {
       {/* ========================================================================= */}
       {/* RECORD WASTE MODAL DIALOG */}
       {/* ========================================================================= */}
-      {showRecordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <TModal open={showRecordModal} className="bg-black/50 backdrop-blur-xs p-4">
+        {showRecordModal && (
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
@@ -1045,8 +1046,8 @@ export default function WasteManagementPage() {
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </TModal>
     </DashboardLayout>
   );
 }

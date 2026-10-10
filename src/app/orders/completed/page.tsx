@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -680,8 +681,8 @@ export default function CompletedOrdersPage() {
         </div>
 
         {/* ── Order Detail Modal / Drawer ── */}
-        {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+        <TModal open={!!selectedOrder} className="p-4 bg-black/50 backdrop-blur-xs">
+          {selectedOrder && (
             <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 space-y-0">
 
               {/* Modal Header */}
@@ -836,8 +837,8 @@ export default function CompletedOrdersPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── Printable Thermal KOT Slip Modal ── */}
         {printingKOT && (

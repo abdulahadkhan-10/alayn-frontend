@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -443,9 +444,9 @@ export default function SupplierPortalPage() {
         </div>
 
         {/* MODAL 1: DISPATCH SHIPMENT MODAL */}
-        {actionModalType === "DISPATCH" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] animate-in fade-in duration-150 overflow-hidden">
+        <TModal open={Boolean(actionModalType === "DISPATCH" && selectedPO)} className="bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          {actionModalType === "DISPATCH" && selectedPO && (
+            <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] overflow-hidden">
               
               <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50">
                 <div className="flex items-center gap-2.5">
@@ -582,12 +583,12 @@ export default function SupplierPortalPage() {
               </div>
 
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 2: OUT OF STOCK NOTICE */}
-        {actionModalType === "OUT_OF_STOCK" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <TModal open={Boolean(actionModalType === "OUT_OF_STOCK" && selectedPO)} className="bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          {actionModalType === "OUT_OF_STOCK" && selectedPO && (
             <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] overflow-hidden">
               
               <div className="flex items-center gap-2.5 px-5 py-4 border-b border-zinc-100 bg-rose-50 text-rose-950">
@@ -629,12 +630,12 @@ export default function SupplierPortalPage() {
               </div>
 
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* MODAL 3: VIEW ORDER DETAILS */}
-        {actionModalType === "VIEW" && selectedPO && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <TModal open={Boolean(actionModalType === "VIEW" && selectedPO)} className="bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          {actionModalType === "VIEW" && selectedPO && (
             <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] overflow-hidden">
               
               <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-900 text-white">
@@ -693,8 +694,8 @@ export default function SupplierPortalPage() {
               </div>
 
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
       </div>
     </DashboardLayout>

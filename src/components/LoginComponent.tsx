@@ -1,5 +1,6 @@
 "use client";
 
+import { useShake } from "@/lib/useShake";
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +17,9 @@ export default function LoginComponent() {
   const router = useRouter();
   const [login, { isLoading }] = useLoginMutation();
   const [error, setError] = useState("");
+  // Bumped on every failed sign-in so the credential fields shake each time.
+  const [errorCount, setErrorCount] = useState(0);
+  const credentialsRef = useShake<HTMLDivElement>(errorCount);
   const dispatch = useDispatch();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +39,7 @@ export default function LoginComponent() {
       if (role === "SUPER_ADMIN") {
         dispatch(logout());
         setError("Access Restricted: Super Administrator accounts cannot log in to the Restaurant Portal. Please sign in via the Admin Portal.");
+        setErrorCount((n) => n + 1);
         return;
       }
 
@@ -57,9 +62,11 @@ export default function LoginComponent() {
         err?.message ||
         "Invalid email or password."
       );
+      setErrorCount((n) => n + 1);
     }
   };
 
+  const errorInputClasses = "block w-full border-b border-[#C41E2A]/50 py-2 pl-9 pr-3 text-[#1B2A4A] placeholder:text-[#6B7A90] bg-transparent transition-all duration-300 focus:border-[#C41E2A] focus:shadow-[0_4px_12px_rgba(196,30,42,0.08)] focus:outline-none focus:ring-0 text-xs sm:text-sm";
   const inputClasses = "block w-full border-b border-[#1B2A4A]/20 py-2 pl-9 pr-3 text-[#1B2A4A] placeholder:text-[#6B7A90] bg-transparent transition-all duration-300 focus:border-[#C41E2A] focus:shadow-[0_4px_12px_rgba(196,30,42,0.08)] focus:outline-none focus:ring-0 text-xs sm:text-sm";
 
   return (
@@ -112,6 +119,7 @@ export default function LoginComponent() {
               </div>
             )}
 
+            <div ref={credentialsRef} className="t-input space-y-4">
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-[10px] font-bold uppercase tracking-wider text-[#6B7A90] mb-1">
@@ -133,7 +141,7 @@ export default function LoginComponent() {
                     if (error) setError("");
                   }}
                   placeholder="name@alayn.com"
-                  className={inputClasses}
+                  className={error ? errorInputClasses : inputClasses}
                 />
               </div>
             </div>
@@ -166,7 +174,7 @@ export default function LoginComponent() {
                     if (error) setError("");
                   }}
                   placeholder="••••••••"
-                  className={inputClasses.replace("pr-3", "pr-8")}
+                  className={(error ? errorInputClasses : inputClasses).replace("pr-3", "pr-8")}
                 />
                 <button
                   type="button"
@@ -176,6 +184,7 @@ export default function LoginComponent() {
                   {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
+            </div>
             </div>
 
             {/* Submit Button */}

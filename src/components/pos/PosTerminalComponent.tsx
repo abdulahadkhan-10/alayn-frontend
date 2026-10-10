@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   useGetMenuItemsQuery,
@@ -1404,8 +1405,8 @@ export default function PosTerminalComponent() {
         )}
 
         {/* ── SELECT OUTLET REQUIRED MODAL ────────────────────────────────────── */}
-        {isOutletSelectModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={isOutletSelectModalOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {isOutletSelectModalOpen && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
@@ -1476,12 +1477,12 @@ export default function PosTerminalComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── CHECKOUT PAYMENT MODAL ─────────────────────────────────────────── */}
-        {isCheckoutOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={isCheckoutOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {isCheckoutOpen && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-5">
               <div className="flex justify-between items-center pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -1591,10 +1592,11 @@ export default function PosTerminalComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* ── ORDER COMPLETE CONFIRMATION MODAL ──────────────────────────────── */}
+        <TModal open={!!completedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
         {completedOrder && (() => {
           const orderObj = completedOrder?.data || completedOrder;
           const displayOrderId =
@@ -1603,7 +1605,6 @@ export default function PosTerminalComponent() {
             (orderObj?.id ? `#${orderObj.id.slice(0, 8)}` : "ORD-SUCCESS");
 
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
               <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
                 <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
                   <CheckCircle2 className="w-8 h-8" />
@@ -1688,9 +1689,9 @@ export default function PosTerminalComponent() {
                   </button>
                 </div>
               </div>
-            </div>
           );
         })()}
+        </TModal>
 
         {/* ── Printable Thermal KOT Slip Modal ── */}
         {printingKOTOrder && (

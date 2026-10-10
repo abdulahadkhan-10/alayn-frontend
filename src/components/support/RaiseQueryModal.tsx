@@ -5,6 +5,7 @@ import { X, Send, AlertTriangle, HelpCircle, ShieldAlert, Sparkles, Building2 } 
 import { useCreateStaffQueryMutation } from "@/redux/slices/ticketApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { cn } from "@/lib/utils";
+import { useModalTransition } from "@/components/ui/TModal";
 
 interface RaiseQueryModalProps {
   isOpen: boolean;
@@ -36,7 +37,9 @@ export default function RaiseQueryModal({ isOpen, onClose, userRole, activeOutle
     ? outletsData
     : (outletsData as any)?.data || [];
 
-  if (!isOpen) return null;
+  const { mounted, stateClass } = useModalTransition(isOpen);
+
+  if (!mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +70,8 @@ export default function RaiseQueryModal({ isOpen, onClose, userRole, activeOutle
   const isManager = userRole === "MANAGER";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-      <div className="w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 my-8">
+    <div className={cn("t-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto", stateClass)}>
+      <div className={cn("t-modal w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200 my-8", stateClass)}>
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div>

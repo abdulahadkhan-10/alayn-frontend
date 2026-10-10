@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import "@/styles/transitions.css";
 import ReduxProvider from "@/redux/store/provider";
 import { BranchProvider } from "@/lib/BranchContext";
 import GlobalToastContainer from "@/components/toast/GlobalToastContainer";

@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { memo, useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -450,10 +451,9 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
 
       {/* ── Logout Confirmation Modal ───────── */}
       {mounted &&
-        showLogoutModal &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-100 mx-4 animate-in zoom-in-95 duration-200">
+          <TModal open={showLogoutModal} className="z-[100] bg-black/60 backdrop-blur-sm">
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-100 mx-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-[#D3232A]">
                   <LogOut className="h-6 w-6" />
@@ -492,7 +492,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                 </button>
               </div>
             </div>
-          </div>,
+          </TModal>,
           document.body
         )}
     </aside>

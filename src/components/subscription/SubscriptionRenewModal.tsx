@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useModalTransition } from "@/components/ui/TModal";
 import { 
   X, 
   CheckCircle2, 
@@ -69,7 +70,9 @@ export default function SubscriptionRenewModal({
   } | null>(null);
   const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success">("review");
 
-  if (!isOpen || !outlet) return null;
+  const { mounted, stateClass } = useModalTransition(isOpen);
+
+  if (!mounted || !outlet) return null;
 
   const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
   const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd);
@@ -199,12 +202,12 @@ export default function SubscriptionRenewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" 
+        className={`t-modal-backdrop ${stateClass} fixed inset-0 bg-black/60 backdrop-blur-xs`}
         onClick={paymentStep === "processing" ? undefined : onClose} 
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-gray-100 z-10 animate-in zoom-in-95 duration-200">
+      <div className={`t-modal ${stateClass} relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-gray-100 z-10`}>
         {/* Modal Header */}
         <div className="relative bg-gradient-to-br from-[#0B1221] via-[#111A2E] to-[#1E293B] p-6 sm:p-8 text-white">
           <button

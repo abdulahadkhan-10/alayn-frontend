@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
@@ -740,8 +741,8 @@ export default function LeaveApprovalsPage() {
         )}
 
         {/* Modal: Leave Detail & Approval Popover */}
-        {selectedLeaveDetail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={!!selectedLeaveDetail} className="bg-black/50 p-4">
+          {selectedLeaveDetail && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div className="flex items-center gap-2.5">
@@ -808,12 +809,12 @@ export default function LeaveApprovalsPage() {
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Request Leave */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={showCreateModal} className="bg-black/50 p-4">
+          {showCreateModal && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-bold text-gray-900">Apply for Leave</h3>
@@ -904,8 +905,8 @@ export default function LeaveApprovalsPage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );

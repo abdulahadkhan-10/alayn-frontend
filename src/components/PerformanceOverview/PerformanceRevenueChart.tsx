@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabsPill } from "@/lib/useTabsPill";
 import React, { useState } from "react";
 import {
   BarChart,
@@ -49,6 +50,7 @@ export default function PerformanceRevenueChart({
   chartData
 }: PerformanceRevenueChartProps) {
   const [activeTab, setActiveTab] = useState<"Overview" | "By Location" | "By Channel" | "By Daypart">("Overview");
+  const tabsBarRef = useTabsPill(activeTab);
 
   // Format backend chart data if provided
   const backendFormatted = chartData?.map(item => ({
@@ -74,15 +76,18 @@ export default function PerformanceRevenueChart({
         </div>
 
         {/* Styled Tab Bar Selector */}
-        <div className="flex bg-gray-100 p-1.5 rounded-lg border border-gray-200">
+        <div ref={tabsBarRef} role="tablist" className="relative flex bg-gray-100 p-1.5 rounded-lg border border-gray-200">
+          <span className="t-tabs-pill shadow-sm" aria-hidden="true" />
           {tabs.map((tab) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
+                "relative z-[1] px-4 py-1.5 rounded-md text-xs font-bold transition-colors",
                 activeTab === tab
-                  ? "bg-white text-gray-900 shadow-sm"
+                  ? "text-gray-900"
                   : "text-gray-500 hover:text-gray-900"
               )}
             >

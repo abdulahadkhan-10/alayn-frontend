@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 
 import {
@@ -34,6 +34,7 @@ import InventoryItemTable from "./InventoryItemTable";
 import AddItemModal       from "./AddItemModal";
 import AdjustStockModal   from "./AdjustStockModal";
 import SmartPOModal       from "./SmartPOModal";
+import { TModal }         from "@/components/ui/TModal";
 
 export default function InventoryPage() {
   const { activeBranch, branches, setActiveBranch, loading: branchLoading } = useBranch();
@@ -220,8 +221,8 @@ export default function InventoryPage() {
       </div>
 
       {/* Add Inventory Item Modal */}
-      {showAdd && activeBranch && (
-        <Overlay onClose={() => setShowAdd(false)}>
+      <TModal open={showAdd && !!activeBranch} onClose={() => setShowAdd(false)} className={OVERLAY_CLASS}>
+        {activeBranch && (
           <AddItemModal
             outletId={activeBranch.id}
             onCreated={() => {
@@ -231,12 +232,12 @@ export default function InventoryPage() {
             onClose={() => setShowAdd(false)}
             isDemo={false}
           />
-        </Overlay>
-      )}
+        )}
+      </TModal>
 
       {/* Update Stock Modal */}
-      {adjustTarget && activeBranch && (
-        <Overlay onClose={() => setAdjustTarget(null)}>
+      <TModal open={!!adjustTarget && !!activeBranch} onClose={() => setAdjustTarget(null)} className={OVERLAY_CLASS}>
+        {adjustTarget && activeBranch && (
           <AdjustStockModal
             outletId={activeBranch.id}
             item={adjustTarget}
@@ -246,12 +247,12 @@ export default function InventoryPage() {
             }}
             onClose={() => setAdjustTarget(null)}
           />
-        </Overlay>
-      )}
+        )}
+      </TModal>
 
       {/* Restock Order Modal */}
-      {showSmartPO && activeBranch && (
-        <Overlay onClose={() => setShowSmartPO(false)}>
+      <TModal open={showSmartPO && !!activeBranch} onClose={() => setShowSmartPO(false)} className={OVERLAY_CLASS}>
+        {activeBranch && (
           <SmartPOModal
             outletId={activeBranch.id}
             lowStockItems={lowStockItems}
@@ -262,22 +263,10 @@ export default function InventoryPage() {
               refetch();
             }}
           />
-        </Overlay>
-      )}
+        )}
+      </TModal>
     </DashboardLayout>
   );
 }
 
-function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="w-full flex justify-center">
-        {children}
-      </div>
-    </div>
-  );
-}
-
+const OVERLAY_CLASS = "bg-black/40 backdrop-blur-xs p-4 overflow-y-auto";

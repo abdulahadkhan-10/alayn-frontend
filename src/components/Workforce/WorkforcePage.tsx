@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
@@ -648,8 +649,8 @@ export default function WorkforcePage() {
         ) : null}
 
         {/* Modal: Bulk CSV Import */}
-        {showBulkUploadModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={showBulkUploadModal} className="bg-black/50 p-4">
+          {showBulkUploadModal && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
                 <h3 className="text-lg font-bold text-gray-900">Bulk CSV Import</h3>
@@ -728,12 +729,12 @@ export default function WorkforcePage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Create Employee */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={showCreateModal} className="bg-black/50 p-4">
+          {showCreateModal && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
                 <h3 className="text-lg font-bold text-gray-900">Add New Employee</h3>
@@ -967,12 +968,12 @@ export default function WorkforcePage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Edit Employee */}
-        {editEmployeeItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={!!editEmployeeItem} className="bg-black/50 p-4">
+          {editEmployeeItem && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
                 <h3 className="text-lg font-bold text-gray-900">Edit Employee Profile</h3>
@@ -1210,12 +1211,12 @@ export default function WorkforcePage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Upload Document */}
-        {docUploadItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <TModal open={!!docUploadItem} className="bg-black/50 p-4">
+          {docUploadItem && (
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-lg font-bold text-gray-900">Upload Document</h3>
@@ -1262,13 +1263,13 @@ export default function WorkforcePage() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Modal: Employee Profile & Deep Details (👁️ Eye Icon) */}
-        {selectedEmployeeDetail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 animate-in fade-in duration-200">
+        <TModal open={!!selectedEmployeeDetail} className="bg-black/50 p-4">
+          {selectedEmployeeDetail && (
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
               {/* Profile Header */}
               <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-[#1A2335] text-white p-6 relative">
                 <button
@@ -1435,8 +1436,8 @@ export default function WorkforcePage() {
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );

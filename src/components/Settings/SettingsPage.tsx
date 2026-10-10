@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabsPill } from "@/lib/useTabsPill";
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
@@ -51,6 +52,7 @@ export default function SettingsPage() {
     user?.role === "SUPER_ADMIN";
 
   const [activeTab, setActiveTab] = useState<"HOLIDAYS" | "GENERAL">("HOLIDAYS");
+  const tabsBarRef = useTabsPill(activeTab);
   // Attendance rules are stored on the outlet in the backend so they apply to every employee's device
   const [earlyBufferMins, setEarlyBufferMins] = useState<number>(30);
   const [lateGraceMins, setLateGraceMins] = useState<number>(30);
@@ -335,11 +337,14 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
+          <div ref={tabsBarRef} role="tablist" className="relative flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
+            <span className="t-tabs-pill shadow-sm" aria-hidden="true" />
             <button
+              role="tab"
+              aria-selected={activeTab === "HOLIDAYS"}
               onClick={() => setActiveTab("HOLIDAYS")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "HOLIDAYS"
-                  ? "bg-white text-[#D3232A] shadow-sm"
+              className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "HOLIDAYS"
+                  ? "text-[#D3232A]"
                   : "text-gray-600 hover:text-gray-900"
                 }`}
             >
@@ -347,9 +352,11 @@ export default function SettingsPage() {
               Outlet Holidays & Closures
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === "GENERAL"}
               onClick={() => setActiveTab("GENERAL")}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === "GENERAL"
-                  ? "bg-white text-[#D3232A] shadow-sm"
+              className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "GENERAL"
+                  ? "text-[#D3232A]"
                   : "text-gray-600 hover:text-gray-900"
                 }`}
             >

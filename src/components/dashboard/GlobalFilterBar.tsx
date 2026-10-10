@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState } from "react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
@@ -13,6 +13,10 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { DashboardFilterState, DateRangePreset, CompareMode } from "@/types/dashboard";
+import { useOpenTransition } from "@/lib/useOpenTransition";
+import { useDismiss } from "@/lib/useDismiss";
+
+const DROPDOWN_TIMING = { openVar: "--dropdown-open-dur", closeVar: "--dropdown-close-dur" };
 
 interface OutletOption {
   id: string;
@@ -56,6 +60,10 @@ export const GlobalFilterBar = memo(function GlobalFilterBar({
 }: GlobalFilterBarProps) {
   const router = useRouter();
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenu = useOpenTransition(showExportMenu, DROPDOWN_TIMING);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const closeExportMenu = useCallback(() => setShowExportMenu(false), []);
+  useDismiss(exportMenuRef, showExportMenu, closeExportMenu);
 
   const handleDateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onFilterChange({ ...filters, dateRange: e.target.value as DateRangePreset });
@@ -153,7 +161,7 @@ export const GlobalFilterBar = memo(function GlobalFilterBar({
             <span>{isRefreshing ? "Updating…" : "Refresh"}</span>
           </button>
 
-          <div className="relative">
+          <div className="relative" ref={exportMenuRef}>
             <button
               type="button"
               onClick={() => setShowExportMenu(!showExportMenu)}
@@ -164,8 +172,11 @@ export const GlobalFilterBar = memo(function GlobalFilterBar({
               <ChevronDown className="h-3 w-3 text-zinc-400" />
             </button>
 
-            {showExportMenu && (
-              <div className="absolute right-0 mt-1.5 w-44 rounded-xl bg-white border border-zinc-200 shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+            {exportMenu.mounted && (
+              <div
+                data-origin="top-right"
+                className={`t-dropdown ${exportMenu.stateClass} absolute right-0 mt-1.5 w-44 rounded-xl bg-white border border-zinc-200 shadow-xl p-1 z-50`}
+              >
                 <button
                   type="button"
                   onClick={() => handleExport("CSV")}

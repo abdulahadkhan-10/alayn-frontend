@@ -115,7 +115,7 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
       role="dialog"
       aria-modal="true"
       aria-labelledby="update-stock-title"
-      className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-zinc-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-zinc-100 overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4.5 border-b border-zinc-100 bg-zinc-50/80">

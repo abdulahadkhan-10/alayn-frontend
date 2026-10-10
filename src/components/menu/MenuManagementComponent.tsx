@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   useGetMenuItemsQuery,
@@ -1496,8 +1497,8 @@ export default function MenuManagementComponent() {
         )}
 
         {/* Add Item Modal */}
-        {isAddItemOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isAddItemOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+          {isAddItemOpen && (
             <div className="bg-white border border-gray-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
               <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
                 <Plus className="w-5 h-5 text-[#D3232A]" /> Create Menu Item
@@ -1687,12 +1688,12 @@ export default function MenuManagementComponent() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Add Category Modal */}
-        {isAddCategoryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isAddCategoryOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+          {isAddCategoryOpen && (
             <div className="bg-white border border-gray-200 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
               <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
                 <Tag className="w-5 h-5 text-[#D3232A]" /> New Menu Category
@@ -1738,12 +1739,12 @@ export default function MenuManagementComponent() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Edit Item Modal */}
-        {isEditItemOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isEditItemOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+          {isEditItemOpen && (
             <div className="bg-white border border-gray-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
               <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
                 <Pencil className="w-5 h-5 text-[#D3232A]" /> Edit Menu Item
@@ -1933,12 +1934,12 @@ export default function MenuManagementComponent() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* All Outlets Creation Confirmation Modal */}
-        {pendingConfirmAction && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!pendingConfirmAction} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {pendingConfirmAction && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
@@ -2002,12 +2003,12 @@ export default function MenuManagementComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Status Toggle Confirmation Modal */}
-        {pendingStatusToggle && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!pendingStatusToggle} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {pendingStatusToggle && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
@@ -2079,13 +2080,13 @@ export default function MenuManagementComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Delete Confirmation Modal */}
-        {itemToDelete && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
-            <div className="bg-white border border-gray-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+        <TModal open={!!itemToDelete} className="z-[60] p-4 bg-gray-900/50 backdrop-blur-sm">
+          {itemToDelete && (
+            <div className="bg-white border border-gray-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
                   <Trash2 className="w-6 h-6 text-rose-500" />
@@ -2124,11 +2125,11 @@ export default function MenuManagementComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
         {/* Edit Category Modal */}
-        {isEditCategoryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={isEditCategoryOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {isEditCategoryOpen && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
                 <div className="flex items-center gap-3">
@@ -2178,13 +2179,13 @@ export default function MenuManagementComponent() {
                 </div>
               </form>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
 
         {/* Delete Category Confirmation Modal */}
-        {categoryToDelete && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200 space-y-5">
+        <TModal open={!!categoryToDelete} className="z-[60] p-4 bg-gray-900/60 backdrop-blur-sm">
+          {categoryToDelete && (
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
                   <Trash2 className="w-7 h-7 text-rose-500" />
@@ -2221,8 +2222,8 @@ export default function MenuManagementComponent() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );

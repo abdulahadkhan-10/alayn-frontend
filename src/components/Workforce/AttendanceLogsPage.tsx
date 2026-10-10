@@ -1,5 +1,6 @@
 "use client";
 
+import { TModal } from "@/components/ui/TModal";
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
@@ -725,8 +726,8 @@ export default function AttendanceLogsPage() {
         </div>
 
         {/* Manager correction popup (e.g. enter the real time of a missed clock-out) */}
-        {editingLog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <TModal open={!!editingLog} className="bg-black/40 backdrop-blur-xs p-4">
+          {editingLog && (
             <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl relative border border-gray-200">
               <button
                 onClick={() => setEditingLog(null)}
@@ -799,8 +800,8 @@ export default function AttendanceLogsPage() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </TModal>
       </div>
     </DashboardLayout>
   );
