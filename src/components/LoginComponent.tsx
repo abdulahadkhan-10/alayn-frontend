@@ -89,6 +89,7 @@ export default function LoginComponent() {
               <Image
                 src="/gptlogo.png"
                 alt="Alayn — AI Operating System for Hospitality"
+                sizes="360px"
                 width={1280}
                 height={297}
                 style={{ 

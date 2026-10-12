@@ -1,10 +1,10 @@
 # Alayn AI — Full Architecture & Operational Reference Manual
 
 > **Entity**: Alayn AI (Alayn Hospitality Operating System)  
-> **Parent**: BRAHM Global Holdings Ltd  
-> **Headquarters**: London, United Kingdom  
+> **Operator**: BRAHM Global Holdings (sole proprietorship)  
+> **Based in**: Mumbai, India  
 > **Canonical URL**: https://alaynai.com/  
-> **Primary Contact**: info@alaynai.com | sales@alaynai.com  
+> **Primary Contact**: info@alaynai.com  
 > **Platform Category**: Enterprise Hospitality Operating System, Restaurant POS & AI Automation  
 
 ---
@@ -49,6 +49,6 @@
 
 ## 4. Contact & Support Channels
 
-- **Sales & Demos**: `sales@alaynai.com`
+- **Sales & Demos**: `info@alaynai.com`
 - **General Support**: `info@alaynai.com`
 - **Parent Group**: BRAHM Global Holdings (`https://brahmglobalholdings.com`)

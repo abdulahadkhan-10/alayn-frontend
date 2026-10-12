@@ -94,10 +94,10 @@ export default function LandingNav() {
             alt="Alayn — AI Operating System for Hospitality"
             width={480}
             height={111}
-            sizes="(max-width: 640px) 160px, 360px"
+            sizes="120px"
             style={{ transformOrigin: "left center" }}
             className="w-[90px] sm:w-[115px] h-auto transform-gpu object-contain"
-            priority
+            loading="eager"
           />
         </Link>
 

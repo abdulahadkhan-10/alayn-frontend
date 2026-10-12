@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import DemoRequestForm from "@/components/landing/DemoRequestForm";
 
 const siteUrl = "https://alaynai.com";
 const title = "Contact & Book a Demo — Alayn AI";
@@ -29,7 +30,7 @@ const CHANNELS = [
     badge: "Sales & Demo",
     title: "Book a Platform Demonstration",
     desc: "Discover how Alayn AI transforms POS, kitchen flow, inventory, and workforce management for your specific outlets.",
-    email: "sales@alaynai.com",
+    email: "info@alaynai.com",
     subject: "Demonstration Request",
     sla: "Within 24 Hours",
   },
@@ -37,7 +38,7 @@ const CHANNELS = [
     badge: "Enterprise",
     title: "Multi-Outlet & Chain Inquiries",
     desc: "Custom deployments, enterprise API integrations, volume pricing, and dedicated account management.",
-    email: "sales@alaynai.com",
+    email: "info@alaynai.com",
     subject: "Enterprise Partnership",
     sla: "Priority Response",
   },
@@ -52,31 +53,30 @@ const CHANNELS = [
 ];
 
 export default function ContactPage() {
+  // Contact points live on the Organization in the root layout's graph;
+  // reference it by @id rather than declaring a second copy.
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "ContactPage",
-    "name": title,
-    "description": description,
-    "url": `${siteUrl}/contact`,
-    "mainEntity": {
-      "@type": "Organization",
-      "name": "Alayn AI",
-      "url": siteUrl,
-      "contactPoint": [
-        {
-          "@type": "ContactPoint",
-          "contactType": "sales",
-          "email": "sales@alaynai.com",
-          "availableLanguage": ["English", "Hindi"]
-        },
-        {
-          "@type": "ContactPoint",
-          "contactType": "customer service",
-          "email": "info@alaynai.com",
-          "availableLanguage": ["English", "Hindi"]
-        }
-      ]
-    }
+    "@graph": [
+      {
+        "@type": "ContactPage",
+        "@id": `${siteUrl}/contact#webpage`,
+        "name": title,
+        "description": description,
+        "url": `${siteUrl}/contact`,
+        "isPartOf": { "@id": `${siteUrl}/#website` },
+        "mainEntity": { "@id": `${siteUrl}/#organization` },
+        "breadcrumb": { "@id": `${siteUrl}/contact#breadcrumb` }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${siteUrl}/contact#breadcrumb`,
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+          { "@type": "ListItem", "position": 2, "name": "Contact", "item": `${siteUrl}/contact` }
+        ]
+      }
+    ]
   };
 
   return (
@@ -99,6 +99,10 @@ export default function ContactPage() {
             Whether you run a single high-volume café or manage dozens of multi-city restaurant outlets, our team is ready to demonstrate how Alayn AI unifies your business.
           </p>
         </div>
+
+        <section id="demo" className="scroll-mt-32 mb-16">
+          <DemoRequestForm />
+        </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {CHANNELS.map((ch) => (
@@ -132,19 +136,28 @@ export default function ContactPage() {
           ))}
         </div>
 
-        {/* Quick Sign Up Callout */}
-        <div className="p-8 rounded-2xl border border-white/10 bg-gradient-to-r from-amber-500/10 to-transparent flex flex-col sm:flex-row items-center justify-between gap-6">
+        {/* Self-serve option, secondary to the demo */}
+        <div className="p-8 rounded-2xl border border-white/10 bg-gradient-to-r from-amber-500/10 to-transparent flex flex-col sm:flex-row items-center justify-between gap-6 mb-16">
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Ready to explore immediately?</h3>
-            <p className="text-xs sm:text-sm text-slate-400 font-light">Create an operator account and launch your digital POS in under 2 minutes.</p>
+            <h3 className="text-lg font-bold text-white mb-1">Prefer to look around first?</h3>
+            <p className="text-xs sm:text-sm text-slate-400 font-light">Create an operator account and explore the platform at your own pace.</p>
           </div>
           <Link
             href="/signup"
-            className="btn-primary shrink-0 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
+            className="shrink-0 px-6 py-3 rounded-full border border-white/20 text-white text-xs uppercase tracking-wider font-bold hover:bg-white/5 transition-colors"
           >
-            Get Started Free
+            Create an account
           </Link>
         </div>
+
+        {/* Registered business address, matching /legal/corporate */}
+        <address className="not-italic text-sm text-slate-400 font-light leading-relaxed">
+          <span className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Business address</span>
+          Alayn AI · BRAHM Global Holdings<br />
+          Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg<br />
+          Bandra West, Mumbai, Maharashtra 400050, India<br />
+          <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>
+        </address>
       </main>
 
       <LandingFooter />

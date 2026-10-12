@@ -24,6 +24,7 @@ export default function LandingFooter() {
                 <Image
                   src="/whitelogo.png"
                   alt="Alayn"
+                  sizes="360px"
                   width={800}
                   height={186}
                   className="h-16 sm:h-20 w-auto object-contain transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 origin-left"
@@ -43,8 +44,11 @@ export default function LandingFooter() {
             <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               About Us
             </Link>
-            <Link href="/contact" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/contact#demo" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Book a Demo
+            </Link>
+            <Link href="/api-docs" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              API Reference
             </Link>
             <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Log in
@@ -88,6 +92,12 @@ export default function LandingFooter() {
             </Link>
             <Link href="/legal/corporate" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Corporate Information
+            </Link>
+            <Link href="/legal/refund" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              Refund Policy
+            </Link>
+            <Link href="/legal/support" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              Support & Grievances
             </Link>
           </div>
         </div>

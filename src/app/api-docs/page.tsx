@@ -179,7 +179,7 @@ curl https://api.alaynai.com/api/v1/orders \\
             <ul className="list-disc pl-6 space-y-2 text-sm text-slate-300 font-light">
               <li>The current version is <code className="text-amber-400">v1</code>, in the URL path.</li>
               <li>Access uses Alayn user accounts. There are no separate API keys, webhooks or official SDK or CLI yet.</li>
-              <li>Planning an integration with a POS, delivery platform or accounting tool? Write to <a href="mailto:sales@alaynai.com" className="text-amber-400 hover:underline">sales@alaynai.com</a>.</li>
+              <li>Planning an integration with a POS, delivery platform or accounting tool? Write to <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>.</li>
             </ul>
           </section>
         </div>

@@ -157,7 +157,7 @@ export default function CorporateInformationPage() {
         <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-100 text-sm mb-4">
           <p>
             <strong className="font-semibold text-zinc-900">Privacy Contact:</strong>{" "}
-            <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+            <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
           </p>
         </div>
         <p>
@@ -313,7 +313,7 @@ export default function CorporateInformationPage() {
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">Privacy & Data Protection:</strong>{" "}
-              <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+              <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">GSTIN:</strong> 27KOBPK2043Q1ZH

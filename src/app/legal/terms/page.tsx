@@ -655,7 +655,7 @@ export default function TermsOfServicePage() {
         <p>General Support:</p>
         <p>info@alaynai.com</p>
         <p>Privacy & Data Protection:</p>
-        <p>brahmglobalholdings@gmail.com</p>
+        <p>info@alaynai.com</p>
         <p>GSTIN:</p>
         <p>27KOBPK2043Q1ZH</p>
         <p>© 2026 Alayn. All rights reserved.</p>

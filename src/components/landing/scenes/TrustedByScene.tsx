@@ -70,7 +70,7 @@ export default function TrustedByScene() {
               letterSpacing: "-0.02em",
             }}
           >
-            Trusted by operators who refuse
+            Trusted by operators who refuse{" "}
             <br />
             <em style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: 400 }}>
               to compromise.

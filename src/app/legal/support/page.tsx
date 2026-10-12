@@ -114,7 +114,7 @@ export default function SupportPolicyPage() {
         </p>
         <p>
           <strong className="font-semibold text-zinc-900">Privacy Contact:</strong>{" "}
-          <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+          <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
         </p>
         <p className="pt-2">This includes matters relating to:</p>
         <ul className="grid sm:grid-cols-2 gap-2 list-disc pl-6 marker:text-zinc-400">
@@ -194,7 +194,7 @@ export default function SupportPolicyPage() {
           </p>
           <p className="mt-4">
             <strong className="block text-zinc-900 mb-1">Email:</strong>
-            <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+            <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
           </p>
           <p className="mt-4">
             <strong className="block text-zinc-900 mb-1">Business:</strong>
@@ -243,7 +243,7 @@ export default function SupportPolicyPage() {
         <p>
           If you believe that an Alayn account or Customer Data has been
           compromised, please notify us immediately at:{" "}
-          <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+          <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
         </p>
         <p>Please provide as much relevant information as possible.</p>
         <p>
@@ -343,7 +343,7 @@ export default function SupportPolicyPage() {
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">Privacy, Security & Grievances:</strong>{" "}
-              <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+              <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">GSTIN:</strong> 27KOBPK2043Q1ZH

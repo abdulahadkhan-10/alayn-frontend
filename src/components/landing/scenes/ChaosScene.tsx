@@ -120,7 +120,7 @@ export default function ChaosScene() {
                 textWrap: "balance",
               }}
             >
-              Same Friday rush.
+              Same Friday rush.{" "}
               <br />
               <em style={{ fontStyle: "italic", color: "var(--amber-display-dark)", fontWeight: 400 }}>
                 Two very different nights.

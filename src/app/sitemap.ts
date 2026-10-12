@@ -1,21 +1,24 @@
 import { MetadataRoute } from "next";
 
+// No lastModified: stamping every URL with the build time teaches Google to
+// ignore the field. Add a real date per page if you start tracking one.
+// changeFrequency and priority are ignored by Google, so they're left out.
+const PATHS = [
+  "",
+  "/about",
+  "/contact",
+  "/api-docs",
+  "/legal/privacy",
+  "/legal/terms",
+  "/legal/cookie",
+  "/legal/security",
+  "/legal/responsible-ai",
+  "/legal/corporate",
+  "/legal/support",
+  "/legal/refund",
+];
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://alaynai.com";
-  const now = new Date();
-
-  return [
-    { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${baseUrl}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${baseUrl}/api-docs`, lastModified: now, changeFrequency: "weekly", priority: 0.85 },
-    { url: `${baseUrl}/legal/privacy`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/legal/terms`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/legal/cookie`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
-    { url: `${baseUrl}/legal/security`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${baseUrl}/legal/responsible-ai`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${baseUrl}/legal/corporate`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
-    { url: `${baseUrl}/legal/support`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${baseUrl}/legal/refund`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
-  ];
+  return PATHS.map((path) => ({ url: `${baseUrl}${path}` }));
 }

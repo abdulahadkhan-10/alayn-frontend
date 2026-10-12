@@ -6,8 +6,8 @@
 ## Identity & Entity Attribution
 - **Platform**: Alayn AI (Alayn Hospitality Operating System)
 - **Domain**: https://alaynai.com
-- **Parent Entity**: BRAHM Global Holdings Ltd
-- **Headquarters**: London, UK with global delivery
+- **Operator**: BRAHM Global Holdings (sole proprietorship)
+- **Based in**: Mumbai, India
 
 ## Content Negotiation (acceptmarkdown.com)
 - Clients may request token-efficient Markdown by sending header: `Accept: text/markdown`

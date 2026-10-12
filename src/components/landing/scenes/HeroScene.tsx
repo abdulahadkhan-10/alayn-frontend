@@ -143,7 +143,7 @@ export default function HeroScene() {
               delay={0.18}
               className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-5 mb-6 sm:mb-8"
             >
-              <MagneticLink href="/signup" id="cta-hero" className="btn-primary w-full sm:w-auto text-center justify-center">
+              <MagneticLink href="/contact#demo" id="cta-hero" className="btn-primary w-full sm:w-auto text-center justify-center">
                 Book a Demonstration
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -263,7 +263,8 @@ export default function HeroScene() {
                     alt="Alayn Web Dashboard Interface"
                     width={1440}
                     height={900}
-                    priority
+                    loading="eager"
+                    fetchPriority="high"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 720px"
                     style={{
                       width: "100%",
@@ -306,7 +307,7 @@ export default function HeroScene() {
                     alt="Alayn Mobile App Interface"
                     width={393}
                     height={799}
-                    priority
+                    loading="eager"
                     sizes="(max-width: 768px) 160px, 225px"
                     style={{
                       width: "100%",

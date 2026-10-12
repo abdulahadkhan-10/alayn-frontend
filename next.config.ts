@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
@@ -44,6 +45,15 @@ const nextConfig: NextConfig = {
           // Deprecation/Sunset/RateLimit headers used to be sent on every page,
           // which told crawlers the whole site would be retired in 2028.
           { key: "Vary", value: "Accept, Accept-Encoding" },
+          // No includeSubDomains: not every alaynai.com subdomain is known to
+          // serve HTTPS, and HSTS on the apex alone is safe to roll back.
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Attendance and settings pages use geolocation; nothing uses the
+          // camera or microphone.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
         ],
       },
     ];

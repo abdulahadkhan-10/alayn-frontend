@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { MARKDOWN_PAGES, getAgent404Markdown } from "./lib/agent-markdown";
+import { MARKDOWN_PAGES } from "./lib/agent-markdown";
 
 // Only the API version header is sent. Deprecation/Sunset/RateLimit headers
 // were attached to every page, declaring the whole site deprecated (sunset
@@ -14,7 +14,9 @@ export function proxy(request: NextRequest) {
 
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
+    // "/api/" with the slash: a bare "/api" prefix also matched /api-docs,
+    // which has a Markdown version.
+    pathname.startsWith("/api/") ||
     pathname.includes(".")
   ) {
     const response = NextResponse.next();
@@ -32,26 +34,16 @@ export function proxy(request: NextRequest) {
     ? pathname.slice(0, -1)
     : pathname;
 
-  if (prefersMarkdown) {
-    if (MARKDOWN_PAGES[normalizedPath]) {
-      const res = new NextResponse(MARKDOWN_PAGES[normalizedPath], {
-        status: 200,
-        headers: {
-          "Content-Type": "text/markdown; charset=utf-8",
-          "Vary": "Accept, Accept-Encoding",
-          "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
-        },
-      });
-      attachHeaders(res);
-      return res;
-    }
-
-    const res = new NextResponse(getAgent404Markdown(pathname), {
-      status: 404,
+  // Serve the Markdown version when one exists. Pages without one fall
+  // through to their HTML: answering 404 would tell agents a real page
+  // doesn't exist.
+  if (prefersMarkdown && MARKDOWN_PAGES[normalizedPath]) {
+    const res = new NextResponse(MARKDOWN_PAGES[normalizedPath], {
+      status: 200,
       headers: {
         "Content-Type": "text/markdown; charset=utf-8",
         "Vary": "Accept, Accept-Encoding",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
       },
     });
     attachHeaders(res);

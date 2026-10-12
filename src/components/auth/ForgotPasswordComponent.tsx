@@ -265,6 +265,7 @@ export default function ForgotPasswordComponent() {
               <Image
                 src="/gptlogo.png"
                 alt="Alayn Logo"
+                sizes="360px"
                 width={1280}
                 height={297}
                 style={{

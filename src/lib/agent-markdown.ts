@@ -25,8 +25,7 @@ Alayn AI is an enterprise-grade, multi-tenant operating system built for restaur
 
 ## Contact & Demos
 - Book a Demonstration: https://alaynai.com/contact
-- General Inquiries: info@alaynai.com
-- Sales: sales@alaynai.com
+- General inquiries, sales and demos: info@alaynai.com
 
 ## Machine-Readable Resources
 - LLM Index: https://alaynai.com/llms.txt
@@ -48,7 +47,7 @@ Alayn AI is the dedicated hospitality technology company within **BRAHM Global H
 4. **Multi-Outlet Enterprise Scalability**: Multi-tenant architecture designed to scale seamlessly from single independent venues to multi-city restaurant groups.
 
 ## 3. Corporate Backing & Governance
-Alayn AI is backed by **BRAHM Global Holdings Ltd**, a British venture builder and holding company headquartered in London, United Kingdom.
+Alayn AI is built and operated by **BRAHM Global Holdings**, a sole proprietorship based in Mumbai, India.
 
 - **Website**: https://alaynai.com
 - **Contact**: info@alaynai.com
@@ -62,13 +61,13 @@ Alayn AI is backed by **BRAHM Global Holdings Ltd**, a British venture builder a
 
 ### 1. Book a Demonstration & Sales
 To arrange a tailored platform walkthrough for your restaurant or hospitality group:
-- **Email**: sales@alaynai.com
+- **Email**: info@alaynai.com
 - **Subject**: Demonstration Request — [Venue / Group Name]
 - **Response Time**: Within 24 hours
 
 ### 2. Enterprise & Multi-Outlet Partnerships
 For multi-location restaurant chains, hotel groups, and enterprise franchise operations:
-- **Email**: sales@alaynai.com
+- **Email**: info@alaynai.com
 - **Subject**: Enterprise Partnership Inquiry
 
 ### 3. Operator Support & Client Care
@@ -78,7 +77,7 @@ For existing restaurant partners requiring technical or account assistance:
 
 ## Corporate Headquarters
 - **Entity**: Alayn AI (A BRAHM Global Holdings Company)
-- **Location**: London, United Kingdom
+- **Location**: Mumbai, India
 - **Primary Website**: https://alaynai.com
 `,
 
@@ -95,8 +94,7 @@ This is a short summary for agents. The full policy at the link above is the aut
 - **Selling data**: Alayn does not sell personal data as a commercial product.
 - **Retention**: Personal data is kept only for as long as reasonably necessary for the purposes described in the policy.
 - **Third parties**: Some features use third-party services, such as payment service providers, which are governed by their own privacy policies.
-- **Contact**: info@alaynai.com
-- **Privacy & grievance contact**: brahmglobalholdings@gmail.com
+- **Contact (including privacy and grievances)**: info@alaynai.com
 `,
 
   "/api-docs": `# Alayn AI — Developer API & Integration Documentation
@@ -136,23 +134,3 @@ Error: \`{ "success": false, "error": { "code": "…", "message": "…" } }\`.
 - There are no webhooks, SDK or CLI yet.
 `
 };
-
-export function getAgent404Markdown(requestedPath: string): string {
-  return `# 404 - Resource Not Found
-
-> The requested path \`${requestedPath}\` does not exist on Alayn AI.
-
-## Agent Recovery Directory
-If you are an autonomous AI crawler or LLM agent, use the canonical resources below:
-
-- **Home**: https://alaynai.com/
-- **About Alayn AI**: https://alaynai.com/about
-- **Contact & Sales**: https://alaynai.com/contact
-- **Developer API Documentation**: https://alaynai.com/api-docs
-- **Privacy Policy**: https://alaynai.com/legal/privacy
-- **Terms of Service**: https://alaynai.com/legal/terms
-- **LLM Agent Index (llms.txt)**: https://alaynai.com/llms.txt
-- **Full LLM Context (llms-full.txt)**: https://alaynai.com/llms-full.txt
-- **XML Sitemap**: https://alaynai.com/sitemap.xml
-`;
-}

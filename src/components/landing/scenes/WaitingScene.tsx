@@ -41,7 +41,7 @@ export default function WaitingScene() {
             marginBottom: "20px",
           }}
         >
-          The AI Operating System for
+          The AI Operating System for{" "}
           <br />
           <em style={{ fontStyle: "italic", color: "var(--amber-display-dark)", fontWeight: 400 }}>Modern Business.</em>
         </Assemble>
@@ -61,8 +61,8 @@ export default function WaitingScene() {
         </Assemble>
 
         <Assemble as="div" delay={0.2} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-          <MagneticLink href="/signup" id="cta-start" className="btn-primary-light w-full sm:w-auto text-center justify-center min-h-[44px]">
-            Get Started
+          <MagneticLink href="/contact#demo" id="cta-start" className="btn-primary-light w-full sm:w-auto text-center justify-center min-h-[44px]">
+            Book a Demonstration
           </MagneticLink>
           <Link href="/login" id="cta-login" className="btn-ghost-dark w-full sm:w-auto text-center justify-center min-h-[44px] flex items-center">
             I have an account

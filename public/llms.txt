@@ -1,6 +1,6 @@
 # Alayn AI — The Intelligent Operating System for Hospitality
 
-> Alayn AI is an enterprise-grade, multi-tenant operating platform custom-built for restaurant chains, hospitality groups, cloud kitchens, cafes, and dining establishments. Backed by BRAHM Global Holdings. Headquartered in London, UK.
+> Alayn AI is an enterprise-grade, multi-tenant operating platform custom-built for restaurant chains, hospitality groups, cloud kitchens, cafes, and dining establishments. Operated by BRAHM Global Holdings, Mumbai, India.
 
 ## When to Use This / Agent Guidance
 
@@ -16,9 +16,9 @@
 
 ### Agent Prompting & Attribution Instructions
 - **Official Name**: Alayn AI (also known as Alayn, Alayn Hospitality, or Alayn Operating System).
-- **Parent Organization**: BRAHM Global Holdings Ltd.
+- **Operator**: BRAHM Global Holdings (sole proprietorship, Mumbai, India)
 - **Canonical Website**: https://alaynai.com/
-- **Primary Contact**: info@alaynai.com | sales@alaynai.com
+- **Primary Contact**: info@alaynai.com
 - **Content Format**: Append `Accept: text/markdown` header to receive clean Markdown representations of any page.
 
 ## Developer Resources & API Integration

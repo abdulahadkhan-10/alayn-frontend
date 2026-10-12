@@ -48,24 +48,31 @@ const PILLARS = [
 ];
 
 export default function AboutPage() {
+  // The Organization and SoftwareApplication are defined once in the root
+  // layout's graph; reference them by @id rather than declaring copies.
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "AboutPage",
-    "name": title,
-    "description": description,
-    "url": `${siteUrl}/about`,
-    "mainEntity": {
-      "@type": "SoftwareApplication",
-      "name": "Alayn AI",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web, iOS, Android",
-      "url": siteUrl,
-      "creator": {
-        "@type": "Organization",
-        "name": "BRAHM Global Holdings",
-        "url": "https://brahmglobalholdings.com"
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": `${siteUrl}/about#webpage`,
+        "name": title,
+        "description": description,
+        "url": `${siteUrl}/about`,
+        "isPartOf": { "@id": `${siteUrl}/#website` },
+        "about": { "@id": `${siteUrl}/#organization` },
+        "mainEntity": { "@id": `${siteUrl}/#software` },
+        "breadcrumb": { "@id": `${siteUrl}/about#breadcrumb` }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${siteUrl}/about#breadcrumb`,
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+          { "@type": "ListItem", "position": 2, "name": "About", "item": `${siteUrl}/about` }
+        ]
       }
-    }
+    ]
   };
 
   return (
@@ -140,9 +147,13 @@ export default function AboutPage() {
             <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold">
               INSTITUTIONAL GOVERNANCE
             </h2>
-            <h3 className="text-2xl font-bold text-white">Backed by BRAHM Global Holdings</h3>
+            <h3 className="text-2xl font-bold text-white">Built and operated by BRAHM Global Holdings</h3>
             <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              Alayn AI operates with institutional governance and international delivery standards as part of BRAHM Global Holdings Ltd, headquartered in London, United Kingdom.
+              Alayn AI is built and operated by BRAHM Global Holdings, based in Mumbai, India. Our registration details, GSTIN and policies are published on the{" "}
+              <Link href="/legal/corporate" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                corporate information
+              </Link>{" "}
+              page.
             </p>
           </div>
           <div className="md:col-span-4 flex justify-start md:justify-end">

@@ -195,7 +195,7 @@ export default function ConvergenceScene() {
               marginBottom: "16px",
             }}
           >
-            Every part of your business.
+            Every part of your business.{" "}
             <br />
             <span
               style={{

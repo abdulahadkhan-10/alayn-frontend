@@ -84,7 +84,7 @@ export default function VerticalsScene() {
             color: "var(--espresso)",
             marginBottom: "20px",
           }}>
-            Set up for the way
+            Set up for the way{" "}
             <br />
             your kitchen runs.
           </h2>

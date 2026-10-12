@@ -16,9 +16,12 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
+// Only used for small labels and code, never above-the-fold headings, so it
+// isn't worth a preload on every page.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 const playfair = Playfair_Display({
@@ -34,10 +37,10 @@ export const metadata: Metadata = {
   // inherited by every page that doesn't set its own and points them all at
   // the homepage. Each indexable page declares its own.
   title: {
-    default: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
+    default: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
     template: "%s | Alayn AI",
   },
-  description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands. Seamlessly unify POS, inventory, kitchen KDS, and workforce management into one AI-powered platform.",
+  description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
   keywords: [
     "Alayn",
     "Alayn AI",
@@ -56,8 +59,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    title: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
-    description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands. Seamlessly unify POS, inventory, kitchen KDS, and workforce management into one AI-powered platform.",
+    title: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
+    description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
     siteName: "Alayn AI",
     locale: "en_IN",
     type: "website",
@@ -72,8 +75,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
-    description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands.",
+    title: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
+    description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
     images: ["/alaynlogo.png"],
   },
   icons: {
@@ -139,7 +142,9 @@ export default function RootLayout({
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
         "name": "Alayn AI",
-        "legalName": "Alayn AI Ltd",
+        // Alayn AI is a brand of BRAHM Global Holdings, a sole proprietorship;
+        // keep this in step with /legal/corporate.
+        "legalName": "BRAHM Global Holdings",
         "alternateName": ["Alayn", "AlaynAI"],
         "url": siteUrl,
         "logo": `${siteUrl}/alaynlogo.png`,
@@ -150,6 +155,7 @@ export default function RootLayout({
         "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
         "address": {
           "@type": "PostalAddress",
+          "streetAddress": "Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West",
           "addressLocality": "Mumbai",
           "addressRegion": "Maharashtra",
           "postalCode": "400050",
@@ -159,7 +165,7 @@ export default function RootLayout({
           {
             "@type": "ContactPoint",
             "contactType": "sales",
-            "email": "sales@alaynai.com",
+            "email": "info@alaynai.com",
             "availableLanguage": ["English", "Hindi"]
           },
           {
@@ -175,12 +181,7 @@ export default function RootLayout({
         "sameAs": [
           "https://www.instagram.com/alayn.si/",
           "https://share.google/CBr807mWPl3Ekx5os"
-        ],
-        "parentOrganization": {
-          "@type": "Organization",
-          "name": "BRAHM Global Holdings",
-          "url": "https://brahmglobalholdings.com"
-        }
+        ]
       }
     ]
   };

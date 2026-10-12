@@ -79,7 +79,7 @@ export default function SecurityPolicyPage() {
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Privacy & Data Protection:</strong>{" "}
-            <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+            <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
           </p>
         </div>
       </section>
@@ -565,7 +565,7 @@ export default function SecurityPolicyPage() {
         </p>
         <p>
           <strong className="font-semibold text-zinc-900">Security & Privacy Contact:</strong>{" "}
-          <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+          <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
         </p>
         <p className="pt-2">
           Please provide as much relevant information as reasonably possible,
@@ -724,7 +724,7 @@ export default function SecurityPolicyPage() {
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">Security & Privacy:</strong>{" "}
-              <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+              <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">GSTIN:</strong> 27KOBPK2043Q1ZH

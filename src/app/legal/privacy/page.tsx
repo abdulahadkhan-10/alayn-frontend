@@ -121,7 +121,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             <strong className="font-semibold text-zinc-900">Privacy Contact:</strong>{" "}
-            <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+            <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
           </p>
         </div>
         <p>
@@ -701,7 +701,7 @@ export default function PrivacyPolicyPage() {
         <p>To submit a privacy request, please contact:</p>
         <p>
           <strong className="font-semibold text-zinc-900">Privacy Contact:</strong>{" "}
-          <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+          <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
         </p>
         <p className="pt-2">Please include:</p>
         <ul className="list-disc pl-6 space-y-1 marker:text-zinc-400">
@@ -734,7 +734,7 @@ export default function PrivacyPolicyPage() {
         <ul className="space-y-1">
           <li>
             <strong className="font-semibold text-zinc-900">Privacy & Grievance Contact:</strong>{" "}
-            <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+            <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
           </li>
           <li>
             <strong className="font-semibold text-zinc-900">General Support:</strong>{" "}
@@ -895,7 +895,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">Privacy & Data Protection:</strong>{" "}
-              <a href="mailto:brahmglobalholdings@gmail.com" className="text-red-600 hover:text-red-700">brahmglobalholdings@gmail.com</a>
+              <a href="mailto:info@alaynai.com" className="text-red-600 hover:text-red-700">info@alaynai.com</a>
             </p>
             <p>
               <strong className="font-semibold text-zinc-900">GSTIN:</strong> 27KOBPK2043Q1ZH

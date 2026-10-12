@@ -16,7 +16,7 @@ If you use Alayn on behalf of a restaurant, café, QSR, cloud kitchen, bakery, h
 For customers and users in India, the relevant business entity is:
 Trade Name: BRAHM GLOBAL HOLDINGS Legal Name: IYAAN TAUQUIR KHAN Constitution: Sole Proprietorship Product: Alayn AI Principal Place of Business: Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West, Mumbai, Maharashtra 400050, India
 GSTIN: 27KOBPK2043Q1ZH
-General Support: info@alaynai.com Privacy Contact: brahmglobalholdings@gmail.com
+General Support: info@alaynai.com Privacy Contact: info@alaynai.com
 For privacy-related enquiries, requests or concerns, please contact us using the Privacy Contact address above.
 
 2. OUR APPROACH TO PRIVACY
@@ -310,7 +310,7 @@ Under India's DPDP framework, rights and mechanisms will apply in accordance wit
 
 18. HOW TO EXERCISE YOUR RIGHTS
 To submit a privacy request, please contact:
-Privacy Contact: brahmglobalholdings@gmail.com
+Privacy Contact: info@alaynai.com
 Please include:
 	•	your full name;
 	•	contact details;
@@ -323,7 +323,7 @@ If the request concerns personal data controlled by one of our business customer
 
 19. GRIEVANCES
 If you believe that your personal data has been handled improperly, you may contact us first so that we can investigate and attempt to resolve the matter.
-Privacy & Grievance Contact: brahmglobalholdings@gmail.com
+Privacy & Grievance Contact: info@alaynai.com
 General Support: info@alaynai.com
 We aim to handle privacy complaints fairly, promptly and transparently.
 Where applicable law provides a right to escalate a complaint to a statutory authority or Data Protection Board or other competent authority, you may exercise that right in accordance with the applicable procedure.
@@ -392,7 +392,7 @@ For questions concerning this Privacy Policy or Alayn's handling of personal dat
 BRAHM GLOBAL HOLDINGS A sole proprietorship owned and operated by Iyaan Tauquir Khan
 Principal Place of Business Shop No. 6, Veena Beena Shopping Centre Guru Nanak Marg, Bandra West Mumbai, Maharashtra 400050 India
 General Support: info@alaynai.com
-Privacy & Data Protection: brahmglobalholdings@gmail.com
+Privacy & Data Protection: info@alaynai.com
 GSTIN: 27KOBPK2043Q1ZH
 
 © 2026 Alayn. All rights reserved.

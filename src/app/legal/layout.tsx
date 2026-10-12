@@ -40,8 +40,8 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
               <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
                 Contact Legal
               </h3>
-              <a href="mailto:brahmglobalholdings@gmail.com" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors">
-                brahmglobalholdings@gmail.com
+              <a href="mailto:info@alaynai.com" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors">
+                info@alaynai.com
               </a>
             </div>
           </div>
