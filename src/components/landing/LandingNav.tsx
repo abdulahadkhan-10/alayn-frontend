@@ -5,10 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMagnetic, springSnappy } from "./motion/primitives";
-import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
-import { logout } from "@/redux/slices/authSlice";
-import { useLogoutMutation } from "@/redux/slices/authApiSlice";
-import { baseApi } from "@/redux/store/baseApi";
+import { readStoredUser, logoutFromLanding, type LandingUser } from "./landingSession";
 import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -21,11 +18,11 @@ export default function LandingNav() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { ref: signupRef, x, y } = useMagnetic(0.2);
-  const dispatch = useAppDispatch();
-  const [logoutApi] = useLogoutMutation();
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const [user, setUser] = useState<LandingUser | null>(null);
+  const isAuthenticated = user !== null;
 
   useEffect(() => {
+    setUser(readStoredUser());
     setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 32);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -46,12 +43,8 @@ export default function LandingNav() {
 
   const handleLogout = async () => {
     try {
-      await logoutApi(undefined).unwrap();
-    } catch {
-      // ignore
+      await logoutFromLanding();
     } finally {
-      dispatch(baseApi.util.resetApiState());
-      dispatch(logout());
       setDropdownOpen(false);
       setMobileMenuOpen(false);
       window.location.reload();

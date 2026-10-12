@@ -111,6 +111,7 @@ export default function HeroScene() {
             <Assemble
               as="h1"
               delay={0.06}
+              visibleOnLoad
               style={{
                 fontFamily: "var(--font-playfair), Georgia, serif",
                 fontSize: "clamp(2rem, 6.5vw, 4.2rem)",
@@ -131,7 +132,7 @@ export default function HeroScene() {
 
             
 
-            <Assemble as="p" delay={0.12} style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
+            <Assemble as="p" delay={0.12} visibleOnLoad style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
               Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
             </Assemble>
 
@@ -330,8 +331,6 @@ export default function HeroScene() {
                       top: "-14px",
                       right: "-12px",
                       background: "rgba(15, 23, 42, 0.92)",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
                       border: "1px solid rgba(255, 255, 255, 0.18)",
                       borderRadius: "14px",
                       padding: "10px 14px",

@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Refund & Cancellation Policy",
   alternates: { canonical: "/legal/refund" },
   description: "Alayn AI's policies regarding subscription cancellations and refunds.",
+  ...socialMetadata({ title: "Refund & Cancellation Policy | Alayn AI", description: "Alayn AI's policies regarding subscription cancellations and refunds.", path: "/legal/refund" }),
 };
 
 export default function RefundPolicyPage() {

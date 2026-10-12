@@ -1,5 +1,41 @@
 import type { NextConfig } from "next";
 
+// Origins the browser talks to, taken from the same env vars the app uses so
+// the policy follows whatever API host a build points at.
+function originOf(url: string | undefined): string | null {
+  try {
+    return url ? new URL(url).origin : null;
+  } catch {
+    return null;
+  }
+}
+const apiOrigins = [
+  originOf(process.env.NEXT_PUBLIC_API_URL),
+  originOf(process.env.NEXT_PUBLIC_API_URI),
+  originOf(process.env.NEXT_PUBLIC_SOCKET_URL),
+].filter((o): o is string => o !== null);
+// socket.io upgrades to a websocket on the same host.
+const socketOrigins = apiOrigins.map((o) => o.replace(/^http/, "ws"));
+
+// Next's prerendered pages bootstrap with inline scripts, so script-src needs
+// 'unsafe-inline' unless every page renders dynamically with nonces.
+// Cashfree's SDK and checkout frame, the Tailwind CDN used inside the receipt
+// print window (popups inherit this policy), and OpenStreetMap geocoding in
+// settings are the third parties the app loads.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://sdk.cashfree.com https://cdn.tailwindcss.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  ["connect-src 'self'", ...apiOrigins, ...socketOrigins, "https://nominatim.openstreetmap.org", "https://*.cashfree.com"].join(" "),
+  "frame-src https://*.cashfree.com",
+  "frame-ancestors 'self'",
+  "form-action 'self' https://*.cashfree.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
@@ -54,6 +90,13 @@ const nextConfig: NextConfig = {
           // Attendance and settings pages use geolocation; nothing uses the
           // camera or microphone.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+          // Report-Only: violations are logged in the browser console and
+          // nothing is blocked. Once a production payment and a receipt print
+          // run without violations, rename the key to Content-Security-Policy
+          // to enforce it. Skipped in dev, where HMR needs eval and websockets.
+          ...(process.env.NODE_ENV === "production"
+            ? [{ key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy }]
+            : []),
         ],
       },
     ];

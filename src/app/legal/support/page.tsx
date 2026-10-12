@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Support, Escalation & Grievance",
   alternates: { canonical: "/legal/support" },
   description: "Alayn AI's customer support framework, escalation procedures, and formal grievance process.",
+  ...socialMetadata({ title: "Support, Escalation & Grievance | Alayn AI", description: "Alayn AI's customer support framework, escalation procedures, and formal grievance process.", path: "/legal/support" }),
 };
 
 export default function SupportPolicyPage() {

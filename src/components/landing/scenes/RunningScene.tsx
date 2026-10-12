@@ -60,7 +60,7 @@ const ARRIVAL_MS = 1400;
 function Notification({ alert, expanded }: { alert: Alert; expanded: boolean }) {
   return (
     <div
-      className="rounded-[20px] px-3 py-2.5 text-[#1c1c1e]"
+      className="landing-glass rounded-[20px] px-3 py-2.5 text-[#1c1c1e]"
       style={{
         background: "rgba(245, 245, 247, 0.82)",
         backdropFilter: "blur(20px) saturate(1.6)",

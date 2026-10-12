@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Cookie Policy",
   alternates: { canonical: "/legal/cookie" },
   description: "How Alayn AI uses cookies and similar technologies.",
+  ...socialMetadata({ title: "Cookie Policy | Alayn AI", description: "How Alayn AI uses cookies and similar technologies.", path: "/legal/cookie" }),
 };
 
 export default function CookiePolicyPage() {

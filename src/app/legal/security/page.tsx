@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Security & Data Protection",
   alternates: { canonical: "/legal/security" },
   description: "Alayn AI's security principles and data protection measures.",
+  ...socialMetadata({ title: "Security & Data Protection | Alayn AI", description: "Alayn AI's security principles and data protection measures.", path: "/legal/security" }),
 };
 
 export default function SecurityPolicyPage() {

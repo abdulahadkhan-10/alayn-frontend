@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Corporate Information",
   alternates: { canonical: "/legal/corporate" },
   description: "Corporate and business information for Alayn AI, including legal operating entity details.",
+  ...socialMetadata({ title: "Corporate Information | Alayn AI", description: "Corporate and business information for Alayn AI, including legal operating entity details.", path: "/legal/corporate" }),
 };
 
 export default function CorporateInformationPage() {

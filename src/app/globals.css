@@ -539,6 +539,23 @@ html {
   }
 }
 
+/* ---- Phones and reduced motion: drop the expensive blurs ----
+   The aurora blobs are radial gradients that are already soft, so the extra
+   filter barely shows but costs a large raster on a phone GPU. Frosted
+   cards re-blur whatever moves behind them every frame; a near-opaque
+   fill looks the same at this size. */
+@media (max-width: 640px), (prefers-reduced-motion: reduce) {
+  .hero-aurora,
+  .auth-aurora {
+    filter: none;
+  }
+  .landing-glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(245, 245, 247, 0.97) !important;
+  }
+}
+
 /* ---- Utility to hide scrollbar ---- */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

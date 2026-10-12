@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
@@ -13,15 +14,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${siteUrl}/api-docs`,
   },
-  openGraph: {
-    title,
-    description,
-    url: `${siteUrl}/api-docs`,
-    siteName: "Alayn AI",
-    locale: "en_IN",
-    type: "website",
-    images: [{ url: "/alaynlogo.png", width: 1200, height: 630, alt: "Alayn API Reference" }],
-  },
+  ...socialMetadata({ title, description, path: "/api-docs" }),
 };
 
 // Endpoint groups mounted under /api/v1 in the backend router

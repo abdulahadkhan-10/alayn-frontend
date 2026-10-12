@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Terms of Service",
   alternates: { canonical: "/legal/terms" },
   description: "Terms of Service for Alayn AI.",
+  ...socialMetadata({ title: "Terms of Service | Alayn AI", description: "Terms of Service for Alayn AI.", path: "/legal/terms" }),
 };
 
 export default function TermsOfServicePage() {

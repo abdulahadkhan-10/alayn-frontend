@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import "@/styles/transitions.css";
-import ReduxProvider from "@/redux/store/provider";
-import { BranchProvider } from "@/lib/BranchContext";
-import GlobalToastContainer from "@/components/toast/GlobalToastContainer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -200,12 +197,8 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[#F4F7F9] text-gray-900 font-sans">
-        <ReduxProvider>
-          <BranchProvider>
-            {children}
-            <GlobalToastContainer />
-          </BranchProvider>
-        </ReduxProvider>
+        {/* App-only providers live in src/app/(app)/layout.tsx. */}
+        {children}
       </body>
     </html>
   );

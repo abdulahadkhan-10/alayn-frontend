@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
 const title = "About Alayn AI — Intelligent Hospitality Operating System";
-const description = "Learn about Alayn AI, the enterprise restaurant operating platform unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling. Backed by BRAHM Global Holdings.";
+const description = "Learn about Alayn AI, the enterprise restaurant operating platform unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling. Built and operated by BRAHM Global Holdings.";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -13,15 +14,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${siteUrl}/about`,
   },
-  openGraph: {
-    title,
-    description,
-    url: `${siteUrl}/about`,
-    siteName: "Alayn AI",
-    locale: "en_IN",
-    type: "website",
-    images: [{ url: "/alaynlogo.png", width: 1200, height: 630, alt: "Alayn AI About" }],
-  },
+  ...socialMetadata({ title, description, path: "/about" }),
 };
 
 const PILLARS = [

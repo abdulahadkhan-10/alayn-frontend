@@ -22,6 +22,15 @@ const assembleVariants: Variants = {
   }),
 };
 
+// Same motion without the fade. The server HTML renders the element at
+// opacity 0 until JavaScript animates it in, so on a slow phone the hero
+// heading — the page's largest paint — waited for hydration. Starting fully
+// opaque lets it paint immediately while the slide still plays.
+const assembleVisibleVariants: Variants = {
+  hidden: { opacity: 1, y: 26, scale: 0.98 },
+  visible: assembleVariants.visible,
+};
+
 export function Assemble({
   children,
   delay = 0,
@@ -30,6 +39,7 @@ export function Assemble({
   once = true,
   style,
   id,
+  visibleOnLoad = false,
 }: {
   children: React.ReactNode;
   delay?: number;
@@ -38,6 +48,8 @@ export function Assemble({
   once?: boolean;
   style?: React.CSSProperties;
   id?: string;
+  /** Paint immediately and only slide in; use for above-the-fold LCP text. */
+  visibleOnLoad?: boolean;
 }) {
   const Component = motion[as] as typeof motion.div;
   return (
@@ -45,7 +57,7 @@ export function Assemble({
       id={id}
       className={className}
       style={style}
-      variants={assembleVariants}
+      variants={visibleOnLoad ? assembleVisibleVariants : assembleVariants}
       custom={delay}
       initial="hidden"
       whileInView="visible"

@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Privacy Policy",
   alternates: { canonical: "/legal/privacy" },
   description: "How Alayn AI protects and handles your personal and business data.",
+  ...socialMetadata({ title: "Privacy Policy | Alayn AI", description: "How Alayn AI protects and handles your personal and business data.", path: "/legal/privacy" }),
 };
 
 export default function PrivacyPolicyPage() {

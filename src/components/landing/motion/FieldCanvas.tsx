@@ -28,7 +28,11 @@ export default function FieldCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Phones get one still frame, like reduced motion: a full-screen canvas
+    // redrawn every frame is the costliest thing on the page for a slow CPU.
+    const staticOnly =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      window.matchMedia("(max-width: 640px)").matches;
 
     let routes: {
       a: FieldNode;
@@ -69,10 +73,22 @@ export default function FieldCanvas({
 
     let raf = 0;
     let startTs = 0;
+    // Decoration doesn't need 60fps; drawing at ~30fps halves the main-thread
+    // cost. Easing below is scaled by elapsed time so it settles at the same
+    // speed regardless of frame rate.
+    const FRAME_MS = 32;
+    let lastDraw = -Infinity;
 
     let wasCleared = false;
 
     const draw = (time: number) => {
+      const dt = time - lastDraw;
+      if (dt < FRAME_MS) {
+        raf = requestAnimationFrame(start);
+        return;
+      }
+      lastDraw = time;
+
       let wSum = 0;
       let chaos = 0;
       let sync = 0;
@@ -89,7 +105,8 @@ export default function FieldCanvas({
           : { chaos: currentRef.current.chaos, sync: currentRef.current.sync, presence: 0 };
 
       const cur = currentRef.current;
-      const ease = 0.045;
+      // 0.045 per 60fps frame, converted to the time actually elapsed.
+      const ease = Number.isFinite(dt) ? 1 - Math.pow(1 - 0.045, Math.min(dt, 250) / 16.67) : 0.045;
       cur.chaos += (blended.chaos - cur.chaos) * ease;
       cur.sync += (blended.sync - cur.sync) * ease;
       cur.presence += (blended.presence - cur.presence) * ease;
@@ -99,7 +116,7 @@ export default function FieldCanvas({
           ctx.clearRect(0, 0, W, H);
           wasCleared = true;
         }
-        raf = requestAnimationFrame(draw);
+        if (!staticOnly) raf = requestAnimationFrame(start);
         return;
       }
       wasCleared = false;
@@ -154,7 +171,7 @@ export default function FieldCanvas({
         ctx.fill();
       });
 
-      raf = requestAnimationFrame(draw);
+      if (!staticOnly) raf = requestAnimationFrame(start);
     };
 
     const start = (ts: number) => {
@@ -162,10 +179,20 @@ export default function FieldCanvas({
       draw(ts - startTs);
     };
 
-    resize();
-    window.addEventListener("resize", resize);
+    // Resizing a canvas clears it, and on phones the URL bar showing or
+    // hiding fires resize, so a static canvas has to redraw itself.
+    const onResize = () => {
+      resize();
+      if (staticOnly) {
+        lastDraw = -Infinity;
+        draw(6000);
+      }
+    };
 
-    if (prefersReduced) {
+    resize();
+    window.addEventListener("resize", onResize);
+
+    if (staticOnly) {
       draw(6000);
     } else {
       raf = requestAnimationFrame(start);
@@ -174,7 +201,7 @@ export default function FieldCanvas({
     const handleVisibilityChange = () => {
       if (document.hidden) {
         cancelAnimationFrame(raf);
-      } else if (!prefersReduced) {
+      } else if (!staticOnly) {
         raf = requestAnimationFrame(start);
       }
     };
@@ -182,7 +209,7 @@ export default function FieldCanvas({
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,7 +1,10 @@
+import { socialMetadata } from "@/lib/socialMetadata";
+
 export const metadata = {
   title: "Responsible AI Policy",
   alternates: { canonical: "/legal/responsible-ai" },
   description: "Alayn AI's principles for the responsible development and use of artificial intelligence.",
+  ...socialMetadata({ title: "Responsible AI Policy | Alayn AI", description: "Alayn AI's principles for the responsible development and use of artificial intelligence.", path: "/legal/responsible-ai" }),
 };
 
 export default function ResponsibleAIPolicyPage() {
