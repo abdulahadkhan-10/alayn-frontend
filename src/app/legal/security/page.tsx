@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Security & Data Protection | Alayn AI",
+  title: "Security & Data Protection",
+  alternates: { canonical: "/legal/security" },
   description: "Alayn AI's security principles and data protection measures.",
 };
 

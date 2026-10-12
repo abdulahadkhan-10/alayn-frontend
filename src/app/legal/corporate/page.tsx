@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Corporate Information | Alayn AI",
+  title: "Corporate Information",
+  alternates: { canonical: "/legal/corporate" },
   description: "Corporate and business information for Alayn AI, including legal operating entity details.",
 };
 

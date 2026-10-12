@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Privacy Policy | Alayn AI",
+  title: "Privacy Policy",
+  alternates: { canonical: "/legal/privacy" },
   description: "How Alayn AI protects and handles your personal and business data.",
 };
 

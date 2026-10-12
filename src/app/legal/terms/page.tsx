@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Terms of Service | Alayn AI",
+  title: "Terms of Service",
+  alternates: { canonical: "/legal/terms" },
   description: "Terms of Service for Alayn AI.",
 };
 

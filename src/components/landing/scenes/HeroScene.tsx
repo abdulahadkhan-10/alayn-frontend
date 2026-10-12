@@ -121,8 +121,8 @@ export default function HeroScene() {
                 marginBottom: "24px",
               }}
             >
-              <span className="sr-only">Alayn AI — </span>
-              The Intelligent Operating System
+              <span className="sr-only">Alayn AI —{" "}</span>
+              The Intelligent Operating System{" "}
               <br />
               <em style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: 400 }}>
                 for Hospitality.

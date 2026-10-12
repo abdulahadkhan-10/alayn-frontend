@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Responsible AI Policy | Alayn AI",
+  title: "Responsible AI Policy",
+  alternates: { canonical: "/legal/responsible-ai" },
   description: "Alayn AI's principles for the responsible development and use of artificial intelligence.",
 };
 

@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Cookie Policy | Alayn AI",
+  title: "Cookie Policy",
+  alternates: { canonical: "/legal/cookie" },
   description: "How Alayn AI uses cookies and similar technologies.",
 };
 

@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import SceneProgress from "@/components/landing/SceneProgress";
@@ -12,6 +13,10 @@ import RunningScene from "@/components/landing/scenes/RunningScene";
 import VerticalsScene from "@/components/landing/scenes/VerticalsScene";
 import CalmScene from "@/components/landing/scenes/CalmScene";
 import WaitingScene from "@/components/landing/scenes/WaitingScene";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "https://alaynai.com" },
+};
 
 export default function LandingPage() {
   return (

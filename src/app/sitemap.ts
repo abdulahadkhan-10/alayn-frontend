@@ -16,7 +16,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/legal/responsible-ai`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${baseUrl}/legal/corporate`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/legal/support`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${baseUrl}/login`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/signup`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/legal/refund`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
   ];
 }

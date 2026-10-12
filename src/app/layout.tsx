@@ -30,9 +30,9 @@ const siteUrl = "https://alaynai.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  alternates: {
-    canonical: siteUrl,
-  },
+  // No canonical here: metadata merges shallowly, so a layout canonical is
+  // inherited by every page that doesn't set its own and points them all at
+  // the homepage. Each indexable page declares its own.
   title: {
     default: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
     template: "%s | Alayn AI",
@@ -58,7 +58,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Alayn AI | Official Website — Intelligent Operating System for Hospitality",
     description: "Alayn AI (alaynai.com) is the official intelligent operating system for restaurants, cafes, and hospitality brands. Seamlessly unify POS, inventory, kitchen KDS, and workforce management into one AI-powered platform.",
-    url: siteUrl,
     siteName: "Alayn AI",
     locale: "en_IN",
     type: "website",

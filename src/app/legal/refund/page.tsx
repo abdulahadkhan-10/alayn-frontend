@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Refund & Cancellation Policy | Alayn AI",
+  title: "Refund & Cancellation Policy",
+  alternates: { canonical: "/legal/refund" },
   description: "Alayn AI's policies regarding subscription cancellations and refunds.",
 };
 

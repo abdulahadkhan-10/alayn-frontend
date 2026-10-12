@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Support, Escalation & Grievance | Alayn AI",
+  title: "Support, Escalation & Grievance",
+  alternates: { canonical: "/legal/support" },
   description: "Alayn AI's customer support framework, escalation procedures, and formal grievance process.",
 };
 

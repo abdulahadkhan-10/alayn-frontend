@@ -15,7 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         "/legal/",
         "/login",
         "/signup",
-        "/privacy",
         "/sitemap.xml",
       ],
       disallow: [

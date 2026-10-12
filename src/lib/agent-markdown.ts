@@ -82,21 +82,21 @@ For existing restaurant partners requiring technical or account assistance:
 - **Primary Website**: https://alaynai.com
 `,
 
-  "/privacy": `# Privacy Policy & Data Protection Notice — Alayn AI
+  // Summary only; the HTML page is the policy. Keep the dates and claims here
+  // in step with src/app/legal/privacy/page.tsx when the policy changes.
+  "/legal/privacy": `# Privacy Policy — Alayn AI
 
-> Last Updated: January 2026 | Alayn AI (BRAHM Global Holdings)
+> Effective and last updated: 14 August 2026
+> Full policy: https://alaynai.com/legal/privacy
 
-Alayn AI is committed to safeguarding the privacy, confidentiality, and integrity of data collected from hospitality operators, staff, and guests.
+This is a short summary for agents. The full policy at the link above is the authoritative version.
 
-## 1. Data Controller
-- **Entity**: Alayn AI (BRAHM Global Holdings Ltd)
-- **Privacy Contact**: info@alaynai.com
-- **Registered Location**: London, United Kingdom
-
-## 2. Data Processing Principles
-- **Operator Data**: Stored in isolated multi-tenant databases with encrypted backups.
-- **Guest Data**: Collected strictly for order fulfillment, digital receipts, and loyalty programs. No data is sold to third-party brokers.
-- **Compliance**: Fully compliant with UK GDPR and global data protection standards.
+- **Framework**: Written with reference to India's Digital Personal Data Protection (DPDP) Act. Rights and mechanisms under the DPDP framework apply as its provisions commence.
+- **Selling data**: Alayn does not sell personal data as a commercial product.
+- **Retention**: Personal data is kept only for as long as reasonably necessary for the purposes described in the policy.
+- **Third parties**: Some features use third-party services, such as payment service providers, which are governed by their own privacy policies.
+- **Contact**: info@alaynai.com
+- **Privacy & grievance contact**: brahmglobalholdings@gmail.com
 `,
 
   "/api-docs": `# Alayn AI — Developer API & Integration Documentation

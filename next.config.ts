@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
       // described things that don't exist. Send visitors to the real API docs.
       { source: "/cli", destination: "/api-docs#versioning", permanent: true },
       { source: "/deprecation", destination: "/api-docs#versioning", permanent: true },
+      // Short aliases. A redirect() inside the page answers 200 and redirects
+      // in the client, which search engines treat as a duplicate page rather
+      // than a move; a config redirect answers with a real 308.
+      { source: "/privacy", destination: "/legal/privacy", permanent: true },
+      { source: "/docs", destination: "/api-docs", permanent: true },
+      { source: "/developers", destination: "/api-docs", permanent: true },
     ];
   },
   async headers() {
