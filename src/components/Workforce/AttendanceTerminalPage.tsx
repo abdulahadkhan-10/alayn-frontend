@@ -109,7 +109,29 @@ export default function AttendanceTerminalPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleClockIn = async () => {
+  // A punch is "in progress" from the tap, not just while the API call runs: getting the location can
+  // take seconds, and a second tap in that window used to send a second punch (duplicate records).
+  const punchingRef = React.useRef(false);
+  const [punching, setPunching] = useState<"in" | "out" | null>(null);
+  const isPunchingIn = isClockingIn || punching === "in";
+  const isPunchingOut = isClockingOut || punching === "out";
+
+  const withPunchLock = async (kind: "in" | "out", punch: () => Promise<void>) => {
+    if (punchingRef.current) return;
+    punchingRef.current = true;
+    setPunching(kind);
+    try {
+      await punch();
+    } finally {
+      punchingRef.current = false;
+      setPunching(null);
+    }
+  };
+
+  const handleClockIn = () => withPunchLock("in", clockInSelected);
+  const handleClockOut = () => withPunchLock("out", clockOutSelected);
+
+  const clockInSelected = async () => {
     if (!selectedEmployeeId) {
       setFeedback({ type: "error", msg: "Please select an employee first!" });
       return;
@@ -137,7 +159,7 @@ export default function AttendanceTerminalPage() {
     }
   };
 
-  const handleClockOut = async () => {
+  const clockOutSelected = async () => {
     if (!selectedEmployeeId) {
       setFeedback({ type: "error", msg: "Please select an employee first!" });
       return;
@@ -240,10 +262,10 @@ export default function AttendanceTerminalPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleClockIn}
-                disabled={isClockingIn || !selectedEmployeeId}
+                disabled={isPunchingIn || !selectedEmployeeId}
                 className="flex flex-col items-center justify-center gap-2 py-4 px-6 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg transition-all active:scale-[0.98]"
               >
-                {isClockingIn ? (
+                {isPunchingIn ? (
                   <>
                     <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -260,10 +282,10 @@ export default function AttendanceTerminalPage() {
               </button>
               <button
                 onClick={handleClockOut}
-                disabled={isClockingOut || !selectedEmployeeId}
+                disabled={isPunchingOut || !selectedEmployeeId}
                 className="flex flex-col items-center justify-center gap-2 py-4 px-6 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:hover:bg-rose-600 text-white rounded-xl font-bold text-lg shadow-lg transition-all active:scale-[0.98]"
               >
-                {isClockingOut ? (
+                {isPunchingOut ? (
                   <>
                     <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

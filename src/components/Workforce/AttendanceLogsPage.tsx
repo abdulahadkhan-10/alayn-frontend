@@ -336,69 +336,77 @@ export default function AttendanceLogsPage() {
     };
   }, [userLogs, isManagerOrOwner]);
 
-  const handleClockIn = async () => {
+  // A punch is "in progress" from the tap, not just while the API call runs: fetching GPS can take
+  // seconds, and a second tap in that window used to send a second punch (duplicate records).
+  const punchingRef = React.useRef(false);
+  const [punching, setPunching] = useState<"in" | "out" | null>(null);
+
+  const getPosition = () =>
+    new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      })
+    );
+
+  const runPunch = async (kind: "in" | "out", punch: (coords: GeolocationCoordinates) => Promise<void>) => {
+    if (punchingRef.current) return;
     setFeedbackMsg(null);
     setErrorMsg(null);
-
-    // Punch time and late/early rules are decided by the server; only location is sent
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            // On a holiday / closed day / weekly off the backend asks "Clock in anyway?" first
-            const clockedIn = await clockInWithConfirmation((confirmOffDay) =>
-              clockIn({
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                confirmOffDay,
-              }).unwrap()
-            );
-            if (!clockedIn) return;
-            setIsShiftActive(true);
-            setFeedbackMsg("Clock In successful! Have a great shift.");
-          } catch (err) {
-            setErrorMsg(getApiErrorMessage(err, "Failed to clock in"));
-            setIsShiftActive(false);
-          }
-        },
-        (error) => {
-          setErrorMsg("Location access is required to clock in. Please enable location permissions.");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
+    if (!("geolocation" in navigator)) {
       setErrorMsg("Geolocation is not supported by your browser.");
+      return;
+    }
+    punchingRef.current = true;
+    setPunching(kind);
+    try {
+      let position: GeolocationPosition;
+      try {
+        position = await getPosition();
+      } catch {
+        setErrorMsg(`Location access is required to clock ${kind}. Please enable location permissions.`);
+        return;
+      }
+      await punch(position.coords);
+    } finally {
+      punchingRef.current = false;
+      setPunching(null);
     }
   };
 
-  const handleClockOut = async () => {
-    setFeedbackMsg(null);
-    setErrorMsg(null);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            await clockOut({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            }).unwrap();
-            setIsShiftActive(false);
-            setFeedbackMsg("Clock Out successful! Shift record saved.");
-          } catch (err: any) {
-            const message = err?.data?.message || err?.message || "Failed to clock out";
-            setErrorMsg(message);
-            setIsShiftActive(false);
-          }
-        },
-        (error) => {
-          setErrorMsg("Location access is required to clock out. Please enable location permissions.");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      setErrorMsg("Geolocation is not supported by your browser.");
-    }
-  };
+  // Punch time and late/early rules are decided by the server; only location is sent
+  const handleClockIn = () =>
+    runPunch("in", async ({ latitude, longitude }) => {
+      try {
+        // On a holiday / closed day / weekly off the backend asks "Clock in anyway?" first
+        const clockedIn = await clockInWithConfirmation((confirmOffDay) =>
+          clockIn({ latitude, longitude, confirmOffDay }).unwrap()
+        );
+        if (!clockedIn) return;
+        setIsShiftActive(true);
+        setFeedbackMsg("Clock In successful! Have a great shift.");
+      } catch (err) {
+        setErrorMsg(getApiErrorMessage(err, "Failed to clock in"));
+        setIsShiftActive(false);
+      }
+    });
+
+  const handleClockOut = () =>
+    runPunch("out", async ({ latitude, longitude }) => {
+      try {
+        await clockOut({ latitude, longitude }).unwrap();
+        setIsShiftActive(false);
+        setFeedbackMsg("Clock Out successful! Shift record saved.");
+      } catch (err: any) {
+        const message = err?.data?.message || err?.message || "Failed to clock out";
+        setErrorMsg(message);
+        setIsShiftActive(false);
+      }
+    });
+
+  const isPunchingIn = isClockingIn || punching === "in";
+  const isPunchingOut = isClockingOut || punching === "out";
 
   // Render Skeleton Loader while API is fetching
   if (isLoading) {
@@ -474,10 +482,10 @@ export default function AttendanceLogsPage() {
                 {!isShiftActive ? (
                   <button
                     onClick={handleClockIn}
-                    disabled={isClockingIn}
+                    disabled={isPunchingIn}
                     className="w-full flex items-center justify-center gap-2 bg-[#D3232A] hover:bg-[#b01e23] text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50"
                   >
-                    {isClockingIn ? (
+                    {isPunchingIn ? (
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -485,15 +493,15 @@ export default function AttendanceLogsPage() {
                     ) : (
                       <LogIn className="h-5 w-5" />
                     )}
-                    {isClockingIn ? "Clocking In..." : "Clock In / Start Shift"}
+                    {isPunchingIn ? "Clocking In..." : "Clock In / Start Shift"}
                   </button>
                 ) : (
                   <button
                     onClick={handleClockOut}
-                    disabled={isClockingOut}
+                    disabled={isPunchingOut}
                     className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50"
                   >
-                    {isClockingOut ? (
+                    {isPunchingOut ? (
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -501,7 +509,7 @@ export default function AttendanceLogsPage() {
                     ) : (
                       <LogOut className="h-5 w-5" />
                     )}
-                    {isClockingOut ? "Clocking Out..." : "Clock Out / End Shift"}
+                    {isPunchingOut ? "Clocking Out..." : "Clock Out / End Shift"}
                   </button>
                 )}
               </div>
