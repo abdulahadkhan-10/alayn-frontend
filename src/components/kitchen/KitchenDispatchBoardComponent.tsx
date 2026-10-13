@@ -48,19 +48,31 @@ export default function KitchenDispatchBoardComponent() {
     return () => clearInterval(timer);
   }, []);
 
-  // Web Audio chime function for Indian kitchen acoustic notifications
+  // Pre-load order bell MP3 for zero-latency notification playback
+  const bellAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    try {
+      const audio = new Audio("/sounds/order-bell.mp3");
+      audio.preload = "auto";
+      bellAudioRef.current = audio;
+    } catch {
+      // Audio fallback
+    }
+  }, []);
+
+  // Kitchen acoustic notification handler
   const playKitchenChime = (isCancel = false) => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
       if (isCancel) {
         // High urgency 2-tone alarm chime for cancellation
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(440, ctx.currentTime);
         osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
@@ -69,16 +81,19 @@ export default function KitchenDispatchBoardComponent() {
         osc.start();
         osc.stop(ctx.currentTime + 0.45);
       } else {
-        // Standard kitchen bell ding for new order
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
+        // Play custom order bell MP3
+        if (bellAudioRef.current) {
+          bellAudioRef.current.currentTime = 0;
+          bellAudioRef.current.play().catch((err) => {
+            console.warn("Audio autoplay blocked by browser policy:", err);
+          });
+        } else {
+          const audio = new Audio("/sounds/order-bell.mp3");
+          audio.play().catch(() => {});
+        }
       }
     } catch {
-      // Audio autoplay policy fallback
+      // Audio policy fallback
     }
   };
 
