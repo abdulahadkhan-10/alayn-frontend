@@ -103,11 +103,14 @@ export default function KitchenDispatchBoardComponent() {
     onConnect: () => refetch(),
     onKDSUpdate: (data: any) => {
       refetch();
-      if (data?.status === "CANCELLED") {
+      const orderStatus = data?.status || data?.order?.status;
+
+      if (orderStatus === "CANCELLED") {
         playKitchenChime(true);
-      } else {
+      } else if (orderStatus === "SENT_TO_KITCHEN" || orderStatus === "RECEIVED") {
         playKitchenChime(false);
       }
+      // Status bumps (PREPARING, READY, SERVED) and payments update the board silently
     },
   });
 
