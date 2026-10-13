@@ -16,9 +16,27 @@ export interface KpiResponse {
 }
 
 export interface SalesForecastPoint {
-  date: string;
-  actual?: number;
-  projected?: number;
+  date: string; // YYYY-MM-DD, outlet-local
+  label: string;
+  isToday: boolean;
+  isFuture: boolean;
+  actual: number | null; // ₹ before tax (today: so far)
+  projected: number | null;
+  low: number | null; // likely range
+  high: number | null;
+  closed: boolean;
+}
+
+export type SalesForecastRange = "7d" | "30d" | "90d";
+
+export interface SalesForecastResponse {
+  status: "ok" | "insufficient_history";
+  daysOfHistory: number;
+  minHistoryDays: number;
+  points: SalesForecastPoint[];
+  accuracy: { mapePct: number; daysEvaluated: number } | null;
+  summary: { next7DaysProjected: number; last7DaysActual: number; vsLast7DaysPct: number } | null;
+  coverage: { forecasted: number; total: number };
 }
 
 export interface InventoryForecastPoint {
@@ -115,16 +133,12 @@ export const dashboardApiSlice = baseApi.injectEndpoints({
       },
       providesTags: ["Dashboard"],
     }),
-    getSalesForecast: builder.query<SalesForecastPoint[], { outletId?: string }>({
-      query: ({ outletId }) => ({
+    getSalesForecast: builder.query<SalesForecastResponse, { outletId?: string; range?: SalesForecastRange }>({
+      query: ({ outletId, range }) => ({
         url: "/dashboard/sales-forecast",
-        params: outletId ? { outletId } : undefined,
+        params: { ...(outletId ? { outletId } : {}), ...(range ? { range } : {}) },
       }),
-      transformResponse: (response: { data?: SalesForecastPoint[] } | SalesForecastPoint[]) => {
-        if ("data" in response && Array.isArray(response.data)) return response.data;
-        if (Array.isArray(response)) return response;
-        return [];
-      },
+      transformResponse: (response: { data: SalesForecastResponse }) => response.data,
       providesTags: ["Dashboard"],
     }),
     getInventoryForecast: builder.query<InventoryForecastPoint[], { outletId?: string }>({

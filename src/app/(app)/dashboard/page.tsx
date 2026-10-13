@@ -8,6 +8,7 @@ import { useAppSelector } from "@/redux/store/hooks";
 import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
+import SalesForecastChart from "@/components/dashboard/SalesForecastChart";
 import { useBranch } from "@/lib/BranchContext";
 import {
   useGetKpisQuery,
@@ -552,6 +553,9 @@ export default function MasterDashboardPage(props?: PageProps) {
               </div>
 
             </div>
+
+            {/* Sales Forecast (own range toggle; independent of the date filter above) */}
+            <SalesForecastChart outletId={outletId} />
 
             {/* 50/50 SYMMETRIC OPERATIONS TELEMETRY ROW: ACTIVE ORDERS (6) + SHIFT COVERAGE (6) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
