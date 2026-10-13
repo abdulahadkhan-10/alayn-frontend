@@ -31,7 +31,8 @@ const inr = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`
 const compactInr = (value: number) =>
   value >= 100000 ? `₹${(value / 100000).toFixed(1)}L` : `₹${(value / 1000).toFixed(0)}k`;
 
-type ChartRow = SalesForecastPoint & { band: [number, number] | null };
+// actualLine leaves out today: a half-finished day would look like a sudden drop
+type ChartRow = SalesForecastPoint & { band: [number, number] | null; actualLine: number | null };
 
 function ForecastTooltip({ active, payload }: { active?: boolean; payload?: { payload: ChartRow }[] }) {
   if (!active || !payload?.length) return null;
@@ -73,6 +74,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
       (data?.points ?? []).map((p) => ({
         ...p,
         band: p.low !== null && p.high !== null ? [p.low, p.high] : null,
+        actualLine: p.isToday ? null : p.actual,
       })),
     [data],
   );
@@ -81,6 +83,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
   const hasSales = rows.some((p) => (p.actual ?? 0) > 0);
   const summary = data?.summary;
   const accuracy = data?.accuracy;
+  const closedAhead = rows.filter((p) => p.isFuture).slice(0, 7).filter((p) => p.closed).length;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col">
@@ -139,6 +142,11 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
             {summary.vsLast7DaysPct >= 0 ? "+" : ""}
             {summary.vsLast7DaysPct}% vs last 7 days
           </span>
+          {closedAhead > 0 && (
+            <span className="text-xs font-medium text-slate-400">
+              ({closedAhead} closed {closedAhead === 1 ? "day" : "days"} ahead)
+            </span>
+          )}
         </div>
       )}
 
@@ -181,7 +189,12 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
                 tickFormatter={compactInr}
               />
               <Tooltip content={<ForecastTooltip />} cursor={{ stroke: "#94A3B8", strokeDasharray: "3 3" }} />
-              <ReferenceLine x="Today" stroke="#CBD5E1" strokeDasharray="3 3" />
+              <ReferenceLine
+                x="Today"
+                stroke="#CBD5E1"
+                strokeDasharray="3 3"
+                label={{ value: "Today", position: "insideTopRight", fill: "#64748B", fontSize: 11, fontWeight: 600 }}
+              />
               {forecasting && (
                 <Area
                   type="monotone"
@@ -195,7 +208,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
               )}
               <Area
                 type="monotone"
-                dataKey="actual"
+                dataKey="actualLine"
                 stroke={ACTUAL}
                 strokeWidth={2.5}
                 fill="url(#forecastActualGradient)"
@@ -225,16 +238,19 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
               ? `Past forecasts were off by ${accuracy.mapePct}% on average (checked on the last ${accuracy.daysEvaluated} days)`
               : "Accuracy will show once a few forecast days have passed"}
           </span>
-        ) : (
+        ) : data ? (
           <span className="flex items-center gap-1.5">
             <Hourglass className="h-4 w-4 text-slate-400" />
-            Forecast unlocks after {data?.minHistoryDays ?? 21} days of sales ({Math.min(data?.daysOfHistory ?? 0, data?.minHistoryDays ?? 21)}/
-            {data?.minHistoryDays ?? 21} so far)
+            Forecast unlocks after {data.minHistoryDays} days of sales (
+            {Math.min(data.daysOfHistory, data.minHistoryDays)}/{data.minHistoryDays} so far)
           </span>
+        ) : (
+          <span>&nbsp;</span>
         )}
         {data && data.coverage.forecasted < data.coverage.total && data.coverage.forecasted > 0 && (
           <span className="text-slate-400">
-            Forecast covers {data.coverage.forecasted} of {data.coverage.total} outlets (others are too new)
+            Showing {data.coverage.forecasted} of {data.coverage.total} outlets; newer outlets join after{" "}
+            {data.minHistoryDays} days of sales
           </span>
         )}
       </div>
