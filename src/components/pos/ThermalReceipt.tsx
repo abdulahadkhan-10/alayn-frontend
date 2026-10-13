@@ -68,9 +68,10 @@ export interface ThermalReceiptProps {
     };
   };
   onClose?: () => void;
+  autoPrint?: boolean;
 }
 
-export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) {
+export default function ThermalReceipt({ order, onClose, autoPrint = false }: ThermalReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rollStarted, setRollStarted] = useState(false);
@@ -83,6 +84,15 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
       setPrintMode(saved as any);
     }
   }, []);
+
+  useEffect(() => {
+    if (autoPrint) {
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint]);
 
   const changePrintMode = (mode: "rawbt" | "system") => {
     setPrintMode(mode);

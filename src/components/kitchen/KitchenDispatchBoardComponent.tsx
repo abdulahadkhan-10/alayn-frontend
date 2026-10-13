@@ -497,6 +497,7 @@ export default function KitchenDispatchBoardComponent() {
           >
             <ThermalKOT
               order={printingTicket.order}
+              autoPrint={true}
               isCancellation={printingTicket.isCancellation}
               onClose={() => setPrintingTicket(null)}
             />
