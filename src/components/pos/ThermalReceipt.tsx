@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Printer, X, CheckCircle, Download, Share2, Utensils, CreditCard, Smartphone, Loader2, Zap } from "lucide-react";
 import { printThermalHtml, printViaRawBTDirect } from "@/lib/printUtils";
+import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
 
 export interface ThermalReceiptProps {
   order: {
@@ -276,19 +277,18 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
       </html>
     `;
 
-    if (printMode === "rawbt") {
-      printViaRawBTDirect(receiptHtml);
-      setShowSuccess(true);
-      setIsPrinting(false);
-      setTimeout(() => {
-        onClose?.();
-      }, 700);
-    } else {
+    // Dispatch through hardware auto-printer (Native Bluetooth -> Direct ESC/POS stream -> System fallback)
+    const result = await autoPrintReceipt(actualOrder, "80mm");
+    if (!result.success) {
+      // System print fallback if hardware Bluetooth or stream is unavailable
       await printThermalHtml(receiptHtml);
-      setShowSuccess(true);
-      setIsPrinting(false);
-      setTimeout(() => setShowSuccess(false), 3000);
     }
+
+    setShowSuccess(true);
+    setIsPrinting(false);
+    setTimeout(() => {
+      onClose?.();
+    }, 600);
   };
 
   return (

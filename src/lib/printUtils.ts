@@ -24,8 +24,44 @@ export function toBase64Utf8(str: string): string {
 
 /**
  * ⚡ 1-Click Fast Direct Print via RawBT on Android tablets.
- * Bypasses the multi-step Android system print dialog ("Save as PDF", printer selection, paper size).
- * Directly launches the RawBT driver with the HTML thermal payload.
+ * When Uint8Array ESC/POS data is supplied, it sends raw bytes directly to the thermal printer
+ * bypassing HTML rendering, which ELIMINATES watermarks and fixes microscopic scaling.
+ */
+export function printViaRawBTEscPos(bytes: Uint8Array): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    let binary = "";
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+
+    // Chrome Android Intent targeted at RawBT package with raw ESC/POS byte stream
+    const intentUrl = `intent:base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.title=Alayn%20Order;end;`;
+
+    const anchor = document.createElement("a");
+    anchor.href = intentUrl;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+
+    setTimeout(() => {
+      if (anchor.parentNode) {
+        anchor.parentNode.removeChild(anchor);
+      }
+    }, 1500);
+
+    return true;
+  } catch (err) {
+    console.error("RawBT ESC/POS direct stream failed:", err);
+    return false;
+  }
+}
+
+/**
+ * Direct Print via RawBT with HTML payload fallback.
  */
 export function printViaRawBTDirect(htmlContent: string): boolean {
   if (typeof window === "undefined") return false;
@@ -36,7 +72,6 @@ export function printViaRawBTDirect(htmlContent: string): boolean {
     // Chrome Android Intent targeted specifically at RawBT package
     const intentUrl = `intent:data:text/html;base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
 
-    // Anchor click triggers the Android Intent cleanly without popup restrictions
     const anchor = document.createElement("a");
     anchor.href = intentUrl;
     anchor.style.display = "none";

@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Printer, X, CheckCircle, Utensils, Ban, AlertCircle, Loader2, Zap } from "lucide-react";
 import { printThermalHtml, printViaRawBTDirect } from "@/lib/printUtils";
+import { autoPrintKOT } from "@/lib/bluetoothAutoPrinter";
 
 export interface ThermalKOTProps {
   order: {
@@ -293,19 +294,18 @@ export default function ThermalKOT({
       </html>
     `;
 
-    if (printMode === "rawbt") {
-      printViaRawBTDirect(kotHtml);
-      setHasPrinted(true);
-      setIsPrinting(false);
-      // Auto-dismiss modal after 1-click dispatch so screen is immediately ready for next order
-      setTimeout(() => {
-        onClose?.();
-      }, 700);
-    } else {
+    // Dispatch through hardware auto-printer (Native Bluetooth -> Direct ESC/POS stream -> System fallback)
+    const result = await autoPrintKOT(actualOrder, isCancellation, paperWidth);
+    if (!result.success) {
+      // System print fallback if hardware Bluetooth or stream is unavailable
       await printThermalHtml(kotHtml);
-      setHasPrinted(true);
-      setIsPrinting(false);
     }
+
+    setHasPrinted(true);
+    setIsPrinting(false);
+    setTimeout(() => {
+      onClose?.();
+    }, 600);
   };
 
   useEffect(() => {

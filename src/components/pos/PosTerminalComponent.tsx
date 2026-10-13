@@ -1703,6 +1703,7 @@ export default function PosTerminalComponent() {
           >
             <ThermalKOT
               order={printingKOTOrder}
+              autoPrint={true}
               isCancellation={printingKOTOrder.status === "CANCELLED"}
               onClose={() => setPrintingKOTOrder(null)}
             />
