@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Printer, X, CheckCircle, Utensils, Ban, AlertCircle } from "lucide-react";
+import { Printer, X, CheckCircle, Utensils, Ban, AlertCircle, Loader2 } from "lucide-react";
+import { printThermalHtml } from "@/lib/printUtils";
 
 export interface ThermalKOTProps {
   order: {
@@ -54,6 +55,7 @@ export default function ThermalKOT({
   const printContentRef = useRef<HTMLDivElement>(null);
   const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">("80mm");
   const [hasPrinted, setHasPrinted] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const actualOrder = (order as any)?.data || order || {};
   const orderNumber =
@@ -113,15 +115,11 @@ export default function ThermalKOT({
 
   const cancelReason = actualOrder.comment || actualOrder.cancelReason;
 
-  const handlePrint = () => {
-    const content = printContentRef.current;
-    if (!content) return;
-
+  const handlePrint = async () => {
+    setIsPrinting(true);
     const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
-    const printWindow = window.open("", "_blank", "width=440,height=700");
-    if (!printWindow) return;
 
-    printWindow.document.write(`
+    const kotHtml = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -278,18 +276,13 @@ export default function ThermalKOT({
           <div class="footer-line">
             ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : `--- END OF KOT #${maxKotNo} ---`}
           </div>
-
-          <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 300);
-          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    await printThermalHtml(kotHtml);
     setHasPrinted(true);
+    setIsPrinting(false);
   };
 
   useEffect(() => {
@@ -563,14 +556,25 @@ export default function ThermalKOT({
           )}
           <button
             onClick={handlePrint}
-            className={`px-4.5 py-2 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95 ${
+            disabled={isPrinting}
+            className={`px-4.5 py-2 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-75 ${
               isCancellation
                 ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
                 : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20"
             }`}
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>{isCancellation ? "Print Void KOT" : "Print KOT Ticket"}</span>
+            {isPrinting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Printer className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {isPrinting
+                ? "Opening Print..."
+                : isCancellation
+                ? "Print Void KOT"
+                : "Print KOT Ticket"}
+            </span>
           </button>
         </div>
       </div>

@@ -2,7 +2,8 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Printer, X, CheckCircle, Download, Share2, Utensils, CreditCard, Smartphone } from "lucide-react";
+import { Printer, X, CheckCircle, Download, Share2, Utensils, CreditCard, Smartphone, Loader2 } from "lucide-react";
+import { printThermalHtml } from "@/lib/printUtils";
 
 export interface ThermalReceiptProps {
   order: {
@@ -72,6 +73,7 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rollStarted, setRollStarted] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Trigger roll animation after first paint
   useEffect(() => {
@@ -208,20 +210,25 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
   // Dynamic UPI Payment QR String
   const upiPaymentUrl = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(outletName)}&am=${grandTotalRupees.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Bill ${billNo}`)}`;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const content = receiptRef.current;
     if (!content) return;
 
-    const printWindow = window.open("", "_blank", "width=400,height=700");
-    if (!printWindow) return;
+    setIsPrinting(true);
 
-    printWindow.document.write(`
+    const styles = Array.from(
+      document.querySelectorAll("style, link[rel='stylesheet']")
+    )
+      .map((el) => el.outerHTML)
+      .join("\n");
+
+    const receiptHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>${invoiceTitle} — ${billNo} | ${outletName}</title>
           <meta charset="UTF-8" />
-          <script src="https://cdn.tailwindcss.com"></script>
+          ${styles}
           <style>
             @page { size: 80mm auto; margin: 0mm; }
             @media print {
@@ -252,18 +259,13 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
         </head>
         <body class="bg-white">
           ${content.innerHTML}
-          <script>
-            // Wait for Tailwind to process
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 800);
-          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    await printThermalHtml(receiptHtml);
     setShowSuccess(true);
+    setIsPrinting(false);
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
@@ -571,10 +573,15 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
           )}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+            disabled={isPrinting}
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition cursor-pointer disabled:opacity-75"
           >
-            <Printer className="w-3.5 h-3.5 text-emerald-400" />
-            Print Receipt
+            {isPrinting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+            ) : (
+              <Printer className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            {isPrinting ? "Opening Print..." : "Print Receipt"}
           </button>
         </div>
       </div>
