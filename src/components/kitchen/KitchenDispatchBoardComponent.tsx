@@ -48,13 +48,19 @@ export default function KitchenDispatchBoardComponent() {
     return () => clearInterval(timer);
   }, []);
 
-  // Pre-load order bell MP3 for zero-latency notification playback
+  // Pre-load audio MP3s for zero-latency notification playback
   const bellAudioRef = useRef<HTMLAudioElement | null>(null);
+  const cancelAudioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     try {
-      const audio = new Audio("/sounds/order-bell.mp3");
-      audio.preload = "auto";
-      bellAudioRef.current = audio;
+      const orderAudio = new Audio("/sounds/order-bell.mp3");
+      orderAudio.preload = "auto";
+      bellAudioRef.current = orderAudio;
+
+      const cancelAudio = new Audio("/sounds/cancel-bell.mp3");
+      cancelAudio.preload = "auto";
+      cancelAudioRef.current = cancelAudio;
     } catch {
       // Audio fallback
     }
@@ -64,28 +70,22 @@ export default function KitchenDispatchBoardComponent() {
   const playKitchenChime = (isCancel = false) => {
     try {
       if (isCancel) {
-        // High urgency 2-tone alarm chime for cancellation
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.45);
+        // Play custom cancel bell MP3
+        if (cancelAudioRef.current) {
+          cancelAudioRef.current.currentTime = 0;
+          cancelAudioRef.current.play().catch((err) => {
+            console.warn("Cancel audio autoplay blocked by browser policy:", err);
+          });
+        } else {
+          const audio = new Audio("/sounds/cancel-bell.mp3");
+          audio.play().catch(() => {});
+        }
       } else {
         // Play custom order bell MP3
         if (bellAudioRef.current) {
           bellAudioRef.current.currentTime = 0;
           bellAudioRef.current.play().catch((err) => {
-            console.warn("Audio autoplay blocked by browser policy:", err);
+            console.warn("Order audio autoplay blocked by browser policy:", err);
           });
         } else {
           const audio = new Audio("/sounds/order-bell.mp3");
@@ -189,14 +189,22 @@ export default function KitchenDispatchBoardComponent() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => playKitchenChime(false)}
-              className="p-2 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-              title="Test Kitchen Chime Sound"
+              className="p-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              title="Test Order Bell Sound"
             >
               <Bell className="w-3.5 h-3.5 text-amber-500" />
-              <span className="hidden md:inline">Test Bell</span>
+              <span className="hidden md:inline">Test Order</span>
+            </button>
+            <button
+              onClick={() => playKitchenChime(true)}
+              className="p-2 border border-red-200 hover:bg-red-50 text-red-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              title="Test Cancellation Sound"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+              <span className="hidden md:inline">Test Cancel</span>
             </button>
             <button
               onClick={() => refetch()}
