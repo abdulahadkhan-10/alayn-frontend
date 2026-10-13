@@ -1,10 +1,64 @@
 /**
- * Safely prints HTML content via a hidden iframe.
+ * Safe and high-performance print utilities for ALAYN POS.
  *
- * Why this is essential for Mobile & Tablet POS (e.g. Samsung Galaxy Tab, iPad):
- * 1. Mobile browsers (Chrome for Android, Samsung Internet, iOS Safari) strictly block window.open() popups.
- * 2. On mobile/tablets, calling window.close() after window.print() prematurely terminates the OS print sheet.
- * 3. An iframe triggers the OS Print Spooler directly over the current page without tab flickering or popup blockers.
+ * Supports two robust modes:
+ * 1. ⚡ 1-Click Direct Print via RawBT (Android Tablet / Samsung Galaxy Tab):
+ *    Directly invokes RawBT package via Android Intent with Base64 HTML payload.
+ *    Bypasses the entire Android System Print Spooler (no "Save as PDF", no printer dropdown, no preview taps).
+ *
+ * 2. 🖨️ Universal System Print via hidden iframe:
+ *    Cross-platform fallback (PC, Mac, iPad) that cleanly avoids popup blockers and premature window.close issues.
+ */
+
+/**
+ * UTF-8 safe Base64 encoder for browser environments.
+ * Handles Unicode, ₹ currency symbol, em-dashes, and special characters cleanly.
+ */
+export function toBase64Utf8(str: string): string {
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+      String.fromCharCode(parseInt(p1, 16))
+    )
+  );
+}
+
+/**
+ * ⚡ 1-Click Fast Direct Print via RawBT on Android tablets.
+ * Bypasses the multi-step Android system print dialog ("Save as PDF", printer selection, paper size).
+ * Directly launches the RawBT driver with the HTML thermal payload.
+ */
+export function printViaRawBTDirect(htmlContent: string): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const base64 = toBase64Utf8(htmlContent);
+
+    // Chrome Android Intent targeted specifically at RawBT package
+    const intentUrl = `intent:data:text/html;base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+
+    // Anchor click triggers the Android Intent cleanly without popup restrictions
+    const anchor = document.createElement("a");
+    anchor.href = intentUrl;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+
+    setTimeout(() => {
+      if (anchor.parentNode) {
+        anchor.parentNode.removeChild(anchor);
+      }
+    }, 1500);
+
+    return true;
+  } catch (err) {
+    console.error("1-Click RawBT direct print failed:", err);
+    return false;
+  }
+}
+
+/**
+ * Safely prints HTML content via a hidden iframe.
+ * Avoids popup blockers and premature window.close race conditions.
  */
 export function printThermalHtml(htmlContent: string): Promise<boolean> {
   return new Promise((resolve) => {
