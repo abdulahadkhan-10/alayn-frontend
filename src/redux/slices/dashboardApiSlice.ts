@@ -7,6 +7,7 @@ export interface KpiResponse {
   laborCosts: { value: string; change: string; isPositive: boolean; prev?: string };
   netMargin: { value: string; change: string; isPositive: boolean; prev?: string };
   avgOrderValue?: { value: string; change: string; isPositive: boolean; prev?: string };
+  orders?: { value: string; change: string; isPositive: boolean; prev?: string }; // settled orders
   // Revenue = settled sales before tax; these are reported separately
   taxCollected?: { value: string };
   serviceCharge?: { value: string };
@@ -55,6 +56,14 @@ export interface ChannelDistributionPoint {
   name: string;
   value: number;
   color: string;
+}
+
+// All-time settled sales per outlet (only outlets that have at least one settled order)
+export interface OutletComparisonRow {
+  outletId: string;
+  outletName: string;
+  totalCompletedOrders: number;
+  totalSalesPaise: number;
 }
 
 export interface TopSellingItemPoint {
@@ -141,6 +150,11 @@ export const dashboardApiSlice = baseApi.injectEndpoints({
       transformResponse: (response: { data: SalesForecastResponse }) => response.data,
       providesTags: ["Dashboard"],
     }),
+    getOutletComparison: builder.query<OutletComparisonRow[], void>({
+      query: () => ({ url: "/analytics/outlet-comparison" }),
+      transformResponse: (response: { data?: OutletComparisonRow[] }) => response.data ?? [],
+      providesTags: ["Dashboard"],
+    }),
     getInventoryForecast: builder.query<InventoryForecastPoint[], { outletId?: string }>({
       query: ({ outletId }) => ({
         url: "/dashboard/inventory-forecast",
@@ -163,4 +177,5 @@ export const {
   useGetTopSellingItemsQuery,
   useGetSalesForecastQuery,
   useGetInventoryForecastQuery,
+  useGetOutletComparisonQuery,
 } = dashboardApiSlice;

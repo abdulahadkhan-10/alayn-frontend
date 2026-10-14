@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Search, Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home } from "lucide-react";
+import { Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
+import { formatRole } from "@/lib/utils";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
@@ -127,19 +128,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           )}
         </div>
 
-        {/* Right: Search, Bell, Profile */}
+        {/* Right: Bell, Profile */}
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <div className="relative hidden sm:block">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              type="search"
-              placeholder="Search operations..."
-              className="block w-full sm:w-48 lg:w-64 rounded-full border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-900 sm:text-sm sm:leading-6 bg-gray-50"
-            />
-          </div>
-
           <NotificationDropdown />
 
           {/* Profile Dropdown */}
@@ -172,8 +162,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <p className="text-[11px] text-gray-400 font-medium truncate" suppressHydrationWarning>
                     {mounted ? (user?.email || "") : ""}
                   </p>
-                  <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-[#D3232A]">
-                    {user?.role || "BUSINESS_OWNER"}
+                  <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[#D3232A]">
+                    {formatRole(user?.role)}
                   </span>
                 </div>
 

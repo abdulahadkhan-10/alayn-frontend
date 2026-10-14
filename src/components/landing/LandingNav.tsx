@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMagnetic, springSnappy } from "./motion/primitives";
 import { readStoredUser, logoutFromLanding, type LandingUser } from "./landingSession";
+import { formatRole } from "@/lib/utils";
 import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -119,8 +120,8 @@ export default function LandingNav() {
                   <div className="px-3 py-2 border-b border-zinc-100 mb-1">
                     <p className="text-xs font-bold text-zinc-900 truncate" suppressHydrationWarning>{user.name}</p>
                     <p className="text-[11px] text-zinc-400 font-medium truncate" suppressHydrationWarning>{user.email}</p>
-                    <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase text-[#D3232A]">
-                      {user.role || "BUSINESS_OWNER"}
+                    <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[#D3232A]">
+                      {formatRole(user.role)}
                     </span>
                   </div>
 

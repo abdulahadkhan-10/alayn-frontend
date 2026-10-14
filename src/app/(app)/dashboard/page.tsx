@@ -27,6 +27,7 @@ import ElectricBorder from "@/components/ui/ElectricBorder";
 import {
   TrendingUp,
   TrendingDown,
+  Minus,
   Clock,
   Users,
   AlertTriangle,
@@ -74,6 +75,12 @@ interface PageProps {
 }
 
 type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
+
+// No change (0%, +0, or no comparison yet) gets a grey badge, not a green "up" one
+function isFlatTrend(trend: string) {
+  const n = parseFloat(trend.replace(/[^0-9.\-]/g, ""));
+  return !Number.isFinite(n) || n === 0;
+}
 
 
 
@@ -409,12 +416,17 @@ export default function MasterDashboardPage(props?: PageProps) {
                   </div>
                   <div className="mt-3 flex items-end justify-between">
                     <span className={`text-2xl font-bold tabular-nums tracking-tight ${kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"}`}>{kpi.value}</span>
-                    {kpi.trend && (
+                    {kpi.trend && (isFlatTrend(kpi.trend) ? (
+                      <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
+                        <Minus className="h-3.5 w-3.5" />
+                        0%
+                      </div>
+                    ) : (
                       <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
                         {kpi.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                         {kpi.trend}
                       </div>
-                    )}
+                    ))}
                   </div>
                   {kpi.note && <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{kpi.note}</p>}
                   <div className="mt-2 text-[11px] text-slate-400 font-normal font-mono border-t border-slate-100 pt-2 flex justify-between items-center">

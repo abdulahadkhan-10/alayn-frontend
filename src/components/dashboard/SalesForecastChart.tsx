@@ -28,8 +28,13 @@ const FORECAST = "#D97706";
 const RANGES: SalesForecastRange[] = ["7d", "30d", "90d"];
 
 const inr = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
-const compactInr = (value: number) =>
-  value >= 100000 ? `₹${(value / 100000).toFixed(1)}L` : `₹${(value / 1000).toFixed(0)}k`;
+// Axis labels: one decimal below ₹10k so nearby ticks (₹1.2k, ₹1.5k) don't both print as "₹1k"
+const compactInr = (value: number) => {
+  if (value >= 100000) return `₹${+(value / 100000).toFixed(1)}L`;
+  if (value >= 10000) return `₹${Math.round(value / 1000)}k`;
+  if (value >= 1000) return `₹${+(value / 1000).toFixed(1)}k`;
+  return `₹${Math.round(value)}`;
+};
 
 // actualLine leaves out today: a half-finished day would look like a sudden drop
 type ChartRow = SalesForecastPoint & { band: [number, number] | null; actualLine: number | null };
@@ -56,7 +61,7 @@ function ForecastTooltip({ active, payload }: { active?: boolean; payload?: { pa
           )}
           {p.low !== null && p.high !== null && (
             <p className="text-slate-400">
-              Likely {inr(p.low)} – {inr(p.high)}
+              Likely {inr(Math.max(0, p.low))} – {inr(p.high)}
             </p>
           )}
         </>
@@ -73,7 +78,8 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
     () =>
       (data?.points ?? []).map((p) => ({
         ...p,
-        band: p.low !== null && p.high !== null ? [p.low, p.high] : null,
+        // Sales can't go below zero, so the likely range is cut off at ₹0
+        band: p.low !== null && p.high !== null ? [Math.max(0, p.low), Math.max(0, p.high)] : null,
         actualLine: p.isToday ? null : p.actual,
       })),
     [data],
@@ -187,6 +193,8 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
                 tickLine={false}
                 tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
                 tickFormatter={compactInr}
+                domain={[0, "auto"]}
+                allowDecimals={false}
               />
               <Tooltip content={<ForecastTooltip />} cursor={{ stroke: "#94A3B8", strokeDasharray: "3 3" }} />
               <ReferenceLine

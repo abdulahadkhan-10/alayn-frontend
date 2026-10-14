@@ -14,3 +14,18 @@ export function getImageUrl(path: string | undefined | null): string {
   return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+
+const ROLE_LABELS: Record<string, string> = {
+  BUSINESS_OWNER: "Owner",
+  SUPER_ADMIN: "Admin",
+  MANAGER: "Manager",
+  STAFF: "Staff",
+  KITCHEN: "Kitchen",
+  SUPPLIER: "Supplier",
+};
+
+// Turns a role code like "BUSINESS_OWNER" into a label people can read ("Owner")
+export function formatRole(role: string | undefined | null): string {
+  if (!role) return "Owner";
+  return ROLE_LABELS[role] ?? role.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
