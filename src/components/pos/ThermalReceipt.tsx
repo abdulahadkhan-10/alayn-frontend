@@ -2,7 +2,9 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Printer, X, CheckCircle, Download, Share2, Utensils, CreditCard, Smartphone } from "lucide-react";
+import { Printer, X, CheckCircle, Download, Share2, Utensils, CreditCard, Smartphone, Loader2, Zap } from "lucide-react";
+import { printThermalHtml, printViaRawBTDirect } from "@/lib/printUtils";
+import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
 
 export interface ThermalReceiptProps {
   order: {
@@ -66,12 +68,36 @@ export interface ThermalReceiptProps {
     };
   };
   onClose?: () => void;
+  autoPrint?: boolean;
 }
 
-export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) {
+export default function ThermalReceipt({ order, onClose, autoPrint = false }: ThermalReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rollStarted, setRollStarted] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printMode, setPrintMode] = useState<"rawbt" | "system">("rawbt");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("alayn_print_mode");
+    if (saved === "system" || saved === "rawbt") {
+      setPrintMode(saved as any);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (autoPrint) {
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint]);
+
+  const changePrintMode = (mode: "rawbt" | "system") => {
+    setPrintMode(mode);
+    localStorage.setItem("alayn_print_mode", mode);
+  };
 
   // Trigger roll animation after first paint
   useEffect(() => {
@@ -208,20 +234,25 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
   // Dynamic UPI Payment QR String
   const upiPaymentUrl = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(outletName)}&am=${grandTotalRupees.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Bill ${billNo}`)}`;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const content = receiptRef.current;
     if (!content) return;
 
-    const printWindow = window.open("", "_blank", "width=400,height=700");
-    if (!printWindow) return;
+    setIsPrinting(true);
 
-    printWindow.document.write(`
+    const styles = Array.from(
+      document.querySelectorAll("style, link[rel='stylesheet']")
+    )
+      .map((el) => el.outerHTML)
+      .join("\n");
+
+    const receiptHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>${invoiceTitle} — ${billNo} | ${outletName}</title>
           <meta charset="UTF-8" />
-          <script src="https://cdn.tailwindcss.com"></script>
+          ${styles}
           <style>
             @page { size: 80mm auto; margin: 0mm; }
             @media print {
@@ -252,19 +283,22 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
         </head>
         <body class="bg-white">
           ${content.innerHTML}
-          <script>
-            // Wait for Tailwind to process
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 800);
-          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    // Dispatch through hardware auto-printer (Native Bluetooth -> Direct ESC/POS stream -> System fallback)
+    const result = await autoPrintReceipt(actualOrder, "80mm");
+    if (!result.success) {
+      // System print fallback if hardware Bluetooth or stream is unavailable
+      await printThermalHtml(receiptHtml);
+    }
+
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    setIsPrinting(false);
+    setTimeout(() => {
+      onClose?.();
+    }, 600);
   };
 
   return (
@@ -293,14 +327,43 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
           </div>
         </div>
 
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* 1-Click vs System Print Switcher */}
+          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
+            <button
+              onClick={() => changePrintMode("rawbt")}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                printMode === "rawbt"
+                  ? "bg-[#1B2A4A] text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+              title="1-Click Direct Print via RawBT (Bypasses system print preview)"
+            >
+              <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
+              <span>1-Click</span>
+            </button>
+            <button
+              onClick={() => changePrintMode("system")}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                printMode === "system"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+              title="Standard Android System Print Dialog"
+            >
+              System
+            </button>
+          </div>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Success Toast ── */}
@@ -571,10 +634,25 @@ export default function ThermalReceipt({ order, onClose }: ThermalReceiptProps) 
           )}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+            disabled={isPrinting}
+            className={`flex items-center gap-1.5 px-4 py-2 text-white text-xs font-semibold rounded-xl transition cursor-pointer disabled:opacity-75 ${
+              printMode === "rawbt"
+                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                : "bg-slate-900 hover:bg-slate-800"
+            }`}
           >
-            <Printer className="w-3.5 h-3.5 text-emerald-400" />
-            Print Receipt
+            {isPrinting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+            ) : printMode === "rawbt" ? (
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            ) : (
+              <Printer className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            {isPrinting
+              ? "Printing..."
+              : printMode === "rawbt"
+              ? "⚡ 1-Click Print Receipt"
+              : "Print Receipt"}
           </button>
         </div>
       </div>

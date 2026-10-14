@@ -1703,6 +1703,7 @@ export default function PosTerminalComponent() {
           >
             <ThermalKOT
               order={printingKOTOrder}
+              autoPrint={true}
               isCancellation={printingKOTOrder.status === "CANCELLED"}
               onClose={() => setPrintingKOTOrder(null)}
             />
@@ -1715,6 +1716,7 @@ export default function PosTerminalComponent() {
             <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">
               <ThermalReceipt
                 order={printingOrder}
+                autoPrint={true}
                 onClose={() => setPrintingOrder(null)}
               />
             </div>

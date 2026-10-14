@@ -1451,6 +1451,7 @@ export default function LiveOrdersPage() {
             <div className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden shadow-[0_32px_80px_-12px_rgba(0,0,0,0.6)] border border-white/10 receipt-modal-animation">
               <ThermalReceipt
                 order={printingOrder}
+                autoPrint={true}
                 onClose={() => setPrintingOrder(null)}
               />
             </div>
@@ -1627,6 +1628,7 @@ export default function LiveOrdersPage() {
           >
             <ThermalKOT
               order={printingKOT.order}
+              autoPrint={true}
               isCancellation={printingKOT.isCancellation}
               onClose={() => setPrintingKOT(null)}
             />
