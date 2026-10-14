@@ -34,10 +34,10 @@ export const metadata: Metadata = {
   // inherited by every page that doesn't set its own and points them all at
   // the homepage. Each indexable page declares its own.
   title: {
-    default: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
+    default: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
     template: "%s | Alayn AI",
   },
-  description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
+  description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
   keywords: [
     "Alayn",
     "Alayn AI",
@@ -56,10 +56,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   openGraph: {
-    title: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
-    description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
+    title: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
+    description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
     siteName: "Alayn AI",
-    locale: "en_IN",
+    locale: "en_US",
     type: "website",
     images: [
       {
@@ -72,8 +72,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alayn AI: Restaurant POS, Inventory & Staff Software for India",
-    description: "Restaurant POS, kitchen display, inventory, waste tracking and staff scheduling in one platform. Built for Indian restaurants, cafés and cloud kitchens.",
+    title: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
+    description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
     images: ["/alaynlogo.png"],
   },
   icons: {
