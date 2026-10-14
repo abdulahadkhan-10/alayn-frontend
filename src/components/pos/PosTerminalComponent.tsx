@@ -36,7 +36,13 @@ import {
   Printer,
   User,
   Leaf,
+  Bluetooth,
 } from "lucide-react";
+import {
+  pairWebBluetoothPrinter,
+  isWebBluetoothSupported,
+  getConnectedPrinterName,
+} from "@/lib/bluetoothAutoPrinter";
 import ThermalReceipt from "./ThermalReceipt";
 import ThermalKOT from "./ThermalKOT";
 import DashboardLayout from "../layout/DashboardLayout";
@@ -147,6 +153,19 @@ export default function PosTerminalComponent() {
     }
     return true;
   });
+  const [btPrinterName, setBtPrinterName] = useState<string | null>(() => getConnectedPrinterName());
+  const [isPairingBt, setIsPairingBt] = useState(false);
+
+  const handlePairBt = async () => {
+    setIsPairingBt(true);
+    const res = await pairWebBluetoothPrinter();
+    setIsPairingBt(false);
+    if (res.success) {
+      setBtPrinterName(res.name || "Bluetooth Printer");
+    } else if (res.error && res.error !== "Cancelled by user") {
+      alert(res.error);
+    }
+  };
 
   // Mobile & Modal UI States
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
@@ -460,6 +479,22 @@ export default function PosTerminalComponent() {
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>KOT Print: {autoPrintKOT ? "AUTO ON" : "OFF"}</span>
+                </button>
+              )}
+              {isWebBluetoothSupported() && (
+                <button
+                  type="button"
+                  onClick={handlePairBt}
+                  disabled={isPairingBt}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    btPrinterName
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs hover:bg-emerald-100"
+                      : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                  }`}
+                  title={btPrinterName ? `Connected to: ${btPrinterName}` : "Click to pair with Bluetooth Thermal Printer (Zero apps needed)"}
+                >
+                  <Bluetooth className="w-3.5 h-3.5" />
+                  <span>{isPairingBt ? "Pairing..." : btPrinterName ? btPrinterName.slice(0, 10) : "Pair BT Printer"}</span>
                 </button>
               )}
             </div>
