@@ -142,9 +142,10 @@ export default function PosTerminalComponent() {
   const [printingKOTOrder, setPrintingKOTOrder] = useState<any>(null);
   const [autoPrintKOT, setAutoPrintKOT] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("alayn_auto_print_kot") === "true";
+      const saved = localStorage.getItem("alayn_auto_print_kot");
+      return saved === null ? true : saved === "true";
     }
-    return false;
+    return true;
   });
 
   // Mobile & Modal UI States
@@ -335,6 +336,8 @@ export default function PosTerminalComponent() {
       orderSource: finalOrderSource,
       tableNo: finalOrderSource === "TABLE" ? selectedTableNo : undefined,
       outletId: currentOutletId || undefined,
+      customerName: customerName.trim() || undefined,
+      customerPhone: customerPhone.trim() || undefined,
       items: cart.map((ci) => ({
         menuItemId: ci.menuItem.id,
         quantity: ci.quantity,
@@ -347,8 +350,13 @@ export default function PosTerminalComponent() {
 
     try {
       const result = await createOrder(payload).unwrap();
-      setCompletedOrder(result);
+      setCompletedOrder({ ...result, _flow: "KITCHEN" });
+      if (autoPrintKOT || kitchenCaps.supportsKotPrint) {
+        setPrintingKOTOrder(result);
+      }
       setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
       setIsCheckoutOpen(false);
       setIsMobileCartOpen(false);
     } catch (err: any) {
@@ -404,7 +412,7 @@ export default function PosTerminalComponent() {
 
     try {
       const result = await createOrder(payload).unwrap();
-      setCompletedOrder(result);
+      setCompletedOrder({ ...result, _flow: "CHECKOUT" });
       if (kitchenCaps.supportsKotPrint && (autoPrintKOT || kitchenCaps.isKotOnly)) {
         setPrintingKOTOrder(result);
       }
@@ -423,7 +431,7 @@ export default function PosTerminalComponent() {
     <DashboardLayout>
       <div className="h-[calc(100vh-4.5rem)] flex flex-col md:flex-row overflow-hidden bg-slate-100 text-[#1B2A4A] relative">
 
-        {/* ── LEFT CONTAINER: Menu Catalog & Controls ───────────────────────── */}
+        {/* -- LEFT CONTAINER: Menu Catalog & Controls -- */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden p-3 lg:p-4 gap-3">
 
           {/* Top Title Bar Above Controls */}
@@ -433,6 +441,27 @@ export default function PosTerminalComponent() {
                 <CreditCard className="w-4 h-4 text-rose-400" />
                 <span>{isStaffRole ? "Staff Table Order POS" : "Counter Direct POS"}</span>
               </div>
+              {kitchenCaps.supportsKotPrint && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !autoPrintKOT;
+                    setAutoPrintKOT(next);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("alayn_auto_print_kot", String(next));
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    autoPrintKOT
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs hover:bg-emerald-100"
+                      : "bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200"
+                  }`}
+                  title={autoPrintKOT ? "KOT will automatically print to connected printer on Send to Kitchen" : "Click to enable KOT auto-print"}
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>KOT Print: {autoPrintKOT ? "AUTO ON" : "OFF"}</span>
+                </button>
+              )}
             </div>
 
             {/* Table Selection Bar for All Roles (Staff, Manager, Business Owner) */}
@@ -1013,7 +1042,7 @@ export default function PosTerminalComponent() {
           )}
         </div>
 
-        {/* ── RIGHT SIDEBAR: POS Order Ticket / Cart (Visible on Tablet and Desktop) ── */}
+        {/* -- RIGHT SIDEBAR: POS Order Ticket / Cart (Visible on Tablet and Desktop) -- */}
         <div className="hidden md:flex w-[35%] min-w-[300px] max-w-[420px] shrink-0 h-full flex-col bg-white border-l border-black/5 shadow-[-16px_0_48px_rgba(0,0,0,0.06)] z-20 overflow-hidden relative">
 
           {/* Cart Ticket Header */}
@@ -1264,7 +1293,7 @@ export default function PosTerminalComponent() {
           </div>
         </div>
 
-        {/* ── MOBILE STICKY BOTTOM BAR (< md screen) ────────────────── */}
+        {/* -- MOBILE STICKY BOTTOM BAR (< md screen) -- */}
         {cart.length > 0 && (
           <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-[#1B2A4A] text-white flex items-center justify-between shadow-2xl z-40 border-t border-slate-700">
             <div 
@@ -1295,7 +1324,7 @@ export default function PosTerminalComponent() {
           </div>
         )}
 
-        {/* ── MOBILE CART DRAWER OVERLAY (< md screen) ────────────────────────── */}
+        {/* -- MOBILE CART DRAWER OVERLAY (< md screen) -- */}
         {isMobileCartOpen && (
           <div className="md:hidden fixed inset-0 z-50 flex flex-col bg-gray-900/60 backdrop-blur-sm">
             <div className="mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
@@ -1404,7 +1433,7 @@ export default function PosTerminalComponent() {
           </div>
         )}
 
-        {/* ── SELECT OUTLET REQUIRED MODAL ────────────────────────────────────── */}
+        {/* -- SELECT OUTLET REQUIRED MODAL -- */}
         <TModal open={isOutletSelectModalOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
           {isOutletSelectModalOpen && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4">
@@ -1480,7 +1509,7 @@ export default function PosTerminalComponent() {
           )}
         </TModal>
 
-        {/* ── CHECKOUT PAYMENT MODAL ─────────────────────────────────────────── */}
+        {/* -- CHECKOUT PAYMENT MODAL -- */}
         <TModal open={isCheckoutOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
           {isCheckoutOpen && (
             <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-5">
@@ -1595,10 +1624,11 @@ export default function PosTerminalComponent() {
           )}
         </TModal>
 
-        {/* ── ORDER COMPLETE CONFIRMATION MODAL ──────────────────────────────── */}
+        {/* -- ORDER COMPLETE CONFIRMATION MODAL -- */}
         <TModal open={!!completedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
         {completedOrder && (() => {
           const orderObj = completedOrder?.data || completedOrder;
+          const isKitchenDispatch = orderObj?._flow === "KITCHEN";
           const displayOrderId =
             orderObj?.orderNo ||
             orderObj?.orderNumber ||
@@ -1612,10 +1642,10 @@ export default function PosTerminalComponent() {
 
                 <div>
                   <h3 className="text-lg font-black text-[#1B2A4A]">
-                    Order Created Successfully!
+                    {isKitchenDispatch ? "Sent to Kitchen Successfully!" : "Order Created Successfully!"}
                   </h3>
                   <p className="text-xs text-gray-500 font-medium mt-1">
-                    Bill / Ticket ID:{" "}
+                    {isKitchenDispatch ? "Kitchen Ticket ID: " : "Bill / Ticket ID: "}
                     <span className="font-mono text-[#D3232A] font-extrabold">
                       {displayOrderId}
                     </span>
@@ -1624,9 +1654,11 @@ export default function PosTerminalComponent() {
 
                 <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl flex items-center justify-between text-left">
                   <div>
-                    <span className="block font-black">Order Recorded</span>
+                    <span className="block font-black">{isKitchenDispatch ? "Kitchen Ticket Fired" : "Order Recorded"}</span>
                     <span className="text-[11px] font-medium text-emerald-700">
-                      {kitchenCaps.isKotOnly
+                      {isKitchenDispatch
+                        ? "Dispatched to kitchen for immediate preparation"
+                        : kitchenCaps.isKotOnly
                         ? "KOT ready for thermal printer"
                         : kitchenCaps.isKdsOnly
                         ? "Dispatched to Kitchen Display System (Paperless)"
@@ -1634,34 +1666,30 @@ export default function PosTerminalComponent() {
                     </span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-950 font-black text-[10px] uppercase">
-                    {kitchenCaps.mode}
+                    {isKitchenDispatch ? "KITCHEN" : kitchenCaps.mode}
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  {/* Primary: Print Kitchen KOT Slip - only when outlet mode supports KOT */}
-                  {kitchenCaps.supportsKotPrint && (
+                  {/* Primary: Print Kitchen KOT Slip */}
+                  <button
+                    onClick={() => setPrintingKOTOrder(orderObj)}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Kitchen Order Ticket (KOT)
+                  </button>
+
+                  {/* Print Customer Bill Receipt: ONLY on Checkout / Payment completion (never on Send to Kitchen) */}
+                  {!isKitchenDispatch && (
                     <button
-                      onClick={() => setPrintingKOTOrder(orderObj)}
-                      className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                      onClick={() => setPrintingOrder(orderObj)}
+                      className="w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer bg-gray-100 hover:bg-gray-200 text-zinc-800"
                     >
-                      <Printer className="w-4 h-4" />
-                      Print Kitchen Order Ticket (KOT)
+                      <Receipt className="w-4 h-4 text-inherit" />
+                      Print Customer Bill Receipt
                     </button>
                   )}
-
-                  {/* Secondary/Primary: Print Customer Bill Receipt */}
-                  <button
-                    onClick={() => setPrintingOrder(orderObj)}
-                    className={`w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
-                      kitchenCaps.isKdsOnly
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                        : "bg-gray-100 hover:bg-gray-200 text-zinc-800"
-                    }`}
-                  >
-                    <Receipt className="w-4 h-4 text-inherit" />
-                    Print Customer Bill Receipt
-                  </button>
 
                   {/* Auto-print toggle - only when outlet mode supports KOT */}
                   {kitchenCaps.supportsKotPrint && (
@@ -1693,7 +1721,7 @@ export default function PosTerminalComponent() {
         })()}
         </TModal>
 
-        {/* ── Printable Thermal KOT Slip Modal ── */}
+        {/* -- Printable Thermal KOT Slip Modal -- */}
         {printingKOTOrder && (
           <div
             className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -1710,7 +1738,7 @@ export default function PosTerminalComponent() {
           </div>
         )}
 
-        {/* ── Printable Thermal Receipt Modal ── */}
+        {/* -- Printable Thermal Receipt Modal -- */}
         {printingOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">

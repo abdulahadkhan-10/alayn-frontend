@@ -54,7 +54,13 @@ export default function ThermalKOT({
   autoPrint = false,
 }: ThermalKOTProps) {
   const printContentRef = useRef<HTMLDivElement>(null);
-  const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">("80mm");
+  const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("alayn_thermal_paper_width");
+      if (saved === "80mm" || saved === "58mm") return saved;
+    }
+    return "80mm";
+  });
   const [hasPrinted, setHasPrinted] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [printMode, setPrintMode] = useState<"rawbt" | "system">("rawbt");
@@ -69,6 +75,13 @@ export default function ThermalKOT({
   const changePrintMode = (mode: "rawbt" | "system") => {
     setPrintMode(mode);
     localStorage.setItem("alayn_print_mode", mode);
+  };
+
+  const changePaperWidth = (width: "80mm" | "58mm") => {
+    setPaperWidth(width);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("alayn_thermal_paper_width", width);
+    }
   };
 
   const actualOrder = (order as any)?.data || order || {};
@@ -319,7 +332,7 @@ export default function ThermalKOT({
 
   return (
     <div className="flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-[500px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-      {/* ── Sleek Modal Header ── */}
+      {/* -- Sleek Modal Header -- */}
       <div className="px-5 py-3.5 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div
@@ -383,7 +396,7 @@ export default function ThermalKOT({
           {/* Paper Width Switcher */}
           <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
             <button
-              onClick={() => setPaperWidth("80mm")}
+              onClick={() => changePaperWidth("80mm")}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 paperWidth === "80mm"
                   ? "bg-white text-slate-900 shadow-xs"
@@ -393,7 +406,7 @@ export default function ThermalKOT({
               80mm
             </button>
             <button
-              onClick={() => setPaperWidth("58mm")}
+              onClick={() => changePaperWidth("58mm")}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 paperWidth === "58mm"
                   ? "bg-white text-slate-900 shadow-xs"
@@ -416,7 +429,7 @@ export default function ThermalKOT({
         </div>
       </div>
 
-      {/* ── Preview Body ── */}
+      {/* -- Preview Body -- */}
       <div className="p-5 bg-slate-50/70 overflow-y-auto max-h-[75vh]">
         <div
           ref={printContentRef}
@@ -569,7 +582,7 @@ export default function ThermalKOT({
         </div>
       </div>
 
-      {/* ── Modal Footer ── */}
+      {/* -- Modal Footer -- */}
       <div className="px-5 py-3.5 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <span className="relative flex h-2 w-2">

@@ -187,6 +187,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
         <meta name="application-name" content="Alayn AI" />

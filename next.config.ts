@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 // Origins the browser talks to, taken from the same env vars the app uses so
 // the policy follows whatever API host a build points at.
@@ -37,6 +38,7 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
   poweredByHeader: false,
   images: {
     remotePatterns: [

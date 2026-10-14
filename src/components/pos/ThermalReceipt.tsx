@@ -76,6 +76,13 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const [showSuccess, setShowSuccess] = useState(false);
   const [rollStarted, setRollStarted] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [paperWidth, setPaperWidth] = useState<"80mm" | "58mm">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("alayn_thermal_paper_width");
+      if (saved === "80mm" || saved === "58mm") return saved;
+    }
+    return "80mm";
+  });
   const [printMode, setPrintMode] = useState<"rawbt" | "system">("rawbt");
 
   useEffect(() => {
@@ -84,6 +91,13 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       setPrintMode(saved as any);
     }
   }, []);
+
+  const changePaperWidth = (width: "80mm" | "58mm") => {
+    setPaperWidth(width);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("alayn_thermal_paper_width", width);
+    }
+  };
 
   useEffect(() => {
     if (autoPrint) {
@@ -288,7 +302,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     `;
 
     // Dispatch through hardware auto-printer (Native Bluetooth -> Direct ESC/POS stream -> System fallback)
-    const result = await autoPrintReceipt(actualOrder, "80mm");
+    const result = await autoPrintReceipt(actualOrder, paperWidth);
     if (!result.success) {
       // System print fallback if hardware Bluetooth or stream is unavailable
       await printThermalHtml(receiptHtml);
@@ -304,7 +318,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   return (
     <div className="flex flex-col bg-white rounded-2xl overflow-hidden" style={{ maxHeight: "90vh" }}>
 
-      {/* ── Clean Header ── */}
+      {/* -- Clean Header -- */}
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
@@ -355,6 +369,30 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             </button>
           </div>
 
+          {/* Paper Width Switcher */}
+          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
+            <button
+              onClick={() => changePaperWidth("80mm")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                paperWidth === "80mm"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              80mm
+            </button>
+            <button
+              onClick={() => changePaperWidth("58mm")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                paperWidth === "58mm"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              58mm
+            </button>
+          </div>
+
           {onClose && (
             <button
               onClick={onClose}
@@ -366,7 +404,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         </div>
       </div>
 
-      {/* ── Success Toast ── */}
+      {/* -- Success Toast -- */}
       {showSuccess && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
@@ -374,7 +412,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         </div>
       )}
 
-      {/* ── Thermal Receipt Paper Preview ── */}
+      {/* -- Thermal Receipt Paper Preview -- */}
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-100 to-gray-200 px-5 pb-5 pt-0 flex justify-center">
 
         {/* Paper with roll-out animation */}
@@ -420,7 +458,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               className="bg-white text-black w-[296px] px-5 pb-6 select-text"
               style={{ fontFamily: "'Courier New', Courier, monospace" }}
             >
-            {/* ── STORE HEADER ── */}
+            {/* -- STORE HEADER -- */}
             <div className="text-center pt-4 pb-2 space-y-0.5">
               <span className="text-[10px] font-black tracking-wider uppercase border border-black px-2 py-0.5 inline-block mb-1">
                 {invoiceTitle}
@@ -441,7 +479,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
             <div className="border-t border-dashed border-black my-2" />
 
-            {/* ── ORDER META ── */}
+            {/* -- ORDER META -- */}
             <div className="text-[10.5px] space-y-1 mb-2 mt-2">
               <div className="flex justify-between">
                 <span>Date:</span>
@@ -471,7 +509,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
             <div className="border-t border-dashed border-black my-2" />
 
-            {/* ── ITEMS HEADER ── */}
+            {/* -- ITEMS HEADER -- */}
             <div className="flex justify-between text-[10px] font-black uppercase tracking-wider border-b border-black pb-1 mb-2 mt-2">
               <span className="flex-1">Item</span>
               <span className="w-8 text-center">Qty</span>
@@ -479,7 +517,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               <span className="w-16 text-right">Amount</span>
             </div>
 
-            {/* ── ITEMS LIST ── */}
+            {/* -- ITEMS LIST -- */}
             <div className="space-y-1.5 mb-2">
               {itemsList.map((item: any, idx: number) => {
                 const name = item.menuItem?.name || item.menuItemName || "Menu Item";
@@ -513,7 +551,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
             <div className="border-t border-dashed border-black my-2" />
 
-            {/* ── TOTALS ── */}
+            {/* -- TOTALS -- */}
             <div className="space-y-1 text-[11px] mt-2">
               <div className="flex justify-between font-bold">
                 <span>Sub Total ({totalQty} items)</span>
@@ -557,7 +595,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
             <div className="border-t-2 border-black my-2" />
 
-            {/* ── GRAND TOTAL ── */}
+            {/* -- GRAND TOTAL -- */}
             <div className="flex justify-between items-center text-[16px] font-black py-1">
               <span>GRAND TOTAL</span>
               <span>₹{grandTotalRupees.toFixed(2)}</span>
@@ -565,7 +603,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
             <div className="border-t border-dashed border-black my-2" />
 
-            {/* ── PAYMENT STATUS ── */}
+            {/* -- PAYMENT STATUS -- */}
             <div className="text-center py-2">
               {isPaid ? (
                 <div className="inline-block border-2 border-black px-4 py-1 text-[12px] font-black uppercase tracking-widest bg-black text-white">
@@ -578,12 +616,12 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               )}
             </div>
 
-            {/* ── FOOTER MESSAGE ── */}
+            {/* -- FOOTER MESSAGE -- */}
             <div className="text-center text-[11px] my-3 whitespace-pre-line leading-relaxed border-t border-dashed border-black pt-3 font-bold">
               {footerMessage}
             </div>
 
-            {/* ── UPI QR CODE ── */}
+            {/* -- UPI QR CODE -- */}
             <div className="flex flex-col items-center mt-2 pt-2 border-t border-dashed border-black">
               <div className="p-1 border border-black rounded-sm bg-white inline-block">
                 <QRCodeSVG value={upiPaymentUrl} size={88} level="M" />
@@ -594,7 +632,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               <p className="text-[9px] font-medium mt-0.5">{upiVpa}</p>
             </div>
 
-            {/* ── BOTTOM SPACING ── */}
+            {/* -- BOTTOM SPACING -- */}
             <div className="mt-4 text-center text-[9px] tracking-widest font-bold">
               — ALAYN POS —
             </div>
@@ -617,7 +655,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         </div>
       </div>
 
-      {/* ── Clean Footer Action Bar ── */}
+      {/* -- Clean Footer Action Bar -- */}
       <div className="shrink-0 bg-slate-50 border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
           <Smartphone className="w-3.5 h-3.5" />
