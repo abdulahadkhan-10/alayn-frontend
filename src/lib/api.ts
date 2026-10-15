@@ -368,36 +368,89 @@ export interface CustomerMenuCategory {
   menuItems: CustomerMenuItem[];
 }
 
+export interface TableMenuResponse {
+  ok: boolean;
+  businessName?: string;
+  outletName?: string;
+  outletId?: string;
+  tableNumber?: number;
+  tableOrderMode?: 'WAITER_SERVICE' | 'ORDER_AND_PAY';
+  allowPayAtCounter?: boolean;
+  upiId?: string | null;
+  currency?: string;
+  taxRates?: {
+    cgstRate: number;
+    sgstRate: number;
+    serviceChargeRate: number;
+    gstRegistrationType: 'REGULAR' | 'COMPOSITION' | 'UNREGISTERED';
+  };
+  categories?: CustomerMenuCategory[];
+  error?: string;
+}
+
+export interface QROrderItemInput {
+  menuItemId: string;
+  quantity: number;
+  notes?: string;
+}
+
+export interface CreateQROrderPayload {
+  tableToken: string;
+  items: QROrderItemInput[];
+  customerName?: string;
+  customerPhone?: string;
+  paymentMethod?: 'UPI' | 'CARD' | 'CASH';
+  paymentStatus?: 'PENDING' | 'CONFIRMED' | 'FAILED';
+}
+
 export async function fetchTableMenu(
   token: string
-): Promise<{ ok: boolean; businessName?: string; categories?: CustomerMenuCategory[]; error?: string }> {
+): Promise<TableMenuResponse> {
   const result = await apiRequest<any>(`/orders/tables/${token}/menu`);
   
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
   
-  if (result.data && Array.isArray(result.data)) {
-    return { ok: true, categories: result.data };
-  }
-  
+  const data = result.data;
   return { 
     ok: true, 
-    businessName: result.data?.businessName, 
-    categories: result.data?.categories || []
+    businessName: data?.businessName, 
+    outletName: data?.outletName,
+    outletId: data?.outletId,
+    tableNumber: data?.tableNumber,
+    tableOrderMode: data?.tableOrderMode || 'WAITER_SERVICE',
+    allowPayAtCounter: data?.allowPayAtCounter ?? true,
+    upiId: data?.upiId,
+    currency: data?.currency || 'INR',
+    taxRates: data?.taxRates || {
+      cgstRate: 2.5,
+      sgstRate: 2.5,
+      serviceChargeRate: 0,
+      gstRegistrationType: 'REGULAR',
+    },
+    categories: Array.isArray(data) ? data : data?.categories || []
   };
 }
 
+export async function fetchActiveTableOrder(
+  token: string
+): Promise<{ ok: boolean; order?: any; error?: string }> {
+  const result = await apiRequest<any>(`/orders/tables/${token}/active`);
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+  return { ok: true, order: result.data };
+}
+
 export async function createQROrder(
-  tableToken: string,
-  items: Array<{ menuItemId: string; quantity: number }>
-): Promise<{ ok: boolean; order?: unknown; error?: string }> {
+  payload: CreateQROrderPayload | { tableToken: string; items: Array<{ menuItemId: string; quantity: number }> }
+): Promise<{ ok: boolean; order?: any; error?: string }> {
   const result = await apiRequest<{ id: string }>("/orders", {
     method: "POST",
     body: {
       source: "QR",
-      tableToken,
-      items,
+      ...payload,
     },
   });
   if (result.ok) {

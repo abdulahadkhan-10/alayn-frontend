@@ -16,6 +16,7 @@ import {
   useUpdateLocationMutation,
   useResolveMapLinkMutation,
   useUpdateKitchenModeMutation,
+  useUpdateTableOrderModeMutation,
   useUpdateAttendanceRulesMutation,
 } from "@/redux/slices/outletApiSlice";
 import {
@@ -40,6 +41,9 @@ import {
   Phone,
   QrCode,
   MapPin,
+  Smartphone,
+  CreditCard,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -80,6 +84,11 @@ export default function SettingsPage() {
   // Kitchen Operating Mode State
   const [kitchenModeInput, setKitchenModeInput] = useState<"KOT" | "KDS" | "HYBRID">("HYBRID");
   const [updateKitchenMode, { isLoading: isUpdatingKitchenMode }] = useUpdateKitchenModeMutation();
+
+  // Dining & Table Ordering Mode State
+  const [tableOrderModeInput, setTableOrderModeInput] = useState<"WAITER_SERVICE" | "ORDER_AND_PAY">("WAITER_SERVICE");
+  const [allowPayAtCounterInput, setAllowPayAtCounterInput] = useState<boolean>(true);
+  const [updateTableOrderMode, { isLoading: isUpdatingTableOrderMode }] = useUpdateTableOrderModeMutation();
 
   // Geofence State
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -163,6 +172,8 @@ export default function SettingsPage() {
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
       setUpiIdInput(currentOutlet.upiId || "");
       setKitchenModeInput((currentOutlet as any).kitchenMode || "HYBRID");
+      setTableOrderModeInput((currentOutlet as any).tableOrderMode || "WAITER_SERVICE");
+      setAllowPayAtCounterInput((currentOutlet as any).allowPayAtCounter ?? true);
       setEarlyBufferMins(currentOutlet.earlyBufferMinutes ?? 30);
       setLateGraceMins(currentOutlet.lateGraceMinutes ?? 30);
       if (currentOutlet.latitude && currentOutlet.longitude) {
@@ -262,6 +273,28 @@ export default function SettingsPage() {
       setFeedbackMsg(`Kitchen Operating Mode updated to ${modeLabel}!`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update kitchen operating mode.");
+    }
+  };
+
+  const handleSaveTableOrderMode = async (mode: "WAITER_SERVICE" | "ORDER_AND_PAY", allowCounterPay?: boolean) => {
+    setTableOrderModeInput(mode);
+    const counterPay = allowCounterPay !== undefined ? allowCounterPay : allowPayAtCounterInput;
+    if (allowCounterPay !== undefined) {
+      setAllowPayAtCounterInput(allowCounterPay);
+    }
+    const targetOutletId = activeBranch?.id || "all";
+    try {
+      await updateTableOrderMode({
+        outletId: targetOutletId,
+        tableOrderMode: mode,
+        allowPayAtCounter: counterPay,
+      }).unwrap();
+      const modeLabel = mode === "ORDER_AND_PAY"
+        ? "Direct Order & Pay Mode (QR Self-Checkout)"
+        : "Waiter Service Mode (Staff Orders & Digital Menu)";
+      setFeedbackMsg(`Dining & Table Ordering Mode updated to ${modeLabel}!`);
+    } catch (err: any) {
+      setFeedbackMsg(err?.data?.message || "Failed to update dining order mode.");
     }
   };
 
@@ -549,6 +582,120 @@ export default function SettingsPage() {
         ) : (
           /* General Store Preferences View */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Dining & Table Ordering Operational Mode Card */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-[#D3232A]" />
+                    Dining & Table Ordering Mode (Waiter Service vs. Direct Order & Pay)
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Control whether customers can order and pay directly by scanning table QR codes, or if orders are handled exclusively by your waitstaff for{" "}
+                    <span className="font-bold text-gray-800">
+                      {activeBranch?.id === "all" ? "All Outlets" : (currentOutlet?.name || activeBranch?.name || "selected branch")}
+                    </span>.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] font-bold text-gray-500">Active Mode:</span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${
+                    tableOrderModeInput === "ORDER_AND_PAY"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-blue-50 text-blue-800 border-blue-200"
+                  }`}>
+                    {tableOrderModeInput === "ORDER_AND_PAY" ? "Direct Order & Pay (QR)" : "Waiter Service (Staff Handled)"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                {/* Mode 1: Waiter Service */}
+                <div
+                  onClick={() => handleSaveTableOrderMode("WAITER_SERVICE")}
+                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    tableOrderModeInput === "WAITER_SERVICE"
+                      ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-sm ring-1 ring-[#1B2A4A]"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "WAITER_SERVICE" ? "bg-[#1B2A4A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                        <UtensilsCrossed className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                        Staff-Assisted
+                      </span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-[#1B2A4A]">Waiter Service (Traditional Dining)</h4>
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                      Floor staff & waiters take orders at the table using POS or handheld tablets. When guests scan the table QR sticker, it displays a sleek <strong>View-Only digital menu</strong>. Self-checkout is disabled.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Fine Dining & Full-Service Restaurants</span>
+                    {tableOrderModeInput === "WAITER_SERVICE" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
+                  </div>
+                </div>
+
+                {/* Mode 2: Direct Order & Pay */}
+                <div
+                  onClick={() => handleSaveTableOrderMode("ORDER_AND_PAY")}
+                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                    tableOrderModeInput === "ORDER_AND_PAY"
+                      ? "border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600"
+                      : "border-gray-200 hover:border-gray-300 bg-white"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "ORDER_AND_PAY" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Zero Waiter / Fast Casual
+                      </span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-zinc-900">Direct Order & Pay (QR Self-Checkout)</h4>
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                      Guests scan the table QR code, browse items, add to cart, and <strong>pay directly on their phone (UPI / Online)</strong> without waiting for a server. Orders route immediately to the kitchen KOT/KDS.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400">Cafes, Breweries & Quick Service</span>
+                    {tableOrderModeInput === "ORDER_AND_PAY" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub-option: Allow Pay at Counter when in ORDER_AND_PAY mode */}
+              {tableOrderModeInput === "ORDER_AND_PAY" && (
+                <div className="mt-3 p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <CreditCard className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-900">Allow "Pay at Counter" option</p>
+                      <p className="text-[11px] text-emerald-700">
+                        Customers can place their QR order to the kitchen immediately and pay cash or card at the cashier counter later.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveTableOrderMode("ORDER_AND_PAY", !allowPayAtCounterInput)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
+                      allowPayAtCounterInput
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "bg-white text-gray-600 border border-gray-300"
+                    }`}
+                  >
+                    {allowPayAtCounterInput ? "Enabled (Cash/Counter Allowed)" : "Disabled (Online Pay Only)"}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Kitchen Operating Setup (KOT vs KDS) Card */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

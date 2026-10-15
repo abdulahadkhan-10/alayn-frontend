@@ -23,6 +23,8 @@ export interface Outlet {
   earlyBufferMinutes?: number;
   lateGraceMinutes?: number;
   kitchenMode?: "KOT" | "KDS" | "HYBRID";
+  tableOrderMode?: "WAITER_SERVICE" | "ORDER_AND_PAY";
+  allowPayAtCounter?: boolean;
   createdAt?: string;
   updatedAt?: string;
   subscription?: {
@@ -111,6 +113,16 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
+    updateTableOrderMode: builder.mutation<any, { outletId?: string; tableOrderMode: "WAITER_SERVICE" | "ORDER_AND_PAY"; allowPayAtCounter?: boolean }>({
+      query: ({ outletId, tableOrderMode, allowPayAtCounter }) => ({
+        url: "/outlets/table-order-mode",
+        method: "PATCH",
+        body: { tableOrderMode, allowPayAtCounter },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      invalidatesTags: ["Outlet"],
+    }),
+
     updateAttendanceRules: builder.mutation<unknown, { outletId?: string; earlyBufferMinutes: number; lateGraceMinutes: number }>({
       query: ({ outletId, earlyBufferMinutes, lateGraceMinutes }) => ({
         url: "/outlets/attendance-rules",
@@ -152,6 +164,7 @@ export const {
   useUpdateReceiptDetailsMutation,
   useUpdateLocationMutation,
   useUpdateKitchenModeMutation,
+  useUpdateTableOrderModeMutation,
   useUpdateAttendanceRulesMutation,
   useResolveMapLinkMutation,
 } = outletApi;
