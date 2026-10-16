@@ -463,13 +463,20 @@ export async function createQROrder(
 
 // ── AlaynAI Executive Assistant API ───────────────────────────────────────
 
+export interface AlaynAIMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** `history` = earlier messages of this conversation, so follow-up questions make sense. */
 export async function askAlaynAI(
   prompt: string,
-  outletId?: string
+  outletId?: string,
+  history: AlaynAIMessage[] = []
 ): Promise<{ ok: boolean; answer?: string; error?: string }> {
   const result = await apiRequest<{ answer: string }>("/ai/assistant", {
     method: "POST",
-    body: { prompt, outletId },
+    body: { prompt, outletId, history },
     outletId,
   });
 

@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
-import { askAlaynAI } from "@/lib/api";
+import { askAlaynAI, AlaynAIMessage } from "@/lib/api";
+import { useGetKpisQuery } from "@/redux/slices/dashboardApiSlice";
 import {
   ArrowUp,
   RefreshCw,
@@ -29,7 +30,7 @@ function stripEmojis(s: string) {
 }
 
 function renderInline(raw: string) {
-  return stripEmojis(raw).split(/(`[^`]+`|\*\*[^*]+\*\*)/g).map((seg, i) => {
+  return stripEmojis(raw).split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/g).map((seg, i) => {
     if (seg.startsWith("`") && seg.endsWith("`") && seg.length > 2)
       return (
         <code
@@ -45,17 +46,67 @@ function renderInline(raw: string) {
           {seg.slice(2, -2)}
         </strong>
       );
+    if (seg.length > 2 && seg.startsWith("*") && seg.endsWith("*"))
+      return (
+        <em key={i} className="italic">
+          {seg.slice(1, -1)}
+        </em>
+      );
     return seg;
   });
 }
+
+// "| a | b |" → ["a", "b"]
+const tableCells = (line: string) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+const isTableLine = (line: string) => /^\|.*\|$/.test(line.trim());
+const isTableDivider = (line: string) => /^\|?[\s:|-]+\|?$/.test(line.trim()) && line.includes("-");
 
 function FormattedResponse({ text }: { text: string }) {
   if (!text) return null;
   const els: React.ReactNode[] = [];
   let firstH = true;
-  text.split("\n").forEach((line, i) => {
+  const lines = text.split("\n");
+  lines.forEach((line, i) => {
     const t = stripEmojis(line.trim());
     if (!t) return;
+
+    // Markdown tables: rendered once, at their first row; the other rows are skipped
+    if (isTableLine(t)) {
+      if (i > 0 && isTableLine(lines[i - 1])) return;
+      const rows: string[][] = [];
+      for (let j = i; j < lines.length && isTableLine(lines[j]); j++) {
+        if (!isTableDivider(lines[j])) rows.push(tableCells(stripEmojis(lines[j])));
+      }
+      const [header, ...body] = rows;
+      els.push(
+        <div key={i} className="my-4 overflow-x-auto rounded-xl border border-slate-200/80">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                {header.map((cell, c) => (
+                  <th key={c} className="px-3.5 py-2.5 font-semibold whitespace-nowrap">{renderInline(cell)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {body.map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td key={c} className="px-3.5 py-2.5 text-slate-700 align-top">{renderInline(cell)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      return;
+    }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) {
+      els.push(<hr key={i} className="my-6 border-slate-200/70" />);
+      return;
+    }
+
     const isH =
       t.startsWith("#") ||
       (t.startsWith("**") && (t.endsWith(":") || t.length < 80)) ||
@@ -65,10 +116,9 @@ function FormattedResponse({ text }: { text: string }) {
     if (isH) {
       const title = t.replace(/^#+\s*/, "").replace(/\*\*/g, "").replace(/:$/, "").trim();
       els.push(
-        <div key={i} className={`flex items-center gap-2.5 ${firstH ? "mt-0" : "mt-8"} mb-3`}>
-          <span className="w-1 h-3.5 rounded-full bg-[#E5484D]" />
-          <h3 className="text-base font-bold text-slate-900 tracking-tight">{title}</h3>
-        </div>
+        <h3 key={i} className={`text-sm font-semibold text-slate-900 ${firstH ? "mt-0" : "mt-6"} mb-2`}>
+          {title}
+        </h3>
       );
       firstH = false;
     } else if (isB) {
@@ -136,73 +186,164 @@ export default function AlaynAIPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [prompt, setPrompt] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
+  // The conversation so far; the last few exchanges are sent with each question so follow-ups work.
+  // It belongs to one outlet: switching outlet shows a fresh conversation.
+  const outletKey = activeBranch?.id ?? "";
+  const [conversation, setConversation] = useState<{ outletKey: string; turns: { question: string; answer: string }[] }>({
+    outletKey: "",
+    turns: [],
+  });
+  const thread = conversation.outletKey === outletKey ? conversation.turns : [];
+  const setThread = (turns: { question: string; answer: string }[]) => setConversation({ outletKey, turns });
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  async function handleAsk(override?: string) {
+  // Keep the newest answer (and the question box under it) in view
+  useEffect(() => {
+    if (thread.length > 0 || isGenerating) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [thread.length, isGenerating]);
+
+  async function handleAsk(override?: string, rerunLast = false) {
     const q = (override ?? prompt).trim();
-    if (!q || isGenerating) return;
-    setPrompt(q);
+    // Wait until the outlet is known, so the answer is about (and filed under) the right outlet
+    if (!q || isGenerating || !activeBranch) return;
+    const earlier = rerunLast ? thread.slice(0, -1) : thread;
+    const history: AlaynAIMessage[] = earlier.slice(-3).flatMap((turn) => [
+      { role: "user" as const, content: turn.question },
+      { role: "assistant" as const, content: turn.answer },
+    ]);
+    setPrompt("");
+    setPendingQuestion(q);
     setIsGenerating(true);
     setError(null);
-    setAnswer(null);
-    const result = await askAlaynAI(q, activeBranch?.id);
+    const result = await askAlaynAI(q, activeBranch?.id, history);
     setIsGenerating(false);
-    if (result.ok && result.answer) setAnswer(result.answer);
-    else setError(result.error ?? "Failed to analyze telemetry. Please try again.");
+    setPendingQuestion(null);
+    if (result.ok && result.answer) {
+      setThread([...earlier, { question: q, answer: result.answer }]);
+    } else {
+      setError(result.error ?? "Couldn't get an answer right now. Please try again.");
+      setPrompt(q);
+    }
   }
 
-  function handleCopy() {
-    if (!answer) return;
-    navigator.clipboard.writeText(answer);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2200);
+  function handleCopy(text: string, idx: number) {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx((cur) => (cur === idx ? null : cur)), 2200);
   }
 
-  function handleShare() {
-    if (!answer) return;
+  function handleShare(text: string, idx: number) {
     if (typeof navigator !== "undefined" && navigator.share)
-      navigator.share({ title: "Alayn AI Analysis", text: answer }).catch(() => {});
-    else handleCopy();
+      navigator.share({ title: "Alayn AI answer", text }).catch(() => {});
+    else handleCopy(text, idx);
   }
 
   function handleClear() {
-    setAnswer(null);
+    setThread([]);
     setError(null);
     setPrompt("");
     setTimeout(() => inputRef.current?.focus(), 60);
   }
 
+  // Margins need recipe (food) costs; until they exist the question can't be answered, so don't offer it
+  const { data: kpis } = useGetKpisQuery({ outletId: activeBranch?.id || undefined });
+  const marginsAvailable = kpis?.cogsConfigured === true;
+
   // 4 Highly Curated Editorial Queries (No redundant cards, no bloated graphics)
   const SUGGESTED_QUERIES = [
     {
-      query: "Where will revenue peak this weekend?",
+      query: "Which days will be busiest this week?",
       category: "Forecast",
-      prompt: "Forecast weekend revenue surge based on current data",
+      prompt: "How will my sales look over the next 7 days, and which days should I prepare more for?",
     },
     {
       query: "Where are we losing inventory waste?",
       category: "Inventory",
-      prompt: "Detect inventory waste anomalies and suggest corrective actions",
+      prompt: "Where is our waste coming from, what stock is expiring soon, and what should we do about it?",
     },
     {
-      query: "How should I staff tonight's rush shift?",
+      query: "Is today's roster right for our busy hours?",
       category: "Workforce",
-      prompt: "Optimize peak shift roster for the upcoming week",
+      prompt: "Who is rostered today, and does that match our busiest hours and today's forecast?",
     },
-    {
-      query: "Which dishes yield our best profit margins?",
-      category: "Menu",
-      prompt: "Which menu items have the best margin and which underperform?",
-    },
+    marginsAvailable
+      ? {
+          query: "Which dishes yield our best profit margins?",
+          category: "Menu",
+          prompt: "Which menu items have the best margin and which underperform?",
+        }
+      : {
+          query: "Which menu items are selling best and worst?",
+          category: "Menu",
+          prompt: "Which menu items are selling best this month, and which are selling least or not at all?",
+        },
   ];
+
+  const composer = (
+    <>
+      <div
+        className={`bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex items-center gap-3 ${
+          isFocused
+            ? "border-[#E5484D] shadow-md ring-4 ring-rose-500/5"
+            : "border-slate-200/80 shadow-2xs hover:border-slate-300"
+        }`}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder={
+            !activeBranch
+              ? "Loading your outlet..."
+              : thread.length
+              ? "Ask a follow-up question..."
+              : "Ask AlaynAI anything about your restaurant..."
+          }
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleAsk();
+            }
+          }}
+          disabled={isGenerating || !activeBranch}
+          className="flex-1 bg-transparent px-3 text-base sm:text-lg font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none min-w-0"
+        />
+
+        <button
+          onClick={() => handleAsk()}
+          disabled={!prompt.trim() || isGenerating || !activeBranch}
+          className={`w-11 h-11 rounded-xl font-bold transition-all flex items-center justify-center shrink-0 ${
+            prompt.trim() && !isGenerating
+              ? "bg-[#E5484D] hover:bg-[#D3232A] text-white shadow-2xs"
+              : "bg-slate-100 text-slate-300 cursor-not-allowed"
+          }`}
+        >
+          {isGenerating ? (
+            <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+          ) : (
+            <ArrowUp className="w-5 h-5" />
+          )}
+        </button>
+      </div>
+
+      <div className="mt-2.5 px-3 flex items-center justify-between text-xs text-slate-400">
+        <span>Ask about sales, forecasts, stock, staff or your menu</span>
+        <span>↵ Enter</span>
+      </div>
+    </>
+  );
 
   return (
     <AuthGuard>
@@ -222,8 +363,6 @@ export default function AlaynAIPage() {
             <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>{activeBranch?.name ?? "All Locations"}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-400 font-mono text-[11px]">AlaynAI Telemetry</span>
             </div>
           </div>
 
@@ -243,59 +382,72 @@ export default function AlaynAIPage() {
               </h1>
             </div>
 
-            {/* ── REFINED INPUT COMPOSER ── */}
-            <div className="mb-14">
-              <div
-                className={`bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex items-center gap-3 ${
-                  isFocused
-                    ? "border-[#E5484D] shadow-md ring-4 ring-rose-500/5"
-                    : "border-slate-200/80 shadow-2xs hover:border-slate-300"
-                }`}
-              >
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Ask AlaynAI anything about your restaurant..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAsk();
-                    }
-                  }}
-                  disabled={isGenerating}
-                  className="flex-1 bg-transparent px-3 text-base sm:text-lg font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none min-w-0"
-                />
+            {/* ── QUESTION BOX: here before a conversation starts, pinned to the bottom during one ── */}
+            {thread.length === 0 && !isGenerating && <div className="mb-14">{composer}</div>}
 
-                <button
-                  onClick={() => handleAsk()}
-                  disabled={!prompt.trim() || isGenerating}
-                  className={`w-11 h-11 rounded-xl font-bold transition-all flex items-center justify-center shrink-0 ${
-                    prompt.trim() && !isGenerating
-                      ? "bg-[#E5484D] hover:bg-[#D3232A] text-white shadow-2xs"
-                      : "bg-slate-100 text-slate-300 cursor-not-allowed"
-                  }`}
-                >
-                  {isGenerating ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
-                  ) : (
-                    <ArrowUp className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+            {/* ── CONVERSATION SO FAR ── */}
+            {thread.length > 0 && (
+              <div className="space-y-8 mb-6">
+                <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-200/60">
+                  <span className="font-semibold text-slate-600">Conversation</span>
+                  <button
+                    onClick={handleClear}
+                    disabled={isGenerating}
+                    className="hover:text-slate-900 transition-colors font-medium disabled:opacity-50"
+                  >
+                    New conversation
+                  </button>
+                </div>
 
-              <div className="mt-2.5 px-3 flex items-center justify-between text-xs text-slate-400">
-                <span>Direct inquiry into sales, inventory, staffing &amp; recipes</span>
-                <span>↵ Enter</span>
+                {thread.map((turn, idx) => {
+                  const isLatest = idx === thread.length - 1;
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-3"
+                    >
+                      <p className="px-1 text-sm font-semibold text-slate-900">{turn.question}</p>
+                      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-7 shadow-2xs">
+                        <FormattedResponse text={turn.answer} />
+                      </div>
+                      <div className="flex items-center justify-between px-1 text-xs">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleCopy(turn.answer, idx)}
+                            className="inline-flex items-center gap-1.5 font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+                          >
+                            {copiedIdx === idx ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedIdx === idx ? "Copied" : "Copy"}</span>
+                          </button>
+                          <button
+                            onClick={() => handleShare(turn.answer, idx)}
+                            className="inline-flex items-center gap-1.5 font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span>Share</span>
+                          </button>
+                        </div>
+                        {isLatest && !isGenerating && (
+                          <button
+                            onClick={() => handleAsk(turn.question, true)}
+                            className="inline-flex items-center gap-1.5 font-semibold text-[#E5484D] hover:underline"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Ask again</span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-            </div>
+            )}
 
             {/* ── DYNAMIC STATES ── */}
             <AnimatePresence mode="wait">
-              
+
               {/* LOADING STATE */}
               {isGenerating && (
                 <motion.div
@@ -303,64 +455,11 @@ export default function AlaynAIPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="py-12 text-center space-y-4"
+                  className="py-10 text-center space-y-4"
                 >
+                  {pendingQuestion && <p className="text-sm font-semibold text-slate-900">{pendingQuestion}</p>}
                   <RefreshCw className="w-5 h-5 text-[#E5484D] animate-spin mx-auto" />
-                  <p className="text-sm font-semibold text-slate-600">
-                    Querying live telemetry &amp; cross-referencing sales history...
-                  </p>
-                </motion.div>
-              )}
-
-              {/* ANSWER DISPLAY */}
-              {!isGenerating && answer && (
-                <motion.div
-                  key="answer"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-6"
-                >
-                  <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-200/60">
-                    <span className="font-semibold text-slate-600">AlaynAI Analysis Report</span>
-                    <button
-                      onClick={handleClear}
-                      className="hover:text-slate-900 transition-colors font-medium"
-                    >
-                      Clear
-                    </button>
-                  </div>
-
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-7 sm:p-9 shadow-2xs">
-                    <FormattedResponse text={answer} />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 text-xs">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handleCopy}
-                        className="inline-flex items-center gap-1.5 font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-                      >
-                        {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{isCopied ? "Copied" : "Copy"}</span>
-                      </button>
-                      <button
-                        onClick={handleShare}
-                        className="inline-flex items-center gap-1.5 font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                        <span>Share</span>
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => handleAsk(prompt)}
-                      className="inline-flex items-center gap-1.5 font-semibold text-[#E5484D] hover:underline"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Re-run query</span>
-                    </button>
-                  </div>
+                  <p className="text-sm font-medium text-slate-500">Checking your numbers...</p>
                 </motion.div>
               )}
 
@@ -370,18 +469,18 @@ export default function AlaynAIPage() {
                   key="error"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2"
+                  className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2"
                 >
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>{error}</span>
                 </motion.div>
               )}
 
-              {/* SUGGESTED SHORTCUTS — EDITORIAL MINIMAL ROW LAYOUT */}
-              {!isGenerating && !answer && (
+              {/* SUGGESTED QUESTIONS */}
+              {!isGenerating && thread.length === 0 && (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                   <div className="px-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Suggested Analysis
+                    Try asking
                   </div>
 
                   <div className="space-y-1">
@@ -400,6 +499,13 @@ export default function AlaynAIPage() {
 
             </AnimatePresence>
 
+            {/* Pinned question box for follow-ups, next to the newest answer */}
+            {(thread.length > 0 || isGenerating) && (
+              <div className="sticky bottom-0 z-10 -mx-2 px-2 pt-6 pb-4 bg-gradient-to-t from-[#FAFAFC] via-[#FAFAFC] to-[#FAFAFC]/0">
+                {composer}
+              </div>
+            )}
+            <div ref={endRef} />
           </div>
         </div>
       </DashboardLayout>
