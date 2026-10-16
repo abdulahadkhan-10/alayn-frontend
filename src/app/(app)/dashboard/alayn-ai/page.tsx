@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { ThinkingOrb } from "thinking-orbs";
+import { BorderBeam } from "border-beam";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -11,7 +13,6 @@ import { askAlaynAI, AlaynAIMessage } from "@/lib/api";
 import { useGetKpisQuery } from "@/redux/slices/dashboardApiSlice";
 import {
   ArrowUp,
-  RefreshCw,
   Share2,
   RotateCcw,
   Copy,
@@ -201,6 +202,8 @@ export default function AlaynAIPage() {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  // The orb honours the OS "reduce motion" setting itself; the border glow needs telling
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -290,6 +293,8 @@ export default function AlaynAIPage() {
 
   const composer = (
     <>
+      {/* A warm glow travels around the box while AlaynAI is answering (still for reduced-motion users) */}
+      <BorderBeam active={isGenerating && !reduceMotion} size="md" colorVariant="sunset" theme="light" strength={0.8}>
       <div
         className={`bg-white rounded-2xl p-2.5 sm:p-3 border transition-all duration-300 flex items-center gap-3 ${
           isFocused
@@ -331,16 +336,17 @@ export default function AlaynAIPage() {
           }`}
         >
           {isGenerating ? (
-            <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+            <ThinkingOrb state="working" size={20} theme="light" color="#64748B" aria-hidden="true" />
           ) : (
             <ArrowUp className="w-5 h-5" />
           )}
         </button>
       </div>
+      </BorderBeam>
 
       <div className="mt-2.5 px-3 flex items-center justify-between text-xs text-slate-400">
         <span>Ask about sales, forecasts, stock, staff or your menu</span>
-        <span>↵ Enter</span>
+        <span className="hidden sm:inline">↵ Enter</span>
       </div>
     </>
   );
@@ -458,7 +464,18 @@ export default function AlaynAIPage() {
                   className="py-10 text-center space-y-4"
                 >
                   {pendingQuestion && <p className="text-sm font-semibold text-slate-900">{pendingQuestion}</p>}
-                  <RefreshCw className="w-5 h-5 text-[#E5484D] animate-spin mx-auto" />
+                  <div className="flex justify-center">
+                    <ThinkingOrb
+                      state="searching"
+                      size={64}
+                      theme="light"
+                      // Deeper red and bolder dots: the light theme fades ink toward white
+                      color="#C81E25"
+                      dotSize={1.6}
+                      role="img"
+                      aria-label="AlaynAI is checking your numbers"
+                    />
+                  </div>
                   <p className="text-sm font-medium text-slate-500">Checking your numbers...</p>
                 </motion.div>
               )}
