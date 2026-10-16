@@ -386,72 +386,15 @@ export default function ThermalKOT({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Bluetooth vs System Print Switcher */}
-          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
-            {isWebBluetoothSupported() && (
-              <button
-                type="button"
-                onClick={handlePairBluetooth}
-                disabled={isPairingBt}
-                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  btName
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                title={btName ? `Connected to ${btName}` : "Pair Bluetooth Thermal Printer (Zero apps needed)"}
-              >
-                <Bluetooth className="w-3 h-3" />
-                <span>{isPairingBt ? "Pairing..." : btName ? btName.slice(0, 8) : "Pair BT"}</span>
-              </button>
-            )}
-            <button
-              onClick={() => changePrintMode("system")}
-              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                printMode === "system"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-              title="Standard System Print Dialog"
-            >
-              System
-            </button>
-          </div>
-
-          {/* Paper Width Switcher */}
-          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200/80">
-            <button
-              onClick={() => changePaperWidth("80mm")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                paperWidth === "80mm"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              80mm
-            </button>
-            <button
-              onClick={() => changePaperWidth("58mm")}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                paperWidth === "58mm"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              58mm
-            </button>
-          </div>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              title="Close Preview"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+            title="Close Preview"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* -- Preview Body -- */}

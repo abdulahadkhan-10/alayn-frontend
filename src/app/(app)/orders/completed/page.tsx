@@ -863,7 +863,7 @@ export default function CompletedOrdersPage() {
             <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">
               <ThermalReceipt
                 order={printingOrder}
-                autoPrint={true}
+                autoPrint={false}
                 onClose={() => setPrintingOrder(null)}
               />
             </div>
