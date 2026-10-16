@@ -383,8 +383,15 @@ export async function autoPrintKOT(order: any, isCancellation = false, paperWidt
     }
   }
 
-  // Step 4: Complete cleanly without popping up Chrome's print preview dialog
-  return { success: true, channel: "kiosk-system" };
+  // Step 4: Direct System Thermal Fallback (Silent iframe print / OS print dialog)
+  try {
+    const html = buildKotHtml(order, isCancellation, paperWidth);
+    const printed = await printThermalHtml(html);
+    return { success: printed, channel: "kiosk-system" };
+  } catch (err: any) {
+    console.error("[Alayn Printer] System KOT print failed:", err);
+    return { success: false, channel: "kiosk-system", error: err?.message };
+  }
 }
 
 /**
