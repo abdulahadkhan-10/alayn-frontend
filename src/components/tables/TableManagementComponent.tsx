@@ -22,6 +22,7 @@ import { skipToken } from "@reduxjs/toolkit/query/react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import {
   fetchTables,
   createBulkTables,
@@ -40,6 +41,10 @@ export default function TableManagementComponent() {
   const { activeBranch, branches } = useBranch();
   const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
   const isAllOutlets = !currentOutletId || activeBranch?.id === "all";
+
+  const { data: outletsData = [] } = useGetOutletsQuery();
+  const currentOutlet = outletsData.find((o) => o.id === currentOutletId) || outletsData[0];
+  const isSelfOrder = currentOutlet?.tableOrderMode === "ORDER_AND_PAY";
 
   // List of specific outlets excluding "all"
   const specificBranches = useMemo(() => {
@@ -386,7 +391,7 @@ export default function TableManagementComponent() {
                 </div>
                 <p className="text-[10px] font-bold text-[#1B2A4A] flex items-center gap-1 group-hover:text-[#D3232A] transition-colors">
                   <QrCode className="w-3 h-3 text-[#D3232A]" />
-                  Scan to Order
+                  {isSelfOrder ? "Scan to Order & Pay" : "Scan to View Menu"}
                 </p>
               </div>
             ) : (
@@ -448,10 +453,22 @@ export default function TableManagementComponent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
           <div>
-            <h1 className="text-2xl font-bold text-[#1B2A4A] flex items-center gap-2">
-              <LayoutGrid className="w-6 h-6 text-[#D3232A]" />
-              Table Management
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[#1B2A4A] flex items-center gap-2">
+                <LayoutGrid className="w-6 h-6 text-[#D3232A]" />
+                Table Management
+              </h1>
+              <span
+                className={cn(
+                  "text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border",
+                  isSelfOrder
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    : "bg-blue-50 text-blue-800 border-blue-200"
+                )}
+              >
+                {isSelfOrder ? "Order & Pay Active" : "Waiter Service Active"}
+              </span>
+            </div>
             <p className="text-gray-500 text-sm mt-1">
               Configure dining tables, assign staff, and manage QR code menu ordering.
             </p>
@@ -887,7 +904,9 @@ export default function TableManagementComponent() {
                   <QRCodeSVG value={getTableOrderUrl(printTable.currentToken)} size={160} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
+                  <p className="text-xs font-bold text-[#1B2A4A]">
+                    {isSelfOrder ? "Scan with Phone Camera to Order & Pay" : "Scan with Phone Camera to View Digital Menu"}
+                  </p>
                   <p className="text-[9px] font-medium text-gray-500">
                     visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
                   </p>
@@ -941,7 +960,13 @@ export default function TableManagementComponent() {
                     <QRCodeSVG value={getTableOrderUrl(t.currentToken)} size={120} fgColor="#1B2A4A" bgColor="#F8FAFC" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-[#1B2A4A] leading-tight">Scan with Phone Camera<br/>to View Menu & Order</p>
+                    <p className="text-[10px] font-bold text-[#1B2A4A] leading-tight">
+                      {isSelfOrder ? (
+                        <>Scan with Phone Camera<br/>to Order & Pay</>
+                      ) : (
+                        <>Scan with Phone Camera<br/>to View Digital Menu</>
+                      )}
+                    </p>
                     <p className="text-[8px] font-medium text-gray-500">
                       visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
                     </p>
