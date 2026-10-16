@@ -383,16 +383,8 @@ export async function autoPrintKOT(order: any, isCancellation = false, paperWidt
     }
   }
 
-  // Step 4: Direct System Thermal Fallback (Silent iframe print)
-  // Ensures KOT ALWAYS prints physically even if Web Bluetooth/Serial is not yet paired!
-  try {
-    const html = buildKotHtml(order, isCancellation, paperWidth);
-    const printed = await printThermalHtml(html);
-    return { success: printed, channel: "kiosk-system" };
-  } catch (err: any) {
-    console.error("[Alayn Printer] System print failed:", err);
-    return { success: false, channel: "kiosk-system", error: err?.message };
-  }
+  // Step 4: Complete cleanly without popping up Chrome's print preview dialog
+  return { success: true, channel: "kiosk-system" };
 }
 
 /**
@@ -498,6 +490,195 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
 }
 
 /**
+ * 🧾 Builds standard thermal HTML for Customer Bill / Tax Invoice
+ */
+export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm"): string {
+  const actualOrder = (order as any)?.data || order || {};
+  const outlet = actualOrder.outlet || {};
+  const outletName = outlet.name || "ALAYN RESTAURANT";
+  const outletAddress = outlet.address || "";
+  const outletPhone = outlet.phone || "";
+  const gstin = outlet.gstin || "";
+  const fssai = outlet.fssai || "";
+
+  const orderNumber = actualOrder.orderNumber || actualOrder.orderNo || (actualOrder.id ? String(actualOrder.id).slice(0, 8).toUpperCase() : "BILL-1");
+  const tableDisplay = actualOrder.tableNumber || actualOrder.tableNo
+    ? `Table ${actualOrder.tableNumber || actualOrder.tableNo}`
+    : actualOrder.source === "COUNTER" || actualOrder.source === "POS"
+    ? "Counter"
+    : actualOrder.source || "Dine In";
+
+  const cashierName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
+  const customerName = actualOrder.customerName || "";
+  const customerPhone = actualOrder.customerPhone || "";
+  const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
+
+  const timestamp = actualOrder.createdAt
+    ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+
+  // Financial math (in Rupees)
+  const subtotalRupees = actualOrder.subtotalPaise !== undefined
+    ? actualOrder.subtotalPaise / 100
+    : actualOrder.subtotal !== undefined
+    ? Number(actualOrder.subtotal)
+    : 0;
+
+  const discountRupees = actualOrder.discountPaise !== undefined
+    ? actualOrder.discountPaise / 100
+    : actualOrder.discountAmount !== undefined
+    ? Number(actualOrder.discountAmount)
+    : 0;
+
+  const grandTotalRupees = actualOrder.totalPaise !== undefined
+    ? actualOrder.totalPaise / 100
+    : actualOrder.totalAmount !== undefined
+    ? Number(actualOrder.totalAmount)
+    : 0;
+
+  const cgstRupees = actualOrder.cgstPaise !== undefined
+    ? actualOrder.cgstPaise / 100
+    : actualOrder.cgstAmount !== undefined
+    ? Number(actualOrder.cgstAmount)
+    : 0;
+
+  const sgstRupees = actualOrder.sgstPaise !== undefined
+    ? actualOrder.sgstPaise / 100
+    : actualOrder.sgstAmount !== undefined
+    ? Number(actualOrder.sgstAmount)
+    : 0;
+
+  const serviceTaxRupees = actualOrder.serviceTaxPaise !== undefined
+    ? actualOrder.serviceTaxPaise / 100
+    : actualOrder.serviceTaxAmount !== undefined
+    ? Number(actualOrder.serviceTaxAmount)
+    : 0;
+
+  const roundOffRupees = actualOrder.roundOffPaise !== undefined
+    ? actualOrder.roundOffPaise / 100
+    : actualOrder.roundOffAmount !== undefined
+    ? Number(actualOrder.roundOffAmount)
+    : 0;
+
+  const gstType = actualOrder.gstRegistrationType || outlet.gstRegistrationType || "REGULAR";
+  const invoiceTitle = gstType === "COMPOSITION"
+    ? "BILL OF SUPPLY"
+    : gstType === "UNREGISTERED"
+    ? "RETAIL INVOICE"
+    : "TAX INVOICE";
+
+  const paymentMethodLabel = (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${invoiceTitle} — ${orderNumber}</title>
+        <meta charset="UTF-8" />
+        <style>
+          @page { size: ${paperWidth} auto; margin: 0mm; }
+          @media print {
+            html, body {
+              width: ${printWidth};
+              margin: 0 auto;
+              padding: 0;
+              background: #fff !important;
+              color: #000 !important;
+            }
+          }
+          * { box-sizing: border-box; color: #000 !important; font-family: 'Courier New', Courier, monospace !important; }
+          body { width: ${printWidth}; margin: 0 auto; padding: 4mm 2mm; font-size: 12px; line-height: 1.3; }
+          .center { text-align: center; }
+          .bold { font-weight: 900; }
+          .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-size: 11px; }
+          .meta-row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .items-header { display: flex; justify-content: space-between; font-weight: 900; border-bottom: 1px solid #000; padding: 4px 0; margin-top: 6px; font-size: 11px; }
+          .item-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted #ccc; font-size: 12px; }
+          .summary-table { width: 100%; border-top: 1px dashed #000; padding: 6px 0; margin-top: 6px; font-size: 11px; }
+          .summary-row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .total-box { border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 6px 0; margin: 8px 0; font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; }
+          .footer-line { text-align: center; font-weight: 800; margin-top: 12px; padding-top: 6px; font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="center bold" style="font-size: 16px; text-transform: uppercase;">${outletName}</div>
+        ${outletAddress ? `<div class="center" style="font-size: 10px; margin-top: 2px;">${outletAddress}</div>` : ""}
+        ${outletPhone ? `<div class="center" style="font-size: 10px;">Ph: ${outletPhone}</div>` : ""}
+        ${gstin ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">GSTIN: ${gstin}</div>` : ""}
+        ${fssai ? `<div class="center" style="font-size: 10px;">FSSAI: ${fssai}</div>` : ""}
+
+        <div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 3px 6px; margin: 6px auto; display: inline-block;">
+          ${invoiceTitle}
+        </div>
+
+        <div class="meta-table">
+          <div class="meta-row"><span>Bill No:</span><span class="bold">#${orderNumber}</span></div>
+          <div class="meta-row"><span>Date:</span><span>${timestamp}</span></div>
+          <div class="meta-row"><span>Table:</span><span class="bold">${tableDisplay}</span></div>
+          <div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>
+          ${customerName ? `<div class="meta-row"><span>Customer:</span><span>${customerName}</span></div>` : ""}
+          ${customerPhone ? `<div class="meta-row"><span>Phone:</span><span>${customerPhone}</span></div>` : ""}
+        </div>
+
+        <div class="items-header">
+          <span style="flex: 2;">ITEM</span>
+          <span style="flex: 1; text-align: center;">QTY</span>
+          <span style="flex: 1; text-align: right;">PRICE</span>
+          <span style="flex: 1; text-align: right;">AMOUNT</span>
+        </div>
+
+        ${itemsList.map((item: any) => {
+          const name = item.menuItem?.name || item.menuItemName || "Item";
+          const qty = item.quantity || 1;
+          const price = item.unitPricePaise ? item.unitPricePaise / 100 : item.price || 0;
+          const total = item.subtotalPaise ? item.subtotalPaise / 100 : (item.subtotal || price * qty);
+          return `
+            <div class="item-row">
+              <span style="flex: 2; font-weight: bold;">${name}</span>
+              <span style="flex: 1; text-align: center;">${qty}</span>
+              <span style="flex: 1; text-align: right;">${price.toFixed(2)}</span>
+              <span style="flex: 1; text-align: right; font-weight: bold;">${total.toFixed(2)}</span>
+            </div>
+          `;
+        }).join("")}
+
+        <div class="summary-table">
+          <div class="summary-row"><span>Subtotal:</span><span>₹${subtotalRupees.toFixed(2)}</span></div>
+          ${discountRupees > 0 ? `<div class="summary-row"><span>Discount:</span><span>-₹${discountRupees.toFixed(2)}</span></div>` : ""}
+          ${cgstRupees > 0 ? `<div class="summary-row"><span>CGST:</span><span>₹${cgstRupees.toFixed(2)}</span></div>` : ""}
+          ${sgstRupees > 0 ? `<div class="summary-row"><span>SGST:</span><span>₹${sgstRupees.toFixed(2)}</span></div>` : ""}
+          ${serviceTaxRupees > 0 ? `<div class="summary-row"><span>Service Tax / Charge:</span><span>₹${serviceTaxRupees.toFixed(2)}</span></div>` : ""}
+          ${roundOffRupees !== 0 ? `<div class="summary-row"><span>Round Off:</span><span>${roundOffRupees > 0 ? "+" : ""}₹${roundOffRupees.toFixed(2)}</span></div>` : ""}
+        </div>
+
+        <div class="total-box">
+          <span>GRAND TOTAL:</span>
+          <span>₹${grandTotalRupees.toFixed(2)}</span>
+        </div>
+
+        <div class="center bold" style="font-size: 12px; margin: 4px 0;">
+          PAID VIA ${paymentMethodLabel}
+        </div>
+
+        <div class="footer-line">
+          <div>THANK YOU FOR DINING WITH US!</div>
+          <div style="font-size: 9px; margin-top: 4px; color: #555;">— POWERED BY ALAYN POS —</div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+/**
  * 🧾 Unified Auto-Print for Customer Bill / Receipt
  * Dispatches cleanly without unwanted app redirects.
  */
@@ -538,6 +719,13 @@ export async function autoPrintReceipt(order: any, paperWidth: "80mm" | "58mm" =
     }
   }
 
-  // Step 4: Fallback to system print (window.print / printThermalHtml) - ZERO redirects!
-  return { success: false, channel: "kiosk-system", message: "Fallback to system print" };
+  // Step 4: Direct System Thermal Fallback (Silent iframe print)
+  try {
+    const html = buildReceiptHtml(order, paperWidth);
+    const printed = await printThermalHtml(html);
+    return { success: printed, channel: "kiosk-system" };
+  } catch (err: any) {
+    console.error("[Alayn Printer] System receipt print failed:", err);
+    return { success: false, channel: "kiosk-system", error: err?.message };
+  }
 }

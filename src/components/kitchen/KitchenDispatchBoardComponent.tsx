@@ -14,7 +14,7 @@ import {
   ArrowRight,
   RefreshCw,
   Utensils,
-  Printer,
+  FileText,
   AlertTriangle,
   XCircle,
   Bell,
@@ -25,7 +25,6 @@ import {
 import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
 import { useSocket } from "@/lib/useSocket";
-import ThermalKOT from "../pos/ThermalKOT";
 
 export default function KitchenDispatchBoardComponent() {
   const { activeBranch } = useBranch();
@@ -35,8 +34,7 @@ export default function KitchenDispatchBoardComponent() {
   const { data: tickets = [], isLoading, refetch, isFetching } = useGetKitchenTicketsQuery(undefined);
   const [updateStatus] = useUpdateOrderStatusMutation();
 
-  // Printable Thermal KOT ticket state
-  const [printingTicket, setPrintingTicket] = useState<{ order: any; isCancellation: boolean } | null>(null);
+
 
   // Dismissed cancelled orders state (manually cleared by cook)
   const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(new Set());
@@ -171,7 +169,7 @@ export default function KitchenDispatchBoardComponent() {
               }`}>
                 {kitchenMode === "KOT" ? (
                   <>
-                    <Printer className="w-3 h-3" />
+                    <FileText className="w-3 h-3" />
                     KOT Thermal Mode
                   </>
                 ) : kitchenMode === "KDS" ? (
@@ -223,7 +221,7 @@ export default function KitchenDispatchBoardComponent() {
         {kitchenMode === "KOT" && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between text-blue-900 text-xs">
             <div className="flex items-center gap-2.5">
-              <Printer className="w-5 h-5 text-blue-700 shrink-0" />
+              <FileText className="w-5 h-5 text-blue-700 shrink-0" />
               <div>
                 <span className="font-extrabold uppercase tracking-wide">Physical KOT Mode Active:</span>
                 <span className="ml-1 font-medium text-blue-800">
@@ -318,19 +316,11 @@ export default function KitchenDispatchBoardComponent() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-1">
                       <button
-                        onClick={() => setPrintingTicket({ order: cancelledTicket, isCancellation: true })}
-                        className="flex-1 py-1.5 px-2 bg-gray-100 hover:bg-gray-200 text-zinc-800 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
-                        title="Print Cancellation Thermal Slip"
-                      >
-                        <Printer className="w-3.5 h-3.5 text-zinc-700" />
-                        Print Void KOT
-                      </button>
-                      <button
                         onClick={() => handleDismissCancelled(cancelledTicket.id)}
-                        className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer"
+                        className="w-full py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                       >
                         <Check className="w-3.5 h-3.5" />
-                        Acknowledge
+                        Acknowledge & Clear
                       </button>
                     </div>
                   </div>
@@ -417,14 +407,6 @@ export default function KitchenDispatchBoardComponent() {
                                 <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-[#1B2A4A] font-black uppercase tracking-widest rounded-md border border-gray-300">
                                   {ticketSource}
                                 </span>
-                                {/* Quick Print KOT button on ticket */}
-                                <button
-                                  onClick={() => setPrintingTicket({ order: ticket, isCancellation: false })}
-                                  className="p-1 hover:bg-gray-100 text-gray-600 hover:text-black rounded-md transition cursor-pointer"
-                                  title="Print / Reprint KOT Ticket"
-                                >
-                                  <Printer className="w-3.5 h-3.5 text-zinc-700" />
-                                </button>
                               </div>
                               <span className="text-[10px] text-gray-500 font-bold font-mono">
                                 {new Date(ticket.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -487,22 +469,7 @@ export default function KitchenDispatchBoardComponent() {
           })}
         </div>
 
-        {/* Thermal KOT Printable Modal */}
-        {printingTicket && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setPrintingTicket(null);
-            }}
-          >
-            <ThermalKOT
-              order={printingTicket.order}
-              autoPrint={true}
-              isCancellation={printingTicket.isCancellation}
-              onClose={() => setPrintingTicket(null)}
-            />
-          </div>
-        )}
+
       </div>
     </DashboardLayout>
   );
