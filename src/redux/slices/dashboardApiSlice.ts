@@ -31,12 +31,14 @@ export interface SalesForecastPoint {
 export type SalesForecastRange = "7d" | "30d" | "90d";
 
 export interface SalesForecastResponse {
-  status: "ok" | "insufficient_history";
-  daysOfHistory: number;
-  minHistoryDays: number;
+  /** learning: no estimate yet · early: rough estimate · ok: full forecast */
+  status: "ok" | "early" | "learning";
+  salesDays: number; // days that actually had sales
+  earlyEstimateAfterDays: number;
+  fullForecastAfterDays: number;
   points: SalesForecastPoint[];
   accuracy: { mapePct: number; daysEvaluated: number } | null;
-  summary: { next7DaysProjected: number; last7DaysActual: number; vsLast7DaysPct: number } | null;
+  summary: { next7DaysProjected: number; last7DaysActual: number; vsLast7DaysPct: number | null } | null;
   coverage: { forecasted: number; total: number };
 }
 

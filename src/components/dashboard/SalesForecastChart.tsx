@@ -12,7 +12,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
-import { LineChart, Target, Hourglass } from "lucide-react";
+import { LineChart, Target, Hourglass, Sprout } from "lucide-react";
 import {
   SalesForecastPoint,
   SalesForecastRange,
@@ -85,7 +85,8 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
     [data],
   );
 
-  const forecasting = data?.status === "ok";
+  const forecasting = data?.status === "ok" || data?.status === "early";
+  const isEarly = data?.status === "early";
   const hasSales = rows.some((p) => (p.actual ?? 0) > 0);
   const summary = data?.summary;
   const accuracy = data?.accuracy;
@@ -99,7 +100,14 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
             <LineChart className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-800 tracking-tight">Sales Forecast</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-800 tracking-tight">Sales Forecast</h3>
+              {isEarly && (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200/70">
+                  Early estimate
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 font-normal">
               Daily revenue before tax, learned from your weekly pattern
             </p>
@@ -142,12 +150,14 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
         <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-xs font-medium text-slate-500">Next 7 days</span>
           <span className="text-2xl font-bold text-slate-900 tabular-nums">{inr(summary.next7DaysProjected)}</span>
-          <span
-            className={`text-xs font-semibold ${summary.vsLast7DaysPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}
-          >
-            {summary.vsLast7DaysPct >= 0 ? "+" : ""}
-            {summary.vsLast7DaysPct}% vs last 7 days
-          </span>
+          {summary.vsLast7DaysPct !== null && (
+            <span
+              className={`text-xs font-semibold ${summary.vsLast7DaysPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+            >
+              {summary.vsLast7DaysPct >= 0 ? "+" : ""}
+              {summary.vsLast7DaysPct}% vs last 7 days
+            </span>
+          )}
           {closedAhead > 0 && (
             <span className="text-xs font-medium text-slate-400">
               ({closedAhead} closed {closedAhead === 1 ? "day" : "days"} ahead)
@@ -164,10 +174,19 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
         ) : !hasSales ? (
           <div className="flex h-full w-full flex-col items-center justify-center text-center p-4">
             <LineChart className="h-10 w-10 text-slate-300 mb-2" />
-            <p className="text-xs font-semibold text-slate-500">No sales recorded yet</p>
-            <p className="text-[11px] text-slate-400 max-w-[240px] mt-0.5">
-              The forecast starts once {data?.minHistoryDays ?? 21} days of settled orders are recorded.
-            </p>
+            {data && data.salesDays > 0 ? (
+              <>
+                <p className="text-xs font-semibold text-slate-500">No sales in this period</p>
+                <p className="text-[11px] text-slate-400 max-w-[240px] mt-0.5">Try 30D or 90D to see earlier sales.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold text-slate-500">No sales recorded yet</p>
+                <p className="text-[11px] text-slate-400 max-w-[240px] mt-0.5">
+                  Alayn gives a first estimate after {data?.earlyEstimateAfterDays ?? 3} days of sales.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -239,7 +258,13 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
-        {forecasting ? (
+        {data && isEarly ? (
+          <span className="flex items-center gap-1.5">
+            <Sprout className="h-4 w-4 text-amber-600" />
+            Rough estimate from {data.salesDays} days of sales. It gets sharper as Alayn learns your week (full
+            forecast after {data.fullForecastAfterDays} days).
+          </span>
+        ) : forecasting ? (
           <span className="flex items-center gap-1.5">
             <Target className="h-4 w-4 text-amber-600" />
             {accuracy
@@ -249,16 +274,16 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
         ) : data ? (
           <span className="flex items-center gap-1.5">
             <Hourglass className="h-4 w-4 text-slate-400" />
-            Forecast unlocks after {data.minHistoryDays} days of sales (
-            {Math.min(data.daysOfHistory, data.minHistoryDays)}/{data.minHistoryDays} so far)
+            Alayn is learning your sales. First estimate after {data.earlyEstimateAfterDays} days of sales (
+            {Math.min(data.salesDays, data.earlyEstimateAfterDays)}/{data.earlyEstimateAfterDays} so far)
           </span>
         ) : (
           <span>&nbsp;</span>
         )}
         {data && data.coverage.forecasted < data.coverage.total && data.coverage.forecasted > 0 && (
           <span className="text-slate-400">
-            Showing {data.coverage.forecasted} of {data.coverage.total} outlets; newer outlets join after{" "}
-            {data.minHistoryDays} days of sales
+            Showing {data.coverage.forecasted} of {data.coverage.total} outlets; new outlets join after{" "}
+            {data.earlyEstimateAfterDays} days of sales
           </span>
         )}
       </div>
