@@ -705,9 +705,27 @@ export default function LiveOrdersPage() {
                         <span className="text-[15px] font-bold text-[#1B2A4A] font-mono tracking-tight break-all">
                           {orderNumDisplay}
                         </span>
-                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                          {isCounter ? "COUNTER ORDER" : `TABLE ${tableNumDisplay}`}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+                            {isCounter ? "COUNTER ORDER" : `TABLE ${tableNumDisplay}`}
+                          </span>
+                          {(order.orderSource === "QR" || order.source === "QR" || order.placedByName?.includes("QR")) && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-100 text-violet-800 border border-violet-200">
+                              <QrCode className="w-3 h-3 text-violet-600" />
+                              QR Order
+                            </span>
+                          )}
+                          {order.placedByName?.includes("UTR:") && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" title="Customer UPI UTR">
+                              ⚡ UTR: {order.placedByName.split("UTR:")[1]?.trim()}
+                            </span>
+                          )}
+                          {order.placedByName?.includes("Pay at Counter") && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                              💵 Pay at Counter
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -784,7 +802,20 @@ export default function LiveOrdersPage() {
                         </button>
                       )}
                       {order.status === "SERVED" && (
-                        <button onClick={() => { setCustomerName(order.customerName || ""); setCustomerPhone(order.customerPhone || ""); setSettlingOrder(order); }} disabled={isUpdating} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1B2A4A] hover:bg-black text-white text-[11px] font-bold rounded-xl transition-all shadow-sm active:translate-y-[1px]">
+                        <button
+                          onClick={() => {
+                            setCustomerName(order.customerName || "");
+                            setCustomerPhone(order.customerPhone || "");
+                            if (order.placedByName?.includes("UTR") || order.paymentMethod === "UPI") {
+                              setPaymentMethod("UPI");
+                            } else if (order.placedByName?.includes("Pay at Counter") || order.paymentMethod === "CASH") {
+                              setPaymentMethod("CASH");
+                            }
+                            setSettlingOrder(order);
+                          }}
+                          disabled={isUpdating}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1B2A4A] hover:bg-black text-white text-[11px] font-bold rounded-xl transition-all shadow-sm active:translate-y-[1px]"
+                        >
                           <Printer className="w-3.5 h-3.5" />
                           Settle
                         </button>
@@ -1094,6 +1125,15 @@ export default function LiveOrdersPage() {
                         </div>
                       )}
 
+                      {selectedOrder.placedByName && (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Placed Source</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-[#1B2A4A] bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            {selectedOrder.placedByName}
+                          </span>
+                        </div>
+                      )}
+
                       {selectedOrder.paymentMethod && (
                         <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
                           <span className="text-gray-500 font-medium">Payment Method</span>
@@ -1351,6 +1391,33 @@ export default function LiveOrdersPage() {
                     />
                   </div>
                 </div>
+
+                {/* QR Order Verification Callout */}
+                {settlingOrder.placedByName?.includes("UTR:") && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
+                        <QrCode className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-bold text-emerald-950 block">Customer UPI UTR / Reference:</span>
+                        <span className="font-mono text-xs font-black text-emerald-800 tracking-wide">
+                          {settlingOrder.placedByName.split("UTR:")[1]?.trim()}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200 shadow-2xs">
+                      Soundbox Match ✓
+                    </span>
+                  </div>
+                )}
+
+                {settlingOrder.placedByName?.includes("Pay at Counter") && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2 text-xs text-blue-900">
+                    <Banknote className="w-4 h-4 text-blue-700 shrink-0" />
+                    <span>Customer selected <strong>Pay at Counter</strong>. Collect cash or card now.</span>
+                  </div>
+                )}
 
                 {/* Payment Method Selector */}
                 <div className="space-y-2">

@@ -401,6 +401,7 @@ export interface CreateQROrderPayload {
   customerPhone?: string;
   paymentMethod?: 'UPI' | 'CARD' | 'CASH';
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'FAILED';
+  paymentRef?: string;
 }
 
 export async function fetchTableMenu(
