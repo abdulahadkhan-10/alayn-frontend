@@ -42,6 +42,32 @@ export interface SalesForecastResponse {
   coverage: { forecasted: number; total: number };
 }
 
+export interface AttentionItem {
+  kind: "expired_stock" | "staff_not_in" | "stale_bills" | "low_stock" | "expiring_soon";
+  severity: "high" | "medium";
+  title: string; // "2 people not clocked in"
+  detail: string; // "Head Waiter (shift started 4 PM), ..."
+  href: string; // page where it can be fixed
+}
+
+/** in · left · not_in (shift started, no clock-in) · upcoming · leave · off (weekly off) */
+export type StaffTodayStatus = "in" | "left" | "not_in" | "upcoming" | "leave" | "off";
+
+export interface StaffTodayResponse {
+  rosterSource: "assignments" | "weekly" | "none"; // none = no roster set up for today
+  summary: { working: number; in: number; notIn: number; onLeave: number };
+  staff: {
+    id: string;
+    name: string;
+    role: string;
+    outletName: string | null;
+    shiftLabel: string | null; // "Morning · 8 AM–4 PM"
+    status: StaffTodayStatus;
+    statusLabel: string; // "In since 8:12 AM (late)"
+    late: boolean;
+  }[];
+}
+
 export interface InventoryForecastPoint {
   item: string;
   currentStock: number;
@@ -157,6 +183,22 @@ export const dashboardApiSlice = baseApi.injectEndpoints({
       transformResponse: (response: { data?: OutletComparisonRow[] }) => response.data ?? [],
       providesTags: ["Dashboard"],
     }),
+    getAttention: builder.query<AttentionItem[], { outletId?: string }>({
+      query: ({ outletId }) => ({
+        url: "/dashboard/attention",
+        params: outletId ? { outletId } : undefined,
+      }),
+      transformResponse: (response: { data: { items: AttentionItem[] } }) => response.data.items,
+      providesTags: ["Dashboard"],
+    }),
+    getStaffToday: builder.query<StaffTodayResponse, { outletId?: string }>({
+      query: ({ outletId }) => ({
+        url: "/dashboard/staff-today",
+        params: outletId ? { outletId } : undefined,
+      }),
+      transformResponse: (response: { data: StaffTodayResponse }) => response.data,
+      providesTags: ["Dashboard"],
+    }),
     getInventoryForecast: builder.query<InventoryForecastPoint[], { outletId?: string }>({
       query: ({ outletId }) => ({
         url: "/dashboard/inventory-forecast",
@@ -178,6 +220,8 @@ export const {
   useGetChannelDistributionQuery,
   useGetTopSellingItemsQuery,
   useGetSalesForecastQuery,
+  useGetAttentionQuery,
+  useGetStaffTodayQuery,
   useGetInventoryForecastQuery,
   useGetOutletComparisonQuery,
 } = dashboardApiSlice;

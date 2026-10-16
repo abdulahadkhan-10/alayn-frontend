@@ -9,15 +9,16 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import SalesForecastChart from "@/components/dashboard/SalesForecastChart";
+import NeedsAttentionCard from "@/components/dashboard/NeedsAttentionCard";
 import { useBranch } from "@/lib/BranchContext";
 import {
   useGetKpisQuery,
   useGetSalesVelocityQuery,
   useGetChannelDistributionQuery,
   useGetTopSellingItemsQuery,
+  useGetStaffTodayQuery,
 } from "@/redux/slices/dashboardApiSlice";
 import { useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
-import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetMenuItemsQuery } from "@/redux/slices/menuApiSlice";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import ElectricBorder from "@/components/ui/ElectricBorder";
@@ -77,6 +78,14 @@ interface PageProps {
 type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
 
 // No change (0%, +0, or no comparison yet) gets a grey badge, not a green "up" one
+/** Where an order is: "Table 4", "Counter", "QR order", "Delivery" (never a made-up table number). */
+function orderLocation(source: string, tableNo: string | null) {
+  if (source === "TABLE") return tableNo ? `Table ${tableNo}` : "Table";
+  if (source === "QR") return tableNo ? `QR · Table ${tableNo}` : "QR order";
+  if (source === "DELIVERY") return "Delivery";
+  return "Counter";
+}
+
 function isFlatTrend(trend: string) {
   const n = parseFloat(trend.replace(/[^0-9.\-]/g, ""));
   return !Number.isFinite(n) || n === 0;
@@ -119,15 +128,14 @@ export default function MasterDashboardPage(props?: PageProps) {
     { skip: false }
   );
 
+  // Only orders still open: the card counts and lists those, and fetching every past order is slow
   const { data: realOrders = [], isLoading: isOrdersLoading, refetch: refetchOrders } = useGetOrdersQuery(
-    { outletId },
+    { outletId, excludeCompleted: true },
     { skip: false }
   );
 
-  const { data: employeesResponse = [], isLoading: isEmployeesLoading } = useGetEmployeesQuery(
-    { outletId },
-    { skip: false }
-  );
+  // Real roster, clock-ins and leave for today (same source AlaynAI uses)
+  const { data: staffToday } = useGetStaffTodayQuery({ outletId });
 
   const { data: menuItems = [] } = useGetMenuItemsQuery(
     undefined,
@@ -174,50 +182,6 @@ export default function MasterDashboardPage(props?: PageProps) {
     return "bg-slate-700 text-white font-bold";
   };
 
-  // Process Real Staff / Employees Data (Filtered for Managers and Kitchen Staff only)
-  const managersAndKitchenStaff = useMemo(() => {
-    const rawList = Array.isArray(employeesResponse)
-      ? employeesResponse
-      : (employeesResponse as any)?.data || (employeesResponse as any)?.employees || [];
-
-    let list: any[] = [];
-    if (rawList && rawList.length > 0) {
-      list = rawList.map((emp: any, idx: number) => {
-        const rawName = emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || "Staff Member";
-        const cleanName = rawName.replace(/\(.*?\)/g, "").trim();
-        const roleName = (emp.role || "STAFF").replace(/_/g, " ");
-        const statusMap: Record<string, string> = {
-          ACTIVE: "ON_SHIFT",
-          ON_SHIFT: "ON_SHIFT",
-          ON_LEAVE: "ON_LEAVE",
-          INACTIVE: "OFF_SHIFT",
-        };
-        const status = statusMap[emp.status] || (idx % 4 === 0 ? "ON_LEAVE" : "ON_SHIFT");
-        const defaultHours = status === "ON_LEAVE" ? "-" : idx % 2 === 0 ? "09:00 - 18:00" : "12:00 - 21:00";
-        return {
-          id: emp.id || idx,
-          name: cleanName || "Staff Member",
-          role: roleName,
-          status: status,
-          hours: emp.shiftHours || defaultHours,
-        };
-      });
-    }
-
-    // Filter strictly for Managers and Kitchen staff only
-    const filtered = list.filter((staff) => {
-      const r = (staff.role || "").toUpperCase();
-      return (
-        r.includes("CHEF") ||
-        r.includes("KITCHEN") ||
-        r.includes("MANAGER") ||
-        r.includes("COOK") ||
-        r.includes("SOUS")
-      );
-    });
-
-    return filtered;
-  }, [employeesResponse]);
 
   // Process Real Active Orders Data (Top 4 View)
   const { activeOrdersList, activeStats } = useMemo(() => {
@@ -226,17 +190,18 @@ export default function MasterDashboardPage(props?: PageProps) {
     const processed = rawOrders.map((ord: any) => ({
       id: ord.id,
       ticket: ord.orderNo || `#ORD-${String(ord.id).slice(-4).toUpperCase()}`,
-      source: ord.orderSource || "TABLE",
-      tableNo: ord.tableNo || "T-01",
-      status: ord.status || "PREPARING",
+      source: ord.orderSource || "COUNTER",
+      tableNo: ord.tableNo ?? null,
+      status: ord.status || "SENT_TO_KITCHEN",
       totalAmount: ord.totalAmount || 0,
     }));
 
-    const activeCount = processed.filter((o: any) => o.status !== "COMPLETED" && o.status !== "CANCELLED").length;
+    // "Active" means still in the kitchen or not yet paid; finished and cancelled orders don't belong here
+    const active = processed.filter((o: any) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
 
     return {
-      activeOrdersList: processed,
-      activeStats: { activeCount, totalCount: processed.length },
+      activeOrdersList: active,
+      activeStats: { activeCount: active.length, totalCount: processed.length },
     };
   }, [realOrders]);
 
@@ -360,7 +325,8 @@ export default function MasterDashboardPage(props?: PageProps) {
                   label: "NET SALES (EXCL. GST)",
                   value: kpiData?.totalRevenue?.value || "₹0",
                   prev: kpiData?.totalRevenue?.prev || "₹0",
-                  trend: kpiData?.totalRevenue?.change || "0%",
+                  // No percentage when there is nothing earlier to compare with (the API sends an empty change)
+                  trend: kpiData?.totalRevenue?.change ?? "",
                   positive: kpiData?.totalRevenue?.isPositive ?? true,
                   note: kpiData
                     ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
@@ -376,17 +342,18 @@ export default function MasterDashboardPage(props?: PageProps) {
                 {
                   label: "ACTIVE ORDERS",
                   value: `${activeStats.activeCount}`,
-                  prev: "0",
-                  trend: activeStats.activeCount > 0 ? `+${activeStats.activeCount}` : "0%",
+                  // A live count: there is no earlier value to compare it with
+                  prev: undefined,
+                  trend: "",
                   positive: true,
-                  note: undefined,
+                  note: "In the kitchen or waiting to be paid",
                   route: "/orders"
                 },
                 {
                   label: "AVG ORDER VALUE",
                   value: kpiData?.avgOrderValue?.value || "₹0",
                   prev: kpiData?.avgOrderValue?.prev || "₹0",
-                  trend: kpiData?.avgOrderValue?.change || "0%",
+                  trend: kpiData?.avgOrderValue?.change ?? "",
                   positive: kpiData?.avgOrderValue?.isPositive ?? true,
                   note: "Settled orders, excl. GST",
                   route: "/orders"
@@ -415,7 +382,8 @@ export default function MasterDashboardPage(props?: PageProps) {
                     <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                   <div className="mt-3 flex items-end justify-between">
-                    <span className={`text-2xl font-bold tabular-nums tracking-tight ${kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"}`}>{kpi.value}</span>
+                    {/* Sales is the number owners look for first, so it reads largest */}
+                    <span className={`${idx === 0 ? "text-3xl" : "text-2xl"} font-bold tabular-nums tracking-tight ${kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"}`}>{kpi.value}</span>
                     {kpi.trend && (isFlatTrend(kpi.trend) ? (
                       <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
                         <Minus className="h-3.5 w-3.5" />
@@ -430,11 +398,165 @@ export default function MasterDashboardPage(props?: PageProps) {
                   </div>
                   {kpi.note && <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{kpi.note}</p>}
                   <div className="mt-2 text-[11px] text-slate-400 font-normal font-mono border-t border-slate-100 pt-2 flex justify-between items-center">
-                    <span>Prev: {kpi.prev}</span>
+                    <span>{kpi.prev !== undefined ? `Prev: ${kpi.prev}` : "Right now"}</span>
                     <span className="text-[10px] text-blue-600 font-semibold group-hover:underline">View details</span>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* What to act on right now — directly under today's numbers */}
+            <NeedsAttentionCard outletId={outletId} />
+
+            {/* Right now: open orders and who is working (before the analysis charts) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              
+              {/* Left Side: Recent Active Orders (6 Cols) */}
+              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                      <Activity className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Recent Active Orders</h2>
+                      <p className="text-xs text-slate-500 font-normal">Live kitchen tickets &amp; order queue summary</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
+                      {activeOrdersList.length} Active
+                    </span>
+                    <button
+                      onClick={() => router.push("/orders")}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50/60 px-3 py-1.5 rounded-xl border border-blue-200/60"
+                    >
+                      View All <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200/70 flex-1">
+                  {activeOrdersList.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 flex flex-col items-center justify-center">
+                      <Activity className="h-6 w-6 text-slate-300 mb-1" />
+                      No active orders right now.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-semibold tracking-wider">
+                        <tr>
+                          <th className="px-3.5 py-2.5">Ticket #</th>
+                          <th className="px-3.5 py-2.5">Location</th>
+                          <th className="px-3.5 py-2.5">Status</th>
+                          <th className="px-3.5 py-2.5 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {activeOrdersList.slice(0, 4).map((row: any) => (
+                          <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="px-3.5 py-2.5 font-mono font-bold text-slate-800 text-xs">{row.ticket}</td>
+                            <td className="px-3.5 py-2.5 font-semibold text-slate-700">{orderLocation(row.source, row.tableNo)}</td>
+                            <td className="px-3.5 py-2.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                row.status === "PREPARING" ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                                row.status === "SENT_TO_KITCHEN" ? "bg-amber-50 text-amber-800 border border-amber-200" :
+                                "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              }`}>
+                                {row.status.replace(/_/g, " ")}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right font-bold text-slate-800">₹{row.totalAmount.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+
+              {/* Right Side: Shift Coverage — who is working today, from the real roster and clock-ins */}
+              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                      <ChefHat className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Shift Coverage</h2>
+                      <p className="text-xs text-slate-500 font-normal">
+                        {staffToday && staffToday.summary.working > 0
+                          ? `${staffToday.summary.in} of ${staffToday.summary.working} working today are in`
+                          : "Who's working today"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => router.push("/workforce")}
+                    className="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors bg-indigo-50/60 px-3.5 py-1.5 rounded-xl border border-indigo-200/60"
+                  >
+                    Manage Roster <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* One person per row: names, shift times and status all need the width */}
+                <div className="grid grid-cols-1 gap-2 flex-1 content-start">
+                  {!staffToday || staffToday.staff.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-semibold text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1">
+                      <Users className="h-6 w-6 text-slate-300" />
+                      {staffToday?.rosterSource === "none" || !staffToday
+                        ? "No roster set up for today yet."
+                        : "Nobody is rostered today."}
+                      <button onClick={() => router.push("/workforce")} className="text-indigo-600 hover:underline">
+                        Set up the roster
+                      </button>
+                    </div>
+                  ) : (
+                    staffToday.staff.slice(0, 4).map((staff) => {
+                      const initials = getInitials(staff.name);
+                      const pfpStyle = getRoleAvatarStyle(staff.role);
+                      const pill =
+                        staff.status === "in"
+                          ? staff.late
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800"
+                          : staff.status === "not_in" || staff.status === "leave"
+                          ? "bg-rose-100 text-rose-800"
+                          : "bg-slate-100 text-slate-700";
+                      return (
+                        <div
+                          key={staff.id}
+                          onClick={() => router.push("/workforce")}
+                          className="p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-all cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`h-8 w-8 rounded-full ${pfpStyle} text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-slate-800 truncate">{staff.name}</div>
+                              <div className="text-[11px] text-slate-500 font-medium truncate">
+                                {staff.shiftLabel ?? staff.role.charAt(0) + staff.role.slice(1).toLowerCase()}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold ${pill}`}>
+                            {staff.statusLabel}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {staffToday && staffToday.staff.length > 4 && (
+                  <button onClick={() => router.push("/workforce")} className="self-start text-xs font-semibold text-indigo-600 hover:underline">
+                    +{staffToday.staff.length - 4} more today
+                  </button>
+                )}
+              </section>
+
             </div>
 
             {/* Visual Analytics Row */}
@@ -569,150 +691,6 @@ export default function MasterDashboardPage(props?: PageProps) {
             {/* Sales Forecast (own range toggle; independent of the date filter above) */}
             <SalesForecastChart outletId={outletId} />
 
-            {/* 50/50 SYMMETRIC OPERATIONS TELEMETRY ROW: ACTIVE ORDERS (6) + SHIFT COVERAGE (6) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              
-              {/* Left Side: Recent Active Orders (6 Cols) */}
-              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                      <Activity className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Recent Active Orders</h2>
-                      <p className="text-xs text-slate-500 font-normal">Live kitchen tickets &amp; order queue summary</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
-                      {activeOrdersList.length} Active
-                    </span>
-                    <button
-                      onClick={() => router.push("/orders")}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50/60 px-3 py-1.5 rounded-xl border border-blue-200/60"
-                    >
-                      View All <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200/70 flex-1">
-                  {activeOrdersList.length === 0 ? (
-                    <div className="py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 flex flex-col items-center justify-center">
-                      <Activity className="h-6 w-6 text-slate-300 mb-1" />
-                      No active orders right now.
-                    </div>
-                  ) : (
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-semibold tracking-wider">
-                        <tr>
-                          <th className="px-3.5 py-2.5">Ticket #</th>
-                          <th className="px-3.5 py-2.5">Location</th>
-                          <th className="px-3.5 py-2.5">Status</th>
-                          <th className="px-3.5 py-2.5 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {activeOrdersList.slice(0, 4).map((row: any) => (
-                          <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="px-3.5 py-2.5 font-mono font-bold text-slate-800 text-xs">{row.ticket}</td>
-                            <td className="px-3.5 py-2.5 font-semibold text-slate-700">{row.source}: {row.tableNo}</td>
-                            <td className="px-3.5 py-2.5">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                row.status === "PREPARING" ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                                row.status === "SENT_TO_KITCHEN" ? "bg-amber-50 text-amber-800 border border-amber-200" :
-                                "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              }`}>
-                                {row.status.replace(/_/g, " ")}
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right font-bold text-slate-800">₹{row.totalAmount.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </section>
-
-              {/* Right Side: Shift Coverage Summary (6 Cols) */}
-              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                      <ChefHat className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Shift Coverage Summary</h2>
-                      <p className="text-xs text-slate-500 font-normal">Active managers &amp; kitchen staff availability</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200">
-                      Managers &amp; Kitchen
-                    </span>
-                    <button
-                      onClick={() => router.push("/workforce")}
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors bg-indigo-50/60 px-3.5 py-1.5 rounded-xl border border-indigo-200/60"
-                    >
-                      Manage Roster <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-                  {managersAndKitchenStaff.length === 0 ? (
-                    <div className="col-span-2 py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center">
-                      <Users className="h-6 w-6 text-slate-300 mb-1" />
-                      No staff members registered for this branch yet.
-                    </div>
-                  ) : (
-                    managersAndKitchenStaff.slice(0, 4).map((staff: any) => {
-                      const initials = getInitials(staff.name);
-                      const pfpStyle = getRoleAvatarStyle(staff.role);
-                      return (
-                        <div
-                          key={staff.id}
-                          onClick={() => router.push("/workforce")}
-                          className="p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={`h-8 w-8 rounded-full ${pfpStyle} text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
-                              {initials}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-800 truncate">{staff.name}</div>
-                              <div className="text-[10px] text-slate-500 font-medium truncate">{staff.role}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end shrink-0">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                staff.status === "ON_SHIFT"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : staff.status === "ON_LEAVE"
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-slate-200 text-slate-700"
-                              }`}
-                            >
-                              {staff.status.replace("_", " ")}
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400 mt-0.5">{staff.hours}</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </section>
-
-            </div>
-
-
             {/* ========================================================================= */}
             {/* FULL WIDTH SECTION 2: TOP SELLING MENU ITEMS (RICH SPLIT CHART + LEADERBOARD) */}
             {/* ========================================================================= */}
@@ -732,9 +710,9 @@ export default function MasterDashboardPage(props?: PageProps) {
 
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-4 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80">
-                    <span>Total Volume: <strong className="text-slate-800">{topItemsAnalytics.totalVolume} units</strong></span>
+                    <span>Units sold: <strong className="text-slate-800">{topItemsAnalytics.totalVolume}</strong></span>
                     <span className="text-slate-300">|</span>
-                    <span>Top Sales: <strong className="text-emerald-700">₹{topItemsAnalytics.totalRevenue.toLocaleString()}</strong></span>
+                    <span>Sales from these items: <strong className="text-emerald-700">₹{topItemsAnalytics.totalRevenue.toLocaleString()}</strong></span>
                   </div>
                   <button
                     onClick={() => router.push("/menu")}
@@ -775,6 +753,7 @@ export default function MasterDashboardPage(props?: PageProps) {
                         <YAxis
                           axisLine={false}
                           tickLine={false}
+                          allowDecimals={false} // item counts: you can't sell 0.25 of a wrap
                           tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
                         />
                         <Tooltip 
