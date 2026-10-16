@@ -36,12 +36,9 @@ import {
   Printer,
   User,
   Leaf,
-  Bluetooth,
 } from "lucide-react";
 import {
-  pairWebBluetoothPrinter,
-  isWebBluetoothSupported,
-  getConnectedPrinterName,
+  autoPrintKOT as dispatchHardwareAutoPrintKOT,
 } from "@/lib/bluetoothAutoPrinter";
 import ThermalReceipt from "./ThermalReceipt";
 import ThermalKOT from "./ThermalKOT";
@@ -153,20 +150,6 @@ export default function PosTerminalComponent() {
     }
     return true;
   });
-  const [btPrinterName, setBtPrinterName] = useState<string | null>(() => getConnectedPrinterName());
-  const [isPairingBt, setIsPairingBt] = useState(false);
-
-  const handlePairBt = async () => {
-    setIsPairingBt(true);
-    const res = await pairWebBluetoothPrinter();
-    setIsPairingBt(false);
-    if (res.success) {
-      setBtPrinterName(res.name || "Bluetooth Printer");
-    } else if (res.error && res.error !== "Cancelled by user") {
-      alert(res.error);
-    }
-  };
-
   // Mobile & Modal UI States
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -370,9 +353,14 @@ export default function PosTerminalComponent() {
     try {
       const result = await createOrder(payload).unwrap();
       setCompletedOrder({ ...result, _flow: "KITCHEN" });
-      if (autoPrintKOT || kitchenCaps.supportsKotPrint) {
-        setPrintingKOTOrder(result);
+      
+      // Directly shoot KOT to connected printer device in the background!
+      if (kitchenCaps.supportsKotPrint) {
+        dispatchHardwareAutoPrintKOT(result, false, "80mm").catch((err: any) =>
+          console.warn("Direct KOT hardware dispatch:", err)
+        );
       }
+
       setCart([]);
       setCustomerName("");
       setCustomerPhone("");
@@ -479,22 +467,6 @@ export default function PosTerminalComponent() {
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>KOT Print: {autoPrintKOT ? "AUTO ON" : "OFF"}</span>
-                </button>
-              )}
-              {isWebBluetoothSupported() && (
-                <button
-                  type="button"
-                  onClick={handlePairBt}
-                  disabled={isPairingBt}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                    btPrinterName
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs hover:bg-emerald-100"
-                      : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
-                  }`}
-                  title={btPrinterName ? `Connected to: ${btPrinterName}` : "Click to pair with Bluetooth Thermal Printer (Zero apps needed)"}
-                >
-                  <Bluetooth className="w-3.5 h-3.5" />
-                  <span>{isPairingBt ? "Pairing..." : btPrinterName ? btPrinterName.slice(0, 10) : "Pair BT Printer"}</span>
                 </button>
               )}
             </div>
@@ -1687,12 +1659,12 @@ export default function PosTerminalComponent() {
                   </p>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-xl flex items-center justify-between text-left">
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3.5 rounded-xl flex items-center justify-between text-left">
                   <div>
-                    <span className="block font-black">{isKitchenDispatch ? "Kitchen Ticket Fired" : "Order Recorded"}</span>
-                    <span className="text-[11px] font-medium text-emerald-700">
+                    <span className="block font-black text-sm">{isKitchenDispatch ? "✓ Kitchen Ticket Fired" : "Order Recorded"}</span>
+                    <span className="text-[11px] font-semibold text-emerald-700 block mt-0.5">
                       {isKitchenDispatch
-                        ? "Dispatched to kitchen for immediate preparation"
+                        ? "KOT shot to connected printer & dispatched to kitchen"
                         : kitchenCaps.isKotOnly
                         ? "KOT ready for thermal printer"
                         : kitchenCaps.isKdsOnly
@@ -1700,20 +1672,32 @@ export default function PosTerminalComponent() {
                         : "Sent live to KDS & KOT ready to print"}
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-950 font-black text-[10px] uppercase">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-950 font-black text-[10px] uppercase shrink-0">
                     {isKitchenDispatch ? "KITCHEN" : kitchenCaps.mode}
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  {/* Primary: Print Kitchen KOT Slip */}
+                <div className="space-y-2 pt-1">
+                  {/* Single Clean Primary Action: Start Next Order Ticket */}
                   <button
-                    onClick={() => setPrintingKOTOrder(orderObj)}
-                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => setCompletedOrder(null)}
+                    className="w-full py-3 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Printer className="w-4 h-4" />
-                    Print Kitchen Order Ticket (KOT)
+                    <span>Start Next Order Ticket</span>
+                    <ChevronRight className="w-4 h-4" />
                   </button>
+
+                  {/* Secondary Subtle Action: ONLY if cashier needs an extra re-print copy */}
+                  {kitchenCaps.supportsKotPrint && isKitchenDispatch && (
+                    <button
+                      type="button"
+                      onClick={() => setPrintingKOTOrder(orderObj)}
+                      className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Need extra copy? Re-print KOT Slip</span>
+                    </button>
+                  )}
 
                   {/* Print Customer Bill Receipt: ONLY on Checkout / Payment completion (never on Send to Kitchen) */}
                   {!isKitchenDispatch && (
@@ -1725,31 +1709,6 @@ export default function PosTerminalComponent() {
                       Print Customer Bill Receipt
                     </button>
                   )}
-
-                  {/* Auto-print toggle - only when outlet mode supports KOT */}
-                  {kitchenCaps.supportsKotPrint && (
-                    <label className="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={autoPrintKOT}
-                        onChange={(e) => {
-                          setAutoPrintKOT(e.target.checked);
-                          if (typeof window !== "undefined") {
-                            localStorage.setItem("alayn_auto_print_kot", String(e.target.checked));
-                          }
-                        }}
-                        className="rounded text-rose-600 focus:ring-rose-500"
-                      />
-                      <span>Auto-open KOT print on new orders</span>
-                    </label>
-                  )}
-
-                  <button
-                    onClick={() => setCompletedOrder(null)}
-                    className="w-full py-2.5 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer mt-1"
-                  >
-                    Start Next Order Ticket
-                  </button>
                 </div>
               </div>
           );
@@ -1779,7 +1738,7 @@ export default function PosTerminalComponent() {
             <div className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-w-md w-full">
               <ThermalReceipt
                 order={printingOrder}
-                autoPrint={true}
+                autoPrint={false}
                 onClose={() => setPrintingOrder(null)}
               />
             </div>

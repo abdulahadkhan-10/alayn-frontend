@@ -10,6 +10,7 @@
  */
 
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
+import { printThermalHtml } from "./printUtils";
 
 export interface PrintResult {
   success: boolean;
@@ -22,23 +23,42 @@ export interface PrintResult {
 let cachedDevice: any = null;
 let cachedCharacteristic: any = null;
 
+// Global cached connection for Web Serial (USB Thermal Printers)
+let cachedSerialPort: any = null;
+let cachedSerialWriter: any = null;
+
 /** Check if Web Bluetooth is supported in the current browser */
 export function isWebBluetoothSupported(): boolean {
   return typeof navigator !== "undefined" && Boolean((navigator as any).bluetooth);
 }
 
+/** Check if Web Serial (USB) is supported in the current browser */
+export function isWebSerialSupported(): boolean {
+  return typeof navigator !== "undefined" && Boolean((navigator as any).serial);
+}
+
 /** Check if a Web Bluetooth printer is currently connected */
 export function isPrinterConnected(): boolean {
-  return Boolean(cachedCharacteristic && cachedDevice && cachedDevice.gatt?.connected);
+  return Boolean(
+    (cachedCharacteristic && cachedDevice && cachedDevice.gatt?.connected) ||
+    (cachedSerialPort && cachedSerialPort.writable)
+  );
 }
 
 /** Get the display name of the paired printer */
 export function getConnectedPrinterName(): string | null {
-  if (isPrinterConnected()) {
+  if (cachedCharacteristic && cachedDevice && cachedDevice.gatt?.connected) {
     return cachedDevice?.name || "Bluetooth Printer";
   }
+  if (cachedSerialPort && cachedSerialPort.writable) {
+    return "USB Thermal Printer";
+  }
   if (typeof window !== "undefined") {
-    return localStorage.getItem("alayn_bt_printer_name");
+    return (
+      localStorage.getItem("alayn_bt_printer_name") ||
+      localStorage.getItem("alayn_usb_printer_name") ||
+      null
+    );
   }
   return null;
 }
@@ -131,6 +151,55 @@ export function disconnectWebBluetoothPrinter(): void {
   cachedCharacteristic = null;
   if (typeof window !== "undefined") {
     localStorage.removeItem("alayn_bt_printer_name");
+  }
+}
+
+/**
+ * ⚡ Strategy 1B: Pair and connect USB Thermal Printer via Web Serial directly from Chrome
+ * Works on Windows, Mac, Linux for all TVS, Epson, Xprinter, POS-58, POS-80 USB printers.
+ */
+export async function pairWebSerialPrinter(): Promise<{ success: boolean; name?: string; error?: string }> {
+  if (!isWebSerialSupported()) {
+    return {
+      success: false,
+      error: "Web Serial is not supported in this browser. Please use Chrome or Edge.",
+    };
+  }
+
+  try {
+    const port = await (navigator as any).serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    cachedSerialPort = port;
+    cachedSerialWriter = port.writable.getWriter();
+    if (typeof window !== "undefined") {
+      localStorage.setItem("alayn_usb_printer_name", "USB Thermal Printer");
+      localStorage.setItem("alayn_print_mode", "serial");
+    }
+    return { success: true, name: "USB Thermal Printer" };
+  } catch (err: any) {
+    if (err.name === "NotFoundError") {
+      return { success: false, error: "Cancelled by user" };
+    }
+    return { success: false, error: err.message || "Failed to pair USB printer" };
+  }
+}
+
+/** Send ESC/POS bytes over Web Serial (USB) */
+export async function printViaWebSerial(bytes: Uint8Array): Promise<boolean> {
+  if (!cachedSerialPort) return false;
+  try {
+    if (!cachedSerialWriter || cachedSerialPort.writable.locked) {
+      cachedSerialWriter = cachedSerialPort.writable.getWriter();
+    }
+    await cachedSerialWriter.write(bytes);
+    cachedSerialWriter.releaseLock();
+    return true;
+  } catch (err) {
+    console.error("[Alayn Serial] Write error:", err);
+    try {
+      cachedSerialWriter?.releaseLock();
+    } catch (_) {}
+    return false;
   }
 }
 
@@ -296,6 +365,14 @@ export async function autoPrintKOT(order: any, isCancellation = false, paperWidt
     }
   }
 
+  // Step 2B: If USB Thermal Printer is connected via Web Serial
+  if (cachedSerialPort) {
+    const success = await printViaWebSerial(bytes);
+    if (success) {
+      return { success: true, channel: "web-serial" as any };
+    }
+  }
+
   // Step 3: ONLY if user explicitly enabled RawBT in settings
   const userMode = typeof window !== "undefined" ? localStorage.getItem("alayn_print_mode") : "system";
   if (userMode === "rawbt" && isAndroidDevice()) {
@@ -306,8 +383,118 @@ export async function autoPrintKOT(order: any, isCancellation = false, paperWidt
     }
   }
 
-  // Step 4: Fallback to system print (window.print / printThermalHtml) - ZERO redirects!
-  return { success: false, channel: "kiosk-system", message: "Fallback to system print" };
+  // Step 4: Direct System Thermal Fallback (Silent iframe print)
+  // Ensures KOT ALWAYS prints physically even if Web Bluetooth/Serial is not yet paired!
+  try {
+    const html = buildKotHtml(order, isCancellation, paperWidth);
+    const printed = await printThermalHtml(html);
+    return { success: printed, channel: "kiosk-system" };
+  } catch (err: any) {
+    console.error("[Alayn Printer] System print failed:", err);
+    return { success: false, channel: "kiosk-system", error: err?.message };
+  }
+}
+
+/**
+ * 🖨️ Builds standard thermal HTML for Kitchen Order Tickets
+ */
+export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80mm" | "58mm" = "80mm"): string {
+  const actualOrder = (order as any)?.data || order || {};
+  const orderNumber = actualOrder.orderNumber || actualOrder.orderNo || (actualOrder.id ? String(actualOrder.id).slice(0, 8) : "KOT-1");
+  const tableDisplay = actualOrder.tableNumber || actualOrder.tableNo ? `Table ${actualOrder.tableNumber || actualOrder.tableNo}` : "Counter Direct";
+  const orderSource = (actualOrder.orderSource || actualOrder.source || "DINE-IN").toUpperCase();
+  const outletName = actualOrder.outlet?.name || "ALAYN RESTAURANT";
+  const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
+  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+  const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
+  const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
+  const timestamp = actualOrder.createdAt
+    ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+  const cancelTimestamp = actualOrder.cancelledAt
+    ? new Date(actualOrder.cancelledAt).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : timestamp;
+
+  const cancelReason = actualOrder.comment || actualOrder.cancelReason;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${isCancellation ? "VOID-KOT" : "KOT"}-${orderNumber}</title>
+        <meta charset="UTF-8" />
+        <style>
+          @page { size: ${paperWidth} auto; margin: 0mm; }
+          @media print {
+            html, body {
+              width: ${printWidth};
+              margin: 0 auto;
+              padding: 0;
+              background: #fff !important;
+              color: #000 !important;
+            }
+          }
+          * { box-sizing: border-box; color: #000 !important; font-family: 'Courier New', Courier, monospace !important; }
+          body { width: ${printWidth}; margin: 0 auto; padding: 4mm 2mm; font-size: 13px; line-height: 1.3; }
+          .center { text-align: center; }
+          .bold { font-weight: 900; }
+          .cancel-banner { border: 2px solid #000; padding: 6px; text-align: center; font-weight: 900; margin: 8px 0; }
+          .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin: 6px 0; font-size: 12px; }
+          .meta-row { display: flex; justify-content: space-between; margin: 3px 0; }
+          .items-header { display: flex; justify-content: space-between; font-weight: 900; border-bottom: 1px solid #000; padding: 4px 0; margin-top: 8px; }
+          .item-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted #aaa; }
+          .item-qty { border: 1.5px solid #000; padding: 1px 6px; font-weight: 900; min-width: 26px; text-align: center; }
+          .footer-line { text-align: center; font-weight: 900; border-top: 1.5px dashed #000; margin-top: 14px; padding-top: 8px; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <div class="center bold" style="font-size: 15px; text-transform: uppercase;">${outletName}</div>
+        <div class="center" style="font-size: 11px; margin-bottom: 6px;">KITCHEN ORDER TICKET (KOT)</div>
+        ${isCancellation
+          ? '<div class="cancel-banner"><div style="font-size: 14px; font-weight: 900;">*** VOID / CANCELLED ***</div><div style="font-size: 11px; font-weight: 800; margin-top: 2px;">DO NOT PREPARE FOOD</div></div>'
+          : '<div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 2px 8px; display: inline-block; margin: 4px 0;">KOT #' + maxKotNo + '</div>'
+        }
+        <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 6px 0;">
+          ${tableDisplay.toUpperCase()} (${orderSource})
+        </div>
+        <div class="meta-table">
+          <div class="meta-row"><span>Order #:</span><span class="bold">${orderNumber}</span></div>
+          <div class="meta-row"><span>Staff:</span><span>${serverName}</span></div>
+          <div class="meta-row"><span>Placed:</span><span>${timestamp}</span></div>
+          ${isCancellation ? '<div class="meta-row bold"><span>Cancelled:</span><span>' + cancelTimestamp + '</span></div>' : ""}
+          ${actualOrder.customerName ? '<div class="meta-row"><span>Customer:</span><span>' + actualOrder.customerName + '</span></div>' : ""}
+          ${isCancellation && cancelReason ? '<div style="margin-top: 4px; padding: 4px; border-left: 2px solid #000; font-size: 11px;"><strong>Reason:</strong> ' + cancelReason + '</div>' : ""}
+        </div>
+        <div class="items-header"><span>ITEM</span><span>QTY</span></div>
+        ${itemsList.map((item: any) => {
+          const name = item.menuItem?.name || item.menuItemName || "Item";
+          const note = item.notes ? '<div style="font-size: 10px; font-style: italic; margin-left: 10px;">Note: ' + item.notes + '</div>' : "";
+          return `
+            <div class="item-row">
+              <div style="flex: 1; padding-right: 8px;"><span class="bold">${name}</span>${note}</div>
+              <div class="item-qty">${item.quantity}</div>
+            </div>
+          `;
+        }).join("")}
+        <div class="footer-line">
+          ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : '--- END OF KOT #' + maxKotNo + ' ---'}
+        </div>
+      </body>
+    </html>
+  `;
 }
 
 /**
@@ -330,6 +517,14 @@ export async function autoPrintReceipt(order: any, paperWidth: "80mm" | "58mm" =
     const success = await printViaWebBluetooth(bytes);
     if (success) {
       return { success: true, channel: "web-bluetooth" };
+    }
+  }
+
+  // Step 2B: If USB Thermal Printer is connected via Web Serial
+  if (cachedSerialPort) {
+    const success = await printViaWebSerial(bytes);
+    if (success) {
+      return { success: true, channel: "web-serial" as any };
     }
   }
 
