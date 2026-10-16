@@ -68,6 +68,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "CASH">("UPI");
+  const [upiRef, setUpiRef] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // Active Order Live Tracking
@@ -294,10 +295,17 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         customerPhone: customerPhone.trim() || undefined,
         paymentMethod: paymentMethod,
         paymentStatus: paymentMethod === "UPI" ? "CONFIRMED" : "PENDING",
+        paymentRef:
+          paymentMethod === "UPI" && upiRef.trim()
+            ? upiRef.trim()
+            : paymentMethod === "CASH"
+            ? "Pay at Counter"
+            : undefined,
       });
 
       if (res.ok) {
         clearCart();
+        setUpiRef("");
         setIsCartOpen(false);
         // Refresh active order and show live tracker
         await loadMenuAndActiveOrder(true);
@@ -990,19 +998,44 @@ export default function CustomerOrderUI({ token }: { token: string }) {
 
                   {/* UPI QR Display if UPI is selected */}
                   {paymentMethod === "UPI" && dynamicUpiUrl && (
-                    <div className="mt-3 p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3">
-                      <div className="bg-white p-1.5 rounded-xl border border-emerald-200 shrink-0">
-                        <QRCodeSVG value={dynamicUpiUrl} size={64} fgColor="#064E3B" bgColor="#FFFFFF" />
+                    <div className="mt-3 space-y-3">
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3">
+                        <div className="bg-white p-1.5 rounded-xl border border-emerald-200 shrink-0">
+                          <QRCodeSVG value={dynamicUpiUrl} size={64} fgColor="#064E3B" bgColor="#FFFFFF" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-emerald-950">Pay ₹{billSummary.totalRupees} via UPI</p>
+                          <p className="text-[10px] text-emerald-700 truncate">VPA: {outletUpiId}</p>
+                          <a
+                            href={dynamicUpiUrl}
+                            className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-2.5 py-1 rounded-lg hover:bg-emerald-300 transition"
+                          >
+                            Open in UPI App <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-emerald-950">Pay ₹{billSummary.totalRupees} via UPI</p>
-                        <p className="text-[10px] text-emerald-700 truncate">VPA: {outletUpiId}</p>
-                        <a
-                          href={dynamicUpiUrl}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-emerald-800 bg-emerald-200/80 px-2.5 py-1 rounded-lg hover:bg-emerald-300 transition"
-                        >
-                          Open in UPI App <ExternalLink className="w-3 h-3" />
-                        </a>
+
+                      {/* UTR / UPI Ref input */}
+                      <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-3 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-zinc-800">
+                            UPI Reference / UTR No.
+                          </label>
+                          <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                            Recommended
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. 4028... or last 4 digits from UPI app"
+                          value={upiRef}
+                          onChange={(e) => setUpiRef(e.target.value)}
+                          maxLength={30}
+                          className="w-full text-xs font-mono px-3 py-2 bg-white border border-zinc-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 text-zinc-900 placeholder:text-zinc-400"
+                        />
+                        <p className="text-[10px] text-zinc-500 leading-tight">
+                          After paying on GPay, PhonePe or Paytm, entering the UTR or last 4 digits lets the cashier verify your order in 1 tap.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1128,6 +1161,53 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Payment Acknowledgment Banner in Live Tracker */}
+              <div className="p-3.5 rounded-2xl border text-xs flex items-center justify-between gap-3 bg-zinc-50 border-zinc-200">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR") ? (
+                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                  ) : (
+                    <div className="p-2 rounded-xl bg-[#1B2A4A]/10 text-[#1B2A4A] shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-bold text-zinc-900 truncate">
+                      {activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                        ? "UPI Payment Submitted"
+                        : "Pay at Counter"}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 font-mono truncate">
+                      {activeOrder.placedByName?.includes("UTR:")
+                        ? `Ref: ${activeOrder.placedByName.split("UTR:")[1]?.trim()}`
+                        : activeOrder.paymentRef
+                        ? `Ref: ${activeOrder.paymentRef}`
+                        : activeOrder.paymentMethod === "UPI"
+                        ? "Direct Dynamic UPI"
+                        : "Settle bill with cashier"}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0",
+                    activeOrder.paymentStatus === "PAID"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      : activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                      ? "bg-amber-100 text-amber-800 border border-amber-200"
+                      : "bg-blue-100 text-blue-800 border border-blue-200"
+                  )}
+                >
+                  {activeOrder.paymentStatus === "PAID"
+                    ? "Paid ✓"
+                    : activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                    ? "Awaiting Check"
+                    : "Pay Later"}
+                </span>
               </div>
 
               {/* Active Items List */}
