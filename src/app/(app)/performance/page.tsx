@@ -4,6 +4,7 @@ import React from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import SalesForecastChart from "@/components/dashboard/SalesForecastChart";
+import OrderChannelsCard from "@/components/dashboard/OrderChannelsCard";
 import { PerformanceOverview, PerformanceMetricCard } from "@/components/PerformanceOverview";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetKpisQuery, useGetOutletComparisonQuery } from "@/redux/slices/dashboardApiSlice";
@@ -83,6 +84,11 @@ export default function PerformancePage() {
           {/* Daily sales with forecast */}
           <div className="mb-6">
             <SalesForecastChart outletId={outletId} />
+          </div>
+
+          {/* Where orders come from (moved here from the Overview) */}
+          <div className="mb-6">
+            <OrderChannelsCard outletId={outletId} />
           </div>
 
           {/* Location table */}

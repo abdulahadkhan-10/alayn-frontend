@@ -17,6 +17,7 @@ import {
   Truck,
   Trash2,
   Filter,
+  ClipboardCheck,
 } from "lucide-react";
 
 import Skeleton from "react-loading-skeleton";
@@ -97,6 +98,13 @@ export default function InventoryPage() {
           <h1 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight">
             Inventory
           </h1>
+          <div className="flex items-center gap-2">
+          <Link
+            href="/inventory/count"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-zinc-800 hover:bg-zinc-50 transition-colors shadow-2xs"
+          >
+            <ClipboardCheck className="h-4 w-4" /> Count stock
+          </Link>
           <button
             id="add-inventory-item-btn"
             onClick={() => setShowAdd(true)}
@@ -104,6 +112,7 @@ export default function InventoryPage() {
           >
             <Plus className="h-4 w-4" /> Add Item
           </button>
+          </div>
         </div>
 
         {/* Search & Simple Filters Row */}

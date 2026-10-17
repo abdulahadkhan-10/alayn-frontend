@@ -12,7 +12,7 @@ Alayn AI is an enterprise-grade, multi-tenant operating system built for restaur
 ## Core Capabilities
 1. **Counter & Table POS**: Counter and table billing with UPI, card and cash, plus printed KOTs and receipts.
 2. **Kitchen Display System (KDS)**: Orders appear on the kitchen board in real time; cancellations are flagged to the kitchen.
-3. **Smart Inventory**: Recipe-based stock deduction when orders complete, minimum levels, expiry alerts, and one-click restock purchase orders.
+3. **Smart Inventory**: Stock levels, minimum levels, expiry alerts, and one-click restock purchase orders.
 4. **Waste Management**: Waste logged per item with a reason, loss totals and trends, and high-waste alerts.
 5. **Workforce**: Shift scheduling, staff-requested shift swaps with manager approval, leave approvals, and a tablet clock-in kiosk.
 6. **Multi-Outlet Management**: Every outlet from one login, each with its own orders, stock and staff.
@@ -42,7 +42,7 @@ Alayn AI is the dedicated hospitality technology company within **BRAHM Global H
 
 ## 2. The Four Pillars of Alayn AI
 1. **Real-Time Floor & Kitchen Sync**: Orders reach the kitchen display the moment they're placed, and the floor is notified when they're ready.
-2. **Inventory & Waste**: Recipe-based stock deduction, minimum levels, expiry alerts and a waste ledger with reasons, to cut waste and emergency stockouts.
+2. **Inventory & Waste**: Stock levels, minimum levels, expiry alerts and a waste ledger with reasons, to cut waste and emergency stockouts.
 3. **Workforce Matrix Optimization**: Intelligent shift rosters, attendance kiosks, and leave management designed for high-turnover hospitality teams.
 4. **Multi-Outlet Enterprise Scalability**: Multi-tenant architecture designed to scale seamlessly from single independent venues to multi-city restaurant groups.
 

@@ -2,18 +2,15 @@ import { baseApi } from "../store/baseApi";
 
 export interface KpiResponse {
   totalRevenue: { value: string; change: string; isPositive: boolean; prev?: string };
-  cogs: { value: string; change: string; isPositive: boolean; prev?: string };
-  grossProfit: { value: string; change: string; isPositive: boolean; prev?: string };
   laborCosts: { value: string; change: string; isPositive: boolean; prev?: string };
-  netMargin: { value: string; change: string; isPositive: boolean; prev?: string };
+  // Stock logged as waste (menu items aren't linked to stock, so there is no food cost or margin)
+  waste?: { value: string; change: string; isPositive: boolean; prev?: string };
   avgOrderValue?: { value: string; change: string; isPositive: boolean; prev?: string };
   orders?: { value: string; change: string; isPositive: boolean; prev?: string }; // settled orders
   // Revenue = settled sales before tax; these are reported separately
   taxCollected?: { value: string };
   serviceCharge?: { value: string };
   openBills?: { value: string; count: number };
-  // False when no menu item has recipe costs, so food cost / margin can't be computed yet
-  cogsConfigured?: boolean;
 }
 
 export interface SalesForecastPoint {
@@ -43,7 +40,7 @@ export interface SalesForecastResponse {
 }
 
 export interface AttentionItem {
-  kind: "expired_stock" | "staff_not_in" | "stale_bills" | "low_stock" | "expiring_soon";
+  kind: "expired_stock" | "staff_not_in" | "stale_bills" | "low_stock" | "runs_out_soon" | "expiring_soon";
   severity: "high" | "medium";
   title: string; // "2 people not clocked in"
   detail: string; // "Head Waiter (shift started 4 PM), ..."
@@ -66,6 +63,41 @@ export interface StaffTodayResponse {
     statusLabel: string; // "In since 8:12 AM (late)"
     late: boolean;
   }[];
+}
+
+/** Today's sales so far against a typical same weekday (₹, before tax) */
+export interface TodayPaceResponse {
+  /** no_pattern: fewer than 2 past same weekdays with sales, so no comparison yet */
+  status: "ok" | "no_pattern";
+  weekday: string; // "Friday"
+  typicalDays: number;
+  soFar: number;
+  forecastToday: number | null;
+  expectedByNow: number | null;
+  pacePct: number | null; // + ahead / − behind of expected-by-now
+  asOf: string; // "2:05 PM"
+  slots: { label: string; actual: number | null; typical: number; isNow: boolean }[]; // actual null = later today
+}
+
+/** The next 7 days: forecast next to how many people are rostered */
+export interface StaffingWeekResponse {
+  forecastStatus: "ok" | "early" | "learning";
+  days: {
+    date: string;
+    label: string; // "Sat"
+    dayOfMonth: number;
+    forecast: number | null;
+    closed: boolean;
+    staff: number;
+    salesPerStaff: number | null;
+    flag: "understaffed" | "overstaffed" | null;
+  }[];
+}
+
+/** Active dishes with no settled sales in the last `days` days */
+export interface SlowMoversResponse {
+  days: number;
+  items: { id: string; name: string; category: string; price: number; lastSoldDaysAgo: number | null }[]; // null = never sold
 }
 
 export interface InventoryForecastPoint {
@@ -199,6 +231,30 @@ export const dashboardApiSlice = baseApi.injectEndpoints({
       transformResponse: (response: { data: StaffTodayResponse }) => response.data,
       providesTags: ["Dashboard"],
     }),
+    getSlowMovers: builder.query<SlowMoversResponse, { outletId?: string }>({
+      query: ({ outletId }) => ({
+        url: "/dashboard/slow-movers",
+        params: outletId ? { outletId } : undefined,
+      }),
+      transformResponse: (response: { data: SlowMoversResponse }) => response.data,
+      providesTags: ["Dashboard"],
+    }),
+    getTodayPace: builder.query<TodayPaceResponse, { outletId?: string }>({
+      query: ({ outletId }) => ({
+        url: "/dashboard/today-pace",
+        params: outletId ? { outletId } : undefined,
+      }),
+      transformResponse: (response: { data: TodayPaceResponse }) => response.data,
+      providesTags: ["Dashboard"],
+    }),
+    getStaffingWeek: builder.query<StaffingWeekResponse, { outletId?: string }>({
+      query: ({ outletId }) => ({
+        url: "/dashboard/staffing-week",
+        params: outletId ? { outletId } : undefined,
+      }),
+      transformResponse: (response: { data: StaffingWeekResponse }) => response.data,
+      providesTags: ["Dashboard"],
+    }),
     getInventoryForecast: builder.query<InventoryForecastPoint[], { outletId?: string }>({
       query: ({ outletId }) => ({
         url: "/dashboard/inventory-forecast",
@@ -222,6 +278,9 @@ export const {
   useGetSalesForecastQuery,
   useGetAttentionQuery,
   useGetStaffTodayQuery,
+  useGetTodayPaceQuery,
+  useGetSlowMoversQuery,
+  useGetStaffingWeekQuery,
   useGetInventoryForecastQuery,
   useGetOutletComparisonQuery,
 } = dashboardApiSlice;

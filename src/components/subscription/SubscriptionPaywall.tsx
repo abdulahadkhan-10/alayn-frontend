@@ -261,7 +261,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>AI Menu Recipe & Wastage Telemetry</span>
+                <span>AI Menu & Wastage Insights</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />

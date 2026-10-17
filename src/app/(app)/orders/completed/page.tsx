@@ -412,7 +412,7 @@ export default function CompletedOrdersPage() {
               >
                 <option value="ALL">All Channels</option>
                 <option value="TABLE">Table (Dine-in)</option>
-                <option value="COUNTER">Counter (Takeaway)</option>
+                <option value="COUNTER">Counter</option>
                 <option value="QR">QR Ordering</option>
                 <option value="DELIVERY">Delivery</option>
               </select>

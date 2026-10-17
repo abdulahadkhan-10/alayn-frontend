@@ -29,7 +29,7 @@ export default function InventoryNavTabs() {
           } else if (isPOsTab) {
             isActive = pathname === "/inventory/procurement" && activeTabParam !== "suppliers";
           } else {
-            isActive = pathname === "/inventory" || pathname === "/inventory/adjust";
+            isActive = pathname === "/inventory" || pathname === "/inventory/adjust" || pathname === "/inventory/count";
           }
 
           return (
