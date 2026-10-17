@@ -36,7 +36,12 @@ import {
   Printer,
   User,
   Leaf,
+  Tag,
 } from "lucide-react";
+import {
+  useValidateRestaurantCouponMutation,
+  ValidateCouponResponse,
+} from "@/redux/slices/restaurantCouponApiSlice";
 import {
   autoPrintKOT as dispatchHardwareAutoPrintKOT,
 } from "@/lib/bluetoothAutoPrinter";
@@ -136,6 +141,39 @@ export default function PosTerminalComponent() {
   const [taxPercent, setTaxPercent] = useState<number>(5);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("UPI");
   const [editingNoteItemId, setEditingNoteItemId] = useState<string | null>(null);
+
+  // Coupon States & Handlers
+  const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateRestaurantCouponMutation();
+  const [couponInput, setCouponInput] = useState<string>("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError(null);
+    try {
+      const res = await validateCoupon({
+        code: couponInput.trim().toUpperCase(),
+        subtotalAmount: subtotal,
+        outletId: currentOutletId || undefined,
+      }).unwrap();
+
+      setAppliedCoupon(res);
+      setDiscount(res.discountAmount);
+      setCouponError(null);
+    } catch (err: any) {
+      setCouponError(err?.data?.message || err?.message || "Coupon code does not exist");
+      setAppliedCoupon(null);
+      setDiscount(0);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+    setDiscount(0);
+  };
 
   // Customer & Receipt Printing States
   const [customerName, setCustomerName] = useState<string>("");
@@ -285,6 +323,9 @@ export default function PosTerminalComponent() {
   const clearCart = () => {
     setCart([]);
     setDiscount(0);
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
   };
 
   // Bill Rates & Registration Type
@@ -413,6 +454,8 @@ export default function PosTerminalComponent() {
       })),
       paymentMethod,
       discountAmount: discount,
+      couponCode: appliedCoupon?.code,
+      couponId: appliedCoupon?.couponId,
       taxAmount: taxAmount,
     };
 
@@ -1566,6 +1609,76 @@ export default function PosTerminalComponent() {
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3 py-2 text-xs font-medium bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:border-[#1B2A4A]"
                   />
+                </div>
+
+                {/* Coupon Code Section */}
+                <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                  <label className="block text-xs font-bold text-gray-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-gray-400" />
+                      Apply Coupon Code
+                    </span>
+                    {appliedCoupon && (
+                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        Applied
+                      </span>
+                    )}
+                  </label>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          {appliedCoupon.code}
+                        </span>
+                        <span className="text-emerald-800 font-bold">
+                          -₹{appliedCoupon.discountAmount.toFixed(2)} off
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[11px] font-bold text-gray-600 hover:text-rose-600 transition cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase());
+                          setCouponError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:bg-white focus:outline-none focus:border-[#1B2A4A]"
+                      />
+                      <button
+                        type="button"
+                        disabled={isValidatingCoupon || !couponInput.trim()}
+                        onClick={handleApplyCoupon}
+                        className="px-4 py-2 bg-[#1B2A4A] hover:bg-black disabled:opacity-50 text-white text-xs font-bold rounded-xl transition cursor-pointer shrink-0"
+                      >
+                        {isValidatingCoupon ? "Checking..." : "Apply"}
+                      </button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{couponError}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

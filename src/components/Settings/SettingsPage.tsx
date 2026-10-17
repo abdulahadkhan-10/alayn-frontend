@@ -44,7 +44,9 @@ import {
   Smartphone,
   CreditCard,
   UtensilsCrossed,
+  Tag,
 } from "lucide-react";
+import CouponsSettingsTab from "./CouponsSettingsTab";
 
 export default function SettingsPage() {
   const { activeBranch } = useBranch();
@@ -55,7 +57,7 @@ export default function SettingsPage() {
     user?.role === "MANAGER" ||
     user?.role === "SUPER_ADMIN";
 
-  const [activeTab, setActiveTab] = useState<"HOLIDAYS" | "GENERAL">("HOLIDAYS");
+  const [activeTab, setActiveTab] = useState<"HOLIDAYS" | "GENERAL" | "COUPONS">("HOLIDAYS");
   const tabsBarRef = useTabsPill(activeTab);
   // Attendance rules are stored on the outlet in the backend so they apply to every employee's device
   const [earlyBufferMins, setEarlyBufferMins] = useState<number>(30);
@@ -396,6 +398,18 @@ export default function SettingsPage() {
               <Store className="h-4 w-4" />
               General Preferences
             </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === "COUPONS"}
+              onClick={() => setActiveTab("COUPONS")}
+              className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "COUPONS"
+                  ? "text-[#D3232A]"
+                  : "text-gray-600 hover:text-gray-900"
+                }`}
+            >
+              <Tag className="h-4 w-4" />
+              Customer Coupons
+            </button>
           </div>
         </div>
 
@@ -409,7 +423,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === "HOLIDAYS" ? (
+        {activeTab === "HOLIDAYS" && (
           /* Outlet Holidays & Store Closures View */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Create Holiday Form Card */}
@@ -579,7 +593,9 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === "GENERAL" && (
           /* General Store Preferences View */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Dining & Table Ordering Operational Mode Card */}
@@ -1225,6 +1241,9 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Customer Coupons Tab Content */}
+        {activeTab === "COUPONS" && <CouponsSettingsTab />}
       </div>
     </DashboardLayout>
   );

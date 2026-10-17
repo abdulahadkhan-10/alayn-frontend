@@ -488,7 +488,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
               {discountRupees > 0 && (
                 <div className="flex justify-between">
-                  <span>Discount</span>
+                  <span>Discount {actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}</span>
                   <span>- ₹{discountRupees.toFixed(2)}</span>
                 </div>
               )}

@@ -81,6 +81,7 @@ const managerNavItems: NavItem[] = [
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen" },
   { name: "Support Tickets", icon: MessageSquare, href: "/support" },
   { name: "Waste Logs", icon: Trash2, href: "/waste" },
+  { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
 const staffNavItems: NavItem[] = [

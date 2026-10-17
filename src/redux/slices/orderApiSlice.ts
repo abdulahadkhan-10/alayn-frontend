@@ -26,6 +26,8 @@ export interface CreateOrderPayload {
   }[];
   paymentMethod: "CASH" | "CARD" | "UPI";
   discountAmount?: number;
+  couponCode?: string;
+  couponId?: string;
   taxAmount?: number;
   notes?: string;
 }
@@ -55,6 +57,8 @@ export interface Order {
   isDineIn?: boolean;
   gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED";
   discountAmount: number;
+  couponCode?: string | null;
+  couponId?: string | null;
   paymentMethod: "CASH" | "CARD" | "UPI";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   placedByName?: string;
@@ -120,11 +124,46 @@ export const orderApi = baseApi.injectEndpoints({
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),
 
-    updateOrderStatus: builder.mutation<Order, { id: string; status: Order["status"]; comment?: string; paymentMethod?: "CASH" | "CARD" | "UPI"; customerName?: string; customerPhone?: string }>({
-      query: ({ id, status, comment, paymentMethod, customerName, customerPhone }) => ({
+    updateOrderStatus: builder.mutation<
+      Order,
+      {
+        id: string;
+        status: Order["status"];
+        comment?: string;
+        paymentMethod?: "CASH" | "CARD" | "UPI";
+        customerName?: string;
+        customerPhone?: string;
+        couponCode?: string;
+        couponId?: string;
+        discountAmount?: number;
+        discountPaise?: number;
+      }
+    >({
+      query: ({
+        id,
+        status,
+        comment,
+        paymentMethod,
+        customerName,
+        customerPhone,
+        couponCode,
+        couponId,
+        discountAmount,
+        discountPaise,
+      }) => ({
         url: `/orders/${id}/status`,
         method: "PATCH",
-        body: { status, comment, paymentMethod, customerName, customerPhone },
+        body: {
+          status,
+          comment,
+          paymentMethod,
+          customerName,
+          customerPhone,
+          couponCode,
+          couponId,
+          discountAmount,
+          discountPaise,
+        },
       }),
       transformResponse: (response: any) => response?.data || response,
       invalidatesTags: ["Orders", "KitchenTickets"],
