@@ -15,6 +15,7 @@ export interface ChatTurn {
   answer: string;
   topics: AlaynAITopic[];
   status: "streaming" | "done" | "stopped" | "error";
+  askedAt?: string; // ISO; saved turns only
   error?: string;
 }
 
