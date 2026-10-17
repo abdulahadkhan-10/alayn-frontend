@@ -300,10 +300,56 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   const dateStr = orderDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr = orderDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
-  const subtotal = actualOrder.totalAmount || actualOrder.subtotal || 0;
-  const discount = actualOrder.discountAmount || 0;
-  const tax = actualOrder.taxAmount || 0;
-  const finalTotal = actualOrder.finalAmount || actualOrder.total || subtotal - discount + tax;
+  const subtotal = actualOrder.subtotalPaise !== undefined
+    ? actualOrder.subtotalPaise / 100
+    : actualOrder.subtotal !== undefined
+      ? Number(actualOrder.subtotal)
+      : actualOrder.totalAmount !== undefined
+        ? Number(actualOrder.totalAmount)
+        : 0;
+  const discount = actualOrder.discountPaise !== undefined
+    ? actualOrder.discountPaise / 100
+    : actualOrder.discountAmount !== undefined
+      ? Number(actualOrder.discountAmount)
+      : 0;
+  const serviceCharge = actualOrder.serviceChargeAmount !== undefined
+    ? Number(actualOrder.serviceChargeAmount)
+    : actualOrder.serviceTaxAmount !== undefined
+      ? Number(actualOrder.serviceTaxAmount)
+      : actualOrder.serviceTaxPaise !== undefined
+        ? actualOrder.serviceTaxPaise / 100
+        : 0;
+  const taxable = Math.max(0, subtotal - discount + serviceCharge);
+
+  const cgstRate = actualOrder.cgstRate !== undefined && actualOrder.cgstRate !== null
+    ? Number(actualOrder.cgstRate)
+    : 2.5;
+  const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
+    ? Number(actualOrder.sgstRate)
+    : 2.5;
+
+  const cgst = actualOrder.cgstPaise !== undefined
+    ? actualOrder.cgstPaise / 100
+    : actualOrder.cgstAmount !== undefined
+      ? Number(actualOrder.cgstAmount)
+      : Math.round(((taxable * cgstRate) / 100) * 100) / 100;
+  const sgst = actualOrder.sgstPaise !== undefined
+    ? actualOrder.sgstPaise / 100
+    : actualOrder.sgstAmount !== undefined
+      ? Number(actualOrder.sgstAmount)
+      : Math.round(((taxable * sgstRate) / 100) * 100) / 100;
+
+  const roundOff = actualOrder.roundOffAmount !== undefined
+    ? Number(actualOrder.roundOffAmount)
+    : actualOrder.roundOffPaise !== undefined
+      ? actualOrder.roundOffPaise / 100
+      : 0;
+
+  const finalTotal = actualOrder.totalPaise !== undefined
+    ? actualOrder.totalPaise / 100
+    : actualOrder.totalAmount !== undefined
+      ? Number(actualOrder.totalAmount)
+      : Math.round(taxable + cgst + sgst);
   const paymentMethod = actualOrder.paymentMethod || "CASH";
 
   // ── HEADER ──
@@ -371,16 +417,21 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   builder.twoColumns("Subtotal:", `Rs.${Number(subtotal).toFixed(2)}`);
 
   if (discount > 0) {
-    builder.twoColumns("Discount:", `-Rs.${Number(discount).toFixed(2)}`);
+    builder.twoColumns(
+      `Discount ${actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}:`,
+      `-Rs.${Number(discount).toFixed(2)}`
+    );
+    builder.twoColumns("Taxable Value:", `Rs.${Number(taxable).toFixed(2)}`);
   }
-  if (tax > 0) {
-    if (outletGstin) {
-      const halfTax = tax / 2;
-      builder.twoColumns("CGST (2.5%):", `Rs.${Number(halfTax).toFixed(2)}`);
-      builder.twoColumns("SGST (2.5%):", `Rs.${Number(halfTax).toFixed(2)}`);
-    } else {
-      builder.twoColumns("Taxes / GST:", `Rs.${Number(tax).toFixed(2)}`);
-    }
+  if (serviceCharge > 0) {
+    builder.twoColumns("Service Charge:", `Rs.${Number(serviceCharge).toFixed(2)}`);
+  }
+  if (cgst > 0 || sgst > 0) {
+    builder.twoColumns(`CGST (${cgstRate}%):`, `Rs.${Number(cgst).toFixed(2)}`);
+    builder.twoColumns(`SGST (${sgstRate}%):`, `Rs.${Number(sgst).toFixed(2)}`);
+  }
+  if (roundOff !== 0) {
+    builder.twoColumns("Round off:", `${roundOff > 0 ? "+" : ""}Rs.${Number(roundOff).toFixed(2)}`);
   }
 
   builder.divider("-");

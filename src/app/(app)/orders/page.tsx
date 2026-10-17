@@ -1072,6 +1072,8 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).roundOffPaise / 100
                         : 0;
 
+                  const taxableVal = Math.max(0, subtotalVal - discountVal + serviceChargeVal);
+
                   // Use snapshotted rates if available, else derive
                   const scRate = selectedOrder.serviceChargeRate !== undefined && selectedOrder.serviceChargeRate !== null
                     ? Number(selectedOrder.serviceChargeRate)
@@ -1079,11 +1081,11 @@ export default function LiveOrdersPage() {
 
                   const cgstRate = selectedOrder.cgstRate !== undefined && selectedOrder.cgstRate !== null
                     ? Number(selectedOrder.cgstRate)
-                    : (subtotalVal > 0 && cgstVal > 0 ? Number(((cgstVal / subtotalVal) * 100).toFixed(1)) : 2.5);
+                    : (taxableVal > 0 && cgstVal > 0 ? Number(((cgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
 
                   const sgstRate = selectedOrder.sgstRate !== undefined && selectedOrder.sgstRate !== null
                     ? Number(selectedOrder.sgstRate)
-                    : (subtotalVal > 0 && sgstVal > 0 ? Number(((sgstVal / subtotalVal) * 100).toFixed(1)) : 2.5);
+                    : (taxableVal > 0 && sgstVal > 0 ? Number(((sgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
 
                   const isDineIn = selectedOrder.isDineIn ?? (selectedOrder.orderSource === "TABLE" || selectedOrder.orderSource === "QR");
                   const isOrderOpen = selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED";
@@ -1098,12 +1100,18 @@ export default function LiveOrdersPage() {
                       </div>
 
                       {discountVal > 0 && (
-                        <div className="flex justify-between text-emerald-600 font-medium">
-                          <span>Discount</span>
-                          <span className="font-semibold">
-                            - ₹{discountVal.toFixed(2)}
-                          </span>
-                        </div>
+                        <>
+                          <div className="flex justify-between text-emerald-600 font-medium">
+                            <span>Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ""}</span>
+                            <span className="font-semibold">
+                              - ₹{discountVal.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-gray-200 pt-1">
+                            <span>Taxable Value</span>
+                            <span>₹{taxableVal.toFixed(2)}</span>
+                          </div>
+                        </>
                       )}
 
                       {serviceChargeVal > 0 && (
@@ -1357,13 +1365,19 @@ export default function LiveOrdersPage() {
                           <span className="font-semibold text-slate-800">₹{subtotalVal.toFixed(2)}</span>
                         </div>
                         {discountVal > 0 && (
-                          <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-bold">
-                            <span className="flex items-center gap-1">
-                              <Tag className="w-3 h-3" />
-                              Coupon ({appliedCoupon?.code || settlingOrder.couponCode || "Discount"})
-                            </span>
-                            <span>-₹{discountVal.toFixed(2)}</span>
-                          </div>
+                          <>
+                            <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-bold">
+                              <span className="flex items-center gap-1">
+                                <Tag className="w-3 h-3" />
+                                Coupon ({appliedCoupon?.code || settlingOrder.couponCode || "Discount"})
+                              </span>
+                              <span>-₹{discountVal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-800 font-semibold border-t border-dashed border-slate-200/80 pt-1 text-[11px]">
+                              <span>Taxable Value</span>
+                              <span>₹{taxableVal.toFixed(2)}</span>
+                            </div>
+                          </>
                         )}
                         {serviceChargeVal > 0 && (
                           <div className="flex justify-between">
@@ -1579,11 +1593,53 @@ export default function LiveOrdersPage() {
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => {
+                    const subtotalVal =
+                      settlingOrder.subtotal !== undefined
+                        ? settlingOrder.subtotal
+                        : (settlingOrder as any).subtotalPaise !== undefined
+                          ? (settlingOrder as any).subtotalPaise / 100
+                          : 0;
+                    const discountVal = appliedCoupon
+                      ? appliedCoupon.discountAmount
+                      : (settlingOrder.discountAmount || 0);
+                    const netSubtotal = Math.max(0, subtotalVal - discountVal);
+                    const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
+                    const scRate = settlingOrder.serviceChargeRate !== undefined && settlingOrder.serviceChargeRate !== null
+                      ? Number(settlingOrder.serviceChargeRate)
+                      : (subtotalVal > 0 && settlingOrder.serviceChargeAmount ? Number(((settlingOrder.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
+                    const serviceChargeVal = isDineIn && !settlingOrder.serviceChargeWaived
+                      ? Math.round(((netSubtotal * scRate) / 100) * 100) / 100
+                      : 0;
+                    const collectsGst = settlingOrder.gstRegistrationType !== "COMPOSITION" && settlingOrder.gstRegistrationType !== "UNREGISTERED";
+                    const taxableVal = netSubtotal + serviceChargeVal;
+                    const cgstRateNum = settlingOrder.cgstRate != null ? Number(settlingOrder.cgstRate) : 2.5;
+                    const sgstRateNum = settlingOrder.sgstRate != null ? Number(settlingOrder.sgstRate) : 2.5;
+                    const cgstVal = collectsGst ? Math.round(((taxableVal * cgstRateNum) / 100) * 100) / 100 : 0;
+                    const sgstVal = collectsGst ? Math.round(((taxableVal * sgstRateNum) / 100) * 100) / 100 : 0;
+                    const grossVal = taxableVal + cgstVal + sgstVal;
+                    const totalVal = Math.round(grossVal);
+                    const roundOffVal = Math.round((totalVal - grossVal) * 100) / 100;
+
                     setPrintingOrder({
                       ...settlingOrder,
                       customerName: customerName.trim() || settlingOrder.customerName,
                       customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
                       paymentMethod,
+                      discountAmount: discountVal,
+                      discountPaise: Math.round(discountVal * 100),
+                      couponCode: appliedCoupon?.code || settlingOrder.couponCode,
+                      couponId: appliedCoupon?.couponId || settlingOrder.couponId,
+                      cgstAmount: cgstVal,
+                      cgstPaise: Math.round(cgstVal * 100),
+                      sgstAmount: sgstVal,
+                      sgstPaise: Math.round(sgstVal * 100),
+                      serviceChargeAmount: serviceChargeVal,
+                      serviceTaxAmount: serviceChargeVal,
+                      serviceTaxPaise: Math.round(serviceChargeVal * 100),
+                      roundOffAmount: roundOffVal,
+                      roundOffPaise: Math.round(roundOffVal * 100),
+                      totalAmount: totalVal,
+                      totalPaise: Math.round(totalVal * 100),
                       outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
                     });
                   }}

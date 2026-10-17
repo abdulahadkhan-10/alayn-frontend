@@ -163,18 +163,6 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       ? Number(actualOrder.totalAmount)
       : 0;
 
-  const cgstRupees = actualOrder.cgstPaise !== undefined
-    ? actualOrder.cgstPaise / 100
-    : actualOrder.cgstAmount !== undefined
-      ? Number(actualOrder.cgstAmount)
-      : (subtotalRupees * 0.025);
-
-  const sgstRupees = actualOrder.sgstPaise !== undefined
-    ? actualOrder.sgstPaise / 100
-    : actualOrder.sgstAmount !== undefined
-      ? Number(actualOrder.sgstAmount)
-      : (subtotalRupees * 0.025);
-
   const serviceChargeRupees = actualOrder.serviceChargeAmount !== undefined
     ? Number(actualOrder.serviceChargeAmount)
     : actualOrder.serviceTaxAmount !== undefined
@@ -183,41 +171,58 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         ? actualOrder.serviceTaxPaise / 100
         : 0;
 
-  const roundOffRupees = actualOrder.roundOffAmount !== undefined
-    ? Number(actualOrder.roundOffAmount)
-    : actualOrder.roundOffPaise !== undefined
-      ? actualOrder.roundOffPaise / 100
-      : 0;
+  const taxableRupees = Math.max(0, subtotalRupees - discountRupees + serviceChargeRupees);
 
   const gstType = actualOrder.gstRegistrationType || actualOrder.outlet?.gstRegistrationType || "REGULAR";
   const isComposition = gstType === "COMPOSITION";
   const isUnregistered = gstType === "UNREGISTERED";
   const isRegular = gstType === "REGULAR";
 
-  const invoiceTitle = isComposition
-    ? "BILL OF SUPPLY"
-    : isUnregistered
-      ? "RETAIL INVOICE"
-      : "TAX INVOICE";
-
-  // Use snapshot rates if present on the order; fallback to outlet configured rates
   const cgstRate = actualOrder.cgstRate !== undefined && actualOrder.cgstRate !== null
     ? Number(actualOrder.cgstRate)
     : actualOrder.outlet?.cgstRateDecimal !== undefined
       ? Number(actualOrder.outlet.cgstRateDecimal)
-      : subtotalRupees > 0 ? Number(((cgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+      : taxableRupees > 0 && actualOrder.cgstPaise
+        ? Number((((actualOrder.cgstPaise / 100) / taxableRupees) * 100).toFixed(1))
+        : 2.5;
 
   const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
     ? Number(actualOrder.sgstRate)
     : actualOrder.outlet?.sgstRateDecimal !== undefined
       ? Number(actualOrder.outlet.sgstRateDecimal)
-      : subtotalRupees > 0 ? Number(((sgstRupees / subtotalRupees) * 100).toFixed(1)) : 2.5;
+      : taxableRupees > 0 && actualOrder.sgstPaise
+        ? Number((((actualOrder.sgstPaise / 100) / taxableRupees) * 100).toFixed(1))
+        : 2.5;
 
   const serviceChargeRate = actualOrder.serviceChargeRate !== undefined && actualOrder.serviceChargeRate !== null
     ? Number(actualOrder.serviceChargeRate)
     : actualOrder.outlet?.serviceTaxRateDecimal !== undefined
       ? Number(actualOrder.outlet.serviceTaxRateDecimal)
       : (subtotalRupees > 0 && serviceChargeRupees > 0 ? Number(((serviceChargeRupees / subtotalRupees) * 100).toFixed(1)) : 0);
+
+  const cgstRupees = actualOrder.cgstPaise !== undefined
+    ? actualOrder.cgstPaise / 100
+    : actualOrder.cgstAmount !== undefined
+      ? Number(actualOrder.cgstAmount)
+      : isRegular ? Math.round(((taxableRupees * cgstRate) / 100) * 100) / 100 : 0;
+
+  const sgstRupees = actualOrder.sgstPaise !== undefined
+    ? actualOrder.sgstPaise / 100
+    : actualOrder.sgstAmount !== undefined
+      ? Number(actualOrder.sgstAmount)
+      : isRegular ? Math.round(((taxableRupees * sgstRate) / 100) * 100) / 100 : 0;
+
+  const roundOffRupees = actualOrder.roundOffAmount !== undefined
+    ? Number(actualOrder.roundOffAmount)
+    : actualOrder.roundOffPaise !== undefined
+      ? actualOrder.roundOffPaise / 100
+      : 0;
+
+  const invoiceTitle = isComposition
+    ? "BILL OF SUPPLY"
+    : isUnregistered
+      ? "RETAIL INVOICE"
+      : "TAX INVOICE";
 
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
@@ -487,10 +492,16 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               </div>
 
               {discountRupees > 0 && (
-                <div className="flex justify-between">
-                  <span>Discount {actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}</span>
-                  <span>- ₹{discountRupees.toFixed(2)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between">
+                    <span>Discount {actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}</span>
+                    <span>- ₹{discountRupees.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold border-t border-dotted border-black/40 pt-1">
+                    <span>Taxable Value</span>
+                    <span>₹{taxableRupees.toFixed(2)}</span>
+                  </div>
+                </>
               )}
 
               {serviceChargeRupees > 0 && (
