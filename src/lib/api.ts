@@ -487,4 +487,87 @@ export async function askAlaynAI(
   return { ok: false, error: result.error };
 }
 
+/** The café data sections AlaynAI checked for an answer */
+export type AlaynAITopic = "sales" | "staff" | "stock" | "menu";
+
+interface StreamHandlers {
+  onTopics?: (topics: AlaynAITopic[]) => void;
+  onDelta: (text: string) => void;
+  signal?: AbortSignal;
+}
+
+/**
+ * Asks AlaynAI and receives the answer as it is written (server-sent events). If streaming can't
+ * start (an old server, a proxy that blocks it), it falls back to the one-piece endpoint and delivers
+ * that answer in one go. Resolves when the answer is complete, stopped, or failed.
+ */
+export async function streamAlaynAI(
+  prompt: string,
+  outletId: string | undefined,
+  history: AlaynAIMessage[],
+  { onTopics, onDelta, signal }: StreamHandlers,
+  isRetry = false
+): Promise<{ ok: boolean; stopped?: boolean; error?: string }> {
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_URL}/ai/assistant/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(outletId ? { "x-outlet-id": outletId } : {}) },
+      credentials: "include",
+      body: JSON.stringify({ prompt, outletId, history }),
+      signal,
+    });
+  } catch {
+    if (signal?.aborted) return { ok: false, stopped: true };
+    return oneShot();
+  }
+
+  if (res.status === 401 && !isRetry) {
+    const refreshed = await fetch(`${BACKEND_URL}/auth/refresh`, { method: "POST", credentials: "include" }).catch(() => null);
+    if (refreshed?.ok) return streamAlaynAI(prompt, outletId, history, { onTopics, onDelta, signal }, true);
+  }
+  if (!res.ok || !res.body || !res.headers.get("content-type")?.includes("text/event-stream")) return oneShot();
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // Events are separated by a blank line; each has "event:" and "data:" lines
+      const events = buffer.split("\n\n");
+      buffer = events.pop() ?? "";
+      for (const raw of events) {
+        const dataLine = raw.split("\n").find((l) => l.startsWith("data:"));
+        if (!dataLine) continue;
+        const event = JSON.parse(dataLine.slice(5).trim()) as
+          | { type: "topics"; topics: AlaynAITopic[] }
+          | { type: "delta"; text: string }
+          | { type: "done" }
+          | { type: "error"; message: string };
+        if (event.type === "topics") onTopics?.(event.topics);
+        else if (event.type === "delta") onDelta(event.text);
+        else if (event.type === "error") return { ok: false, error: event.message };
+        else if (event.type === "done") return { ok: true };
+      }
+    }
+    return { ok: true };
+  } catch {
+    if (signal?.aborted) return { ok: false, stopped: true };
+    return { ok: false, error: "The answer was cut off. Please ask again." };
+  }
+
+  async function oneShot() {
+    const result = await askAlaynAI(prompt, outletId, history);
+    if (signal?.aborted) return { ok: false, stopped: true };
+    if (result.ok && result.answer) {
+      onDelta(result.answer);
+      return { ok: true };
+    }
+    return { ok: false, error: result.error || "Alayn AI could not answer just now. Please try again." };
+  }
+}
+
 

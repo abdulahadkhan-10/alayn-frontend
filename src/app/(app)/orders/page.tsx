@@ -495,7 +495,7 @@ export default function LiveOrdersPage() {
     {
       id: "COUNTER",
       label: "Counter Direct",
-      sublabel: "Takeaway & quick billing",
+      sublabel: "Quick billing at the counter",
       count: counterOrdersCount,
       icon: CreditCard,
       activeGradient: "from-indigo-600 to-indigo-700",

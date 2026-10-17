@@ -71,7 +71,8 @@ function ForecastTooltip({ active, payload }: { active?: boolean; payload?: { pa
 }
 
 export default function SalesForecastChart({ outletId }: SalesForecastChartProps) {
-  const [range, setRange] = useState<SalesForecastRange>("7d");
+  // 90 days shows the weekly pattern and the trend at a glance
+  const [range, setRange] = useState<SalesForecastRange>("90d");
   const { data, isLoading, isFetching } = useGetSalesForecastQuery({ outletId, range });
 
   const rows: ChartRow[] = useMemo(
@@ -91,6 +92,24 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
   const summary = data?.summary;
   const accuracy = data?.accuracy;
   const closedAhead = rows.filter((p) => p.isFuture).slice(0, 7).filter((p) => p.closed).length;
+
+  // While Alayn is still learning a new café's sales there is nothing to forecast yet, so a slim
+  // one-line card instead of a large, mostly empty chart
+  if (data?.status === "learning") {
+    const days = Math.min(data.salesDays, data.earlyEstimateAfterDays);
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/80 px-6 py-4 shadow-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+          <Hourglass className="h-4 w-4" />
+        </div>
+        <h3 className="text-sm font-bold text-slate-800">Sales Forecast</h3>
+        <p className="text-sm text-slate-600">
+          Alayn is learning your sales. First estimate after {data.earlyEstimateAfterDays} days of sales ({days}/
+          {data.earlyEstimateAfterDays} so far).
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col">

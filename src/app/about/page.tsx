@@ -26,7 +26,7 @@ const PILLARS = [
   {
     number: "02",
     title: "Precision FEFO & FIFO Batch Inventory",
-    desc: "Recipe-level ingredient tracking with automatic batch deduction. Low-stock alerts and automated supplier purchase orders prevent mid-service stockouts.",
+    desc: "Stock levels, expiry tracking and a waste log. Low-stock alerts and automated supplier purchase orders prevent mid-service stockouts.",
   },
   {
     number: "03",

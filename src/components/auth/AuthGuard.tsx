@@ -1,11 +1,21 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useGetMeQuery } from "@/redux/slices/authApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { logout, setCredentials } from "@/redux/slices/authSlice";
 import FullDashboardSkeleton from "@/components/dashboard/FullDashboardSkeleton";
+
+/**
+ * False while rendering on the server and during the browser's first (hydration) render, true after.
+ * The saved login only exists in the browser, so deciding on it before this is true makes the first
+ * browser render differ from the server's and React throws the server HTML away (a hydration error).
+ */
+const noopSubscribe = () => () => {};
+function useHydrated() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -17,6 +27,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
+  const hydrated = useHydrated();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const hasUser = (!!user || isAuthenticated) && !isSuperAdmin;
 
@@ -55,6 +66,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       router.replace("/login");
     }
   }, [isError, isLoading, hasUser, dispatch, router]);
+
+  // Match the server on the first render (see useHydrated); the saved login is checked right after
+  if (!hydrated) {
+    return <FullDashboardSkeleton />;
+  }
 
   // If user is SUPER_ADMIN, prevent rendering restaurant UI while redirecting
   if (user?.role === "SUPER_ADMIN") {

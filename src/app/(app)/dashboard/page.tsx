@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, use, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -10,65 +11,18 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import SalesForecastChart from "@/components/dashboard/SalesForecastChart";
 import NeedsAttentionCard from "@/components/dashboard/NeedsAttentionCard";
+import TodayPaceCard from "@/components/dashboard/TodayPaceCard";
+import RightNowCard, { OpenOrder } from "@/components/dashboard/RightNowCard";
+import ShiftCoverageCard from "@/components/dashboard/ShiftCoverageCard";
+import WeekStaffingCard from "@/components/dashboard/WeekStaffingCard";
+import TopSellersCard from "@/components/dashboard/TopSellersCard";
+import SlowMoversCard from "@/components/dashboard/SlowMoversCard";
 import { useBranch } from "@/lib/BranchContext";
-import {
-  useGetKpisQuery,
-  useGetSalesVelocityQuery,
-  useGetChannelDistributionQuery,
-  useGetTopSellingItemsQuery,
-  useGetStaffTodayQuery,
-} from "@/redux/slices/dashboardApiSlice";
-import { useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
-import { useGetMenuItemsQuery } from "@/redux/slices/menuApiSlice";
+import { useGetKpisQuery, useGetTopSellingItemsQuery } from "@/redux/slices/dashboardApiSlice";
+import { Order, useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
-import ElectricBorder from "@/components/ui/ElectricBorder";
 
-
-
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Clock,
-  Users,
-  AlertTriangle,
-  Activity,
-  Calendar,
-  PieChart as PieChartIcon,
-  BarChart2,
-  LineChart,
-  Sparkles,
-  Brain,
-  Bot,
-  Zap,
-  RefreshCw,
-  ChevronRight,
-  ArrowRight,
-  ChefHat,
-  ShieldCheck,
-  ArrowUpRight,
-  ShoppingBag,
-  ExternalLink,
-  Send,
-} from "lucide-react";
-
-
-
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  LabelList
-} from "recharts";
+import { TrendingUp, TrendingDown, Minus, Calendar, ArrowUpRight } from "lucide-react";
 
 interface PageProps {
   params?: Promise<Record<string, string | string[] | undefined>>;
@@ -77,21 +31,30 @@ interface PageProps {
 
 type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
 
-// No change (0%, +0, or no comparison yet) gets a grey badge, not a green "up" one
-/** Where an order is: "Table 4", "Counter", "QR order", "Delivery" (never a made-up table number). */
-function orderLocation(source: string, tableNo: string | null) {
-  if (source === "TABLE") return tableNo ? `Table ${tableNo}` : "Table";
-  if (source === "QR") return tableNo ? `QR · Table ${tableNo}` : "QR order";
-  if (source === "DELIVERY") return "Delivery";
-  return "Counter";
-}
+/** "YYYY-MM-DD" for India time, n days ago (toISOString would give the UTC date, a day behind before 5:30 AM) */
+const istDate = (daysAgo = 0) =>
+  new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
+/** How the selected date range reads in card subtitles ("No dishes sold this month") */
+const RANGE_LABELS: Record<RangeType, string> = {
+  TODAY: "today",
+  "7_DAY": "in the last 7 days",
+  THIS_MONTH: "this month",
+  CUSTOM: "in the selected dates",
+};
+
+const RANGE_OPTIONS: { value: RangeType; label: string }[] = [
+  { value: "TODAY", label: "Today" },
+  { value: "7_DAY", label: "7 Days" },
+  { value: "THIS_MONTH", label: "This Month" },
+  { value: "CUSTOM", label: "Choose Date" },
+];
+
+// No change (0%, +0, or no comparison yet) gets a grey badge, not a green "up" one
 function isFlatTrend(trend: string) {
   const n = parseFloat(trend.replace(/[^0-9.\-]/g, ""));
   return !Number.isFinite(n) || n === 0;
 }
-
-
 
 export default function MasterDashboardPage(props?: PageProps) {
   if (props?.params) use(props.params);
@@ -110,40 +73,21 @@ export default function MasterDashboardPage(props?: PageProps) {
     }
   }, [user?.role, router]);
 
-  const { activeBranch, branches, loading, isDemo, refreshBranches } = useBranch();
+  const { activeBranch, branches, loading, isDemo } = useBranch();
   const outletId = activeBranch?.id || undefined;
 
+  // Owners judge the business by the month; "Today" is one click away
+  const [dateRange, setDateRange] = useState<RangeType>("THIS_MONTH");
+  const [startDate, setStartDate] = useState<string>(istDate(7));
+  const [endDate, setEndDate] = useState<string>(istDate());
 
+  const { data: kpiData, isLoading: isKpiLoading } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
+  const { data: topSelling = [] } = useGetTopSellingItemsQuery({ outletId, range: dateRange, startDate, endDate });
 
-  // Date Range Controls
-  const [dateRange, setDateRange] = useState<RangeType>("TODAY");
-  const todayStr = new Date().toISOString().split("T")[0];
-  const sevenDaysAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState<string>(sevenDaysAgoStr);
-  const [endDate, setEndDate] = useState<string>(todayStr);
-
-  // Queries
-  const { data: kpiData, isLoading: isKpiLoading } = useGetKpisQuery(
-    { outletId, range: dateRange, startDate, endDate },
-    { skip: false }
-  );
-
-  // Only orders still open: the card counts and lists those, and fetching every past order is slow
-  const { data: realOrders = [], isLoading: isOrdersLoading, refetch: refetchOrders } = useGetOrdersQuery(
-    { outletId, excludeCompleted: true },
-    { skip: false }
-  );
-
-  // Real roster, clock-ins and leave for today (same source AlaynAI uses)
-  const { data: staffToday } = useGetStaffTodayQuery({ outletId });
-
-  const { data: menuItems = [] } = useGetMenuItemsQuery(
-    undefined,
-    { skip: false }
-  );
+  // Only orders still open: the Right now card counts and lists those, and fetching every past order is slow
+  const { data: realOrders = [] } = useGetOrdersQuery({ outletId, excludeCompleted: true });
 
   const isInitialLoading = loading || isKpiLoading;
-
   const hasNoOutlets = !isInitialLoading && !isDemo && branches.length === 0;
 
   useEffect(() => {
@@ -152,96 +96,69 @@ export default function MasterDashboardPage(props?: PageProps) {
     }
   }, [hasNoOutlets, router]);
 
-  // Helper for 2-letter uppercase initials
-  const getInitials = (name: string) => {
-    if (!name) return "EM";
-    const cleanStr = name.replace(/\(.*?\)/g, "").replace(/[^a-zA-Z\s]/g, "").trim();
-    const words = cleanStr.split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    } else if (words.length === 1 && words[0].length >= 2) {
-      return words[0].slice(0, 2).toUpperCase();
-    }
-    return "EM";
-  };
-
-  // Helper for role-based avatar background colors
-  const getRoleAvatarStyle = (role: string) => {
-    const r = (role || "").toUpperCase();
-    if (r.includes("MANAGER") || r.includes("OWNER")) {
-      return "bg-indigo-600 text-white font-bold";
-    } else if (r.includes("HEAD CHEF") || r.includes("EXECUTIVE")) {
-      return "bg-amber-600 text-white font-bold";
-    } else if (r.includes("SOUS") || r.includes("CHEF") || r.includes("COOK")) {
-      return "bg-emerald-600 text-white font-bold";
-    } else if (r.includes("KITCHEN") || r.includes("HELPER") || r.includes("ASSISTANT")) {
-      return "bg-teal-600 text-white font-bold";
-    } else if (r.includes("SERVER") || r.includes("WAITER")) {
-      return "bg-blue-600 text-white font-bold";
-    }
-    return "bg-slate-700 text-white font-bold";
-  };
-
-
-  // Process Real Active Orders Data (Top 4 View)
-  const { activeOrdersList, activeStats } = useMemo(() => {
-    const rawOrders = Array.isArray(realOrders) ? realOrders : (realOrders as any)?.data || [];
-
-    const processed = rawOrders.map((ord: any) => ({
-      id: ord.id,
-      ticket: ord.orderNo || `#ORD-${String(ord.id).slice(-4).toUpperCase()}`,
-      source: ord.orderSource || "COUNTER",
-      tableNo: ord.tableNo ?? null,
-      status: ord.status || "SENT_TO_KITCHEN",
-      totalAmount: ord.totalAmount || 0,
-    }));
-
-    // "Active" means still in the kitchen or not yet paid; finished and cancelled orders don't belong here
-    const active = processed.filter((o: any) => o.status !== "COMPLETED" && o.status !== "CANCELLED");
-
-    return {
-      activeOrdersList: active,
-      activeStats: { activeCount: active.length, totalCount: processed.length },
-    };
+  // "Open" means still in the kitchen or not yet paid; finished and cancelled orders don't belong here
+  const openOrders: OpenOrder[] = useMemo(() => {
+    const raw: Order[] = Array.isArray(realOrders) ? realOrders : ((realOrders as { data?: Order[] })?.data ?? []);
+    return raw
+      .filter((o) => o.status !== "COMPLETED" && o.status !== "CANCELLED")
+      .map((o) => ({
+        id: o.id,
+        ticket: o.orderNo || `#ORD-${String(o.id).slice(-4).toUpperCase()}`,
+        source: o.orderSource || "COUNTER",
+        tableNo: o.tableNo ?? null,
+        status: o.status,
+        totalAmount: o.totalAmount || 0,
+        createdAt: o.createdAt ?? null,
+      }));
   }, [realOrders]);
 
-  // Real DB Analytics Queries (with Date Range Filter)
-  const { data: velocityResponse = [] } = useGetSalesVelocityQuery(
-    { outletId, range: dateRange, startDate, endDate },
-    { skip: false }
-  );
-
-  const { data: channelResponse = [] } = useGetChannelDistributionQuery(
-    { outletId, range: dateRange, startDate, endDate },
-    { skip: false }
-  );
-
-  const { data: topSellingResponse = [] } = useGetTopSellingItemsQuery(
-    { outletId, range: dateRange, startDate, endDate },
-    { skip: false }
-  );
-
-  // Top Selling Items Analytics from DB
-  const topItemsAnalytics = useMemo(() => {
-    const itemsArray = Array.isArray(topSellingResponse) ? topSellingResponse : [];
-
-    const totalVolume = itemsArray.reduce((acc, item) => acc + item.volume, 0);
-    const totalRevenue = itemsArray.reduce((acc, item) => acc + item.revenue, 0);
-
-    return {
-      topItems: itemsArray,
-      totalVolume,
-      totalRevenue,
-    };
-  }, [topSellingResponse]);
-
-  const revenueData = useMemo(() => {
-    return Array.isArray(velocityResponse) ? velocityResponse : [];
-  }, [velocityResponse]);
-
-  const channelData = useMemo(() => {
-    return Array.isArray(channelResponse) ? channelResponse : [];
-  }, [channelResponse]);
+  const kpis = [
+    {
+      // Settled orders only, before GST (GST and unpaid bills are shown underneath, not counted)
+      label: "Net sales (excl. GST)",
+      value: kpiData?.totalRevenue?.value || "₹0",
+      prev: kpiData?.totalRevenue?.prev || "₹0",
+      // No percentage when there is nothing earlier to compare with (the API sends an empty change)
+      trend: kpiData?.totalRevenue?.change ?? "",
+      positive: kpiData?.totalRevenue?.isPositive ?? true,
+      note: kpiData
+        ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
+          (kpiData.serviceCharge?.value && kpiData.serviceCharge.value !== "₹0" ? ` · Service charge ${kpiData.serviceCharge.value}` : "") +
+          (kpiData.openBills && kpiData.openBills.count > 0
+            ? ` · ${kpiData.openBills.value} in ${kpiData.openBills.count} open bill${kpiData.openBills.count === 1 ? "" : "s"}`
+            : "")
+        : undefined,
+      route: "/performance",
+    },
+    {
+      label: "Orders",
+      value: kpiData?.orders?.value || "0",
+      prev: kpiData?.orders?.prev || "0",
+      trend: kpiData?.orders?.change ?? "",
+      positive: kpiData?.orders?.isPositive ?? true,
+      note: "Settled orders",
+      route: "/orders/completed",
+    },
+    {
+      label: "Avg order value",
+      value: kpiData?.avgOrderValue?.value || "₹0",
+      prev: kpiData?.avgOrderValue?.prev || "₹0",
+      trend: kpiData?.avgOrderValue?.change ?? "",
+      positive: kpiData?.avgOrderValue?.isPositive ?? true,
+      note: "Settled orders, excl. GST",
+      route: "/orders/completed",
+    },
+    {
+      // Menu items aren't linked to stock, so there's no food cost or margin; waste is what's known
+      label: "Stock wasted",
+      value: kpiData?.waste?.value || "₹0",
+      prev: kpiData?.waste?.prev || "₹0",
+      trend: kpiData?.waste?.change ?? "",
+      positive: kpiData?.waste?.isPositive ?? true,
+      note: "Value of stock logged as waste",
+      route: "/inventory/waste",
+    },
+  ];
 
   return (
     <AuthGuard>
@@ -249,66 +166,37 @@ export default function MasterDashboardPage(props?: PageProps) {
         {isInitialLoading || hasNoOutlets ? (
           <DashboardSkeleton />
         ) : (
-          <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-7 font-sans bg-[#F8FAFC]">
-            
-            {/* Header & Date Range Controls */}
+          <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-6 font-sans bg-[#F8FAFC]">
+            {/* Header & date range */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] uppercase font-semibold tracking-wider text-emerald-600">Live Telemetry Active</span>
-                </div>
-                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Operator Console</h1>
-                <p className="text-xs text-slate-500 font-normal">
-                  {activeBranch?.name || "All Outlets"} • Real-time operational data &amp; AlaynAI analytics
-                </p>
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Overview</h1>
+                <p className="text-sm text-slate-500">{activeBranch?.name || "All Outlets"} · Sales, orders, staff and stock at a glance</p>
               </div>
 
-              {/* Date Filter Pills + Custom Range Selector */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center bg-slate-100/70 p-1 rounded-xl border border-slate-200">
-                  <button
-                    onClick={() => setDateRange("TODAY")}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                      dateRange === "TODAY" ? "bg-white shadow-xs border border-slate-200 text-slate-800" : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={() => setDateRange("7_DAY")}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                      dateRange === "7_DAY" ? "bg-white shadow-xs border border-slate-200 text-slate-800" : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    7 Days
-                  </button>
-                  <button
-                    onClick={() => setDateRange("CUSTOM")}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                      dateRange === "CUSTOM" ? "bg-white shadow-xs border border-slate-200 text-[#D3232A]" : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    <Calendar className="h-3.5 w-3.5" />
-                    Choose Date
-                  </button>
-                  <button
-                    onClick={() => setDateRange("THIS_MONTH")}
-                    className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                      dateRange === "THIS_MONTH" ? "bg-white shadow-xs border border-slate-200 text-slate-800" : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    This Month
-                  </button>
+                <div className="flex items-center bg-slate-100/70 p-1 rounded-xl border border-slate-200" role="group" aria-label="Date range">
+                  {RANGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setDateRange(opt.value)}
+                      aria-pressed={dateRange === opt.value}
+                      className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                        dateRange === opt.value ? "bg-white shadow-xs border border-slate-200 text-slate-800" : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      {opt.value === "CUSTOM" && <Calendar className="h-3.5 w-3.5" />}
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Custom Date Pickers Popup Bar */}
                 {dateRange === "CUSTOM" && (
                   <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="w-36">
                       <CustomDatePicker value={startDate} onChange={setStartDate} />
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">to</span>
+                    <span className="text-xs text-slate-500 font-medium">to</span>
                     <div className="w-36">
                       <CustomDatePicker value={endDate} onChange={setEndDate} />
                     </div>
@@ -317,626 +205,94 @@ export default function MasterDashboardPage(props?: PageProps) {
               </div>
             </div>
 
-            {/* Top Level KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  // Settled orders only, before GST (GST and unpaid bills are shown underneath, not counted)
-                  label: "NET SALES (EXCL. GST)",
-                  value: kpiData?.totalRevenue?.value || "₹0",
-                  prev: kpiData?.totalRevenue?.prev || "₹0",
-                  // No percentage when there is nothing earlier to compare with (the API sends an empty change)
-                  trend: kpiData?.totalRevenue?.change ?? "",
-                  positive: kpiData?.totalRevenue?.isPositive ?? true,
-                  note: kpiData
-                    ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
-                      (kpiData.serviceCharge && kpiData.serviceCharge.value && kpiData.serviceCharge.value !== "₹0"
-                        ? ` · Service charge ${kpiData.serviceCharge.value}`
-                        : "") +
-                      (kpiData.openBills && kpiData.openBills.count > 0
-                        ? ` · ${kpiData.openBills.value} in ${kpiData.openBills.count} open bill${kpiData.openBills.count === 1 ? "" : "s"}`
-                        : "")
-                    : undefined,
-                  route: "/performance"
-                },
-                {
-                  label: "ACTIVE ORDERS",
-                  value: `${activeStats.activeCount}`,
-                  // A live count: there is no earlier value to compare it with
-                  prev: undefined,
-                  trend: "",
-                  positive: true,
-                  note: "In the kitchen or waiting to be paid",
-                  route: "/orders"
-                },
-                {
-                  label: "AVG ORDER VALUE",
-                  value: kpiData?.avgOrderValue?.value || "₹0",
-                  prev: kpiData?.avgOrderValue?.prev || "₹0",
-                  trend: kpiData?.avgOrderValue?.change ?? "",
-                  positive: kpiData?.avgOrderValue?.isPositive ?? true,
-                  note: "Settled orders, excl. GST",
-                  route: "/orders"
-                },
-                {
-                  label: "GROSS MARGIN",
-                  value: kpiData?.netMargin?.value || "—",
-                  prev: "—",
-                  trend: kpiData?.netMargin?.change || "",
-                  positive: kpiData?.netMargin?.isPositive ?? true,
-                  // Margin needs ingredient (recipe) costs; without them it would just mirror sales
-                  note:
-                    kpiData && kpiData.cogsConfigured === false
-                      ? "Food cost not set up yet — add recipe costs to see your real margin"
-                      : undefined,
-                  route: "/performance"
-                },
-              ].map((kpi, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => router.push(kpi.route)}
-                  className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group"
+            {/* Headline numbers for the selected dates */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {kpis.map((kpi, idx) => (
+                <Link
+                  key={kpi.label}
+                  href={kpi.route}
+                  className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-slate-300 transition-all group"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">{kpi.label}</span>
+                    <span className="text-xs font-semibold text-slate-500">{kpi.label}</span>
                     <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                   </div>
-                  <div className="mt-3 flex items-end justify-between">
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
                     {/* Sales is the number owners look for first, so it reads largest */}
-                    <span className={`${idx === 0 ? "text-3xl" : "text-2xl"} font-bold tabular-nums tracking-tight ${kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"}`}>{kpi.value}</span>
-                    {kpi.trend && (isFlatTrend(kpi.trend) ? (
-                      <div className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
-                        <Minus className="h-3.5 w-3.5" />
-                        0%
-                      </div>
-                    ) : (
-                      <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
-                        {kpi.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                        {kpi.trend}
-                      </div>
-                    ))}
+                    <span
+                      className={`${idx === 0 ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-bold tabular-nums tracking-tight ${
+                        kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"
+                      }`}
+                    >
+                      {kpi.value}
+                    </span>
+                    {kpi.trend &&
+                      (isFlatTrend(kpi.trend) ? (
+                        <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
+                          <Minus className="h-3.5 w-3.5" />
+                          0%
+                        </span>
+                      ) : (
+                        <span
+                          className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                          }`}
+                        >
+                          {kpi.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                          {kpi.trend}
+                        </span>
+                      ))}
                   </div>
-                  {kpi.note && <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{kpi.note}</p>}
-                  <div className="mt-2 text-[11px] text-slate-400 font-normal font-mono border-t border-slate-100 pt-2 flex justify-between items-center">
-                    <span>{kpi.prev !== undefined ? `Prev: ${kpi.prev}` : "Right now"}</span>
-                    <span className="text-[10px] text-blue-600 font-semibold group-hover:underline">View details</span>
-                  </div>
-                </div>
+                  {kpi.note && <p className="mt-1.5 text-xs leading-snug text-slate-500">{kpi.note}</p>}
+                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500 tabular-nums">Before: {kpi.prev}</p>
+                </Link>
               ))}
             </div>
 
-            {/* What to act on right now — directly under today's numbers */}
+            {/* What to act on right now — directly under the numbers */}
             <NeedsAttentionCard outletId={outletId} />
 
-            {/* Right now: open orders and who is working (before the analysis charts) */}
+            {/* Today: how sales are going, and what's open */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              
-              {/* Left Side: Recent Active Orders (6 Cols) */}
-              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                      <Activity className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Recent Active Orders</h2>
-                      <p className="text-xs text-slate-500 font-normal">Live kitchen tickets &amp; order queue summary</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
-                      {activeOrdersList.length} Active
-                    </span>
-                    <button
-                      onClick={() => router.push("/orders")}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors bg-blue-50/60 px-3 py-1.5 rounded-xl border border-blue-200/60"
-                    >
-                      View All <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200/70 flex-1">
-                  {activeOrdersList.length === 0 ? (
-                    <div className="py-8 text-center text-xs font-semibold text-slate-400 bg-slate-50/50 flex flex-col items-center justify-center">
-                      <Activity className="h-6 w-6 text-slate-300 mb-1" />
-                      No active orders right now.
-                    </div>
-                  ) : (
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-semibold tracking-wider">
-                        <tr>
-                          <th className="px-3.5 py-2.5">Ticket #</th>
-                          <th className="px-3.5 py-2.5">Location</th>
-                          <th className="px-3.5 py-2.5">Status</th>
-                          <th className="px-3.5 py-2.5 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {activeOrdersList.slice(0, 4).map((row: any) => (
-                          <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="px-3.5 py-2.5 font-mono font-bold text-slate-800 text-xs">{row.ticket}</td>
-                            <td className="px-3.5 py-2.5 font-semibold text-slate-700">{orderLocation(row.source, row.tableNo)}</td>
-                            <td className="px-3.5 py-2.5">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                row.status === "PREPARING" ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                                row.status === "SENT_TO_KITCHEN" ? "bg-amber-50 text-amber-800 border border-amber-200" :
-                                "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              }`}>
-                                {row.status.replace(/_/g, " ")}
-                              </span>
-                            </td>
-                            <td className="px-3.5 py-2.5 text-right font-bold text-slate-800">₹{row.totalAmount.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </section>
-
-              {/* Right Side: Shift Coverage — who is working today, from the real roster and clock-ins */}
-              <section className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col justify-between space-y-4">
-                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                      <ChefHat className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-base font-bold text-slate-800 tracking-tight">Shift Coverage</h2>
-                      <p className="text-xs text-slate-500 font-normal">
-                        {staffToday && staffToday.summary.working > 0
-                          ? `${staffToday.summary.in} of ${staffToday.summary.working} working today are in`
-                          : "Who's working today"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => router.push("/workforce")}
-                    className="shrink-0 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors bg-indigo-50/60 px-3.5 py-1.5 rounded-xl border border-indigo-200/60"
-                  >
-                    Manage Roster <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {/* One person per row: names, shift times and status all need the width */}
-                <div className="grid grid-cols-1 gap-2 flex-1 content-start">
-                  {!staffToday || staffToday.staff.length === 0 ? (
-                    <div className="py-8 text-center text-xs font-semibold text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1">
-                      <Users className="h-6 w-6 text-slate-300" />
-                      {staffToday?.rosterSource === "none" || !staffToday
-                        ? "No roster set up for today yet."
-                        : "Nobody is rostered today."}
-                      <button onClick={() => router.push("/workforce")} className="text-indigo-600 hover:underline">
-                        Set up the roster
-                      </button>
-                    </div>
-                  ) : (
-                    staffToday.staff.slice(0, 4).map((staff) => {
-                      const initials = getInitials(staff.name);
-                      const pfpStyle = getRoleAvatarStyle(staff.role);
-                      const pill =
-                        staff.status === "in"
-                          ? staff.late
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-emerald-100 text-emerald-800"
-                          : staff.status === "not_in" || staff.status === "leave"
-                          ? "bg-rose-100 text-rose-800"
-                          : "bg-slate-100 text-slate-700";
-                      return (
-                        <div
-                          key={staff.id}
-                          onClick={() => router.push("/workforce")}
-                          className="p-3 rounded-xl border border-slate-200/70 bg-slate-50/50 flex items-center justify-between gap-2.5 hover:bg-white hover:border-slate-300 transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className={`h-8 w-8 rounded-full ${pfpStyle} text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
-                              {initials}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold text-slate-800 truncate">{staff.name}</div>
-                              <div className="text-[11px] text-slate-500 font-medium truncate">
-                                {staff.shiftLabel ?? staff.role.charAt(0) + staff.role.slice(1).toLowerCase()}
-                              </div>
-                            </div>
-                          </div>
-                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold ${pill}`}>
-                            {staff.statusLabel}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                {staffToday && staffToday.staff.length > 4 && (
-                  <button onClick={() => router.push("/workforce")} className="self-start text-xs font-semibold text-indigo-600 hover:underline">
-                    +{staffToday.staff.length - 4} more today
-                  </button>
-                )}
-              </section>
-
+              <TodayPaceCard outletId={outletId} />
+              <RightNowCard orders={openOrders} />
             </div>
 
-            {/* Visual Analytics Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              {/* Sales Velocity Area Chart */}
-              <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                      <LineChart className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-800 tracking-tight">Sales Velocity Telemetry</h3>
-                      <p className="text-xs text-slate-500 font-normal">Hourly revenue accumulation</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/performance")}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors"
-                  >
-                    Full Analytics <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="h-[240px] w-full flex items-center justify-center">
-                  {revenueData.length === 0 || revenueData.every(d => d.revenue === 0) ? (
-                    <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full h-full">
-                      <BarChart2 className="h-8 w-8 text-slate-300 mb-2" />
-                      <p className="text-xs font-bold text-slate-600">No Sales Telemetry Recorded Yet</p>
-                      <p className="text-[11px] text-slate-400 font-normal mt-0.5">Orders placed today will automatically populate sales velocity.</p>
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} tickFormatter={(val) => `₹${val / 1000}k`} />
-                        <Tooltip 
-                          contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
-                          formatter={(val: any) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
-                        />
-                        <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-
-              {/* Order Channels Donut */}
-              <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                      <PieChartIcon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-800 tracking-tight">Order Channels</h3>
-                      <p className="text-xs text-slate-500 font-normal">Channel distribution share</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/orders")}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-800"
-                    title="View Channel Orders"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="h-[180px] flex items-center justify-center relative">
-                  {channelData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full h-full">
-                      <PieChartIcon className="h-7 w-7 text-slate-300 mb-1" />
-                      <p className="text-xs font-bold text-slate-600">No Orders Recorded</p>
-                      <p className="text-[10px] text-slate-400">Channels will calculate on order placement.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={channelData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={3}
-                            dataKey="value"
-                            stroke="none"
-                          >
-                            {channelData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
-                            formatter={(val: any) => [`${val}%`, 'Share']}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-2xl font-bold text-slate-800 tabular-nums">100<span className="text-xs text-slate-400">%</span></span>
-                        <span className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Total Share</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-3">
-                  {channelData.length === 0 ? (
-                    <span className="col-span-3 text-center text-xs text-slate-400 py-1">No channel data</span>
-                  ) : (
-                    channelData.map((ch, i) => (
-                      <div key={i} className="flex flex-col items-center text-center">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ch.color }} />
-                          <span className="text-[11px] font-semibold text-slate-600">{ch.name}</span>
-                        </div>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums">{ch.value}%</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
+            {/* People: today, and the week ahead against the forecast */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <ShiftCoverageCard outletId={outletId} className="lg:col-span-5" />
+              <WeekStaffingCard outletId={outletId} className="lg:col-span-7" />
             </div>
 
             {/* Sales Forecast (own range toggle; independent of the date filter above) */}
             <SalesForecastChart outletId={outletId} />
 
-            {/* ========================================================================= */}
-            {/* FULL WIDTH SECTION 2: TOP SELLING MENU ITEMS (RICH SPLIT CHART + LEADERBOARD) */}
-            {/* ========================================================================= */}
-            <section className="w-full bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 space-y-6">
-              
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-                    <BarChart2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-slate-800 tracking-tight">Top Selling Menu Items</h2>
-                    <p className="text-xs text-slate-500 font-normal">Sales volume &amp; revenue contribution breakdown</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-4 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80">
-                    <span>Units sold: <strong className="text-slate-800">{topItemsAnalytics.totalVolume}</strong></span>
-                    <span className="text-slate-300">|</span>
-                    <span>Sales from these items: <strong className="text-emerald-700">₹{topItemsAnalytics.totalRevenue.toLocaleString()}</strong></span>
-                  </div>
-                  <button
-                    onClick={() => router.push("/menu")}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors bg-emerald-50/70 px-3.5 py-1.5 rounded-xl border border-emerald-200/80"
-                  >
-                    View Menu Analytics <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Rich 2-Column Split: Chart (Left) + Top Performers Leaderboard (Right) */}
-              {topItemsAnalytics.topItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center p-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full my-2">
-                  <ShoppingBag className="h-9 w-9 text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-700">No Item Sales Recorded Yet</p>
-                  <p className="text-[11px] text-slate-400 font-normal mt-0.5">As orders are completed, top menu performance will appear here.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                  
-                  {/* Left Side: Vertical Bar Graph with Data Labels */}
-                  <div className="lg:col-span-7 h-[260px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={topItemsAnalytics.topItems} margin={{ top: 25, right: 10, left: -10, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="blueBarGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#2563eb" stopOpacity={1}/>
-                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 11, fill: "#334155", fontWeight: 600 }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          allowDecimals={false} // item counts: you can't sell 0.25 of a wrap
-                          tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
-                        />
-                        <Tooltip 
-                          cursor={{ fill: '#f8fafc' }}
-                          contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', fontSize: '12px' }}
-                          formatter={(val: any) => [`${val} units sold`, 'Volume']}
-                        />
-                        <Bar dataKey="volume" radius={[8, 8, 0, 0]} barSize={36} fill="url(#blueBarGrad)">
-                          <LabelList dataKey="volume" position="top" style={{ fontSize: '11px', fontWeight: '700', fill: '#1e293b' }} />
-                          {topItemsAnalytics.topItems.map((_, idx) => (
-                            <Cell key={`cell-${idx}`} fill={idx === 0 ? "#2563eb" : idx === 1 ? "#3b82f6" : idx === 2 ? "#60a5fa" : "#94a3b8"} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Right Side: Leaderboard Ranking Cards */}
-                  <div className="lg:col-span-5 space-y-2.5">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Performance Matrix</div>
-                    {topItemsAnalytics.topItems.slice(0, 4).map((item, idx) => {
-                      const percent = Math.round((item.volume / (topItemsAnalytics.totalVolume || 1)) * 100);
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => router.push("/menu")}
-                          className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 hover:shadow-xs transition-all flex items-center justify-between gap-3 cursor-pointer group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`h-7 w-7 rounded-lg text-xs font-bold flex items-center justify-center ${
-                                idx === 0
-                                  ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                  : idx === 1
-                                  ? "bg-slate-200 text-slate-700"
-                                  : "bg-slate-100 text-slate-600"
-                              }`}
-                            >
-                              #{idx + 1}
-                            </span>
-                            <div>
-                              <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{item.name}</div>
-                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded">
-                                {item.category}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 text-right">
-                            <div>
-                              <div className="text-xs font-bold text-slate-800">{item.volume} sold</div>
-                              <div className="text-[11px] font-semibold text-emerald-600">₹{item.revenue.toLocaleString()}</div>
-                            </div>
-                            <div className="w-10 text-right font-bold text-xs text-blue-600">
-                              {percent}%
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                </div>
-              )}
-            </section>
-
-            {/* ── ALAYN AI TEASER CARD — Premium Light Modern SaaS Redesign ── */}
-            <div className="w-full">
-              <ElectricBorder color="#E5484D" speed={1} chaos={0.08} borderRadius={24}>
-                <section
-                  className="w-full rounded-[24px] overflow-hidden font-sans relative group transition-all duration-300"
-                  style={{
-                    background: "linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 50%, #FCFBFD 100%)",
-                    border: "1px solid rgba(229, 72, 77, 0.14)",
-                    boxShadow: "0 4px 20px -2px rgba(23, 32, 51, 0.04), 0 12px 32px -4px rgba(229, 72, 77, 0.06)",
-                  }}
-                >
-                  {/* Subtle, soft ambient gradient accents */}
-                  <div
-                    style={{
-                      position: "absolute", top: "-60px", right: "-40px",
-                      width: "320px", height: "320px",
-                      borderRadius: "9999px",
-                      background: "radial-gradient(circle, rgba(244, 114, 138, 0.07) 0%, rgba(229, 72, 77, 0.02) 50%, transparent 70%)",
-                      filter: "blur(40px)", pointerEvents: "none",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute", bottom: "-60px", left: "10%",
-                      width: "280px", height: "280px",
-                      borderRadius: "9999px",
-                      background: "radial-gradient(circle, rgba(245, 158, 108, 0.06) 0%, transparent 70%)",
-                      filter: "blur(45px)", pointerEvents: "none",
-                    }}
-                  />
-
-                  <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 px-6 py-6 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
-                    
-                    {/* Left/Center Content Stack */}
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left min-w-0 flex-1">
-                      
-                      {/* Crisp White Circular Logo Container with Soft Shadow */}
-                      <div className="shrink-0 relative">
-                        <div
-                          style={{
-                            width: "60px", height: "60px", borderRadius: "9999px",
-                            background: "#FFFFFF",
-                            boxShadow: "0 0 0 1px rgba(229, 72, 77, 0.12), 0 6px 16px -2px rgba(23, 32, 51, 0.08)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            position: "relative", overflow: "hidden",
-                          }}
-                        >
-                          <Image src="/justlogo.png" alt="Alayn AI" width={32} height={32}
-                            style={{ width: "54%", height: "54%", objectFit: "contain", position: "relative", zIndex: 1 }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Typography Hierarchy */}
-                      <div className="flex flex-col justify-center min-w-0 space-y-1">
-                        <div className="flex items-center justify-center sm:justify-start gap-2">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#E5484D]" />
-                          <p style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.12em",
-                            textTransform: "uppercase", color: "#E5484D" }}>
-                            RESTAURANT INTELLIGENCE & ANALYTICS
-                          </p>
-                        </div>
-                        <h2 style={{ fontSize: "clamp(22px, 2.2vw, 26px)", fontWeight: 800,
-                          color: "#172033", letterSpacing: "-0.025em", lineHeight: 1.25 }}>
-                          Ask Alayn AI
-                        </h2>
-                        <p style={{ fontSize: "13.5px", color: "#64748B",
-                          lineHeight: 1.55, fontWeight: 400, maxWidth: "560px" }}
-                        >
-                          Forecast revenue surge, analyze inventory depletion, and optimize shift staffing — powered by live telemetry.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Right Side: Sophisticated Compact CTA Button */}
-                    <div className="shrink-0 w-full sm:w-auto flex justify-center sm:justify-end pt-2 md:pt-0">
-                      <button
-                        onClick={() => router.push("/dashboard/alayn-ai")}
-                        style={{
-                          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "7px",
-                          background: "linear-gradient(135deg, #E5484D 0%, #D3232A 100%)",
-                          border: "1px solid rgba(229, 72, 77, 0.2)",
-                          borderRadius: "12px",
-                          padding: "10.5px 20px",
-                          color: "#ffffff",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          boxShadow: "0 3px 12px rgba(229, 72, 77, 0.25)",
-                          transition: "all 0.2s ease",
-                          whiteSpace: "nowrap",
-                        }}
-                        onMouseEnter={(e) => {
-                          const el = e.currentTarget as HTMLElement;
-                          el.style.background = "linear-gradient(135deg, #EF5350 0%, #E5484D 100%)";
-                          el.style.boxShadow = "0 5px 18px rgba(229, 72, 77, 0.38)";
-                          el.style.transform = "translateY(-1px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          const el = e.currentTarget as HTMLElement;
-                          el.style.background = "linear-gradient(135deg, #E5484D 0%, #D3232A 100%)";
-                          el.style.boxShadow = "0 3px 12px rgba(229, 72, 77, 0.25)";
-                          el.style.transform = "translateY(0)";
-                        }}
-                      >
-                        Open Alayn AI
-                        <ArrowUpRight style={{ width: "15px", height: "15px" }} />
-                      </button>
-                    </div>
-
-                  </div>
-                </section>
-              </ElectricBorder>
+            {/* Menu: what sells, and what doesn't */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <TopSellersCard items={Array.isArray(topSelling) ? topSelling : []} rangeLabel={RANGE_LABELS[dateRange]} />
+              <SlowMoversCard outletId={outletId} />
             </div>
 
-
-
+            {/* Ask Alayn AI — a quiet invitation at the end of the page */}
+            <Link
+              href="/dashboard/alayn-ai"
+              className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-[#0B0F17] px-5 py-5 sm:px-6 transition-colors hover:border-slate-600"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white">
+                  <Image src="/justlogo.png" alt="" width={24} height={24} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-slate-100">Ask Alayn AI</h2>
+                  <p className="text-sm text-slate-400">
+                    Sales, next week&apos;s forecast, stock, staff or your menu, answered from your own numbers.
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#E5484D] px-4 py-2 text-sm font-semibold text-white group-hover:bg-[#EF5350]">
+                Open Alayn AI <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </Link>
           </div>
         )}
       </DashboardLayout>

@@ -27,6 +27,11 @@ export interface InventoryAlertsResult {
   }[];
 }
 
+export interface StockCountResult {
+  counted: number;
+  items: { itemId: string; name: string; unit: string; expected: number; counted: number; difference: number }[];
+}
+
 export const inventoryApiSlice = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getItems: builder.query<{ items: InventoryItemApi[]; total: number }, void>({
@@ -58,6 +63,12 @@ export const inventoryApiSlice = baseApi.injectEndpoints({
       invalidatesTags: ["Inventory", "Waste"],
 
     }),
+    // A stock count: sets each item to what is actually on the shelf
+    recordStockCount: builder.mutation<StockCountResult, { counts: { itemId: string; counted: number }[] }>({
+      query: (body) => ({ url: "/inventory/count", method: "POST", body }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["Inventory", "Dashboard"],
+    }),
     getLowStockAlerts: builder.query<InventoryAlertsResult, void>({
       query: () => "/inventory/alerts",
       providesTags: ["Inventory"],
@@ -71,4 +82,5 @@ export const {
   useCreateItemMutation,
   useAdjustStockMutation,
   useGetLowStockAlertsQuery,
+  useRecordStockCountMutation,
 } = inventoryApiSlice;
