@@ -40,7 +40,12 @@ import {
   User,
   Lock,
   AlertCircle,
+  Tag,
 } from "lucide-react";
+import {
+  useValidateRestaurantCouponMutation,
+  ValidateCouponResponse,
+} from "@/redux/slices/restaurantCouponApiSlice";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
@@ -262,12 +267,58 @@ export default function LiveOrdersPage() {
     }
   };
 
+  const [validateCoupon, { isLoading: isValidatingCoupon }] =
+    useValidateRestaurantCouponMutation();
+  const [couponInput, setCouponInput] = useState<string>("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
+
+  useEffect(() => {
+    if (settlingOrder) {
+      setCustomerName(settlingOrder.customerName || "");
+      setCustomerPhone(settlingOrder.customerPhone || "");
+      setCouponInput("");
+      setCouponError(null);
+      setAppliedCoupon(null);
+    }
+  }, [settlingOrder]);
+
+  const handleApplyCoupon = async () => {
+    if (!settlingOrder || !couponInput.trim()) return;
+    setCouponError(null);
+    try {
+      const res = await validateCoupon({
+        code: couponInput.trim().toUpperCase(),
+        subtotalAmount: settlingOrder.subtotal,
+        outletId: settlingOrder.outletId,
+      }).unwrap();
+
+      setAppliedCoupon(res);
+      setCouponError(null);
+    } catch (err: any) {
+      setCouponError(err?.data?.message || err?.message || "Coupon code does not exist");
+      setAppliedCoupon(null);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
+
   const handleStatusChange = async (
     orderId: string,
     nextStatus: Order["status"],
     methodOrComment?: "CASH" | "CARD" | "UPI" | string,
     custName?: string,
-    custPhone?: string
+    custPhone?: string,
+    couponPayload?: {
+      couponCode?: string;
+      couponId?: string;
+      discountAmount?: number;
+      discountPaise?: number;
+    }
   ) => {
     try {
       const isPaymentMethod =
@@ -281,6 +332,10 @@ export default function LiveOrdersPage() {
         paymentMethod: isPaymentMethod ? (methodOrComment as any) : undefined,
         customerName: custName,
         customerPhone: custPhone,
+        couponCode: couponPayload?.couponCode,
+        couponId: couponPayload?.couponId,
+        discountAmount: couponPayload?.discountAmount,
+        discountPaise: couponPayload?.discountPaise,
       }).unwrap();
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev) =>
@@ -1249,48 +1304,35 @@ export default function LiveOrdersPage() {
                         ? (settlingOrder as any).subtotalPaise / 100
                         : 0;
 
-                  const totalVal =
-                    settlingOrder.totalAmount !== undefined
-                      ? settlingOrder.totalAmount
-                      : (settlingOrder as any).totalPaise !== undefined
-                        ? (settlingOrder as any).totalPaise / 100
-                        : 0;
+                  const discountVal = appliedCoupon
+                    ? appliedCoupon.discountAmount
+                    : (settlingOrder.discountAmount || 0);
 
-                  const serviceChargeVal =
-                    settlingOrder.serviceChargeAmount !== undefined
-                      ? settlingOrder.serviceChargeAmount
-                      : (settlingOrder as any).serviceTaxAmount !== undefined
-                        ? (settlingOrder as any).serviceTaxAmount
-                        : (settlingOrder as any).serviceTaxPaise !== undefined
-                          ? (settlingOrder as any).serviceTaxPaise / 100
-                          : 0;
+                  const netSubtotal = Math.max(0, subtotalVal - discountVal);
 
-                  const cgstVal =
-                    settlingOrder.cgstAmount !== undefined
-                      ? settlingOrder.cgstAmount
-                      : (settlingOrder as any).cgstPaise !== undefined
-                        ? (settlingOrder as any).cgstPaise / 100
-                        : 0;
-
-                  const sgstVal =
-                    settlingOrder.sgstAmount !== undefined
-                      ? settlingOrder.sgstAmount
-                      : (settlingOrder as any).sgstPaise !== undefined
-                        ? (settlingOrder as any).sgstPaise / 100
-                        : 0;
-
-                  const roundOffVal =
-                    settlingOrder.roundOffAmount !== undefined
-                      ? settlingOrder.roundOffAmount
-                      : (settlingOrder as any).roundOffPaise !== undefined
-                        ? (settlingOrder as any).roundOffPaise / 100
-                        : 0;
+                  const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
 
                   const scRate = settlingOrder.serviceChargeRate !== undefined && settlingOrder.serviceChargeRate !== null
                     ? Number(settlingOrder.serviceChargeRate)
-                    : (subtotalVal > 0 && serviceChargeVal > 0 ? Number(((serviceChargeVal / subtotalVal) * 100).toFixed(1)) : 0);
+                    : (subtotalVal > 0 && settlingOrder.serviceChargeAmount ? Number(((settlingOrder.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
 
-                  const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
+                  const serviceChargeVal =
+                    isDineIn && !settlingOrder.serviceChargeWaived
+                      ? Math.round(((netSubtotal * scRate) / 100) * 100) / 100
+                      : 0;
+
+                  const collectsGst = settlingOrder.gstRegistrationType !== "COMPOSITION" && settlingOrder.gstRegistrationType !== "UNREGISTERED";
+                  const taxableVal = netSubtotal + serviceChargeVal;
+
+                  const cgstRateNum = settlingOrder.cgstRate != null ? Number(settlingOrder.cgstRate) : 2.5;
+                  const sgstRateNum = settlingOrder.sgstRate != null ? Number(settlingOrder.sgstRate) : 2.5;
+
+                  const cgstVal = collectsGst ? Math.round(((taxableVal * cgstRateNum) / 100) * 100) / 100 : 0;
+                  const sgstVal = collectsGst ? Math.round(((taxableVal * sgstRateNum) / 100) * 100) / 100 : 0;
+
+                  const grossVal = taxableVal + cgstVal + sgstVal;
+                  const totalVal = Math.round(grossVal);
+                  const roundOffVal = Math.round((totalVal - grossVal) * 100) / 100;
 
                   return (
                     <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5">
@@ -1314,6 +1356,15 @@ export default function LiveOrdersPage() {
                           <span>Subtotal</span>
                           <span className="font-semibold text-slate-800">₹{subtotalVal.toFixed(2)}</span>
                         </div>
+                        {discountVal > 0 && (
+                          <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-bold">
+                            <span className="flex items-center gap-1">
+                              <Tag className="w-3 h-3" />
+                              Coupon ({appliedCoupon?.code || settlingOrder.couponCode || "Discount"})
+                            </span>
+                            <span>-₹{discountVal.toFixed(2)}</span>
+                          </div>
+                        )}
                         {serviceChargeVal > 0 && (
                           <div className="flex justify-between">
                             <span>Service Charge ({scRate}%)</span>
@@ -1391,6 +1442,76 @@ export default function LiveOrdersPage() {
                       className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
                     />
                   </div>
+                </div>
+
+                {/* Coupon Code Section */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-slate-400" />
+                      Apply Coupon Code
+                    </span>
+                    {appliedCoupon && (
+                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        Coupon Applied
+                      </span>
+                    )}
+                  </label>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-black text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          {appliedCoupon.code}
+                        </span>
+                        <span className="text-emerald-800 font-bold">
+                          -₹{appliedCoupon.discountAmount.toFixed(2)} savings
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-[11px] font-bold text-slate-600 hover:text-rose-600 transition cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code (e.g. WELCOME10)"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase());
+                          setCouponError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-slate-800 transition"
+                      />
+                      <button
+                        type="button"
+                        disabled={isValidatingCoupon || !couponInput.trim()}
+                        onClick={handleApplyCoupon}
+                        className="px-4 py-2 bg-slate-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
+                      >
+                        {isValidatingCoupon ? "Checking..." : "Apply"}
+                      </button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold mt-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{couponError}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* QR Order Verification Callout */}
@@ -1484,7 +1605,15 @@ export default function LiveOrdersPage() {
                       "COMPLETED",
                       paymentMethod,
                       cName,
-                      cPhone
+                      cPhone,
+                      appliedCoupon
+                        ? {
+                            couponCode: appliedCoupon.code,
+                            couponId: appliedCoupon.couponId,
+                            discountAmount: appliedCoupon.discountAmount,
+                            discountPaise: appliedCoupon.discountPaise,
+                          }
+                        : undefined
                     );
 
                     if (updatedResult) {
