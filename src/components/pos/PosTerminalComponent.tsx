@@ -41,7 +41,6 @@ import {
   autoPrintKOT as dispatchHardwareAutoPrintKOT,
 } from "@/lib/bluetoothAutoPrinter";
 import ThermalReceipt from "./ThermalReceipt";
-import ThermalKOT from "./ThermalKOT";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -142,7 +141,7 @@ export default function PosTerminalComponent() {
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [printingOrder, setPrintingOrder] = useState<any>(null);
-  const [printingKOTOrder, setPrintingKOTOrder] = useState<any>(null);
+
   const [autoPrintKOT, setAutoPrintKOT] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("alayn_auto_print_kot");
@@ -421,7 +420,9 @@ export default function PosTerminalComponent() {
       const result = await createOrder(payload).unwrap();
       setCompletedOrder({ ...result, _flow: "CHECKOUT" });
       if (kitchenCaps.supportsKotPrint && (autoPrintKOT || kitchenCaps.isKotOnly)) {
-        setPrintingKOTOrder(result);
+        dispatchHardwareAutoPrintKOT(result, false, "80mm").catch((err) =>
+          console.error("Auto print KOT on checkout error:", err)
+        );
       }
       setCart([]);
       setCustomerName("");
@@ -1687,17 +1688,7 @@ export default function PosTerminalComponent() {
                     <ChevronRight className="w-4 h-4" />
                   </button>
 
-                  {/* Secondary Subtle Action: ONLY if cashier needs an extra re-print copy */}
-                  {kitchenCaps.supportsKotPrint && isKitchenDispatch && (
-                    <button
-                      type="button"
-                      onClick={() => setPrintingKOTOrder(orderObj)}
-                      className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Need extra copy? Re-print KOT Slip</span>
-                    </button>
-                  )}
+
 
                   {/* Print Customer Bill Receipt: ONLY on Checkout / Payment completion (never on Send to Kitchen) */}
                   {!isKitchenDispatch && (
@@ -1715,22 +1706,7 @@ export default function PosTerminalComponent() {
         })()}
         </TModal>
 
-        {/* -- Printable Thermal KOT Slip Modal -- */}
-        {printingKOTOrder && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setPrintingKOTOrder(null);
-            }}
-          >
-            <ThermalKOT
-              order={printingKOTOrder}
-              autoPrint={true}
-              isCancellation={printingKOTOrder.status === "CANCELLED"}
-              onClose={() => setPrintingKOTOrder(null)}
-            />
-          </div>
-        )}
+
 
         {/* -- Printable Thermal Receipt Modal -- */}
         {printingOrder && (

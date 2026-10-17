@@ -44,6 +44,7 @@ import {
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
+import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -1488,18 +1489,22 @@ export default function LiveOrdersPage() {
 
                     if (updatedResult) {
                       setSettlingOrder(null);
-                      setPrintingOrder({
+                      const orderToPrint = {
                         ...updatedResult,
                         status: "COMPLETED",
                         paymentMethod,
                         customerName: cName || targetOrder.customerName,
                         customerPhone: cPhone || targetOrder.customerPhone,
                         outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
+                      };
+                      // Shoot print directly to printer — zero extra preview popup!
+                      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
+                        console.error("[Alayn] Direct receipt auto-print error:", err);
                       });
                     }
                   }}
                   disabled={isUpdating}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
                 >
                   <Printer className="w-3.5 h-3.5 text-emerald-400" />
                   Settle & Print Receipt
