@@ -172,6 +172,8 @@ curl https://api.alaynai.com/api/v1/orders \\
             <h2 className="text-2xl font-bold text-white mb-3">What&apos;s available today</h2>
             <ul className="list-disc pl-6 space-y-2 text-sm text-slate-300 font-light">
               <li>The current version is <code className="text-amber-400">v1</code>, in the URL path.</li>
+              <li>Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced on this page.</li>
+              <li>Every response carries <code className="text-amber-400">RateLimit-Limit</code>, <code className="text-amber-400">RateLimit-Remaining</code> and <code className="text-amber-400">RateLimit-Reset</code> headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes <code className="text-amber-400">Retry-After</code>.</li>
               <li>Access uses Alayn user accounts. There are no separate API keys, webhooks or official SDK or CLI yet.</li>
               <li>Planning an integration with a POS, delivery platform or accounting tool? Write to <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>.</li>
             </ul>

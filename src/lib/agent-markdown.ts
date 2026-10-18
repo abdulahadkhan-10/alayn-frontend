@@ -203,6 +203,12 @@ Send the outlet ID in the \`x-outlet-id\` header. Without it, the API uses the f
 Success: \`{ "success": true, "data": … }\` (lists add \`meta\` with limit, offset, total).
 Error: \`{ "success": false, "error": { "code": "…", "message": "…" } }\`.
 
+## Rate Limits
+Every response carries \`RateLimit-Limit\`, \`RateLimit-Remaining\` and \`RateLimit-Reset\` headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes \`Retry-After\`.
+
+## Versioning and Deprecation
+The version is in the path (\`/api/v1\`). Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced at https://alaynai.com/api-docs#versioning.
+
 ## Main Endpoint Groups
 - \`/orders\` — Orders, status changes and payments.
 - \`/kitchen\` — Kitchen display tickets.

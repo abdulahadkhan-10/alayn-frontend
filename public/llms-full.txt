@@ -42,7 +42,8 @@
 - **Base URL**: `https://api.alaynai.com/api/v1`
 - **Authentication**: log in at `POST /api/v1/auth/login`, then send `Authorization: Bearer <accessToken>` (no separate API keys yet)
 - **Outlet Scoping Header**: `x-outlet-id: <uuid>`
-- **Rate Limits**: Only public, unauthenticated endpoints are rate limited (QR table menu: 10 requests/min per IP; customer feedback and password reset: 5 requests per 15 min). Exceeding a limit returns HTTP 429 with `Retry-After`.
+- **Rate Limits**: 1,000 requests per minute per IP across the API, reported in `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers. Stricter limits apply to login (10 failed attempts per 15 min), the QR table menu (10 requests/min per IP), and customer feedback and password reset (5 requests per 15 min). Exceeding a limit returns HTTP 429 with `Retry-After`.
+- **Versioning**: The version is in the path (`/api/v1`). A deprecated version keeps working for at least 6 months after its deprecation is announced.
 - **Responses**: `{ "success": true, "data": … }`; errors are `{ "success": false, "error": { "code", "message" } }`
 - **Not available yet**: webhooks, SDKs and a CLI.
 
