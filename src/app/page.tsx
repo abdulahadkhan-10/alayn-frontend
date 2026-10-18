@@ -15,7 +15,10 @@ import CalmScene from "@/components/landing/scenes/CalmScene";
 import WaitingScene from "@/components/landing/scenes/WaitingScene";
 
 export const metadata: Metadata = {
-  alternates: { canonical: "https://alaynai.com" },
+  alternates: {
+    canonical: "https://alaynai.com",
+    types: { "text/markdown": "https://alaynai.com/index.md" },
+  },
 };
 
 export default function LandingPage() {

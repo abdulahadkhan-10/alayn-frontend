@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/contact`,
+    types: { "text/markdown": `${siteUrl}/contact.md` },
   },
   ...socialMetadata({ title, description, path: "/contact" }),
 };

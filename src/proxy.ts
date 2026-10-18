@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { MARKDOWN_PAGES } from "./lib/agent-markdown";
+import { isKnownRoute } from "./lib/site-routes";
 
 // Only the API version header is sent. Deprecation/Sunset/RateLimit headers
 // were attached to every page, declaring the whole site deprecated (sunset
@@ -9,8 +10,47 @@ function attachHeaders(res: NextResponse) {
   res.headers.set("x-api-version", "1.0.0");
 }
 
+function markdownResponse(body: string, status: number) {
+  const res = new NextResponse(body, {
+    status,
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Vary": "Accept, Accept-Encoding",
+      "Cache-Control": status === 200
+        ? "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+        : "public, max-age=300",
+    },
+  });
+  attachHeaders(res);
+  return res;
+}
+
+const MARKDOWN_NOT_FOUND = `# 404 — Page not found
+
+There is no page at this address on alaynai.com. Alayn AI is a restaurant operating system: POS, kitchen display, inventory, waste tracking and staff scheduling for restaurants, cafés and cloud kitchens.
+
+Try one of these instead:
+
+- [Home](https://alaynai.com/)
+- [Features](https://alaynai.com/features)
+- [Pricing](https://alaynai.com/pricing)
+- [Contact and demos](https://alaynai.com/contact)
+- [API reference](https://alaynai.com/api-docs)
+- [LLM index](https://alaynai.com/llms.txt)
+- [Sitemap](https://alaynai.com/sitemap.xml)
+`;
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Plain .md URLs (/index.md, /pricing.md) for agents whose fetch tools
+  // can't set an Accept header. Checked before the "." skip below.
+  if (pathname.endsWith(".md")) {
+    const pagePath = pathname === "/index.md" ? "/" : pathname.slice(0, -3);
+    if (MARKDOWN_PAGES[pagePath]) {
+      return markdownResponse(MARKDOWN_PAGES[pagePath], 200);
+    }
+  }
 
   if (
     pathname.startsWith("/_next") ||
@@ -34,20 +74,16 @@ export function proxy(request: NextRequest) {
     ? pathname.slice(0, -1)
     : pathname;
 
-  // Serve the Markdown version when one exists. Pages without one fall
+  // Serve the Markdown version when one exists. Real pages without one fall
   // through to their HTML: answering 404 would tell agents a real page
-  // doesn't exist.
-  if (prefersMarkdown && MARKDOWN_PAGES[normalizedPath]) {
-    const res = new NextResponse(MARKDOWN_PAGES[normalizedPath], {
-      status: 200,
-      headers: {
-        "Content-Type": "text/markdown; charset=utf-8",
-        "Vary": "Accept, Accept-Encoding",
-        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
-      },
-    });
-    attachHeaders(res);
-    return res;
+  // doesn't exist. Paths that aren't routes at all get a Markdown 404.
+  if (prefersMarkdown) {
+    if (MARKDOWN_PAGES[normalizedPath]) {
+      return markdownResponse(MARKDOWN_PAGES[normalizedPath], 200);
+    }
+    if (!isKnownRoute(normalizedPath)) {
+      return markdownResponse(MARKDOWN_NOT_FOUND, 404);
+    }
   }
 
   const response = NextResponse.next();

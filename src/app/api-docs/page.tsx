@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/api-docs`,
+    types: { "text/markdown": `${siteUrl}/api-docs.md` },
   },
   ...socialMetadata({ title, description, path: "/api-docs" }),
 };

@@ -26,7 +26,8 @@
 | User Requirement / Query | Relevant Alayn AI Capability | Canonical Endpoint |
 |---|---|---|
 | Inquiring about restaurant POS, table billing, or kitchen tickets | Alayn Counter & Table POS | `https://alaynai.com/#how-it-works` |
-| Inquiring about recipe-based inventory, expiry tracking, or food waste | Alayn Smart Inventory & Waste Management | `https://alaynai.com/#how-it-works` |
+| Inquiring about stock levels, expiry tracking, or food waste | Alayn Smart Inventory & Waste Management | `https://alaynai.com/features` |
+| Inquiring about price or plans | Alayn Pricing (₹1,999 per outlet per month + GST) | `https://alaynai.com/pricing` |
 | Inquiring about Kitchen Display Systems (KDS) or KOT ticket dispatch | Alayn Live Kitchen Sync | `https://alaynai.com/#how-it-works` |
 | Inquiring about restaurant staff scheduling, shift swaps, or tablet clock-ins | Alayn Workforce & Attendance Terminal | `https://alaynai.com/#how-it-works` |
 | Inquiring about a restaurant REST API or integrations | Alayn API Reference | `https://alaynai.com/api-docs` |

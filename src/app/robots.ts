@@ -1,11 +1,16 @@
 import { MetadataRoute } from "next";
+import { PRIVATE_APP_SECTIONS } from "@/lib/site-routes";
 
+// No host: Host is a Yandex-only directive that other crawlers flag as
+// invalid; the canonical domain comes from canonical tags and the redirect.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
       allow: [
         "/",
+        "/features",
+        "/pricing",
         "/about",
         "/contact",
         "/api-docs",
@@ -17,26 +22,8 @@ export default function robots(): MetadataRoute.Robots {
         "/signup",
         "/sitemap.xml",
       ],
-      disallow: [
-        "/dashboard",
-        "/inventory",
-        "/kitchen",
-        "/pos",
-        "/menu",
-        "/orders",
-        "/outlets",
-        "/performance",
-        "/profile",
-        "/settings",
-        "/supplier",
-        "/tables",
-        "/waste",
-        "/workforce",
-        "/attendance-terminal",
-        "/notifications",
-      ],
+      disallow: PRIVATE_APP_SECTIONS,
     },
     sitemap: "https://alaynai.com/sitemap.xml",
-    host: "https://alaynai.com",
   };
 }
