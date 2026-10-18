@@ -192,14 +192,17 @@ export default function RootLayout({
       <head>
         <meta name="application-name" content="Alayn AI" />
         <meta name="apple-mobile-web-app-title" content="Alayn AI" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
       </head>
       <body className="min-h-full flex flex-col bg-[#F4F7F9] text-gray-900 font-sans">
         {/* App-only providers live in src/app/(app)/layout.tsx. */}
         {children}
+        {/* At the end of the body rather than in <head>: some agents read only
+            the start of a response, and this graph pushed the page text
+            further down. Google reads JSON-LD anywhere in the document. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </body>
     </html>
   );

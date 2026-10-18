@@ -73,6 +73,8 @@ const nextConfig: NextConfig = {
       { source: "/privacy", destination: "/legal/privacy", permanent: true },
       { source: "/docs", destination: "/api-docs", permanent: true },
       { source: "/developers", destination: "/api-docs", permanent: true },
+      // Agents guess /demo when looking for how to book one.
+      { source: "/demo", destination: "/contact", permanent: true },
     ];
   },
   async headers() {

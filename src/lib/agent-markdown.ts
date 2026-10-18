@@ -18,6 +18,11 @@ Alayn AI is an enterprise-grade, multi-tenant operating system built for restaur
 6. **Multi-Outlet Management**: Every outlet from one login, each with its own orders, stock and staff.
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
+## Pricing
+₹1,999 per outlet per month + 18% GST, with every feature included. Details: https://alaynai.com/pricing
+
+Full feature list: https://alaynai.com/features
+
 ## Developer & API Integration
 - API Documentation: https://alaynai.com/api-docs
 - Multi-Tenant Scoping Header: \`x-outlet-id\`
@@ -31,6 +36,86 @@ Alayn AI is an enterprise-grade, multi-tenant operating system built for restaur
 - LLM Index: https://alaynai.com/llms.txt
 - Full LLM Context: https://alaynai.com/llms-full.txt
 - Sitemap: https://alaynai.com/sitemap.xml
+`,
+
+  // Keep in step with src/app/features/page.tsx.
+  "/features": `# Alayn AI Features
+
+> Everything a restaurant, café or cloud kitchen runs on during service, in one platform.
+
+Alayn AI is a restaurant operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. Every feature below is included in one per-outlet subscription (see https://alaynai.com/pricing).
+
+## Point of Sale
+- Counter and table billing with UPI, card and cash.
+- Printed KOTs and thermal receipts.
+- Table QR codes that open the menu on the guest's phone.
+- Unlimited POS terminals per outlet.
+
+## Kitchen Display System (KDS)
+- Orders reach the kitchen screen the moment they are placed.
+- Cancellations are flagged to the kitchen.
+- The floor is notified when an order is ready.
+
+## Inventory
+- Stock levels with minimum levels and low-stock alerts.
+- Batch and expiry tracking, used first-expiring-first-out (FEFO).
+- Suppliers and one-click restock purchase orders.
+
+## Waste Tracking
+- Waste logged per item with a reason.
+- Loss totals, trends and high-waste alerts.
+
+## Workforce
+- Weekly shift rosters.
+- Staff-requested shift swaps with manager approval.
+- Leave requests and approvals.
+- Tablet clock-in kiosk and geofenced attendance.
+
+## Multi-Outlet Management
+- Every outlet from one login, each with its own orders, stock and staff.
+- Outlet-level prices and GST (CGST/SGST) settings.
+
+## Analytics and Ask Alayn AI
+- Sales dashboards, top and bottom sellers and outlet comparisons.
+- Ask plain-language questions about sales, stock, staffing and menu performance.
+
+## REST API
+- JWT login, outlet-scoped requests and an OpenAPI 3.0 spec: https://alaynai.com/api-docs
+
+## Next Steps
+- Pricing: https://alaynai.com/pricing
+- Book a demonstration: https://alaynai.com/contact
+`,
+
+  // Keep in step with src/app/pricing/page.tsx and the fee in
+  // src/components/subscription/SubscriptionMonthSelector.tsx.
+  "/pricing": `# Alayn AI Pricing
+
+> One plan, priced per outlet: ₹1,999 per month + 18% GST (₹2,358.82 per month in total).
+
+## What's Included
+Every feature, for every outlet on the plan:
+- Unlimited POS terminals and table QR menus
+- Live kitchen display system (KDS)
+- Batch inventory with expiry tracking and purchase orders
+- Waste tracking with AI menu and wastage insights
+- Staff rosters, shift swaps, leave and geofenced attendance
+- Sales and P&L analytics, and Ask Alayn AI
+- REST API access
+
+## How Billing Works
+- Each outlet has its own subscription.
+- Pay for 1 to 36 months at a time.
+- Payments are processed by Cashfree.
+- Refunds and cancellations: https://alaynai.com/legal/refund
+
+## Multi-Outlet Groups
+Groups with many outlets can ask about volume pricing: info@alaynai.com or https://alaynai.com/contact
+
+## Next Steps
+- Features: https://alaynai.com/features
+- Book a demonstration: https://alaynai.com/contact
+- Sign up: https://alaynai.com/signup
 `,
 
   "/about": `# About Alayn AI
@@ -117,6 +202,12 @@ Send the outlet ID in the \`x-outlet-id\` header. Without it, the API uses the f
 ## Responses
 Success: \`{ "success": true, "data": … }\` (lists add \`meta\` with limit, offset, total).
 Error: \`{ "success": false, "error": { "code": "…", "message": "…" } }\`.
+
+## Rate Limits
+Every response carries \`RateLimit-Limit\`, \`RateLimit-Remaining\` and \`RateLimit-Reset\` headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes \`Retry-After\`.
+
+## Versioning and Deprecation
+The version is in the path (\`/api/v1\`). Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced at https://alaynai.com/api-docs#versioning.
 
 ## Main Endpoint Groups
 - \`/orders\` — Orders, status changes and payments.

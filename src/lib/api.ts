@@ -476,28 +476,39 @@ export interface AlaynAIMessage {
   content: string;
 }
 
-/** `history` = earlier messages of this conversation, so follow-up questions make sense. */
+/** The café data sections AlaynAI checked for an answer */
+export type AlaynAITopic = "sales" | "staff" | "stock" | "menu";
+
+/**
+ * Which saved chat a question belongs to. No `chatId` starts a new chat; `retry` replaces the
+ * chat's last question and answer ("Ask again"). The server keeps the history, so it isn't sent.
+ */
+export interface AlaynAIChatTarget {
+  chatId?: string | null;
+  retry?: boolean;
+}
+
+/** Asks AlaynAI and gets the whole answer at once (used when streaming isn't available). */
 export async function askAlaynAI(
   prompt: string,
-  outletId?: string,
-  history: AlaynAIMessage[] = []
-): Promise<{ ok: boolean; answer?: string; error?: string }> {
-  const result = await apiRequest<{ answer: string }>("/ai/assistant", {
+  outletId: string | undefined,
+  target: AlaynAIChatTarget = {}
+): Promise<{ ok: boolean; answer?: string; chatId?: string | null; title?: string | null; error?: string }> {
+  const result = await apiRequest<{ answer: string; chatId: string | null; title: string | null }>("/ai/assistant", {
     method: "POST",
-    body: { prompt, outletId, history },
+    body: { prompt, outletId, chatId: target.chatId ?? null, retry: !!target.retry },
     outletId,
   });
 
   if (result.ok) {
-    return { ok: true, answer: result.data.answer };
+    return { ok: true, answer: result.data.answer, chatId: result.data.chatId, title: result.data.title };
   }
   return { ok: false, error: result.error };
 }
 
-/** The café data sections AlaynAI checked for an answer */
-export type AlaynAITopic = "sales" | "staff" | "stock" | "menu";
-
 interface StreamHandlers {
+  /** The saved chat this answer belongs to (sent first, so a new chat gets its id straight away) */
+  onChat?: (chatId: string, title: string) => void;
   onTopics?: (topics: AlaynAITopic[]) => void;
   onDelta: (text: string) => void;
   signal?: AbortSignal;
@@ -511,8 +522,8 @@ interface StreamHandlers {
 export async function streamAlaynAI(
   prompt: string,
   outletId: string | undefined,
-  history: AlaynAIMessage[],
-  { onTopics, onDelta, signal }: StreamHandlers,
+  target: AlaynAIChatTarget,
+  { onChat, onTopics, onDelta, signal }: StreamHandlers,
   isRetry = false
 ): Promise<{ ok: boolean; stopped?: boolean; error?: string }> {
   let res: Response;
@@ -521,7 +532,7 @@ export async function streamAlaynAI(
       method: "POST",
       headers: { "Content-Type": "application/json", ...(outletId ? { "x-outlet-id": outletId } : {}) },
       credentials: "include",
-      body: JSON.stringify({ prompt, outletId, history }),
+      body: JSON.stringify({ prompt, outletId, chatId: target.chatId ?? null, retry: !!target.retry }),
       signal,
     });
   } catch {
@@ -531,7 +542,10 @@ export async function streamAlaynAI(
 
   if (res.status === 401 && !isRetry) {
     const refreshed = await fetch(`${BACKEND_URL}/auth/refresh`, { method: "POST", credentials: "include" }).catch(() => null);
-    if (refreshed?.ok) return streamAlaynAI(prompt, outletId, history, { onTopics, onDelta, signal }, true);
+    if (refreshed?.ok) return streamAlaynAI(prompt, outletId, target, { onChat, onTopics, onDelta, signal }, true);
+  }
+  if (res.status === 404) {
+    return { ok: false, error: "This conversation was not found. It may have been deleted." };
   }
   if (!res.ok || !res.body || !res.headers.get("content-type")?.includes("text/event-stream")) return oneShot();
 
@@ -550,11 +564,13 @@ export async function streamAlaynAI(
         const dataLine = raw.split("\n").find((l) => l.startsWith("data:"));
         if (!dataLine) continue;
         const event = JSON.parse(dataLine.slice(5).trim()) as
+          | { type: "chat"; chatId: string; title: string }
           | { type: "topics"; topics: AlaynAITopic[] }
           | { type: "delta"; text: string }
           | { type: "done" }
           | { type: "error"; message: string };
-        if (event.type === "topics") onTopics?.(event.topics);
+        if (event.type === "chat") onChat?.(event.chatId, event.title);
+        else if (event.type === "topics") onTopics?.(event.topics);
         else if (event.type === "delta") onDelta(event.text);
         else if (event.type === "error") return { ok: false, error: event.message };
         else if (event.type === "done") return { ok: true };
@@ -567,14 +583,52 @@ export async function streamAlaynAI(
   }
 
   async function oneShot() {
-    const result = await askAlaynAI(prompt, outletId, history);
+    const result = await askAlaynAI(prompt, outletId, target);
     if (signal?.aborted) return { ok: false, stopped: true };
     if (result.ok && result.answer) {
+      if (result.chatId && result.title) onChat?.(result.chatId, result.title);
       onDelta(result.answer);
       return { ok: true };
     }
     return { ok: false, error: result.error || "Alayn AI could not answer just now. Please try again." };
   }
+}
+
+// ── Saved AlaynAI chats (each person sees only their own; kept for 30 days) ──
+
+export interface AlaynAIChatSummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+export interface AlaynAISavedMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  topics: AlaynAITopic[];
+  status: "done" | "stopped" | "error";
+  createdAt: string;
+}
+
+/** The signed-in person's chats about this outlet (or "all outlets"), newest first. */
+export async function listAlaynAIChats(outletId?: string) {
+  return apiRequest<{ chats: AlaynAIChatSummary[] }>("/ai/chats", { outletId });
+}
+
+export async function getAlaynAIChat(chatId: string, outletId?: string) {
+  return apiRequest<{ id: string; title: string; updatedAt: string; messages: AlaynAISavedMessage[] }>(
+    `/ai/chats/${encodeURIComponent(chatId)}`,
+    { outletId }
+  );
+}
+
+export async function deleteAlaynAIChat(chatId: string, outletId?: string) {
+  return apiRequest<{ deleted: number }>(`/ai/chats/${encodeURIComponent(chatId)}`, { method: "DELETE", outletId });
+}
+
+export async function deleteAllAlaynAIChats(outletId?: string) {
+  return apiRequest<{ deleted: number }>("/ai/chats", { method: "DELETE", outletId });
 }
 
 

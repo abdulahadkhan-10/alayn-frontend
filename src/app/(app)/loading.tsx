@@ -5,6 +5,9 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import FullDashboardSkeleton from "@/components/dashboard/FullDashboardSkeleton";
 
+// Lives in (app) rather than the root: at the root it wrapped the marketing
+// pages too, so their HTML opened with this splash and carried the real
+// content in a hidden block that agents and text extractors skip.
 export default function Loading() {
   const pathname = usePathname();
 

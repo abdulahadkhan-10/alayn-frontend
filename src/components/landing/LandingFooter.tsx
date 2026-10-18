@@ -41,6 +41,12 @@ export default function LandingFooter() {
           {/* Navigation Links (Platform) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
             <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-1">Platform</h3>
+            <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              Features
+            </Link>
+            <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              Pricing
+            </Link>
             <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               About Us
             </Link>
