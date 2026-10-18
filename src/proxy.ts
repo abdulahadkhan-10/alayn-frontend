@@ -93,6 +93,15 @@ export function proxy(request: NextRequest) {
   } else if (!existingVary.includes("Accept")) {
     response.headers.set("Vary", `${existingVary}, Accept`);
   }
+  // Point agents at the Markdown before any HTML arrives. The homepage's
+  // <head> alone is several KB of framework tags, so an agent that reads
+  // only the start of a response never reaches the page text.
+  const links = ['</llms.txt>; rel="describedby"; type="text/plain"'];
+  if (MARKDOWN_PAGES[normalizedPath]) {
+    const mdPath = normalizedPath === "/" ? "/index.md" : `${normalizedPath}.md`;
+    links.unshift(`<${mdPath}>; rel="alternate"; type="text/markdown"`);
+  }
+  response.headers.set("Link", links.join(", "));
   attachHeaders(response);
   return response;
 }
