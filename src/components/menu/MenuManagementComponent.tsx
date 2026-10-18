@@ -12,8 +12,10 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useDeleteMenuItemMutation,
+  useGetModifierGroupsQuery,
   MenuItem,
 } from "@/redux/slices/menuApiSlice";
+import ModifierGroupManager from "./ModifierGroupManager";
 import {
   Plus,
   Search,
@@ -131,6 +133,9 @@ export default function MenuManagementComponent() {
   const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
   const [isEditItemOpen, setIsEditItemOpen] = useState(false);
 
+  // Tab navigation state
+  const [activeTab, setActiveTab] = useState<"ITEMS" | "MODIFIERS">("ITEMS");
+
   // Form states
   const [newItem, setNewItem] = useState({
     name: "",
@@ -141,6 +146,7 @@ export default function MenuManagementComponent() {
     isVeg: true,
     dietaryType: "VEG" as "VEG" | "NON_VEG" | "VEGAN",
     outletIds: [] as string[],
+    modifierGroupIds: [] as string[],
   });
 
   const [editItem, setEditItem] = useState({
@@ -154,6 +160,7 @@ export default function MenuManagementComponent() {
     dietaryType: "VEG" as "VEG" | "NON_VEG" | "VEGAN",
     outletIds: [] as string[],
     allRelatedItemIds: [] as string[],
+    modifierGroupIds: [] as string[],
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -171,6 +178,7 @@ export default function MenuManagementComponent() {
   // RTK Query Hooks
   const { data: rawCategories = [], isLoading: isCatLoading } = useGetCategoriesQuery();
   const { data: rawMenuItems = [], isLoading: isItemsLoading } = useGetMenuItemsQuery({});
+  const { data: availableModifierGroups = [] } = useGetModifierGroupsQuery({ outletId: currentOutletId || undefined });
 
   // Dynamically detect which dietary types exist in current menu
   const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
@@ -618,6 +626,7 @@ export default function MenuManagementComponent() {
       isVeg: true,
       dietaryType: "VEG",
       outletIds: defaultIds,
+      modifierGroupIds: [],
     });
     setIsAddItemOpen(true);
   };
@@ -668,10 +677,11 @@ export default function MenuManagementComponent() {
           dietaryType: newItem.dietaryType,
           isAvailable: true,
           outletIds: outIds,
+          modifierGroupIds: newItem.modifierGroupIds,
         }).unwrap();
       }
 
-      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, dietaryType: "VEG", outletIds: [] });
+      setNewItem({ name: "", description: "", price: "", categoryId: "", imageUrl: "", isVeg: true, dietaryType: "VEG", outletIds: [], modifierGroupIds: [] });
       setIsAddItemOpen(false);
       setPendingConfirmAction(null);
     } catch (err) {
@@ -779,6 +789,8 @@ export default function MenuManagementComponent() {
       dietaryType: itemDietaryType,
       outletIds: itemOutletIds,
       allRelatedItemIds: relatedItems ? relatedItems.map((r) => r.id) : [item.id],
+      // All linked groups, including inactive ones, so saving the item doesn't silently unlink them
+      modifierGroupIds: item.modifierGroupIds || (item.modifierGroups || []).map((mg: any) => mg.id),
     });
     setIsEditItemOpen(true);
   };
@@ -847,6 +859,7 @@ export default function MenuManagementComponent() {
             isVeg: editItem.dietaryType !== "NON_VEG",
             dietaryType: editItem.dietaryType,
             outletIds: itemToOutlets.get(itemId) || [],
+            modifierGroupIds: editItem.modifierGroupIds,
           },
         }).unwrap();
       }
@@ -900,6 +913,55 @@ export default function MenuManagementComponent() {
           </div>
         </div>
 
+        {/* Primary View Tab Switcher: Menu Items vs Add-ons & Variations */}
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("ITEMS")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+              activeTab === "ITEMS"
+                ? "bg-[#1B2A4A] text-white shadow-sm"
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+            }`}
+          >
+            <UtensilsCrossed className="w-4 h-4" />
+            <span>Menu Items & Catalog</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                activeTab === "ITEMS" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {metrics.total}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("MODIFIERS")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
+              activeTab === "MODIFIERS"
+                ? "bg-[#1B2A4A] text-white shadow-sm"
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4 text-amber-500" />
+            <span>Add-ons & Variations</span>
+            {availableModifierGroups.length > 0 && (
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                  activeTab === "MODIFIERS" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {availableModifierGroups.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === "MODIFIERS" ? (
+          <ModifierGroupManager />
+        ) : (
+          <>
         {/* Scalable Stats Summary Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
@@ -1495,6 +1557,8 @@ export default function MenuManagementComponent() {
             </div>
           </div>
         )}
+          </>
+        )}
 
         {/* Add Item Modal */}
         <TModal open={isAddItemOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
@@ -1652,6 +1716,53 @@ export default function MenuManagementComponent() {
                             />
                             <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
                             <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modifier Groups / Add-ons Assignment */}
+                {availableModifierGroups.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Add-on Groups & Customizations
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-40 overflow-y-auto">
+                      {availableModifierGroups.map((group) => {
+                        const isChecked = newItem.modifierGroupIds.includes(group.id);
+                        return (
+                          <label
+                            key={group.id}
+                            className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
+                              isChecked
+                                ? "bg-amber-50/80 border-amber-400 text-amber-950 font-bold shadow-2xs"
+                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const newIds = e.target.checked
+                                  ? [...newItem.modifierGroupIds, group.id]
+                                  : newItem.modifierGroupIds.filter((id) => id !== group.id);
+                                setNewItem({ ...newItem, modifierGroupIds: newIds });
+                              }}
+                              className="mt-0.5 rounded text-amber-600 focus:ring-amber-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-semibold truncate">{group.name}</span>
+                                <span className="text-[10px] px-1 py-0.2 bg-gray-100 text-gray-600 rounded">
+                                  {group.modifiers?.length || 0} opts
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 font-normal line-clamp-1">
+                                {group.modifiers?.map((m) => m.name).join(", ") || "No options"}
+                              </p>
+                            </div>
                           </label>
                         );
                       })}
@@ -1898,6 +2009,53 @@ export default function MenuManagementComponent() {
                             />
                             <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
                             <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Modifier Groups / Add-ons Assignment */}
+                {availableModifierGroups.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Add-on Groups & Customizations
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-40 overflow-y-auto">
+                      {availableModifierGroups.map((group) => {
+                        const isChecked = editItem.modifierGroupIds.includes(group.id);
+                        return (
+                          <label
+                            key={group.id}
+                            className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
+                              isChecked
+                                ? "bg-amber-50/80 border-amber-400 text-amber-950 font-bold shadow-2xs"
+                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const newIds = e.target.checked
+                                  ? [...editItem.modifierGroupIds, group.id]
+                                  : editItem.modifierGroupIds.filter((id) => id !== group.id);
+                                setEditItem({ ...editItem, modifierGroupIds: newIds });
+                              }}
+                              className="mt-0.5 rounded text-amber-600 focus:ring-amber-500"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-semibold truncate">{group.name}</span>
+                                <span className="text-[10px] px-1 py-0.2 bg-gray-100 text-gray-600 rounded">
+                                  {group.modifiers?.length || 0} opts
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 font-normal line-clamp-1">
+                                {group.modifiers?.map((m) => m.name).join(", ") || "No options"}
+                              </p>
+                            </div>
                           </label>
                         );
                       })}

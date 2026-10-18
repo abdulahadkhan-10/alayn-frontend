@@ -11,6 +11,7 @@
 
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
 import { printThermalHtml } from "./printUtils";
+import { billItemRows } from "./billLines";
 
 export interface PrintResult {
   success: boolean;
@@ -479,11 +480,13 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
         </div>
         <div class="items-header"><span>ITEM</span><span>QTY</span></div>
         ${itemsList.map((item: any) => {
-          const name = item.menuItem?.name || item.menuItemName || "Item";
+          const line = billItemRows(item);
+          // The kitchen needs every add-on to prepare the dish (prices don't matter here)
+          const addons = line.addons.map((a) => '<div style="font-size: 12px; font-weight: 800; margin-left: 10px;">+ ' + a.name + '</div>').join("");
           const note = item.notes ? '<div style="font-size: 10px; font-style: italic; margin-left: 10px;">Note: ' + item.notes + '</div>' : "";
           return `
             <div class="item-row">
-              <div style="flex: 1; padding-right: 8px;"><span class="bold">${name}</span>${note}</div>
+              <div style="flex: 1; padding-right: 8px;"><span class="bold">${line.name}</span>${addons}${note}</div>
               <div class="item-qty">${item.quantity}</div>
             </div>
           `;
@@ -609,7 +612,9 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-size: 11px; }
           .meta-row { display: flex; justify-content: space-between; margin: 2px 0; }
           .items-header { display: flex; justify-content: space-between; font-weight: 900; border-bottom: 1px solid #000; padding: 4px 0; margin-top: 6px; font-size: 11px; }
-          .item-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted #ccc; font-size: 12px; }
+          .item-block { padding: 4px 0; border-bottom: 1px dotted #ccc; }
+          .item-row { display: flex; justify-content: space-between; font-size: 12px; }
+          .addon-row { display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px; }
           .summary-table { width: 100%; border-top: 1px dashed #000; padding: 6px 0; margin-top: 6px; font-size: 11px; }
           .summary-row { display: flex; justify-content: space-between; margin: 2px 0; }
           .total-box { border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 6px 0; margin: 8px 0; font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; }
@@ -644,16 +649,24 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         </div>
 
         ${itemsList.map((item: any) => {
-          const name = item.menuItem?.name || item.menuItemName || "Item";
-          const qty = item.quantity || 1;
-          const price = item.unitPricePaise ? item.unitPricePaise / 100 : item.price || 0;
-          const total = item.subtotalPaise ? item.subtotalPaise / 100 : (item.subtotal || price * qty);
+          const line = billItemRows(item);
+          const addonRows = line.addons.map((a) => `
+            <div class="addon-row">
+              <span style="flex: 2; padding-left: 8px;">+ ${a.name}</span>
+              <span style="flex: 1; text-align: center;">${line.qty}</span>
+              <span style="flex: 1; text-align: right;">${a.unitRupees.toFixed(2)}</span>
+              <span style="flex: 1; text-align: right;">${a.amountRupees.toFixed(2)}</span>
+            </div>
+          `).join("");
           return `
-            <div class="item-row">
-              <span style="flex: 2; font-weight: bold;">${name}</span>
-              <span style="flex: 1; text-align: center;">${qty}</span>
-              <span style="flex: 1; text-align: right;">${price.toFixed(2)}</span>
-              <span style="flex: 1; text-align: right; font-weight: bold;">${total.toFixed(2)}</span>
+            <div class="item-block">
+              <div class="item-row">
+                <span style="flex: 2; font-weight: bold;">${line.name}</span>
+                <span style="flex: 1; text-align: center;">${line.qty}</span>
+                <span style="flex: 1; text-align: right;">${line.unitRupees.toFixed(2)}</span>
+                <span style="flex: 1; text-align: right; font-weight: bold;">${line.amountRupees.toFixed(2)}</span>
+              </div>
+              ${addonRows}
             </div>
           `;
         }).join("")}

@@ -359,6 +359,7 @@ export interface CustomerMenuItem {
   isVeg: boolean;
   dietaryType?: 'VEG' | 'NON_VEG' | 'VEGAN';
   isActive: boolean;
+  modifierGroups?: any[];
 }
 
 export interface CustomerMenuCategory {
@@ -392,6 +393,12 @@ export interface QROrderItemInput {
   menuItemId: string;
   quantity: number;
   notes?: string;
+  modifiers?: {
+    id?: string;
+    name: string;
+    price?: number;
+    pricePaise?: number;
+  }[];
 }
 
 export interface CreateQROrderPayload {

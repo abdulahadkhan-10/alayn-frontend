@@ -303,14 +303,43 @@ export default function KitchenDispatchBoardComponent() {
                       <span className="text-[10px] font-bold text-rose-800 uppercase tracking-widest block">
                         Cancelled Items (Do Not Cook):
                       </span>
-                      {cItems.map((ci: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between text-xs text-rose-950 font-bold">
-                          <span className="truncate pr-2">{ci.menuItem?.name || ci.menuItemName || "Item"}</span>
-                          <span className="font-black px-1.5 py-0.5 bg-rose-200 text-rose-900 rounded-xs text-[11px]">
-                            x{ci.quantity}
-                          </span>
-                        </div>
-                      ))}
+                      {cItems.map((ci: any, idx: number) => {
+                        const cMods: any[] = (() => {
+                          if (Array.isArray(ci.modifiers) && ci.modifiers.length > 0) return ci.modifiers;
+                          if (ci.modifiersJson) {
+                            try {
+                              const parsed = typeof ci.modifiersJson === "string" ? JSON.parse(ci.modifiersJson) : ci.modifiersJson;
+                              if (Array.isArray(parsed)) return parsed;
+                            } catch {
+                              return [];
+                            }
+                          }
+                          return [];
+                        })();
+
+                        return (
+                          <div key={idx} className="flex flex-col gap-0.5 text-xs text-rose-950 font-bold">
+                            <div className="flex items-center justify-between">
+                              <span className="truncate pr-2">{ci.menuItem?.name || ci.menuItemName || "Item"}</span>
+                              <span className="font-black px-1.5 py-0.5 bg-rose-200 text-rose-900 rounded-xs text-[11px]">
+                                x{ci.quantity}
+                              </span>
+                            </div>
+                            {cMods.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {cMods.map((m: any, mIdx: number) => (
+                                  <span
+                                    key={mIdx}
+                                    className="text-[10px] text-rose-700 bg-rose-100/90 border border-rose-200 px-1.5 py-0.5 rounded-md font-extrabold line-through"
+                                  >
+                                    + {m.name || m.title || "Extra"}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Actions */}
@@ -420,6 +449,19 @@ export default function KitchenDispatchBoardComponent() {
                               const isVeg = item.menuItem?.dietaryType === "VEG" || item.menuItem?.isVeg === true;
                               const isNonVeg = item.menuItem?.dietaryType === "NON_VEG" || (item.menuItem?.isVeg === false);
 
+                              const itemMods: any[] = (() => {
+                                if (Array.isArray(item.modifiers) && item.modifiers.length > 0) return item.modifiers;
+                                if (item.modifiersJson) {
+                                  try {
+                                    const parsed = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                    if (Array.isArray(parsed)) return parsed;
+                                  } catch {
+                                    return [];
+                                  }
+                                }
+                                return [];
+                              })();
+
                               return (
                                 <div key={idx} className="flex flex-col gap-1">
                                   <div className="flex items-start gap-2 text-[13px]">
@@ -436,6 +478,31 @@ export default function KitchenDispatchBoardComponent() {
                                       </div>
                                     </div>
                                   </div>
+
+                                  {/* Modifiers / Add-ons badge pills */}
+                                  {itemMods.length > 0 && (
+                                    <div className="ml-7 flex flex-wrap gap-1.5 mt-0.5">
+                                      {itemMods.map((mod: any, mIdx: number) => {
+                                        const modName = mod.name || mod.title || "Extra";
+                                        return (
+                                          <span
+                                            key={mIdx}
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] shadow-2xs ${
+                                              mod.isVariant
+                                                ? "bg-indigo-100 text-indigo-950 border border-indigo-300"
+                                                : "bg-amber-100 text-amber-950 border border-amber-300"
+                                            }`}
+                                          >
+                                            <span className={mod.isVariant ? "text-indigo-700 font-black" : "text-amber-700 font-black"}>
+                                              {mod.isVariant ? "●" : "+"}
+                                            </span>
+                                            <span>{mod.isVariant ? `Size: ${modName}` : modName}</span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
                                   {item.notes && (
                                     <div className="ml-7 bg-amber-100/60 border-l-2 border-amber-400 px-2 py-1 rounded-r-md">
                                       <span className="text-[9px] text-amber-900 font-bold uppercase tracking-widest block opacity-75 mb-0.5">Prep Note</span>

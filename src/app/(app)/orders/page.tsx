@@ -791,14 +791,24 @@ export default function LiveOrdersPage() {
                     {items.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {(() => {
-                          const consolidatedMap = new Map<string, { item: any; totalQty: number }>();
+                          const consolidatedMap = new Map<string, { item: any; totalQty: number; variantName?: string }>();
                           items.forEach((item: any) => {
-                            const key = item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
+                            let itemMods: any[] = [];
+                            if (Array.isArray(item.modifiers) && item.modifiers.length > 0) itemMods = item.modifiers;
+                            else if (item.modifiersJson) {
+                              try {
+                                const p = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                if (Array.isArray(p)) itemMods = p;
+                              } catch {}
+                            }
+                            const variantMod = itemMods.find((m: any) => m.isVariant);
+                            const variantName = variantMod?.name;
+                            const key = (item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown") + (variantName ? `__${variantName}` : "");
                             const qty = item.quantity || 1;
                             if (consolidatedMap.has(key)) {
                               consolidatedMap.get(key)!.totalQty += qty;
                             } else {
-                              consolidatedMap.set(key, { item, totalQty: qty });
+                              consolidatedMap.set(key, { item, totalQty: qty, variantName });
                             }
                           });
                           
@@ -808,10 +818,15 @@ export default function LiveOrdersPage() {
 
                           return (
                             <>
-                              {displayItems.map(({ item, totalQty }, idx: number) => (
+                              {displayItems.map(({ item, totalQty, variantName }, idx: number) => (
                                 <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-200 text-gray-700 text-[10px] font-bold rounded-lg max-w-full truncate">
                                   <span className="text-[#1B2A4A] font-bold">{totalQty}×</span>
                                   <span className="truncate ml-1">{item.menuItem?.name || item.name || "Item"}</span>
+                                  {variantName && (
+                                    <span className="ml-1 px-1 py-0.2 bg-blue-100 text-blue-700 rounded text-[9px] font-semibold shrink-0">
+                                      {variantName}
+                                    </span>
+                                  )}
                                 </span>
                               ))}
                               {remaining > 0 && (
@@ -1004,6 +1019,47 @@ export default function LiveOrdersPage() {
                               </span>
                               {item.menuItem?.name || item.name || "Dish Item"}
                             </span>
+                            {(() => {
+                              const itemMods: any[] = (() => {
+                                if (Array.isArray(item.modifiers) && item.modifiers.length > 0) return item.modifiers;
+                                if (item.modifiersJson) {
+                                  try {
+                                    const parsed = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                    if (Array.isArray(parsed)) return parsed;
+                                  } catch {
+                                    return [];
+                                  }
+                                }
+                                return [];
+                              })();
+                              if (itemMods.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {itemMods.map((m: any, mIdx: number) => {
+                                    const isVar = Boolean(m.isVariant);
+                                    const priceVal = m.price !== undefined ? Number(m.price) : (m.pricePaise ? Number(m.pricePaise) / 100 : 0);
+                                    if (isVar) {
+                                      return (
+                                        <span
+                                          key={mIdx}
+                                          className="inline-flex items-center text-[10px] font-bold text-blue-900 bg-blue-100/90 border border-blue-300 px-1.5 py-0.5 rounded-md"
+                                        >
+                                          Size: {m.name || m.title}
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span
+                                        key={mIdx}
+                                        className="inline-flex items-center text-[10px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded-md"
+                                      >
+                                        + {m.name || m.title || "Extra"}{priceVal > 0 ? ` (+₹${priceVal.toFixed(2)})` : ""}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                             {notes.length > 0 && (
                               <span className="text-[10px] text-gray-400 italic mt-0.5 block">
                                 {notes.join(", ")}
@@ -1198,14 +1254,19 @@ export default function LiveOrdersPage() {
                         </div>
                       )}
 
-                      {selectedOrder.paymentMethod && (
+                      {selectedOrder.status === "COMPLETED" || selectedOrder.paymentStatus === "CONFIRMED" ? (
                         <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
                           <span className="text-gray-500 font-medium">Payment Method</span>
                           <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
-                            {selectedOrder.paymentMethod}
-                            {selectedOrder.status === "COMPLETED" && (
-                              <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
-                            )}
+                            {selectedOrder.paymentMethod || "PAID"}
+                            <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Payment Status</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Unpaid (Collect at Settlement)
                           </span>
                         </div>
                       )}
@@ -1674,8 +1735,20 @@ export default function LiveOrdersPage() {
 
                     if (updatedResult) {
                       setSettlingOrder(null);
+                      // Print the same lines the pre-bill showed: fall back to the order on screen
+                      // for any line the settle response returned without its menu item details
+                      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
+                      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
+                      const printItems = settledItems.length > 0
+                        ? settledItems.map((it: any) => {
+                            const shown = shownItems.find((s: any) => s.id === it.id);
+                            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
+                          })
+                        : shownItems;
                       const orderToPrint = {
                         ...updatedResult,
+                        items: printItems,
+                        orderItems: printItems,
                         status: "COMPLETED",
                         paymentMethod,
                         customerName: cName || targetOrder.customerName,

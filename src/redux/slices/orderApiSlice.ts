@@ -1,11 +1,21 @@
 import { baseApi } from "../store/baseApi";
 
+export interface OrderItemModifier {
+  id?: string;
+  name: string;
+  price?: number;
+  pricePaise?: number;
+  isVariant?: boolean;
+}
+
 export interface OrderItem {
   id?: string;
   menuItemId: string;
   quantity: number;
   unitPrice: number;
   notes?: string;
+  modifiers?: OrderItemModifier[];
+  modifiersJson?: string;
   menuItem?: {
     id: string;
     name: string;
@@ -23,6 +33,8 @@ export interface CreateOrderPayload {
     menuItemId: string;
     quantity: number;
     notes?: string;
+    // The server prices each option from the menu by id; the rest is ignored
+    modifiers?: OrderItemModifier[];
   }[];
   paymentMethod: "CASH" | "CARD" | "UPI";
   discountAmount?: number;

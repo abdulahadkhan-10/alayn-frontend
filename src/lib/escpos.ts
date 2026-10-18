@@ -11,6 +11,8 @@
  * - Instant (< 200ms) execution over Bluetooth / USB / LAN.
  */
 
+import { billItemRows, itemModifiers } from "./billLines";
+
 export interface ESCPOSOptions {
   paperWidth?: "80mm" | "58mm";
   cutPaper?: boolean;
@@ -238,6 +240,18 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
     }
     builder.bold(false);
 
+    // Print modifiers if any
+    const kModifiers = itemModifiers(item);
+    if (Array.isArray(kModifiers) && kModifiers.length > 0) {
+      for (const mod of kModifiers) {
+        if (mod.isVariant) {
+          builder.textLine(`   > SIZE: ${mod.name}`);
+        } else {
+          builder.textLine(`   > + ${mod.name}`);
+        }
+      }
+    }
+
     // Print preparation note if any
     if (item.notes && item.notes.trim()) {
       builder.textLine(` * NOTE: ${item.notes.trim()}`);
@@ -399,14 +413,19 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   builder.divider("-");
 
   for (const item of items) {
-    const name = (item.menuItem?.name || item.menuItemName || item.name || "Item").trim();
-    const qty = String(item.quantity);
-    const amount = `Rs.${Number(item.price ? item.price * item.quantity : item.total || 0).toFixed(2)}`;
+    const line = billItemRows(item);
+    const qty = String(line.qty);
 
     if (is80mm) {
-      builder.threeColumns(name, qty, amount, 6, 10);
+      builder.threeColumns(line.name, qty, `Rs.${line.amountRupees.toFixed(2)}`, 6, 10);
+      for (const addon of line.addons) {
+        builder.threeColumns(`  + ${addon.name}`, qty, `Rs.${addon.amountRupees.toFixed(2)}`, 6, 10);
+      }
     } else {
-      builder.twoColumns(`${name} x${qty}`, amount);
+      builder.twoColumns(`${line.name} x${qty}`, `Rs.${line.amountRupees.toFixed(2)}`);
+      for (const addon of line.addons) {
+        builder.twoColumns(`  + ${addon.name}`, `Rs.${addon.amountRupees.toFixed(2)}`);
+      }
     }
   }
 

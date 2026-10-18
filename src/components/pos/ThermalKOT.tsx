@@ -524,6 +524,19 @@ export default function ThermalKOT({
                           {itemName}
                         </span>
                       </div>
+                      {(() => {
+                        const mods = item.modifiers || (item.modifiersJson ? (typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson) : []);
+                        if (!Array.isArray(mods) || mods.length === 0) return null;
+                        return (
+                          <div className="mt-1 pl-5 space-y-0.5">
+                            {mods.map((m: any, mIdx: number) => (
+                              <div key={mIdx} className="text-[11px] font-bold text-amber-900 uppercase tracking-wide">
+                                ↳ {m.isVariant ? `SIZE: ${m.name}` : `+ ${m.name}`}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {item.notes && (
                         <div className="mt-1 pl-5 text-[11px] font-medium text-slate-500 italic">
                           ↳ Note: {item.notes}

@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Printer, X, CheckCircle, Smartphone, Loader2 } from "lucide-react";
 import { printThermalHtml } from "@/lib/printUtils";
+import { billItemRows } from "@/lib/billLines";
 import {
   autoPrintReceipt,
 } from "@/lib/bluetoothAutoPrinter";
@@ -453,25 +454,24 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             {/* -- ITEMS LIST -- */}
             <div className="space-y-1.5 mb-2">
               {itemsList.map((item: any, idx: number) => {
-                const name = item.menuItem?.name || item.menuItemName || "Menu Item";
-                const qty = item.quantity || 1;
-                const unitPrice = item.unitPricePaise !== undefined
-                  ? item.unitPricePaise / 100
-                  : item.menuItem?.pricePaise
-                    ? item.menuItem.pricePaise / 100
-                    : item.menuItem?.price || 0;
-                const lineAmount = item.subtotalPaise !== undefined
-                  ? item.subtotalPaise / 100
-                  : (unitPrice * qty);
+                const line = billItemRows(item);
 
                 return (
                   <div key={idx}>
                     <div className="flex justify-between text-[11px] items-start">
-                      <span className="flex-1 pr-1 font-bold leading-tight">{name}</span>
-                      <span className="w-8 text-center">{qty}</span>
-                      <span className="w-12 text-right">{unitPrice.toFixed(2)}</span>
-                      <span className="w-16 text-right font-black">{lineAmount.toFixed(2)}</span>
+                      <span className="flex-1 pr-1 font-bold leading-tight">{line.name}</span>
+                      <span className="w-8 text-center">{line.qty}</span>
+                      <span className="w-12 text-right">{line.unitRupees.toFixed(2)}</span>
+                      <span className="w-16 text-right font-black">{line.amountRupees.toFixed(2)}</span>
                     </div>
+                    {line.addons.map((addon, aIdx) => (
+                      <div key={aIdx} className="flex justify-between text-[10px] mt-0.5">
+                        <span className="flex-1 pr-1 pl-2 leading-tight">+ {addon.name}</span>
+                        <span className="w-8 text-center">{line.qty}</span>
+                        <span className="w-12 text-right">{addon.unitRupees.toFixed(2)}</span>
+                        <span className="w-16 text-right">{addon.amountRupees.toFixed(2)}</span>
+                      </div>
+                    ))}
                     {item.notes && (
                       <p className="text-[10px] pl-2 mt-0.5 italic flex items-start gap-1">
                         <span>↳</span> <span className="leading-tight">{item.notes}</span>

@@ -57,10 +57,20 @@ import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { estimateBill, GstRegistrationType } from "@/lib/billing";
 
-interface CartItem {
+export interface CartModifierItem {
+  id?: string;
+  name: string;
+  price: number;
+  isVariant?: boolean;
+}
+
+export interface CartItem {
+  cartItemId: string;
   menuItem: MenuItem;
   quantity: number;
   notes?: string;
+  selectedModifiers?: CartModifierItem[];
+  unitPrice: number;
 }
 
 export default function PosTerminalComponent() {
@@ -140,7 +150,12 @@ export default function PosTerminalComponent() {
   const [discount, setDiscount] = useState<number>(0);
   const [taxPercent, setTaxPercent] = useState<number>(5);
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("UPI");
-  const [editingNoteItemId, setEditingNoteItemId] = useState<string | null>(null);
+  const [editingNoteCartItemId, setEditingNoteCartItemId] = useState<string | null>(null);
+
+  // Petpooja-Style Customization Modal State
+  const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+  const [selectedModifiersState, setSelectedModifiersState] = useState<Record<string, CartModifierItem[]>>({});
+  const [customizationQty, setCustomizationQty] = useState<number>(1);
 
   // Coupon States & Handlers
   const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateRestaurantCouponMutation();
@@ -274,24 +289,92 @@ export default function PosTerminalComponent() {
   }, [menuItems, selectedCategoryId, searchQuery, dietaryFilter]);
 
   // Cart Operations — Blocked if 'All Outlets' is active
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (
+    item: MenuItem,
+    modifiers: CartModifierItem[] = [],
+    qty: number = 1,
+    computedUnitPrice?: number
+  ) => {
     if (isAllOutletsSelected) {
       setIsOutletSelectModalOpen(true);
       return;
     }
 
+    let unitPrice = computedUnitPrice;
+    if (unitPrice === undefined) {
+      const variantMod = modifiers.find((m) => m.isVariant && Number(m.price) > 0);
+      const basePrice = variantMod ? Number(variantMod.price) : (Number(item.price) || 0);
+      const extraPrice = modifiers
+        .filter((m) => !m.isVariant)
+        .reduce((acc, m) => acc + (Number(m.price) || 0), 0);
+      unitPrice = basePrice + extraPrice;
+    }
+
+    const sortedModIds = [...modifiers].map((m) => m.id || m.name).sort().join(":");
+    const cartItemId = sortedModIds ? `${item.id}-${sortedModIds}` : `${item.id}-base`;
+
     setCart((prev) => {
-      const existing = prev.find((ci) => ci.menuItem.id === item.id);
+      const existing = prev.find((ci) => ci.cartItemId === cartItemId);
       if (existing) {
         return prev.map((ci) =>
-          ci.menuItem.id === item.id ? { ...ci, quantity: ci.quantity + 1 } : ci
+          ci.cartItemId === cartItemId ? { ...ci, quantity: ci.quantity + qty } : ci
         );
       }
-      return [...prev, { menuItem: item, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          cartItemId,
+          menuItem: item,
+          quantity: qty,
+          selectedModifiers: modifiers,
+          unitPrice,
+        },
+      ];
     });
   };
 
-  const updateQuantity = (itemId: string, delta: number) => {
+  const handleItemCardClick = (item: MenuItem) => {
+    if (isAllOutletsSelected) {
+      setIsOutletSelectModalOpen(true);
+      return;
+    }
+
+    if (item.modifierGroups && item.modifierGroups.length > 0) {
+      // Pre-select mandatory single options
+      const initialSelected: Record<string, CartModifierItem[]> = {};
+      item.modifierGroups.forEach((mg) => {
+        if (mg.minSelection === 1 && mg.maxSelection === 1 && mg.modifiers && mg.modifiers.length > 0) {
+          const firstMod = mg.modifiers[0];
+          const isVariant = mg.modifiers.some((m: any) => Number(m.price || m.pricePaise) > 0);
+          initialSelected[mg.id] = [
+            {
+              id: firstMod.id,
+              name: firstMod.name,
+              price: Number(firstMod.price) || 0,
+              isVariant,
+            },
+          ];
+        } else {
+          initialSelected[mg.id] = [];
+        }
+      });
+      setSelectedModifiersState(initialSelected);
+      setCustomizationQty(1);
+      setCustomizingItem(item);
+    } else {
+      addToCart(item);
+    }
+  };
+
+  const handleItemDecrement = (item: MenuItem) => {
+    const matching = cart.filter((ci) => ci.menuItem.id === item.id);
+    if (matching.length > 0) {
+      const last = matching[matching.length - 1];
+      updateQuantity(last.cartItemId, -1);
+    }
+  };
+
+  const updateQuantity = (cartItemId: string, delta: number) => {
     if (isAllOutletsSelected) {
       setIsOutletSelectModalOpen(true);
       return;
@@ -300,7 +383,7 @@ export default function PosTerminalComponent() {
     setCart((prev) =>
       prev
         .map((ci) => {
-          if (ci.menuItem.id === itemId) {
+          if (ci.cartItemId === cartItemId) {
             const newQty = ci.quantity + delta;
             return newQty > 0 ? { ...ci, quantity: newQty } : null;
           }
@@ -310,14 +393,14 @@ export default function PosTerminalComponent() {
     );
   };
 
-  const updateItemNote = (itemId: string, notes: string) => {
+  const updateItemNote = (cartItemId: string, notes: string) => {
     setCart((prev) =>
-      prev.map((ci) => (ci.menuItem.id === itemId ? { ...ci, notes } : ci))
+      prev.map((ci) => (ci.cartItemId === cartItemId ? { ...ci, notes } : ci))
     );
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart((prev) => prev.filter((ci) => ci.menuItem.id !== itemId));
+  const removeFromCart = (cartItemId: string) => {
+    setCart((prev) => prev.filter((ci) => ci.cartItemId !== cartItemId));
   };
 
   const clearCart = () => {
@@ -341,7 +424,7 @@ export default function PosTerminalComponent() {
   // Financial Calculations — Single source of truth mirrored from billing.ts
   const billEstimate = useMemo(() => {
     return estimateBill(
-      cart.map((ci) => ({ price: ci.menuItem.price, quantity: ci.quantity })),
+      cart.map((ci) => ({ price: ci.unitPrice, quantity: ci.quantity })),
       billRates,
       {
         dineIn: isDineIn,
@@ -384,6 +467,13 @@ export default function PosTerminalComponent() {
         menuItemId: ci.menuItem.id,
         quantity: ci.quantity,
         notes: ci.notes,
+        modifiers: ci.selectedModifiers?.map((m) => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          pricePaise: Math.round(m.price * 100),
+          isVariant: m.isVariant,
+        })),
       })),
       discountAmount: discount,
       taxAmount: taxAmount,
@@ -451,6 +541,13 @@ export default function PosTerminalComponent() {
         menuItemId: ci.menuItem.id,
         quantity: ci.quantity,
         notes: ci.notes,
+        modifiers: ci.selectedModifiers?.map((m) => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          pricePaise: Math.round(m.price * 100),
+          isVariant: m.isVariant,
+        })),
       })),
       paymentMethod,
       discountAmount: discount,
@@ -477,6 +574,95 @@ export default function PosTerminalComponent() {
       alert(err?.data?.message || "Failed to create order. Please try again.");
     }
   };
+
+  const completedOrderObj = completedOrder?.data || completedOrder;
+  const isKitchenDispatch = completedOrderObj?._flow === "KITCHEN";
+  const displayCompletedOrderId =
+    completedOrderObj?.orderNo ||
+    completedOrderObj?.orderNumber ||
+    (completedOrderObj?.id ? `#${completedOrderObj.id.slice(0, 8)}` : "ORD-SUCCESS");
+
+  const customizationCalculations = useMemo(() => {
+    if (!customizingItem) {
+      return {
+        allSelectedMods: [] as CartModifierItem[],
+        extraPerUnit: 0,
+        finalUnitPrice: 0,
+        finalTotal: 0,
+        isValid: false,
+        effectiveBasePrice: 0,
+        hasVariantGroup: false,
+      };
+    }
+
+    // Identify variant groups (Mandatory Single Choice where options have standalone prices)
+    const variantGroups = (customizingItem.modifierGroups || []).filter(
+      (g) => g.minSelection === 1 && g.maxSelection === 1 && (g.modifiers || []).some((m) => Number(m.price || (m as any).pricePaise) > 0)
+    );
+
+    let selectedVariantPrice: number | null = null;
+    let extraPerUnit = 0;
+    const allSelectedMods: CartModifierItem[] = [];
+
+    (customizingItem.modifierGroups || []).forEach((group) => {
+      const isVariantGroup = variantGroups.some((vg) => vg.id === group.id);
+      const sel = selectedModifiersState[group.id] || [];
+
+      if (isVariantGroup) {
+        if (sel.length > 0) {
+          const v = sel[0];
+          const vPrice = Number(v.price) || 0;
+          if (vPrice > 0) {
+            selectedVariantPrice = vPrice;
+          }
+          allSelectedMods.push({
+            id: v.id,
+            name: v.name,
+            price: vPrice,
+            isVariant: true,
+          });
+        }
+      } else {
+        // Add-ons / extras
+        sel.forEach((m) => {
+          const mPrice = Number(m.price) || 0;
+          extraPerUnit += mPrice;
+          allSelectedMods.push({
+            id: m.id,
+            name: m.name,
+            price: mPrice,
+            isVariant: false,
+          });
+        });
+      }
+    });
+
+    const effectiveBasePrice = selectedVariantPrice !== null
+      ? selectedVariantPrice
+      : (Number(customizingItem.price) || 0);
+
+    const finalUnitPrice = effectiveBasePrice + extraPerUnit;
+    const finalTotal = finalUnitPrice * customizationQty;
+
+    const isValid = (customizingItem.modifierGroups || []).every((g) => {
+      const sel = selectedModifiersState[g.id] || [];
+      return sel.length >= g.minSelection;
+    });
+
+    return {
+      allSelectedMods,
+      extraPerUnit,
+      finalUnitPrice,
+      finalTotal,
+      isValid,
+      effectiveBasePrice,
+      hasVariantGroup: variantGroups.length > 0,
+    };
+  }, [customizingItem, selectedModifiersState, customizationQty]);
+
+  const customizingDietaryType = customizingItem
+    ? customizingItem.dietaryType || (customizingItem.isVeg !== false ? "VEG" : "NON_VEG")
+    : null;
 
   return (
     <DashboardLayout>
@@ -802,11 +988,11 @@ export default function PosTerminalComponent() {
                 {filteredItems
                   .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                   .map((item) => {
-                    const cartEntry = cart.find(
-                      (ci) => ci.menuItem.id === item.id
-                    );
-                    const cartQty = cartEntry ? cartEntry.quantity : 0;
+                    const cartQty = cart
+                      .filter((ci) => ci.menuItem.id === item.id)
+                      .reduce((sum, ci) => sum + ci.quantity, 0);
                     const isSelected = cartQty > 0;
+                    const hasModifiers = item.modifierGroups && item.modifierGroups.length > 0;
 
                     return (
                       <motion.div
@@ -904,7 +1090,7 @@ export default function PosTerminalComponent() {
                               </div>
 
                               {/* Fluid Morphing Stepper */}
-                              <div className="relative w-[64px] h-[28px] shrink-0">
+                              <div className="relative w-[76px] h-[28px] shrink-0">
                                 <AnimatePresence mode="wait">
                                   {cartQty === 0 ? (
                                     <motion.button
@@ -913,12 +1099,12 @@ export default function PosTerminalComponent() {
                                       animate={{ opacity: 1, scale: 1 }}
                                       exit={{ opacity: 0, scale: 0.9 }}
                                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                      onClick={() => addToCart(item)}
+                                      onClick={() => handleItemCardClick(item)}
                                       type="button"
                                       className="absolute inset-0 w-full h-full rounded-md bg-[#D3232A] hover:bg-[#b01e23] active:scale-[0.95] text-white text-[10px] font-extrabold shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1 origin-right"
                                     >
                                       <Plus className="w-3 h-3" />
-                                      Add
+                                      {hasModifiers ? "Customise" : "Add"}
                                     </motion.button>
                                   ) : (
                                     <motion.div
@@ -929,7 +1115,7 @@ export default function PosTerminalComponent() {
                                       className="absolute inset-0 w-full h-full flex items-center justify-between bg-white border border-[#D3232A]/30 rounded-md p-0.5 shadow-sm origin-right"
                                     >
                                       <button
-                                        onClick={() => updateQuantity(item.id, -1)}
+                                        onClick={() => handleItemDecrement(item)}
                                         type="button"
                                         className="w-5 h-5 rounded-[4px] bg-gray-50 hover:bg-rose-50 active:scale-[0.92] active:bg-rose-100 flex items-center justify-center text-rose-600 font-bold transition-all cursor-pointer shrink-0"
                                       >
@@ -944,9 +1130,10 @@ export default function PosTerminalComponent() {
                                         {cartQty}
                                       </motion.span>
                                       <button
-                                        onClick={() => updateQuantity(item.id, 1)}
+                                        onClick={() => handleItemCardClick(item)}
                                         type="button"
                                         className="w-5 h-5 rounded-[4px] bg-[#D3232A] text-white hover:bg-[#b01e23] active:scale-[0.92] flex items-center justify-center font-bold transition-all cursor-pointer shrink-0"
+                                        title={hasModifiers ? "Add another variation" : "Increase quantity"}
                                       >
                                         <Plus className="w-2.5 h-2.5" />
                                       </button>
@@ -967,11 +1154,11 @@ export default function PosTerminalComponent() {
                 {filteredItems
                   .slice((currentPage - 1) * pageSize, currentPage * pageSize)
                   .map((item) => {
-                    const cartEntry = cart.find(
-                      (ci) => ci.menuItem.id === item.id
-                    );
-                    const cartQty = cartEntry ? cartEntry.quantity : 0;
+                    const cartQty = cart
+                      .filter((ci) => ci.menuItem.id === item.id)
+                      .reduce((sum, ci) => sum + ci.quantity, 0);
                     const isSelected = cartQty > 0;
+                    const hasModifiers = item.modifierGroups && item.modifierGroups.length > 0;
 
                     return (
                       <div
@@ -1013,6 +1200,11 @@ export default function PosTerminalComponent() {
                                   {cartQty}×
                                 </span>
                               )}
+                              {hasModifiers && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                                  Customisable
+                                </span>
+                              )}
                             </div>
                             <span className="text-[10px] text-gray-400 font-medium">
                               {item.category?.name || "General"}
@@ -1027,16 +1219,16 @@ export default function PosTerminalComponent() {
 
                           {cartQty === 0 ? (
                             <button
-                              onClick={() => addToCart(item)}
+                              onClick={() => handleItemCardClick(item)}
                               className="px-3 py-1.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white text-xs font-extrabold transition flex items-center gap-1 cursor-pointer shadow-2xs"
                             >
                               <Plus className="w-3.5 h-3.5" />
-                              <span>Add</span>
+                              <span>{hasModifiers ? "Customise" : "Add"}</span>
                             </button>
                           ) : (
                             <div className="flex items-center gap-1 bg-white border border-[#D3232A]/50 rounded-xl p-1 shadow-2xs">
                               <button
-                                onClick={() => updateQuantity(item.id, -1)}
+                                onClick={() => handleItemDecrement(item)}
                                 className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-700 font-bold transition cursor-pointer"
                               >
                                 <Minus className="w-3.5 h-3.5" />
@@ -1045,8 +1237,9 @@ export default function PosTerminalComponent() {
                                 {cartQty}
                               </span>
                               <button
-                                onClick={() => updateQuantity(item.id, 1)}
+                                onClick={() => handleItemCardClick(item)}
                                 className="w-6 h-6 rounded-lg bg-[#D3232A] text-white hover:bg-[#b01e23] flex items-center justify-center font-bold transition cursor-pointer"
+                                title={hasModifiers ? "Add another variation" : "Increase quantity"}
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
@@ -1158,12 +1351,12 @@ export default function PosTerminalComponent() {
               </div>
             ) : (
               cart.map((ci) => {
-                const itemTotal = ci.menuItem.price * ci.quantity;
-                const isEditingNote = editingNoteItemId === ci.menuItem.id;
+                const itemTotal = ci.unitPrice * ci.quantity;
+                const isEditingNote = editingNoteCartItemId === ci.cartItemId;
 
                 return (
                   <div
-                    key={ci.menuItem.id}
+                    key={ci.cartItemId}
                     className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2 hover:border-gray-300 transition"
                   >
                     <div className="flex justify-between items-start gap-2">
@@ -1171,8 +1364,24 @@ export default function PosTerminalComponent() {
                         <h5 className="text-xs font-black text-[#1B2A4A] truncate">
                           {ci.menuItem.name}
                         </h5>
-                        <p className="text-[11px] text-gray-500 font-semibold">
-                          ₹{Number(ci.menuItem.price).toFixed(2)} × {ci.quantity}
+                        {ci.selectedModifiers && ci.selectedModifiers.length > 0 && (
+                          <div className="space-y-0.5 mt-0.5">
+                            {ci.selectedModifiers.map((mod, idx) => (
+                              <p key={idx} className="text-[10px] text-amber-800 font-semibold flex items-center gap-1">
+                                <span className="text-amber-500">↳</span>{" "}
+                                {mod.isVariant ? (
+                                  <span className="font-bold text-indigo-900 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-200">
+                                    Size: {mod.name}
+                                  </span>
+                                ) : (
+                                  <span>+ {mod.name} {mod.price > 0 && `(+₹${Number(mod.price).toFixed(2)})`}</span>
+                                )}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-gray-500 font-semibold mt-0.5">
+                          ₹{Number(ci.unitPrice).toFixed(2)} × {ci.quantity}
                         </p>
                       </div>
                       <span className="text-xs font-black text-[#1B2A4A] shrink-0">
@@ -1185,7 +1394,7 @@ export default function PosTerminalComponent() {
                       <button
                         type="button"
                         onClick={() =>
-                          setEditingNoteItemId(isEditingNote ? null : ci.menuItem.id)
+                          setEditingNoteCartItemId(isEditingNote ? null : ci.cartItemId)
                         }
                         className={`text-[10px] font-bold flex items-center gap-1 ${ci.notes
                           ? "text-[#D3232A]"
@@ -1198,8 +1407,8 @@ export default function PosTerminalComponent() {
 
                       <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg p-0.5 shadow-2xs">
                         <button
-                          onClick={() => updateQuantity(ci.menuItem.id, -1)}
-                          className="w-5 h-5 rounded bg-gray-100 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-700 font-bold transition"
+                          onClick={() => updateQuantity(ci.cartItemId, -1)}
+                          className="w-5 h-5 rounded bg-gray-100 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-700 font-bold transition cursor-pointer"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -1207,14 +1416,14 @@ export default function PosTerminalComponent() {
                           {ci.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(ci.menuItem.id, 1)}
-                          className="w-5 h-5 rounded bg-[#1B2A4A] text-white hover:bg-[#2d4272] flex items-center justify-center font-bold transition"
+                          onClick={() => updateQuantity(ci.cartItemId, 1)}
+                          className="w-5 h-5 rounded bg-[#1B2A4A] text-white hover:bg-[#2d4272] flex items-center justify-center font-bold transition cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => removeFromCart(ci.menuItem.id)}
-                          className="w-5 h-5 rounded hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-400 transition ml-1"
+                          onClick={() => removeFromCart(ci.cartItemId)}
+                          className="w-5 h-5 rounded hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center text-gray-400 transition ml-1 cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1227,7 +1436,7 @@ export default function PosTerminalComponent() {
                         type="text"
                         placeholder="Special instructions (e.g. less spice)..."
                         value={ci.notes || ""}
-                        onChange={(e) => updateItemNote(ci.menuItem.id, e.target.value)}
+                        onChange={(e) => updateItemNote(ci.cartItemId, e.target.value)}
                         className="w-full px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-[11px] font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A]"
                       />
                     )}
@@ -1396,29 +1605,38 @@ export default function PosTerminalComponent() {
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {cart.map((ci) => (
                   <div
-                    key={ci.menuItem.id}
+                    key={ci.cartItemId}
                     className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex justify-between items-center"
                   >
                     <div>
                       <p className="text-xs font-black text-[#1B2A4A]">
                         {ci.menuItem.name}
                       </p>
-                      <p className="text-[10px] text-gray-500">
-                        ₹{ci.menuItem.price} × {ci.quantity} = ₹
-                        {(ci.menuItem.price * ci.quantity).toFixed(2)}
+                      {ci.selectedModifiers && ci.selectedModifiers.length > 0 && (
+                        <div className="space-y-0.5 mt-0.5">
+                          {ci.selectedModifiers.map((mod, idx) => (
+                            <p key={idx} className="text-[9px] text-amber-800 font-semibold">
+                              ↳ + {mod.name} {mod.price > 0 && `(+₹${Number(mod.price).toFixed(2)})`}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        ₹{ci.unitPrice.toFixed(2)} × {ci.quantity} = ₹
+                        {(ci.unitPrice * ci.quantity).toFixed(2)}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg p-0.5">
                       <button
-                        onClick={() => updateQuantity(ci.menuItem.id, -1)}
+                        onClick={() => updateQuantity(ci.cartItemId, -1)}
                         className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center font-bold"
                       >
                         -
                       </button>
                       <span className="text-xs font-black px-1">{ci.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(ci.menuItem.id, 1)}
+                        onClick={() => updateQuantity(ci.cartItemId, 1)}
                         className="w-6 h-6 rounded bg-[#1B2A4A] text-white flex items-center justify-center font-bold"
                       >
                         +
@@ -1747,79 +1965,297 @@ export default function PosTerminalComponent() {
 
         {/* -- ORDER COMPLETE CONFIRMATION MODAL -- */}
         <TModal open={!!completedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
-        {completedOrder && (() => {
-          const orderObj = completedOrder?.data || completedOrder;
-          const isKitchenDispatch = orderObj?._flow === "KITCHEN";
-          const displayOrderId =
-            orderObj?.orderNo ||
-            orderObj?.orderNumber ||
-            (orderObj?.id ? `#${orderObj.id.slice(0, 8)}` : "ORD-SUCCESS");
+          {completedOrder && (
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
 
-          return (
-              <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
+              <div>
+                <h3 className="text-lg font-black text-[#1B2A4A]">
+                  {isKitchenDispatch ? "Sent to Kitchen Successfully!" : "Order Created Successfully!"}
+                </h3>
+                <p className="text-xs text-gray-500 font-medium mt-1">
+                  {isKitchenDispatch ? "Kitchen Ticket ID: " : "Bill / Ticket ID: "}
+                  <span className="font-mono text-[#D3232A] font-extrabold">
+                    {displayCompletedOrderId}
+                  </span>
+                </p>
+              </div>
 
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3.5 rounded-xl flex items-center justify-between text-left">
                 <div>
-                  <h3 className="text-lg font-black text-[#1B2A4A]">
-                    {isKitchenDispatch ? "Sent to Kitchen Successfully!" : "Order Created Successfully!"}
-                  </h3>
-                  <p className="text-xs text-gray-500 font-medium mt-1">
-                    {isKitchenDispatch ? "Kitchen Ticket ID: " : "Bill / Ticket ID: "}
-                    <span className="font-mono text-[#D3232A] font-extrabold">
-                      {displayOrderId}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3.5 rounded-xl flex items-center justify-between text-left">
-                  <div>
-                    <span className="block font-black text-sm">{isKitchenDispatch ? "✓ Kitchen Ticket Fired" : "Order Recorded"}</span>
-                    <span className="text-[11px] font-semibold text-emerald-700 block mt-0.5">
-                      {isKitchenDispatch
-                        ? "KOT shot to connected printer & dispatched to kitchen"
-                        : kitchenCaps.isKotOnly
-                        ? "KOT ready for thermal printer"
-                        : kitchenCaps.isKdsOnly
-                        ? "Dispatched to Kitchen Display System (Paperless)"
-                        : "Sent live to KDS & KOT ready to print"}
-                    </span>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-950 font-black text-[10px] uppercase shrink-0">
-                    {isKitchenDispatch ? "KITCHEN" : kitchenCaps.mode}
+                  <span className="block font-black text-sm">{isKitchenDispatch ? "✓ Kitchen Ticket Fired" : "Order Recorded"}</span>
+                  <span className="text-[11px] font-semibold text-emerald-700 block mt-0.5">
+                    {isKitchenDispatch
+                      ? "KOT shot to connected printer & dispatched to kitchen"
+                      : kitchenCaps.isKotOnly
+                      ? "KOT ready for thermal printer"
+                      : kitchenCaps.isKdsOnly
+                      ? "Dispatched to Kitchen Display System (Paperless)"
+                      : "Sent live to KDS & KOT ready to print"}
                   </span>
                 </div>
-
-                <div className="space-y-2 pt-1">
-                  {/* Single Clean Primary Action: Start Next Order Ticket */}
-                  <button
-                    onClick={() => setCompletedOrder(null)}
-                    className="w-full py-3 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Start Next Order Ticket</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-
-
-
-                  {/* Print Customer Bill Receipt: ONLY on Checkout / Payment completion (never on Send to Kitchen) */}
-                  {!isKitchenDispatch && (
-                    <button
-                      onClick={() => setPrintingOrder(orderObj)}
-                      className="w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer bg-gray-100 hover:bg-gray-200 text-zinc-800"
-                    >
-                      <Receipt className="w-4 h-4 text-inherit" />
-                      Print Customer Bill Receipt
-                    </button>
-                  )}
-                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-950 font-black text-[10px] uppercase shrink-0">
+                  {isKitchenDispatch ? "KITCHEN" : kitchenCaps.mode}
+                </span>
               </div>
-          );
-        })()}
+
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => setCompletedOrder(null)}
+                  className="w-full py-3 bg-[#1B2A4A] hover:bg-[#2d4272] text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Start Next Order Ticket</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {!isKitchenDispatch && (
+                  <button
+                    onClick={() => setPrintingOrder(completedOrderObj)}
+                    className="w-full py-2.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer bg-gray-100 hover:bg-gray-200 text-zinc-800"
+                  >
+                    <Receipt className="w-4 h-4 text-inherit" />
+                    Print Customer Bill Receipt
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </TModal>
 
+        {/* -- STYLE CUSTOMIZATION MODAL -- */}
+        <TModal open={!!customizingItem} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {customizingItem && (
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="p-4 border-b border-gray-100 flex items-start justify-between bg-slate-50/50">
+                <div className="flex items-start gap-3">
+                  {customizingItem.imageUrl ? (
+                    <img
+                      src={getImageUrl(customizingItem.imageUrl)}
+                      alt={customizingItem.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                      <Utensils className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-black text-[#1B2A4A] leading-tight">
+                        {customizingItem.name}
+                      </h3>
+                      {customizingDietaryType && (
+                        <span
+                          className={`w-3.5 h-3.5 border rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white ${
+                            customizingDietaryType === "VEGAN"
+                              ? "border-teal-600"
+                              : customizingDietaryType === "VEG"
+                              ? "border-emerald-600"
+                              : "border-rose-600"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              customizingDietaryType === "VEGAN"
+                                ? "bg-teal-600"
+                                : customizingDietaryType === "VEG"
+                                ? "bg-emerald-600"
+                                : "bg-rose-600"
+                            }`}
+                          />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 font-semibold mt-0.5">
+                      {customizationCalculations.hasVariantGroup
+                        ? "Select size below for direct pricing"
+                        : `Base Price: ₹${Number(customizingItem.price).toFixed(2)}`}
+                    </p>
+                  </div>
+                </div>
 
+                <button
+                  onClick={() => setCustomizingItem(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body - Modifier Groups */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {(customizingItem.modifierGroups || []).map((group) => {
+                  const isSingleSelect = group.minSelection === 1 && group.maxSelection === 1;
+                  const isVariantGroup = isSingleSelect && (group.modifiers || []).some((m) => Number(m.price || (m as any).pricePaise) > 0);
+                  const currentSelected = selectedModifiersState[group.id] || [];
+                  const isSatisfied = currentSelected.length >= group.minSelection;
+
+                  return (
+                    <div key={group.id} className="border border-gray-200/80 rounded-xl overflow-hidden bg-white shadow-2xs">
+                      {/* Group Header */}
+                      <div className="px-3.5 py-2.5 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-[#1B2A4A]">{group.name}</span>
+                            {isVariantGroup ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-200">
+                                Required Size (Choose 1)
+                              </span>
+                            ) : group.minSelection > 0 ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                Required {isSingleSelect ? "(Choose 1)" : `(Min ${group.minSelection})`}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                Optional Extras {group.maxSelection ? `(Max ${group.maxSelection})` : ""}
+                              </span>
+                            )}
+                          </div>
+                          {group.description && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">{group.description}</p>
+                          )}
+                        </div>
+
+                        {group.minSelection > 0 && (
+                          <span className={`text-[10px] font-bold ${isSatisfied ? "text-emerald-600" : "text-rose-500"}`}>
+                            {isSatisfied ? "✓ Selected" : "Required"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Group Options */}
+                      <div className="p-2 space-y-1">
+                        {(group.modifiers || []).map((mod) => {
+                          const isSelected = currentSelected.some((m) => (mod.id ? m.id === mod.id : m.name === mod.name));
+                          const modPrice = Number(mod.price) || 0;
+
+                          const handleToggle = () => {
+                            if (isSingleSelect) {
+                              setSelectedModifiersState((prev) => ({
+                                ...prev,
+                                [group.id]: [{ id: mod.id, name: mod.name, price: modPrice, isVariant: isVariantGroup }],
+                              }));
+                            } else {
+                              if (isSelected) {
+                                setSelectedModifiersState((prev) => ({
+                                  ...prev,
+                                  [group.id]: (prev[group.id] || []).filter(
+                                    (m) => (mod.id ? m.id !== mod.id : m.name !== mod.name)
+                                  ),
+                                }));
+                              } else {
+                                if (group.maxSelection && currentSelected.length >= group.maxSelection) {
+                                  return; // Exceeded max selection
+                                }
+                                setSelectedModifiersState((prev) => ({
+                                  ...prev,
+                                  [group.id]: [
+                                    ...(prev[group.id] || []),
+                                    { id: mod.id, name: mod.name, price: modPrice, isVariant: false },
+                                  ],
+                                }));
+                              }
+                            }
+                          };
+
+                          return (
+                            <div
+                              key={mod.id || mod.name}
+                              onClick={handleToggle}
+                              className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition select-none ${
+                                isSelected
+                                  ? isVariantGroup
+                                    ? "bg-indigo-50/70 border-indigo-400 text-indigo-950 font-bold shadow-2xs"
+                                    : "bg-amber-50/70 border-amber-400 text-amber-950 font-bold shadow-2xs"
+                                  : "border-transparent hover:bg-gray-50 text-gray-700 font-medium"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className={`w-4 h-4 rounded-${
+                                    isSingleSelect ? "full" : "md"
+                                  } border flex items-center justify-center transition shrink-0 ${
+                                    isSelected
+                                      ? "bg-[#1B2A4A] border-[#1B2A4A] text-white"
+                                      : "border-gray-300 bg-white"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    isSingleSelect ? (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    ) : (
+                                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                    )
+                                  )}
+                                </div>
+                                <span>{mod.name}</span>
+                              </div>
+
+                              <span className="text-xs font-black text-[#1B2A4A]">
+                                {isVariantGroup
+                                  ? `₹${modPrice.toFixed(2)}`
+                                  : modPrice > 0
+                                  ? `+₹${modPrice.toFixed(2)}`
+                                  : "Free"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Modal Footer with Live Calculator & Add Button */}
+              <div className="p-4 border-t border-gray-200 bg-gray-50/90 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-1 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setCustomizationQty((q) => Math.max(1, q - 1))}
+                    className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-black text-gray-700 text-xs transition cursor-pointer"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-6 text-center text-xs font-black text-[#1B2A4A]">
+                    {customizationQty}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomizationQty((q) => q + 1)}
+                    className="w-7 h-7 rounded-lg bg-[#1B2A4A] text-white hover:bg-[#2d4272] flex items-center justify-center font-black text-xs transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!customizationCalculations.isValid}
+                  onClick={() => {
+                    if (!customizationCalculations.isValid) return;
+                    addToCart(
+                      customizingItem,
+                      customizationCalculations.allSelectedMods,
+                      customizationQty,
+                      customizationCalculations.finalUnitPrice
+                    );
+                    setCustomizingItem(null);
+                  }}
+                  className="flex-1 py-3 px-4 bg-[#D3232A] hover:bg-[#b01e23] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs shadow-md transition flex items-center justify-between cursor-pointer"
+                >
+                  <span>Add to Order Ticket</span>
+                  <span className="font-extrabold text-[13px]">
+                    ₹{customizationCalculations.finalTotal.toFixed(2)}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+        </TModal>
 
         {/* -- Printable Thermal Receipt Modal -- */}
         {printingOrder && (

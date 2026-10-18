@@ -38,10 +38,20 @@ import {
 import { QRCodeSVG } from "../common/QRCodeSVG";
 import { showToast } from "@/lib/toast";
 
+export interface CartModifierItem {
+  id?: string;
+  name: string;
+  pricePaise: number;
+  isVariant?: boolean;
+}
+
 interface CartItem {
+  cartItemId: string;
   item: CustomerMenuItem;
   quantity: number;
   notes?: string;
+  selectedModifiers?: CartModifierItem[];
+  unitPricePaise: number;
 }
 
 export default function CustomerOrderUI({ token }: { token: string }) {
@@ -61,6 +71,11 @@ export default function CustomerOrderUI({ token }: { token: string }) {
 
   // Image lightbox
   const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
+
+  // Customer Customization Modal State
+  const [customizingCustomerItem, setCustomizingCustomerItem] = useState<CustomerMenuItem | null>(null);
+  const [selectedCustomerModifiers, setSelectedCustomerModifiers] = useState<Record<string, CartModifierItem[]>>({});
+  const [customerCustomizationQty, setCustomerCustomizationQty] = useState<number>(1);
 
   // Cart & Ordering State (Active when tableOrderMode === 'ORDER_AND_PAY')
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -192,23 +207,86 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const activeCategoryData = displayCategories;
 
   // Cart operations
-  const addToCart = (item: CustomerMenuItem) => {
+  const addToCart = (
+    item: CustomerMenuItem,
+    modifiers: CartModifierItem[] = [],
+    qty: number = 1,
+    computedUnitPricePaise?: number
+  ) => {
+    let unitPricePaise = computedUnitPricePaise;
+    if (unitPricePaise === undefined) {
+      const variantMod = modifiers.find((m) => m.isVariant && Number(m.pricePaise) > 0);
+      const basePaise = variantMod ? variantMod.pricePaise : item.pricePaise;
+      const extraPaise = modifiers
+        .filter((m) => !m.isVariant)
+        .reduce((acc, m) => acc + (m.pricePaise || 0), 0);
+      unitPricePaise = basePaise + extraPaise;
+    }
+
+    const sortedModIds = [...modifiers].map((m) => m.id || m.name).sort().join(":");
+    const cartItemId = sortedModIds ? `${item.id}-${sortedModIds}` : `${item.id}-base`;
+
     setCart((prev) => {
-      const existing = prev.find((c) => c.item.id === item.id);
+      const existing = prev.find((c) => c.cartItemId === cartItemId);
       if (existing) {
         return prev.map((c) =>
-          c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.cartItemId === cartItemId ? { ...c, quantity: c.quantity + qty } : c
         );
       }
-      return [...prev, { item, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          cartItemId,
+          item,
+          quantity: qty,
+          selectedModifiers: modifiers,
+          unitPricePaise,
+        },
+      ];
     });
   };
 
-  const updateQuantity = (itemId: string, delta: number) => {
+  const handleCustomerItemClick = (item: CustomerMenuItem) => {
+    if (item.modifierGroups && item.modifierGroups.length > 0) {
+      // Pre-select mandatory single options
+      const initialSelected: Record<string, CartModifierItem[]> = {};
+      item.modifierGroups.forEach((mg: any) => {
+        if (mg.minSelection === 1 && mg.maxSelection === 1 && mg.modifiers && mg.modifiers.length > 0) {
+          const firstMod = mg.modifiers[0];
+          const isVariant = mg.modifiers.some((m: any) => Number(m.pricePaise ?? m.price) > 0);
+          initialSelected[mg.id] = [
+            {
+              id: firstMod.id,
+              name: firstMod.name,
+              pricePaise: firstMod.pricePaise ?? Math.round((Number(firstMod.price) || 0) * 100),
+              isVariant,
+            },
+          ];
+        } else {
+          initialSelected[mg.id] = [];
+        }
+      });
+      setSelectedCustomerModifiers(initialSelected);
+      setCustomerCustomizationQty(1);
+      setCustomizingCustomerItem(item);
+    } else {
+      addToCart(item);
+    }
+  };
+
+  const handleCustomerItemDecrement = (item: CustomerMenuItem) => {
+    const matching = cart.filter((c) => c.item.id === item.id);
+    if (matching.length > 0) {
+      const last = matching[matching.length - 1];
+      updateQuantity(last.cartItemId, -1);
+    }
+  };
+
+  const updateQuantity = (cartItemId: string, delta: number) => {
     setCart((prev) =>
       prev
         .map((c) => {
-          if (c.item.id === itemId) {
+          if (c.cartItemId === cartItemId) {
             const newQty = c.quantity + delta;
             return newQty > 0 ? { ...c, quantity: newQty } : null;
           }
@@ -218,9 +296,9 @@ export default function CustomerOrderUI({ token }: { token: string }) {
     );
   };
 
-  const setItemNotes = (itemId: string, notes: string) => {
+  const setItemNotes = (cartItemId: string, notes: string) => {
     setCart((prev) =>
-      prev.map((c) => (c.item.id === itemId ? { ...c, notes } : c))
+      prev.map((c) => (c.cartItemId === cartItemId ? { ...c, notes } : c))
     );
   };
 
@@ -233,7 +311,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   // Billing calculation
   const billSummary = useMemo(() => {
     const subtotalPaise = cart.reduce(
-      (sum, c) => sum + c.item.pricePaise * c.quantity,
+      (sum, c) => sum + c.unitPricePaise * c.quantity,
       0
     );
     const taxRates = menuData?.taxRates;
@@ -286,6 +364,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         menuItemId: c.item.id,
         quantity: c.quantity,
         notes: c.notes?.trim() || undefined,
+        modifiers: c.selectedModifiers?.map((m) => ({
+          id: m.id,
+          name: m.name,
+          pricePaise: m.pricePaise,
+          price: m.pricePaise / 100,
+          isVariant: m.isVariant,
+        })),
       }));
 
       const res = await createQROrder({
@@ -701,53 +786,55 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                             </div>
 
                             {/* Ordering Controls (Only when ORDER_AND_PAY mode is active) */}
-                            {isSelfOrderMode && (
-                              <div className="mt-3 flex items-center gap-2">
-                                {cartItem ? (
-                                  <div className="flex items-center gap-2 bg-zinc-900 text-white rounded-xl px-2.5 py-1 shadow-sm">
+                            {isSelfOrderMode && (() => {
+                              const cartQty = cart
+                                .filter((c) => c.item.id === item.id)
+                                .reduce((sum, c) => sum + c.quantity, 0);
+                              const hasModifiers = item.modifierGroups && item.modifierGroups.length > 0;
+
+                              return (
+                                <div className="mt-3 flex items-center gap-2">
+                                  {cartQty > 0 ? (
+                                    <div className="flex items-center gap-2 bg-zinc-900 text-white rounded-xl px-2.5 py-1 shadow-sm">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCustomerItemDecrement(item)}
+                                        className="p-1 hover:text-rose-300 active:scale-90 transition-transform cursor-pointer"
+                                        title="Decrease quantity"
+                                      >
+                                        <Minus className="w-3.5 h-3.5" />
+                                      </button>
+                                      <span className="text-xs font-black w-5 text-center">
+                                        {cartQty}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCustomerItemClick(item)}
+                                        className="p-1 hover:text-emerald-300 active:scale-90 transition-transform cursor-pointer"
+                                        title={hasModifiers ? "Add another variation" : "Increase quantity"}
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  ) : (
                                     <button
                                       type="button"
-                                      onClick={() => updateQuantity(item.id, -1)}
-                                      className="p-1 hover:text-rose-300 active:scale-90 transition-transform cursor-pointer"
-                                      title="Decrease quantity"
-                                    >
-                                      <Minus className="w-3.5 h-3.5" />
-                                    </button>
-                                    <span className="text-xs font-black w-5 text-center">
-                                      {cartItem.quantity}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => updateQuantity(item.id, 1)}
-                                      className="p-1 hover:text-emerald-300 active:scale-90 transition-transform cursor-pointer"
-                                      title="Increase quantity"
+                                      onClick={() => handleCustomerItemClick(item)}
+                                      className="px-3.5 py-1.5 bg-[#D3232A] hover:bg-[#b51c22] text-white text-xs font-extrabold rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 cursor-pointer"
                                     >
                                       <Plus className="w-3.5 h-3.5" />
+                                      <span>{hasModifiers ? "Customise" : "Add"}</span>
                                     </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => addToCart(item)}
-                                    className="px-3.5 py-1.5 bg-[#D3232A] hover:bg-[#b51c22] text-white text-xs font-extrabold rounded-xl shadow-xs transition-transform active:scale-95 flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Add
-                                  </button>
-                                )}
+                                  )}
 
-                                {cartItem && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsEditingNotesItemId(isEditingNotesItemId === item.id ? null : item.id)}
-                                    className="text-[11px] font-bold text-zinc-500 hover:text-zinc-800 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-zinc-100 transition-colors"
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                    {cartItem.notes ? "Edit Note" : "Add Note"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                                  {hasModifiers && cartQty === 0 && (
+                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                      Customisable
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                             {/* Inline Note Input */}
                             {cartItem && isEditingNotesItemId === item.id && (
@@ -885,33 +972,42 @@ export default function CustomerOrderUI({ token }: { token: string }) {
               {/* Items List */}
               <div className="flex-1 overflow-y-auto py-4 space-y-3.5">
                 {cart.map((c) => (
-                  <div key={c.item.id} className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
+                  <div key={c.cartItemId} className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100 flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-zinc-900 truncate">{c.item.name}</p>
-                        <p className="text-xs text-zinc-500 font-semibold">
-                          ₹{(c.item.pricePaise / 100).toFixed(2)} each
+                        {c.selectedModifiers && c.selectedModifiers.length > 0 && (
+                          <div className="space-y-0.5 mt-0.5">
+                            {c.selectedModifiers.map((mod, idx) => (
+                              <p key={idx} className="text-[10px] text-amber-800 font-semibold">
+                                ↳ + {mod.name} {mod.pricePaise > 0 && `(+₹${(mod.pricePaise / 100).toFixed(2)})`}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+                          ₹{(c.unitPricePaise / 100).toFixed(2)} each
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2 bg-white rounded-xl border border-zinc-200 px-2 py-1 shadow-2xs">
                         <button
-                          onClick={() => updateQuantity(c.item.id, -1)}
-                          className="p-0.5 text-zinc-500 hover:text-rose-600"
+                          onClick={() => updateQuantity(c.cartItemId, -1)}
+                          className="p-0.5 text-zinc-500 hover:text-rose-600 cursor-pointer"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="text-xs font-black w-4 text-center">{c.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(c.item.id, 1)}
-                          className="p-0.5 text-zinc-500 hover:text-emerald-600"
+                          onClick={() => updateQuantity(c.cartItemId, 1)}
+                          className="p-0.5 text-zinc-500 hover:text-emerald-600 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
                       <span className="text-sm font-extrabold text-zinc-900 shrink-0 w-16 text-right">
-                        ₹{((c.item.pricePaise * c.quantity) / 100).toFixed(2)}
+                        ₹{((c.unitPricePaise * c.quantity) / 100).toFixed(2)}
                       </span>
                     </div>
 
@@ -1296,6 +1392,222 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                   );
                 })}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Customer Customization Bottom Sheet Modal ── */}
+      <AnimatePresence>
+        {customizingCustomerItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setCustomizingCustomerItem(null)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Sheet Header */}
+              <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/70">
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900 leading-tight">
+                    {customizingCustomerItem.name}
+                  </h3>
+                  <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+                    Base: ₹{(customizingCustomerItem.pricePaise / 100).toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCustomizingCustomerItem(null)}
+                  className="p-1.5 rounded-full bg-zinc-100 text-zinc-500 hover:bg-zinc-200 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sheet Body: Modifier Groups */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {(customizingCustomerItem.modifierGroups || []).map((group: any) => {
+                  const isSingleSelect = group.minSelection === 1 && group.maxSelection === 1;
+                  const isVariantGroup = isSingleSelect && (group.modifiers || []).some((m: any) => Number(m.pricePaise ?? m.price) > 0);
+                  const currentSelected = selectedCustomerModifiers[group.id] || [];
+                  const isSatisfied = currentSelected.length >= group.minSelection;
+
+                  return (
+                    <div key={group.id} className="border border-zinc-200/80 rounded-2xl overflow-hidden bg-white shadow-2xs">
+                      {/* Header */}
+                      <div className="px-4 py-2.5 bg-zinc-50/80 border-b border-zinc-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-zinc-900">{group.name}</span>
+                            {isVariantGroup ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-200">
+                                Size (Choose 1)
+                              </span>
+                            ) : group.minSelection > 0 ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">
+                                Required {isSingleSelect ? "(Choose 1)" : `(Min ${group.minSelection})`}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                                Optional Extras {group.maxSelection ? `(Max ${group.maxSelection})` : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {group.minSelection > 0 && (
+                          <span className={`text-[10px] font-bold ${isSatisfied ? "text-emerald-600" : "text-rose-500"}`}>
+                            {isSatisfied ? "✓ Done" : "Required"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Options */}
+                      <div className="p-2 space-y-1">
+                        {(group.modifiers || []).map((mod: any) => {
+                          const isSelected = currentSelected.some((m) => (mod.id ? m.id === mod.id : m.name === mod.name));
+                          const modPricePaise = mod.pricePaise ?? Math.round((Number(mod.price) || 0) * 100);
+
+                          const handleToggle = () => {
+                            if (isSingleSelect) {
+                              setSelectedCustomerModifiers((prev) => ({
+                                ...prev,
+                                [group.id]: [{ id: mod.id, name: mod.name, pricePaise: modPricePaise, isVariant: isVariantGroup }],
+                              }));
+                            } else {
+                              if (isSelected) {
+                                setSelectedCustomerModifiers((prev) => ({
+                                  ...prev,
+                                  [group.id]: (prev[group.id] || []).filter(
+                                    (m) => (mod.id ? m.id !== mod.id : m.name !== mod.name)
+                                  ),
+                                }));
+                              } else {
+                                if (group.maxSelection && currentSelected.length >= group.maxSelection) {
+                                  return;
+                                }
+                                setSelectedCustomerModifiers((prev) => ({
+                                  ...prev,
+                                  [group.id]: [
+                                    ...(prev[group.id] || []),
+                                    { id: mod.id, name: mod.name, pricePaise: modPricePaise, isVariant: false },
+                                  ],
+                                }));
+                              }
+                            }
+                          };
+
+                          return (
+                            <div
+                              key={mod.id || mod.name}
+                              onClick={handleToggle}
+                              className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition select-none ${
+                                isSelected
+                                  ? isVariantGroup
+                                    ? "bg-indigo-50/70 border-indigo-400 text-indigo-950 font-bold"
+                                    : "bg-amber-50/70 border-amber-400 text-amber-950 font-bold"
+                                  : "border-transparent hover:bg-zinc-50 text-zinc-700 font-medium"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className={`w-4 h-4 rounded-${
+                                    isSingleSelect ? "full" : "md"
+                                  } border flex items-center justify-center transition shrink-0 ${
+                                    isSelected
+                                      ? "bg-zinc-900 border-zinc-900 text-white"
+                                      : "border-zinc-300 bg-white"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    isSingleSelect ? (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    ) : (
+                                      <span className="text-[10px] font-black">✓</span>
+                                    )
+                                  )}
+                                </div>
+                                <span>{mod.name}</span>
+                              </div>
+
+                              <span className="text-xs font-bold text-zinc-900">
+                                {isVariantGroup
+                                  ? `₹${(modPricePaise / 100).toFixed(2)}`
+                                  : modPricePaise > 0
+                                  ? `+₹${(modPricePaise / 100).toFixed(2)}`
+                                  : "Free"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sheet Footer */}
+              {(() => {
+                const allSelected = Object.values(selectedCustomerModifiers).flat();
+                const variantMod = allSelected.find((m) => m.isVariant && m.pricePaise > 0);
+                const effectiveBasePaise = variantMod ? variantMod.pricePaise : customizingCustomerItem.pricePaise;
+                const extraPaise = allSelected.filter((m) => !m.isVariant).reduce((sum, m) => sum + m.pricePaise, 0);
+                const finalUnitPricePaise = effectiveBasePaise + extraPaise;
+                const finalTotalRupees = ((finalUnitPricePaise * customerCustomizationQty) / 100).toFixed(2);
+
+                const isValid = (customizingCustomerItem.modifierGroups || []).every((g: any) => {
+                  const sel = selectedCustomerModifiers[g.id] || [];
+                  return sel.length >= g.minSelection;
+                });
+
+                const handleConfirm = () => {
+                  if (!isValid) return;
+                  addToCart(customizingCustomerItem, allSelected, customerCustomizationQty, finalUnitPricePaise);
+                  setCustomizingCustomerItem(null);
+                };
+
+                return (
+                  <div className="p-4 border-t border-zinc-200 bg-zinc-50/90 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-xl p-1 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setCustomerCustomizationQty((q) => Math.max(1, q - 1))}
+                        className="w-7 h-7 rounded-lg bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center font-bold text-zinc-700 text-xs transition cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-6 text-center text-xs font-black text-zinc-900">
+                        {customerCustomizationQty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerCustomizationQty((q) => q + 1)}
+                        className="w-7 h-7 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-bold text-xs transition cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!isValid}
+                      onClick={handleConfirm}
+                      className="flex-1 py-3 px-4 bg-[#D3232A] hover:bg-[#b01e23] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center justify-between cursor-pointer"
+                    >
+                      <span>Add to Order</span>
+                      <span className="font-black text-sm">₹{finalTotalRupees}</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </motion.div>
           </motion.div>
         )}

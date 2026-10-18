@@ -1,5 +1,31 @@
 import { baseApi } from "../store/baseApi";
 
+export interface ModifierItem {
+  id?: string;
+  groupId?: string;
+  name: string;
+  price: number;
+  pricePaise?: number;
+  isVeg?: boolean;
+  dietaryType?: "VEG" | "NON_VEG" | "VEGAN";
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  description?: string;
+  minSelection: number;
+  maxSelection?: number | null;
+  isActive: boolean;
+  outletId?: string | null;
+  modifiers: ModifierItem[];
+  itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -13,6 +39,8 @@ export interface MenuItem {
   outletId?: string;
   outletIds?: string[];
   outlets?: { outletId: string; isActive: boolean }[];
+  modifierGroups?: ModifierGroup[];
+  modifierGroupIds?: string[];
   category?: {
     id: string;
     name: string;
@@ -121,6 +149,49 @@ export const menuApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ["MenuItems"],
     }),
+
+    // ── Modifier Groups ──
+    getModifierGroups: builder.query<ModifierGroup[], { outletId?: string } | void>({
+      query: (params) => ({
+        url: "/menu/modifier-groups",
+        method: "GET",
+        headers: params?.outletId ? { "x-outlet-id": params.outletId } : undefined,
+      }),
+      transformResponse: (response: any) => (response?.data ?? response ?? []) as ModifierGroup[],
+      providesTags: ["ModifierGroups"],
+    }),
+
+    createModifierGroup: builder.mutation<ModifierGroup, Partial<ModifierGroup> & { outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
+        url: "/menu/modifier-groups",
+        method: "POST",
+        body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
+
+    updateModifierGroup: builder.mutation<ModifierGroup, { id: string; data: Partial<ModifierGroup>; outletId?: string }>({
+      query: ({ id, data, outletId }) => ({
+        url: `/menu/modifier-groups/${id}`,
+        method: "PATCH",
+        body: data,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
+
+    deleteModifierGroup: builder.mutation<{ success: boolean; message?: string }, { id: string; outletId?: string }>({
+      query: ({ id, outletId }) => ({
+        url: `/menu/modifier-groups/${id}`,
+        method: "DELETE",
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
   }),
 });
 
@@ -135,4 +206,9 @@ export const {
   useUpdateMenuItemMutation,
   useToggleMenuItemStatusMutation,
   useDeleteMenuItemMutation,
+  useGetModifierGroupsQuery,
+  useCreateModifierGroupMutation,
+  useUpdateModifierGroupMutation,
+  useDeleteModifierGroupMutation,
 } = menuApi;
+
