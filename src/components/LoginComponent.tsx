@@ -10,7 +10,10 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { logout, setCredentials } from "@/redux/slices/authSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
+import { readNextFromLocation, roleHome } from "@/lib/authRedirect";
+import { useHydrated } from "@/lib/useHydrated";
 export default function LoginComponent() {
+  const hydrated = useHydrated();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,15 +48,8 @@ export default function LoginComponent() {
 
       dispatch(setCredentials(payload));
 
-      if (role === "STAFF") {
-        router.replace("/pos");
-      } else if (role === "KITCHEN") {
-        router.replace("/kitchen");
-      } else if (role === "SUPPLIER") {
-        router.replace("/supplier");
-      } else {
-        router.replace("/dashboard");
-      }
+      // Back to the page they were on when the session ended, otherwise their role's home
+      router.replace(readNextFromLocation() ?? roleHome(role));
     } catch (err: any) {
       setError(
         err?.data?.error?.message ||
@@ -113,7 +109,9 @@ export default function LoginComponent() {
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          {/* method="post": if the form is ever submitted by the browser itself (before the page is
+              interactive) the password must never end up in the address bar, history or logs. */}
+          <form className="space-y-4" method="post" onSubmit={handleSubmit}>
             {error && (
               <div className="rounded-xl bg-[#C41E2A]/10 p-4 text-sm text-[#C41E2A] border border-[#C41E2A]/20 font-medium">
                 {error}
@@ -192,7 +190,7 @@ export default function LoginComponent() {
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !hydrated}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C41E2A] px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold leading-5 text-white shadow-xs hover:bg-[#b01e23] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C41E2A] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-[1px] cursor-pointer"
               >
                 {isLoading ? (

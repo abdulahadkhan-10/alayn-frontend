@@ -1,13 +1,13 @@
-import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery, BaseQueryFn, BaseQueryApi, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
+import { API_BASE_URL, API_VERSION } from "@/lib/apiBase";
+import { refreshSession } from "@/lib/authSession";
+import { verifySession, type AuthState } from "../slices/authSlice";
 
-const RAW_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-export const API_VERSION = "v1";
-const BASE_DOMAIN = RAW_URL.replace(/\/$/, "").replace(/\/api\/v\d+$/, "");
-export const BASE_URL = `${BASE_DOMAIN}/api/${API_VERSION}`;
+export { API_VERSION };
+export const BASE_URL = API_BASE_URL;
 
-/** Action creators defined locally to prevent circular dependencies with authSlice */
-const setCredentialsAction = (payload: { user: any }) => ({ type: "auth/setCredentials", payload });
-const logoutAction = () => ({ type: "auth/logout" });
+/** Plain action (no import of authSlice, which would be circular): "the login is definitely over". */
+const sessionExpiredAction = () => ({ type: "auth/logout", payload: "expired" });
 
 /** Normalizes endpoint paths by stripping any redundant leading /api/vX or /api/v1 */
 const normalizePath = (url: string): string => {
@@ -30,17 +30,34 @@ const baseQuery = fetchBaseQuery({
     },
 });
 
-let isRefreshing = false;
-let refreshSubscribers: (() => void)[] = [];
+/** Sign-in, sign-out and refresh calls manage the session themselves; a 401 there is not "expired". */
+const isAuthEndpoint = (url: string) => /\/auth\/(login|logout|refresh|register|forgot-password|verify-reset-otp|reset-password)\b/.test(url);
 
-const subscribeTokenRefresh = (cb: () => void) => {
-    refreshSubscribers.push(cb);
-};
+type SessionDecision = "authenticated" | "unauthenticated" | "unavailable";
 
-const onRefreshed = () => {
-    refreshSubscribers.forEach((cb) => cb());
-    refreshSubscribers = [];
-};
+/**
+ * Data requests must not leave the browser until the server has said who is signed in. Pages run
+ * their data hooks in the same component that renders <AuthGuard>, so without this a page load
+ * would fire requests (with nobody confirmed, even with placeholder demo outlets) before the guard
+ * had decided anything.
+ *
+ *   unknown          wait for the session check (starting it if nobody has)
+ *   authenticated    go
+ *   unauthenticated  refuse right here: nothing is sent
+ */
+async function waitForSession(api: BaseQueryApi): Promise<SessionDecision> {
+    const giveUpAt = Date.now() + 20_000;
+    for (;;) {
+        const auth = (api.getState() as { auth: AuthState }).auth;
+        if (auth.status === "authenticated") return "authenticated";
+        if (auth.status === "unauthenticated") return "unauthenticated";
+        // Status is unknown. Make sure a check is running; if the server is unreachable the guard
+        // keeps retrying, so just keep waiting (up to a limit).
+        if (!auth.verifying && !auth.verifyFailed) void api.dispatch(verifySession());
+        if (Date.now() > giveUpAt) return "unavailable";
+        await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+}
 
 const baseQueryWithReauth: BaseQueryFn<
     string | FetchArgs,
@@ -55,66 +72,36 @@ const baseQueryWithReauth: BaseQueryFn<
         normalizedArgs = { ...args, url: normalizePath(args.url) };
     }
 
+    const firstUrl = typeof normalizedArgs === "string" ? normalizedArgs : normalizedArgs.url;
+    if (!isAuthEndpoint(firstUrl)) {
+        const decision = await waitForSession(api);
+        if (decision === "unauthenticated") {
+            return { error: { status: 401, data: { success: false, error: { code: "NOT_SIGNED_IN", message: "Please sign in to continue." } } } };
+        }
+        if (decision === "unavailable") {
+            return { error: { status: "FETCH_ERROR", error: "Could not confirm your session. Check your connection and try again." } };
+        }
+    }
+
     let result = await baseQuery(normalizedArgs, api, extraOptions);
 
-    if (result.error && result.error.status === 401) {
+    if (result.error?.status === 401) {
         const urlStr = typeof normalizedArgs === "string" ? normalizedArgs : normalizedArgs.url;
-        // Don't loop refresh if refresh, login, or logout itself returned 401
-        if (urlStr.includes("auth/refresh") || urlStr.includes("auth/login") || urlStr.includes("auth/logout")) {
-            return result;
+        if (isAuthEndpoint(urlStr)) return result;
+
+        // The 15-minute access cookie lapsed. Renew it ONCE for everyone who is waiting (a single
+        // shared refresh, so parallel requests never race each other), then repeat this request.
+        const refreshed = await refreshSession();
+
+        if (refreshed.ok) {
+            result = await baseQuery(normalizedArgs, api, extraOptions);
+            // Renewed but still refused (account disabled, session revoked): the login is over
+            if (result.error?.status === 401) api.dispatch(sessionExpiredAction());
+        } else if (refreshed.definitive) {
+            api.dispatch(sessionExpiredAction());
         }
-
-        console.info(`[AUTH REFRESH FRONTEND] 401 received for endpoint: ${urlStr}. Triggering token refresh via cookie...`);
-
-        if (isRefreshing) {
-            return new Promise((resolve) => {
-                subscribeTokenRefresh(async () => {
-                    resolve(await baseQuery(normalizedArgs, api, extraOptions));
-                });
-            });
-        }
-
-        isRefreshing = true;
-
-        try {
-            // Try to get a new access token via HTTP-Only cookie refresh endpoint
-            const refreshResult = await baseQuery(
-                {
-                    url: "/auth/refresh",
-                    method: "POST",
-                },
-                api,
-                extraOptions
-            );
-
-            if (refreshResult.data) {
-                const refreshData = (refreshResult.data as any)?.data || refreshResult.data;
-                const user = refreshData?.user;
-
-                console.info(`[AUTH REFRESH FRONTEND SUCCESS] Token refresh succeeded for user: "${user?.name || user?.email || 'Authenticated User'}"`);
-
-                if (user) {
-                    api.dispatch(setCredentialsAction({ user }));
-                }
-
-                isRefreshing = false;
-                onRefreshed();
-
-                // Retry original query with normalized args
-                result = await baseQuery(normalizedArgs, api, extraOptions);
-            } else {
-                console.warn('[AUTH REFRESH FRONTEND FAILED] Token refresh endpoint failed:', refreshResult.error);
-                isRefreshing = false;
-                refreshSubscribers = [];
-                // Refresh failed - log out user
-                api.dispatch(logoutAction());
-            }
-        } catch (err) {
-            console.error('[AUTH REFRESH FRONTEND ERROR] Unexpected error during refresh:', err);
-            isRefreshing = false;
-            refreshSubscribers = [];
-            api.dispatch(logoutAction());
-        }
+        // Not definitive (offline, server error, rate limited): hand back the original error and
+        // leave the person signed in. They can retry; nothing is lost.
     }
 
     return result;
@@ -159,4 +146,4 @@ export const baseApi = createApi({
     ],
 
     endpoints: () => ({}),
-});
+});
