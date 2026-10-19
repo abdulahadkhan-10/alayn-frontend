@@ -289,6 +289,8 @@ export default function LiveOrdersPage() {
   const [paymentMode, setPaymentMode] = useState<"SINGLE" | "SPLIT">("SINGLE");
   const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
   const [settleError, setSettleError] = useState<string | null>(null);
+  // The server found the UTR / approval code on another bill: the cashier can check it or settle anyway
+  const [duplicateReference, setDuplicateReference] = useState(false);
   // The coupon and bill breakdown stay folded until the cashier needs them
   const [settleExtra, setSettleExtra] = useState<"COUPON" | null>(null);
   const [showBillDetails, setShowBillDetails] = useState(false);
@@ -361,6 +363,7 @@ export default function LiveOrdersPage() {
     if (!settlingOrder) return;
     settlementKeyRef.current = newSettlementKey();
     setSettleError(null);
+    setDuplicateReference(false);
     setPaymentMode("SINGLE");
     setSplitLines([]);
     setSettleExtra(null);
@@ -417,6 +420,7 @@ export default function LiveOrdersPage() {
     settlement?: {
       payments?: ReturnType<typeof toPaymentPayload>;
       idempotencyKey?: string;
+      allowDuplicateReference?: boolean;
     }
   ) => {
     try {
@@ -437,6 +441,7 @@ export default function LiveOrdersPage() {
         discountPaise: couponPayload?.discountPaise,
         payments: settlement?.payments,
         idempotencyKey: settlement?.idempotencyKey,
+        allowDuplicateReference: settlement?.allowDuplicateReference,
       }).unwrap();
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev) =>
@@ -450,7 +455,77 @@ export default function LiveOrdersPage() {
       if (nextStatus === "COMPLETED") {
         // The server re-checks the split (amounts, verification) — show the cashier why it was refused
         setSettleError(err?.data?.error?.message || err?.data?.message || "Could not settle the bill. Please try again.");
+        setDuplicateReference(err?.data?.error?.code === "DUPLICATE_PAYMENT_REFERENCE");
       }
+    }
+  };
+
+  // Settle the bill; allowDuplicateReference is set when the cashier chose "settle anyway" after a reused UTR warning
+  const settleBill = async (settlingOrder: Order, allowDuplicateReference = false) => {
+    // Ignore a second tap while the first settle request is still in flight
+    if (settleInFlightRef.current) return;
+    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+    const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
+    if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
+    settleInFlightRef.current = true;
+    setSettleError(null);
+    setDuplicateReference(false);
+    const orderId = settlingOrder.id;
+    const cName = customerName.trim() || undefined;
+    const cPhone = customerPhone.trim() || undefined;
+    const targetOrder = settlingOrder;
+
+    const updatedResult = await handleStatusChange(
+      orderId,
+      "COMPLETED",
+      // A split sends its parts below instead of a single method
+      isSplit ? "Split payment" : paymentMethod,
+      cName,
+      cPhone,
+      appliedCoupon
+        ? {
+            couponCode: appliedCoupon.code,
+            couponId: appliedCoupon.couponId,
+            discountAmount: appliedCoupon.discountAmount,
+            discountPaise: appliedCoupon.discountPaise,
+          }
+        : undefined,
+      {
+        payments: isSplit ? toPaymentPayload(splitLines) : undefined,
+        idempotencyKey: settlementKeyRef.current,
+        allowDuplicateReference,
+      }
+    ).finally(() => {
+      settleInFlightRef.current = false;
+    });
+
+    if (updatedResult) {
+      setSettlingOrder(null);
+      // Print the same lines the pre-bill showed: fall back to the order on screen
+      // for any line the settle response returned without its menu item details
+      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
+      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
+      const printItems = settledItems.length > 0
+        ? settledItems.map((it: any) => {
+            const shown = shownItems.find((s: any) => s.id === it.id);
+            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
+          })
+        : shownItems;
+      const orderToPrint = {
+        ...updatedResult,
+        items: printItems,
+        orderItems: printItems,
+        status: "COMPLETED",
+        // Split bills print each part; the server's response carries them
+        paymentMethod: getPaymentLines(updatedResult).length > 0 ? updatedResult.paymentMethod : paymentMethod,
+        customerName: cName || targetOrder.customerName,
+        customerPhone: cPhone || targetOrder.customerPhone,
+        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
+      };
+      // Shoot print directly to printer — zero extra preview popup!
+      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
+        console.error("[Alayn] Direct receipt auto-print error:", err);
+      });
     }
   };
 
@@ -1810,7 +1885,23 @@ export default function LiveOrdersPage() {
                   );
                 })()}
 
-                {settleError && (
+                {settleError && duplicateReference && (
+                  <div role="alert" className="flex items-start gap-1.5 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <div className="flex-1 space-y-1.5">
+                      <span className="block">{settleError}</span>
+                      <button
+                        type="button"
+                        onClick={() => settleBill(settlingOrder, true)}
+                        disabled={isUpdating}
+                        className="px-2.5 py-1 text-[11px] font-semibold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-md transition cursor-pointer disabled:opacity-50"
+                      >
+                        Reference is correct — settle anyway
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {settleError && !duplicateReference && (
                   <div role="alert" className="flex items-start gap-1.5 text-[11px] text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-lg p-2.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
                     <span>{settleError}</span>
@@ -1855,71 +1946,7 @@ export default function LiveOrdersPage() {
                 </button>
 
                 <button
-                  onClick={async () => {
-                    // Ignore a second tap while the first settle request is still in flight
-                    if (settleInFlightRef.current) return;
-                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
-                    const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
-                    if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
-                    settleInFlightRef.current = true;
-                    setSettleError(null);
-                    const orderId = settlingOrder.id;
-                    const cName = customerName.trim() || undefined;
-                    const cPhone = customerPhone.trim() || undefined;
-                    const targetOrder = settlingOrder;
-
-                    const updatedResult = await handleStatusChange(
-                      orderId,
-                      "COMPLETED",
-                      // A split sends its parts below instead of a single method
-                      isSplit ? "Split payment" : paymentMethod,
-                      cName,
-                      cPhone,
-                      appliedCoupon
-                        ? {
-                            couponCode: appliedCoupon.code,
-                            couponId: appliedCoupon.couponId,
-                            discountAmount: appliedCoupon.discountAmount,
-                            discountPaise: appliedCoupon.discountPaise,
-                          }
-                        : undefined,
-                      {
-                        payments: isSplit ? toPaymentPayload(splitLines) : undefined,
-                        idempotencyKey: settlementKeyRef.current,
-                      }
-                    ).finally(() => {
-                      settleInFlightRef.current = false;
-                    });
-
-                    if (updatedResult) {
-                      setSettlingOrder(null);
-                      // Print the same lines the pre-bill showed: fall back to the order on screen
-                      // for any line the settle response returned without its menu item details
-                      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
-                      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
-                      const printItems = settledItems.length > 0
-                        ? settledItems.map((it: any) => {
-                            const shown = shownItems.find((s: any) => s.id === it.id);
-                            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
-                          })
-                        : shownItems;
-                      const orderToPrint = {
-                        ...updatedResult,
-                        items: printItems,
-                        orderItems: printItems,
-                        status: "COMPLETED",
-                        // Split bills print each part; the server's response carries them
-                        paymentMethod: getPaymentLines(updatedResult).length > 0 ? updatedResult.paymentMethod : paymentMethod,
-                        customerName: cName || targetOrder.customerName,
-                        customerPhone: cPhone || targetOrder.customerPhone,
-                        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
-                      };
-                      // Shoot print directly to printer — zero extra preview popup!
-                      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
-                        console.error("[Alayn] Direct receipt auto-print error:", err);
-                      });
-                    }
-                  }}
+                  onClick={() => settleBill(settlingOrder)}
                   disabled={
                     isUpdating ||
                     (paymentMode === "SPLIT" &&

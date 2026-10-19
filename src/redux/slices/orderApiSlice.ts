@@ -165,6 +165,8 @@ export const orderApi = baseApi.injectEndpoints({
         payments?: SplitPaymentPart[];
         /** Same key for retries of one settle attempt — the server never settles twice */
         idempotencyKey?: string;
+        /** Settle even though a UTR / approval code was already used on another bill */
+        allowDuplicateReference?: boolean;
         customerName?: string;
         customerPhone?: string;
         couponCode?: string;
@@ -180,6 +182,7 @@ export const orderApi = baseApi.injectEndpoints({
         paymentMethod,
         payments,
         idempotencyKey,
+        allowDuplicateReference,
         customerName,
         customerPhone,
         couponCode,
@@ -195,6 +198,7 @@ export const orderApi = baseApi.injectEndpoints({
           paymentMethod,
           payments,
           idempotencyKey,
+          allowDuplicateReference,
           customerName,
           customerPhone,
           couponCode,
