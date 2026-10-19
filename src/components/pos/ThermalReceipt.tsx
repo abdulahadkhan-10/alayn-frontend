@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Printer, X, CheckCircle, Smartphone, Loader2 } from "lucide-react";
 import { printThermalHtml } from "@/lib/printUtils";
 import { billItemRows } from "@/lib/billLines";
+import { getPaymentLines } from "@/lib/splitPayment";
 import {
   autoPrintReceipt,
 } from "@/lib/bluetoothAutoPrinter";
@@ -37,7 +38,8 @@ export interface ThermalReceiptProps {
     customerName?: string;
     customerPhone?: string;
     paymentMethod?: string;
-    payments?: Array<{ amountPaise: number; method: string; status: string }>;
+    payments?: Array<{ amountPaise: number; method: string; status: string; reference?: string | null }>;
+    paymentSplits?: Array<{ amountPaise: number; method: string; reference?: string | null }>;
     items?: Array<{
       id?: string;
       quantity: number;
@@ -229,7 +231,12 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
   const isPaid = actualOrder.status === "COMPLETED" ||
     (actualOrder.payments && actualOrder.payments.some((p: any) => p.status === "CONFIRMED"));
-  const paymentMethodLabel = actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "CASH";
+  // A split bill prints each part under the PAID stamp
+  const paymentLines = getPaymentLines(actualOrder);
+  const isSplitPayment = paymentLines.length > 1;
+  const paymentMethodLabel = isSplitPayment
+    ? "SPLIT"
+    : actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "CASH";
 
   // Dynamic UPI Payment QR String
   const upiPaymentUrl = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(outletName)}&am=${grandTotalRupees.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Bill ${billNo}`)}`;
@@ -545,9 +552,24 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             {/* -- PAYMENT STATUS -- */}
             <div className="text-center py-2">
               {isPaid ? (
-                <div className="inline-block border-2 border-black px-4 py-1 text-[12px] font-black uppercase tracking-widest bg-black text-white">
-                  ✓ PAID — {paymentMethodLabel}
-                </div>
+                <>
+                  <div className="inline-block border-2 border-black px-4 py-1 text-[12px] font-black uppercase tracking-widest bg-black text-white">
+                    ✓ PAID — {paymentMethodLabel}
+                  </div>
+                  {isSplitPayment && (
+                    <div className="mt-2 text-[12px] text-left space-y-0.5">
+                      {paymentLines.map((line, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>
+                            {line.label}
+                            {line.reference ? <span className="text-[10px]"> (Ref {line.reference})</span> : null}
+                          </span>
+                          <span className="font-bold">₹{(line.amountPaise / 100).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="inline-block border-2 border-dashed border-black px-4 py-1 text-[12px] font-bold uppercase tracking-wider">
                   PAYMENT PENDING

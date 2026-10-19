@@ -12,6 +12,7 @@
  */
 
 import { billItemRows, itemModifiers } from "./billLines";
+import { getPaymentLines } from "./splitPayment";
 
 export interface ESCPOSOptions {
   paperWidth?: "80mm" | "58mm";
@@ -364,7 +365,8 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     : actualOrder.totalAmount !== undefined
       ? Number(actualOrder.totalAmount)
       : Math.round(taxable + cgst + sgst);
-  const paymentMethod = actualOrder.paymentMethod || "CASH";
+  const paymentLines = getPaymentLines(actualOrder);
+  const paymentMethod = paymentLines.length > 1 ? "SPLIT" : actualOrder.paymentMethod || "CASH";
 
   // ── HEADER ──
   builder.align("center");
@@ -465,6 +467,14 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   // Payment Status
   builder.align("center");
   builder.bold(true).textLine(`PAID VIA ${paymentMethod.toUpperCase()}`).bold(false);
+  if (paymentLines.length > 1) {
+    builder.align("left");
+    for (const line of paymentLines) {
+      const label = line.reference ? `${line.label} (Ref ${line.reference})` : line.label;
+      builder.twoColumns(`  ${label}`, `Rs.${(line.amountPaise / 100).toFixed(2)}`);
+    }
+    builder.align("center");
+  }
   builder.newLine();
 
   // ── FOOTER MESSAGE ──

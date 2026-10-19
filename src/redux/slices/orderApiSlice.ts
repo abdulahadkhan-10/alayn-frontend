@@ -23,6 +23,16 @@ export interface OrderItem {
   };
 }
 
+/** One part of a split payment. Amounts are whole paise. */
+export interface SplitPaymentPart {
+  method: "CASH" | "CARD" | "UPI";
+  amountPaise: number;
+  /** UPI UTR / card approval code */
+  reference?: string;
+  /** Cashier confirmed an online payment was received (required for UPI / card at settlement) */
+  verified?: boolean;
+}
+
 export interface CreateOrderPayload {
   outletId?: string;
   orderSource: "TABLE" | "COUNTER" | "QR" | "DELIVERY";
@@ -71,8 +81,16 @@ export interface Order {
   discountAmount: number;
   couponCode?: string | null;
   couponId?: string | null;
-  paymentMethod: "CASH" | "CARD" | "UPI";
+  /** "SPLIT" when the bill was paid with more than one method */
+  paymentMethod: "CASH" | "CARD" | "UPI" | "SPLIT";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
+  isSplitPayment?: boolean;
+  /** Confirmed payments on the bill, one per part of a split */
+  paymentSplits?: { method: "CASH" | "CARD" | "UPI"; amountPaise: number; amount: number; reference: string | null }[];
+  payments?: { id: string; method: "CASH" | "CARD" | "UPI"; amountPaise: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
+  paidAmount?: number;
+  balanceDue?: number;
+  balanceDuePaise?: number;
   placedByName?: string;
   placedByRole?: string;
   customerName?: string;
@@ -143,6 +161,10 @@ export const orderApi = baseApi.injectEndpoints({
         status: Order["status"];
         comment?: string;
         paymentMethod?: "CASH" | "CARD" | "UPI";
+        /** Settle with a split instead of one paymentMethod */
+        payments?: SplitPaymentPart[];
+        /** Same key for retries of one settle attempt — the server never settles twice */
+        idempotencyKey?: string;
         customerName?: string;
         customerPhone?: string;
         couponCode?: string;
@@ -156,6 +178,8 @@ export const orderApi = baseApi.injectEndpoints({
         status,
         comment,
         paymentMethod,
+        payments,
+        idempotencyKey,
         customerName,
         customerPhone,
         couponCode,
@@ -169,6 +193,8 @@ export const orderApi = baseApi.injectEndpoints({
           status,
           comment,
           paymentMethod,
+          payments,
+          idempotencyKey,
           customerName,
           customerPhone,
           couponCode,
