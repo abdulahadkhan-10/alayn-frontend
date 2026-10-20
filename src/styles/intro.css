@@ -1,14 +1,15 @@
 /* Logo reveal that covers the landing page on the first visit of a session.
    See src/components/landing/IntroReveal.tsx for when it plays.
 
-   The lockup box has the aspect ratio of the full logo (1681x337 in
-   newlogo.png); every piece is positioned in percentages of that box, so the
-   final frame lines up exactly with the static logo.
+   The layers in public/brand/loader are cut from gptlogo.png, the logo the
+   navbar uses (divider and TM included). The lockup box is that logo's
+   1244x244 content area; every piece is positioned in percentages of it, so
+   the final frame lines up exactly with the static logo.
 
    Timing (ms): red stroke 80-480, navy stroke 330-700, mark slides from
-   centre to its lockup position 720-1200, letters 880-1620 (late
-   enough that the mark has cleared their slot), fade out
-   1700-2050. The whole thing is CSS so it still goes away if JS never loads.
+   centre to its lockup position 720-1200, divider grows 950-1230, letters
+   880-1620 and TM 1180-1680 (late enough that the mark has cleared their
+   slot), fade out 1700-2050. The whole thing is CSS so it still goes away if JS never loads.
 
    Everything animates only transform and opacity. A fresh visit spends a
    few hundred ms of main-thread time loading the page while this plays, and
@@ -43,7 +44,7 @@ html.intro-wait .alayn-intro * {
 .alayn-intro__lockup {
   position: relative;
   width: clamp(220px, 62vw, 380px);
-  aspect-ratio: 1681 / 337;
+  aspect-ratio: 1244 / 244;
   animation: alayn-intro-lockup-out 350ms cubic-bezier(0.4, 0, 0.2, 1) 1700ms forwards;
 }
 
@@ -54,15 +55,15 @@ html.intro-wait .alayn-intro * {
   -webkit-user-drag: none;
 }
 
-/* The mark is 369/1681 of the lockup. 177.8% of its own width moves its
+/* The mark is 21.865% of the lockup. 178.7% of its own width moves its
    centre to the lockup's centre, so it starts alone in the middle. */
 .alayn-intro__mark {
   position: absolute;
   left: 0;
   top: 0;
-  width: 21.951%;
+  width: 21.865%;
   height: 100%;
-  transform: translateX(177.8%);
+  transform: translateX(178.7%);
   animation: alayn-intro-mark-slide 480ms cubic-bezier(0.16, 1, 0.3, 1) 720ms forwards;
 }
 
@@ -100,11 +101,21 @@ html.intro-wait .alayn-intro * {
 .alayn-intro__wipe--navy { transform: translateY(-101%); }
 .alayn-intro__wipe--navy img { transform: translateY(101%); }
 
-/* Letters are clipped to the wordmark area, so they emerge from behind the
-   mark as it slides left. */
+/* Grows out from its middle once the mark has nearly reached its place. */
+.alayn-intro__lockup .alayn-intro__divider {
+  left: 28.376%;
+  width: 0.643%;
+  top: 15.984%;
+  height: 84.016%;
+  transform: scaleY(0);
+  animation: alayn-intro-grow 280ms cubic-bezier(0.16, 1, 0.3, 1) 950ms forwards;
+}
+
+/* Letters are clipped to the area right of the divider, so they emerge from
+   behind it as the mark slides left. */
 .alayn-intro__word {
   position: absolute;
-  left: 30%;
+  left: 29.019%;
   right: 0;
   top: 0;
   bottom: 0;
@@ -112,23 +123,28 @@ html.intro-wait .alayn-intro * {
 }
 
 .alayn-intro__word img {
-  top: 39.763%;
-  height: 38.576%;
+  top: 41.803%;
+  height: 35.656%;
   opacity: 0;
   transform: translateX(-60%);
   animation: alayn-intro-letter 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* left/width are each letter's position in the lockup, re-based onto the
-   word box, which starts at 30% and is 70% wide. */
-.alayn-intro__word img:nth-child(1) { left: 5.923%;  width: 13.257%; animation-delay: 880ms; }
-.alayn-intro__word img:nth-child(2) { left: 28.529%; width: 9.093%;  animation-delay: 940ms; }
-.alayn-intro__word img:nth-child(3) { left: 46.036%; width: 13.343%; animation-delay: 1000ms; }
-.alayn-intro__word img:nth-child(4) { left: 66.601%; width: 12.407%; animation-delay: 1060ms; }
-.alayn-intro__word img:nth-child(5) { left: 88.357%; width: 11.643%; animation-delay: 1120ms; }
+/* left/width are each letter's position in the logo, re-based onto the word
+   box. The TM layer is cut at the letters' height, so it shares top/height. */
+.alayn-intro__word img:nth-child(1) { left: 9.626%;  width: 11.891%; animation-delay: 880ms; }
+.alayn-intro__word img:nth-child(2) { left: 29.558%; width: 8.154%;  animation-delay: 940ms; }
+.alayn-intro__word img:nth-child(3) { left: 44.394%; width: 11.778%; animation-delay: 1000ms; }
+.alayn-intro__word img:nth-child(4) { left: 61.382%; width: 10.759%; animation-delay: 1060ms; }
+.alayn-intro__word img:nth-child(5) { left: 79.615%; width: 10.306%; animation-delay: 1120ms; }
+.alayn-intro__word img:nth-child(6) { left: 90.260%; width: 9.740%;  animation-delay: 1180ms; }
 
 @keyframes alayn-intro-wipe {
   to { transform: translateY(0); }
+}
+
+@keyframes alayn-intro-grow {
+  to { transform: scaleY(1); }
 }
 
 @keyframes alayn-intro-mark-slide {

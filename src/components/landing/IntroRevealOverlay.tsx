@@ -46,11 +46,12 @@ export default function IntroRevealOverlay() {
             <img src="/brand/loader/stroke-navy.png" alt="" draggable={false} />
           </span>
         </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="alayn-intro__divider" src="/brand/loader/divider.png" alt="" draggable={false} />
         <div className="alayn-intro__word">
-          {/* A, L, A, Y, N */}
-          {[0, 1, 2, 3, 4].map((i) => (
+          {["letter-0", "letter-1", "letter-2", "letter-3", "letter-4", "tm"].map((name) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={`/brand/loader/letter-${i}.png`} alt="" draggable={false} />
+            <img key={name} src={`/brand/loader/${name}.png`} alt="" draggable={false} />
           ))}
         </div>
       </div>
