@@ -8,8 +8,12 @@
    Timing (ms): red stroke 80-480, navy stroke 330-700, mark slides from
    centre to its lockup position 720-1200, letters 880-1620 (late
    enough that the mark has cleared their slot), fade out
-   1700-2050. The whole thing is CSS so it starts on first paint and still
-   goes away if JS never loads. */
+   1700-2050. The whole thing is CSS so it still goes away if JS never loads.
+
+   Everything animates only transform and opacity. A fresh visit spends a
+   few hundred ms of main-thread time loading the page while this plays, and
+   those two properties keep animating through that on the compositor; the
+   clip-path wipes this used to have stalled and then jumped ahead. */
 
 .alayn-intro {
   position: fixed;
@@ -26,6 +30,14 @@
    this session. */
 html.intro-seen .alayn-intro {
   display: none;
+}
+
+/* Held on its first frame until the logo images have decoded (the inline
+   script removes the class), so a cold load doesn't spend the opening of the
+   animation on images that aren't there yet. */
+html.intro-wait .alayn-intro,
+html.intro-wait .alayn-intro * {
+  animation-play-state: paused;
 }
 
 .alayn-intro__lockup {
@@ -60,17 +72,33 @@ html.intro-seen .alayn-intro {
   height: 100%;
 }
 
-/* The red stroke runs bottom-left to top-right, so a bottom-up wipe reads as
-   it being drawn; the navy stroke is drawn top-down. */
-.alayn-intro__red {
-  clip-path: inset(100% 0 0 0);
+/* A wipe built from two transforms: the window slides over the stroke while
+   the stroke slides the opposite way inside it by the same amount, so the
+   stroke stays put and only the visible part grows. The red stroke runs
+   bottom-left to top-right, so it's revealed bottom-up and reads as being
+   drawn; the navy stroke is revealed top-down. */
+.alayn-intro__wipe {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.alayn-intro__wipe--red,
+.alayn-intro__wipe--red img {
   animation: alayn-intro-wipe 400ms cubic-bezier(0.65, 0, 0.35, 1) 80ms forwards;
 }
 
-.alayn-intro__navy {
-  clip-path: inset(0 0 100% 0);
+.alayn-intro__wipe--navy,
+.alayn-intro__wipe--navy img {
   animation: alayn-intro-wipe 370ms cubic-bezier(0.65, 0, 0.35, 1) 330ms forwards;
 }
+
+/* 101% rather than 100% so no antialiased edge of the stroke peeks out of
+   the closed window on the first frame. */
+.alayn-intro__wipe--red { transform: translateY(101%); }
+.alayn-intro__wipe--red img { transform: translateY(-101%); }
+.alayn-intro__wipe--navy { transform: translateY(-101%); }
+.alayn-intro__wipe--navy img { transform: translateY(101%); }
 
 /* Letters are clipped to the wordmark area, so they emerge from behind the
    mark as it slides left. */
@@ -100,7 +128,7 @@ html.intro-seen .alayn-intro {
 .alayn-intro__word img:nth-child(5) { left: 88.357%; width: 11.643%; animation-delay: 1120ms; }
 
 @keyframes alayn-intro-wipe {
-  to { clip-path: inset(0 0 0 0); }
+  to { transform: translateY(0); }
 }
 
 @keyframes alayn-intro-mark-slide {

@@ -14,6 +14,8 @@ export function introHoldSeconds(): number {
     .find((a): a is CSSAnimation => (a as CSSAnimation).animationName === "alayn-intro-out");
   if (!fadeOut) return 0;
   const delay = Number(fadeOut.effect?.getTiming().delay ?? 0);
+  // While it's held for its images (intro-wait), the clock hasn't started,
+  // so this is a lower bound.
   const elapsed = Number(fadeOut.currentTime ?? 0);
   return Math.max(0, (delay - elapsed) / 1000);
 }

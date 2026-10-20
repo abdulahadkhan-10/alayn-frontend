@@ -37,10 +37,14 @@ export default function IntroRevealOverlay() {
     >
       <div className="alayn-intro__lockup">
         <div className="alayn-intro__mark">
-          {/* eslint-disable-next-line @next/next/no-img-element -- fixed-size layers positioned by CSS percentages; next/image adds nothing here */}
-          <img className="alayn-intro__red" src="/brand/loader/stroke-red.png" alt="" draggable={false} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="alayn-intro__navy" src="/brand/loader/stroke-navy.png" alt="" draggable={false} />
+          <span className="alayn-intro__wipe alayn-intro__wipe--red">
+            {/* eslint-disable-next-line @next/next/no-img-element -- fixed-size layers positioned by CSS percentages; next/image adds nothing here */}
+            <img src="/brand/loader/stroke-red.png" alt="" draggable={false} />
+          </span>
+          <span className="alayn-intro__wipe alayn-intro__wipe--navy">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/loader/stroke-navy.png" alt="" draggable={false} />
+          </span>
         </div>
         <div className="alayn-intro__word">
           {/* A, L, A, Y, N */}
