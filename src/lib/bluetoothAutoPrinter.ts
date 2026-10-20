@@ -12,6 +12,10 @@
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
 import { printThermalHtml } from "./printUtils";
 import { billItemRows } from "./billLines";
+import { getPaymentLines } from "./splitPayment";
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 
 export interface PrintResult {
   success: boolean;
@@ -586,7 +590,15 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? "RETAIL INVOICE"
     : "TAX INVOICE";
 
-  const paymentMethodLabel = (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
+  const paymentLines = getPaymentLines(actualOrder);
+  const paymentMethodLabel = paymentLines.length > 1
+    ? "SPLIT"
+    : (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
+  const splitRows = paymentLines.length > 1
+    ? paymentLines.map((line) =>
+        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>₹${(line.amountPaise / 100).toFixed(2)}</span></div>`
+      ).join("")
+    : "";
 
   return `
     <!DOCTYPE html>
@@ -688,6 +700,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         <div class="center bold" style="font-size: 12px; margin: 4px 0;">
           PAID VIA ${paymentMethodLabel}
         </div>
+        ${splitRows ? `<div class="summary-table">${splitRows}</div>` : ""}
 
         <div class="footer-line">
           <div>THANK YOU FOR DINING WITH US!</div>

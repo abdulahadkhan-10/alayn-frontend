@@ -1,7 +1,7 @@
 "use client";
 
 import { TModal } from "@/components/ui/TModal";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -37,11 +37,13 @@ import {
   Package,
   Printer,
   Receipt,
-  User,
   Lock,
   AlertCircle,
   Tag,
+  ChevronDown,
+  Plus,
 } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
   useValidateRestaurantCouponMutation,
   ValidateCouponResponse,
@@ -50,6 +52,81 @@ import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
+import SplitPaymentEditor, { initialSplitLines } from "@/components/pos/SplitPaymentEditor";
+import UpiPayQr from "@/components/pos/UpiPayQr";
+import { estimateBill } from "@/lib/billing";
+import {
+  SplitLine,
+  describePaymentLines,
+  formatPaise,
+  getCustomerPaymentClaims,
+  getPaymentLines,
+  isOnlineMethod,
+  summarizeSplit,
+  toPaymentPayload,
+} from "@/lib/splitPayment";
+
+/**
+ * The bill the settle modal shows and collects, in paise — same formula as the server's final
+ * recalculation (lib/billing.ts), with a coupon applied at the counter taken into account.
+ */
+function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | null) {
+  const subtotalPaise =
+    (order as any).subtotalPaise !== undefined ? (order as any).subtotalPaise : Math.round((order.subtotal || 0) * 100);
+  const subtotalVal = subtotalPaise / 100;
+  const discountVal = appliedCoupon ? appliedCoupon.discountAmount : (order.discountAmount || 0);
+  const isDineIn = order.isDineIn ?? (order.orderSource === "TABLE" || order.orderSource === "QR");
+  const scRate = order.serviceChargeRate !== undefined && order.serviceChargeRate !== null
+    ? Number(order.serviceChargeRate)
+    : (subtotalVal > 0 && order.serviceChargeAmount ? Number(((order.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
+
+  const bill = estimateBill([{ price: subtotalVal, quantity: 1 }], {
+    cgstRate: order.cgstRate != null ? Number(order.cgstRate) : 2.5,
+    sgstRate: order.sgstRate != null ? Number(order.sgstRate) : 2.5,
+    serviceChargeRate: scRate,
+  }, {
+    dineIn: isDineIn,
+    serviceChargeWaived: !!order.serviceChargeWaived,
+    discount: discountVal,
+    gstRegistrationType: order.gstRegistrationType || "REGULAR",
+  });
+
+  const totalPaise = Math.round(bill.total * 100);
+  // Already confirmed on the bill — only the rest is collected now. A QR diner's "I paid by UPI" is PENDING
+  // until the cashier checks it, so it is still part of the amount due here
+  const paidPaise = (order.payments || [])
+    .filter((p) => p.status === "CONFIRMED")
+    .reduce((sum, p) => sum + p.amountPaise, 0);
+
+  return {
+    isDineIn,
+    scRate,
+    subtotalVal,
+    discountVal,
+    serviceChargeVal: bill.serviceCharge,
+    taxableVal: bill.taxableValue,
+    cgstVal: bill.cgst,
+    sgstVal: bill.sgst,
+    roundOffVal: bill.roundOff,
+    totalVal: bill.total,
+    totalPaise,
+    paidPaise,
+    balanceDuePaise: Math.max(0, totalPaise - paidPaise),
+  };
+}
+
+// Smooth open / close for the settle modal's optional sections
+const COLLAPSE_MOTION = {
+  initial: { height: 0, opacity: 0 },
+  animate: { height: "auto", opacity: 1 },
+  exit: { height: 0, opacity: 0 },
+  transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] as const },
+};
+
+const newSettlementKey = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `settle-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -212,6 +289,23 @@ export default function LiveOrdersPage() {
   );
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
+  // Split payment at settlement
+  const [paymentMode, setPaymentMode] = useState<"SINGLE" | "SPLIT">("SINGLE");
+  const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
+  const [settleError, setSettleError] = useState<string | null>(null);
+  // The server found the UTR / approval code on another bill: the cashier can check it or settle anyway
+  const [duplicateReference, setDuplicateReference] = useState(false);
+  // Single UPI / card payment the cashier confirmed arrived. It only counts for the same bill, method and
+  // amount, so switching method or a coupon / service-charge change afterwards needs a fresh confirmation
+  const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; paise: number } | null>(null);
+  // UTR / approval code the cashier typed for that bill and method (otherwise the diner's own UTR is shown)
+  const [referenceDraft, setReferenceDraft] = useState<{ orderId: string; method: string; text: string } | null>(null);
+  // The coupon and bill breakdown stay folded until the cashier needs them
+  const [settleExtra, setSettleExtra] = useState<"COUPON" | null>(null);
+  const [showBillDetails, setShowBillDetails] = useState(false);
+  // One key per settle attempt: a retry after a lost response can't record the payments twice
+  const settlementKeyRef = useRef<string>("");
+  const settleInFlightRef = useRef(false);
 
   const {
     data: orders = [],
@@ -273,6 +367,38 @@ export default function LiveOrdersPage() {
   const [couponError, setCouponError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
 
+  // Fresh payment state each time a bill is opened for settlement (not when the open bill refreshes)
+  useEffect(() => {
+    if (!settlingOrder) return;
+    settlementKeyRef.current = newSettlementKey();
+    setSettleError(null);
+    setDuplicateReference(false);
+    setPaymentMode("SINGLE");
+    setSplitLines([]);
+    setSettleExtra(null);
+    setShowBillDetails(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settlingOrder?.id]);
+
+  // The restaurant's own UPI ID and name, for the payment QR shown at the counter
+  const upiPayeeFor = (order: Order) => ({
+    upiId: order.outlet?.upiId,
+    payeeName: order.outlet?.name || branches.find((b) => b.id === order.outletId)?.name || activeBranch?.name || "Restaurant",
+    note: `Bill ${order.orderNumber || order.orderNo || ""}`.trim(),
+  });
+
+  const isReceivedConfirmed = (order: Order, balanceDuePaise: number) =>
+    receivedConfirmation?.orderId === order.id &&
+    receivedConfirmation.method === paymentMethod &&
+    receivedConfirmation.paise === balanceDuePaise;
+
+  const paymentReferenceFor = (order: Order) =>
+    referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod
+      ? referenceDraft.text
+      : paymentMethod === "UPI"
+        ? getCustomerPaymentClaims(order).upiReferences.join(", ").slice(0, 64)
+        : "";
+
   useEffect(() => {
     if (settlingOrder) {
       setCustomerName(settlingOrder.customerName || "");
@@ -318,6 +444,11 @@ export default function LiveOrdersPage() {
       couponId?: string;
       discountAmount?: number;
       discountPaise?: number;
+    },
+    settlement?: {
+      payments?: ReturnType<typeof toPaymentPayload>;
+      idempotencyKey?: string;
+      allowDuplicateReference?: boolean;
     }
   ) => {
     try {
@@ -336,6 +467,9 @@ export default function LiveOrdersPage() {
         couponId: couponPayload?.couponId,
         discountAmount: couponPayload?.discountAmount,
         discountPaise: couponPayload?.discountPaise,
+        payments: settlement?.payments,
+        idempotencyKey: settlement?.idempotencyKey,
+        allowDuplicateReference: settlement?.allowDuplicateReference,
       }).unwrap();
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev) =>
@@ -344,8 +478,88 @@ export default function LiveOrdersPage() {
       }
       refetch();
       return updatedResult;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update status", err);
+      if (nextStatus === "COMPLETED") {
+        // The server re-checks the split (amounts, verification) — show the cashier why it was refused
+        setSettleError(err?.data?.error?.message || err?.data?.message || "Could not settle the bill. Please try again.");
+        setDuplicateReference(err?.data?.error?.code === "DUPLICATE_PAYMENT_REFERENCE");
+      }
+    }
+  };
+
+  // Settle the bill; allowDuplicateReference is set when the cashier chose "settle anyway" after a reused UTR warning
+  const settleBill = async (settlingOrder: Order, allowDuplicateReference = false) => {
+    // Ignore a second tap while the first settle request is still in flight
+    if (settleInFlightRef.current) return;
+    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+    const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
+    if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
+    const isOnlineSingle = !isSplit && balanceDuePaise > 0 && isOnlineMethod(paymentMethod);
+    if (isOnlineSingle && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) return;
+    settleInFlightRef.current = true;
+    setSettleError(null);
+    setDuplicateReference(false);
+    const orderId = settlingOrder.id;
+    const cName = customerName.trim() || undefined;
+    const cPhone = customerPhone.trim() || undefined;
+    const targetOrder = settlingOrder;
+
+    const updatedResult = await handleStatusChange(
+      orderId,
+      "COMPLETED",
+      // A split sends its parts below instead of a single method
+      isSplit ? "Split payment" : paymentMethod,
+      cName,
+      cPhone,
+      appliedCoupon
+        ? {
+            couponCode: appliedCoupon.code,
+            couponId: appliedCoupon.couponId,
+            discountAmount: appliedCoupon.discountAmount,
+            discountPaise: appliedCoupon.discountPaise,
+          }
+        : undefined,
+      {
+        payments: isSplit
+          ? toPaymentPayload(splitLines)
+          : isOnlineSingle
+            ? [{ method: paymentMethod, amountPaise: balanceDuePaise, reference: paymentReferenceFor(settlingOrder).trim() || undefined, verified: true }]
+            : undefined,
+        idempotencyKey: settlementKeyRef.current,
+        allowDuplicateReference,
+      }
+    ).finally(() => {
+      settleInFlightRef.current = false;
+    });
+
+    if (updatedResult) {
+      setSettlingOrder(null);
+      // Print the same lines the pre-bill showed: fall back to the order on screen
+      // for any line the settle response returned without its menu item details
+      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
+      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
+      const printItems = settledItems.length > 0
+        ? settledItems.map((it: any) => {
+            const shown = shownItems.find((s: any) => s.id === it.id);
+            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
+          })
+        : shownItems;
+      const orderToPrint = {
+        ...updatedResult,
+        items: printItems,
+        orderItems: printItems,
+        status: "COMPLETED",
+        // Split bills print each part; the server's response carries them
+        paymentMethod: getPaymentLines(updatedResult).length > 0 ? updatedResult.paymentMethod : paymentMethod,
+        customerName: cName || targetOrder.customerName,
+        customerPhone: cPhone || targetOrder.customerPhone,
+        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
+      };
+      // Shoot print directly to printer — zero extra preview popup!
+      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
+        console.error("[Alayn] Direct receipt auto-print error:", err);
+      });
     }
   };
 
@@ -771,12 +985,12 @@ export default function LiveOrdersPage() {
                               QR Order
                             </span>
                           )}
-                          {order.placedByName?.includes("UTR:") && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" title="Customer UPI UTR">
-                              ⚡ UTR: {order.placedByName.split("UTR:")[1]?.trim()}
+                          {getCustomerPaymentClaims(order).upi && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Customer says they paid by UPI — check before settling">
+                              ⚡ UPI to verify{getCustomerPaymentClaims(order).upiReferences.length > 0 ? ` · UTR ${getCustomerPaymentClaims(order).upiReferences.join(", ")}` : ""}
                             </span>
                           )}
-                          {order.placedByName?.includes("Pay at Counter") && (
+                          {getCustomerPaymentClaims(order).payAtCounter && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
                               💵 Pay at Counter
                             </span>
@@ -877,9 +1091,10 @@ export default function LiveOrdersPage() {
                           onClick={() => {
                             setCustomerName(order.customerName || "");
                             setCustomerPhone(order.customerPhone || "");
-                            if (order.placedByName?.includes("UTR") || order.paymentMethod === "UPI") {
+                            const claims = getCustomerPaymentClaims(order);
+                            if (claims.upi || order.paymentMethod === "UPI") {
                               setPaymentMethod("UPI");
-                            } else if (order.placedByName?.includes("Pay at Counter") || order.paymentMethod === "CASH") {
+                            } else if (claims.payAtCounter || order.paymentMethod === "CASH") {
                               setPaymentMethod("CASH");
                             }
                             setSettlingOrder(order);
@@ -1258,7 +1473,7 @@ export default function LiveOrdersPage() {
                         <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
                           <span className="text-gray-500 font-medium">Payment Method</span>
                           <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
-                            {selectedOrder.paymentMethod || "PAID"}
+                            {describePaymentLines(selectedOrder, selectedOrder.paymentMethod || "PAID")}
                             <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
                           </span>
                         </div>
@@ -1338,348 +1553,459 @@ export default function LiveOrdersPage() {
         {/* ── Modal: Settle Payment & Generate Thermal Invoice ── */}
         <TModal open={!!settlingOrder} onClose={() => setSettlingOrder(null)} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {settlingOrder && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-xl overflow-hidden flex flex-col max-h-[88vh]">
-              {/* Clean Modal Header */}
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
-                    <Receipt className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 leading-tight">
-                      Checkout & Settle Bill
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      Bill #{settlingOrder.orderNo || (settlingOrder as any).orderNumber || settlingOrder.id.slice(0, 8).toUpperCase()} • {settlingOrder.tableNo || (settlingOrder as any).tableNumber ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}` : "Counter"}
-                    </p>
-                  </div>
+            <MotionConfig reducedMotion="user">
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+              {/* Header */}
+              <div className="px-5 pt-4 pb-3 flex items-start justify-between shrink-0">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-slate-900 leading-tight">Settle bill</h3>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    #{settlingOrder.orderNo || (settlingOrder as any).orderNumber || settlingOrder.id.slice(0, 8).toUpperCase()} · {settlingOrder.tableNo || (settlingOrder as any).tableNumber ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}` : "Counter"}
+                  </p>
                 </div>
                 <button
                   onClick={() => setSettlingOrder(null)}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
+                  aria-label="Close"
+                  className="w-8 h-8 -mr-1.5 -mt-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-5 space-y-4 overflow-y-auto flex-1">
-                {/* Total Amount & Bill Breakdown Summary Box */}
+              {/* Body */}
+              <div className="px-5 pb-5 space-y-4 overflow-y-auto flex-1">
+                {/* Amount due — breakdown folded behind "Details" */}
                 {(() => {
-                  const subtotalVal =
-                    settlingOrder.subtotal !== undefined
-                      ? settlingOrder.subtotal
-                      : (settlingOrder as any).subtotalPaise !== undefined
-                        ? (settlingOrder as any).subtotalPaise / 100
-                        : 0;
-
-                  const discountVal = appliedCoupon
-                    ? appliedCoupon.discountAmount
-                    : (settlingOrder.discountAmount || 0);
-
-                  const netSubtotal = Math.max(0, subtotalVal - discountVal);
-
-                  const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
-
-                  const scRate = settlingOrder.serviceChargeRate !== undefined && settlingOrder.serviceChargeRate !== null
-                    ? Number(settlingOrder.serviceChargeRate)
-                    : (subtotalVal > 0 && settlingOrder.serviceChargeAmount ? Number(((settlingOrder.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
-
-                  const serviceChargeVal =
-                    isDineIn && !settlingOrder.serviceChargeWaived
-                      ? Math.round(((netSubtotal * scRate) / 100) * 100) / 100
-                      : 0;
-
-                  const collectsGst = settlingOrder.gstRegistrationType !== "COMPOSITION" && settlingOrder.gstRegistrationType !== "UNREGISTERED";
-                  const taxableVal = netSubtotal + serviceChargeVal;
-
-                  const cgstRateNum = settlingOrder.cgstRate != null ? Number(settlingOrder.cgstRate) : 2.5;
-                  const sgstRateNum = settlingOrder.sgstRate != null ? Number(settlingOrder.sgstRate) : 2.5;
-
-                  const cgstVal = collectsGst ? Math.round(((taxableVal * cgstRateNum) / 100) * 100) / 100 : 0;
-                  const sgstVal = collectsGst ? Math.round(((taxableVal * sgstRateNum) / 100) * 100) / 100 : 0;
-
-                  const grossVal = taxableVal + cgstVal + sgstVal;
-                  const totalVal = Math.round(grossVal);
-                  const roundOffVal = Math.round((totalVal - grossVal) * 100) / 100;
+                  const {
+                    subtotalVal, discountVal, isDineIn, scRate, serviceChargeVal, taxableVal,
+                    cgstVal, sgstVal, roundOffVal, totalVal, paidPaise, balanceDuePaise,
+                  } = settlementBill(settlingOrder, appliedCoupon);
+                  const gstVal = cgstVal + sgstVal;
+                  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  const summaryParts = [
+                    `Subtotal ${fmt(subtotalVal)}`,
+                    discountVal > 0 ? `Discount −${fmt(discountVal)}` : null,
+                    serviceChargeVal > 0 ? `Service ${fmt(serviceChargeVal)}` : null,
+                    gstVal > 0 ? `GST ${fmt(gstVal)}` : null,
+                  ].filter(Boolean);
 
                   return (
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                        <div>
-                          <span className="text-[11px] font-semibold text-slate-500 block uppercase tracking-wider">
-                            Amount Due
+                    <div className="rounded-xl bg-slate-50 border border-slate-200/70 px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-medium text-slate-500 block">
+                            {paidPaise > 0 ? "To collect" : "Amount due"}
                           </span>
-                          <span className="text-2xl font-bold text-slate-900 tracking-tight">
-                            ₹{totalVal.toFixed(2)}
+                          <span className="text-[28px] leading-tight font-semibold text-slate-900 tracking-tight tabular-nums">
+                            {paidPaise > 0 ? formatPaise(balanceDuePaise) : fmt(totalVal)}
                           </span>
+                          {paidPaise > 0 && (
+                            <span className="block text-[11px] text-amber-700 font-medium">
+                              {formatPaise(paidPaise)} of {fmt(totalVal)} already paid
+                            </span>
+                          )}
                         </div>
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Unpaid
-                        </span>
+                        <button
+                          type="button"
+                          aria-expanded={showBillDetails}
+                          onClick={() => setShowBillDetails((v) => !v)}
+                          className="mt-1 shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition cursor-pointer"
+                        >
+                          Details
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showBillDetails ? "rotate-180" : ""}`} />
+                        </button>
                       </div>
 
-                      {/* Line breakdown */}
-                      <div className="space-y-1 text-xs text-slate-600">
-                        <div className="flex justify-between">
-                          <span>Subtotal</span>
-                          <span className="font-semibold text-slate-800">₹{subtotalVal.toFixed(2)}</span>
-                        </div>
-                        {discountVal > 0 && (
-                          <>
-                            <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-bold">
-                              <span className="flex items-center gap-1">
-                                <Tag className="w-3 h-3" />
-                                Coupon ({appliedCoupon?.code || settlingOrder.couponCode || "Discount"})
-                              </span>
-                              <span>-₹{discountVal.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-slate-800 font-semibold border-t border-dashed border-slate-200/80 pt-1 text-[11px]">
-                              <span>Taxable Value</span>
-                              <span>₹{taxableVal.toFixed(2)}</span>
-                            </div>
-                          </>
-                        )}
-                        {serviceChargeVal > 0 && (
-                          <div className="flex justify-between">
-                            <span>Service Charge ({scRate}%)</span>
-                            <span className="font-semibold text-slate-800">₹{serviceChargeVal.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {settlingOrder.serviceChargeWaived && (
-                          <div className="flex justify-between items-center text-amber-700 bg-amber-50/80 border border-amber-200/60 px-2 py-0.5 rounded text-[11px]">
-                            <span>Service Charge Waived</span>
-                            <span className="italic text-[10px] text-amber-600">{settlingOrder.serviceChargeWaiveReason || "Customer request"}</span>
-                          </div>
-                        )}
-                        {(cgstVal > 0 || sgstVal > 0) && (
-                          <div className="flex justify-between">
-                            <span>GST (CGST + SGST)</span>
-                            <span className="font-semibold text-slate-800">₹{(cgstVal + sgstVal).toFixed(2)}</span>
-                          </div>
-                        )}
-                        {roundOffVal !== 0 && (
-                          <div className="flex justify-between text-[11px] text-slate-500">
-                            <span>Round off</span>
-                            <span>{roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Remove Service Charge Option (Voluntary customer request) */}
-                      {isDineIn && (
-                        <div className="pt-2 border-t border-dashed border-slate-200">
-                          {!settlingOrder.serviceChargeWaived && (serviceChargeVal > 0 || scRate > 0) ? (
-                            <button
-                              type="button"
-                              onClick={() => setWaivingServiceChargeOrder(settlingOrder)}
-                              className="w-full py-1.5 px-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                            >
-                              <span>Remove Service Charge (Customer Request)</span>
-                            </button>
-                          ) : settlingOrder.serviceChargeWaived ? (
-                            <div className="flex items-center justify-between text-xs pt-1">
-                              <span className="text-amber-800 text-[11px] font-medium">Service charge removed</span>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleServiceCharge(settlingOrder, false)}
-                                className="text-[11px] font-bold text-slate-700 underline hover:text-black cursor-pointer"
-                              >
-                                Restore
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
+                      {!showBillDetails && (
+                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums truncate">{summaryParts.join(" · ")}</p>
                       )}
+
+                      <AnimatePresence initial={false}>
+                        {showBillDetails && (
+                          <motion.div key="bill-details" {...COLLAPSE_MOTION} className="overflow-hidden">
+                            <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-1.5 text-xs text-slate-600 tabular-nums">
+                              <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span className="text-slate-800">{fmt(subtotalVal)}</span>
+                              </div>
+                              {discountVal > 0 && (
+                                <>
+                                  <div className="flex justify-between text-emerald-700">
+                                    <span>Coupon {appliedCoupon?.code || settlingOrder.couponCode || ""}</span>
+                                    <span>−{fmt(discountVal)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Taxable value</span>
+                                    <span className="text-slate-800">{fmt(taxableVal)}</span>
+                                  </div>
+                                </>
+                              )}
+                              {serviceChargeVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Service charge ({scRate}%)</span>
+                                  <span className="text-slate-800">{fmt(serviceChargeVal)}</span>
+                                </div>
+                              )}
+                              {gstVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span>GST (CGST + SGST)</span>
+                                  <span className="text-slate-800">{fmt(gstVal)}</span>
+                                </div>
+                              )}
+                              {roundOffVal !== 0 && (
+                                <div className="flex justify-between text-slate-500">
+                                  <span>Round off</span>
+                                  <span>{roundOffVal > 0 ? "+" : "−"} {fmt(Math.abs(roundOffVal))}</span>
+                                </div>
+                              )}
+
+                              {/* Service charge is voluntary: removed at the customer's request */}
+                              {isDineIn && (settlingOrder.serviceChargeWaived || serviceChargeVal > 0 || scRate > 0) && (
+                                <div className="flex items-center justify-between pt-2 mt-1 border-t border-dashed border-slate-200">
+                                  {settlingOrder.serviceChargeWaived ? (
+                                    <>
+                                      <span className="text-[11px] text-amber-700">
+                                        Service charge removed · {settlingOrder.serviceChargeWaiveReason || "Customer request"}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleServiceCharge(settlingOrder, false)}
+                                        className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 underline underline-offset-2 cursor-pointer"
+                                      >
+                                        Restore
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setWaivingServiceChargeOrder(settlingOrder)}
+                                      className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2 cursor-pointer"
+                                    >
+                                      Remove service charge (customer request)
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   );
                 })()}
 
-                {/* Customer Details Form */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    Customer Details (Optional)
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Customer Name"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Mobile Number"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-medium bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
-                    />
-                  </div>
+                {/* Customer details — always visible */}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Customer name"
+                    aria-label="Customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Mobile number"
+                    aria-label="Customer mobile number"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
+                  />
                 </div>
 
-                {/* Coupon Code Section */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="block text-xs font-semibold text-slate-700 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Tag className="w-3.5 h-3.5 text-slate-400" />
-                      Apply Coupon Code
-                    </span>
-                    {appliedCoupon && (
-                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" />
-                        Coupon Applied
-                      </span>
-                    )}
-                  </label>
-
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300">
-                          {appliedCoupon.code}
-                        </span>
-                        <span className="text-emerald-800 font-bold">
-                          -₹{appliedCoupon.discountAmount.toFixed(2)} savings
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        className="text-[11px] font-bold text-slate-600 hover:text-rose-600 transition cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Enter coupon code (e.g. WELCOME10)"
-                        value={couponInput}
-                        onChange={(e) => {
-                          setCouponInput(e.target.value.toUpperCase());
-                          setCouponError(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleApplyCoupon();
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-slate-800 transition"
-                      />
-                      <button
-                        type="button"
-                        disabled={isValidatingCoupon || !couponInput.trim()}
-                        onClick={handleApplyCoupon}
-                        className="px-4 py-2 bg-slate-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
-                      >
-                        {isValidatingCoupon ? "Checking..." : "Apply"}
-                      </button>
-                    </div>
-                  )}
-
-                  {couponError && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold mt-1">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{couponError}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* QR Order Verification Callout */}
-                {settlingOrder.placedByName?.includes("UTR:") && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
-                        <QrCode className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-emerald-950 block">Customer UPI UTR / Reference:</span>
-                        <span className="font-mono text-xs font-black text-emerald-800 tracking-wide">
-                          {settlingOrder.placedByName.split("UTR:")[1]?.trim()}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200 shadow-2xs">
-                      Soundbox Match ✓
-                    </span>
-                  </div>
-                )}
-
-                {settlingOrder.placedByName?.includes("Pay at Counter") && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2 text-xs text-blue-900">
-                    <Banknote className="w-4 h-4 text-blue-700 shrink-0" />
-                    <span>Customer selected <strong>Pay at Counter</strong>. Collect cash or card now.</span>
-                  </div>
-                )}
-
-                {/* Payment Method Selector */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Payment Method
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
+                {/* Coupon — opened on demand */}
+                <div>
+                  <div className="flex flex-wrap gap-2">
                     {(
                       [
-                        { value: "UPI", label: "UPI / QR", icon: QrCode },
-                        { value: "CASH", label: "Cash", icon: Banknote },
-                        { value: "CARD", label: "Card", icon: CreditCard },
-                      ] as const
-                    ).map(({ value, label, icon: Icon }) => {
-                      const isSelected = paymentMethod === value;
+                        {
+                          id: "COUPON" as const,
+                          icon: Tag,
+                          label: appliedCoupon ? `${appliedCoupon.code} · −₹${appliedCoupon.discountAmount.toFixed(2)}` : "Coupon",
+                          filled: !!appliedCoupon,
+                        },
+                      ]
+                    ).map(({ id, icon: Icon, label, filled }) => {
+                      const open = settleExtra === id;
                       return (
                         <button
-                          key={value}
+                          key={id}
                           type="button"
-                          onClick={() => setPaymentMethod(value)}
-                          className={`p-3 rounded-xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                          aria-expanded={open}
+                          onClick={() => setSettleExtra(open ? null : id)}
+                          className={`inline-flex items-center gap-1.5 max-w-[60%] px-3 py-1.5 rounded-full border text-[12px] font-medium transition cursor-pointer ${
+                            open
+                              ? "bg-slate-900 border-slate-900 text-white"
+                              : filled
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100"
+                                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
                           }`}
                         >
-                          <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
-                          <span>{label}</span>
+                          {filled ? <Icon className="w-3.5 h-3.5 shrink-0" /> : <Plus className="w-3.5 h-3.5 shrink-0" />}
+                          <span className="truncate">{label}</span>
                         </button>
                       );
                     })}
                   </div>
+
+                  <AnimatePresence initial={false} mode="wait">
+                    {settleExtra === "COUPON" && (
+                      <motion.div key="coupon" {...COLLAPSE_MOTION} className="overflow-hidden">
+                        <div className="pt-2.5 space-y-1.5">
+                          {appliedCoupon ? (
+                            <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs">
+                              <span className="text-emerald-800">
+                                <span className="font-mono font-semibold">{appliedCoupon.code}</span> applied · −₹{appliedCoupon.discountAmount.toFixed(2)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleRemoveCoupon}
+                                className="text-[11px] font-semibold text-slate-600 hover:text-rose-600 transition cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                autoFocus
+                                placeholder="Coupon code"
+                                aria-label="Coupon code"
+                                value={couponInput}
+                                onChange={(e) => {
+                                  setCouponInput(e.target.value.toUpperCase());
+                                  setCouponError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleApplyCoupon();
+                                  }
+                                }}
+                                className="flex-1 min-w-0 px-3 py-2 text-xs font-mono font-semibold uppercase tracking-wider bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 focus:outline-none focus:border-slate-800 transition"
+                              />
+                              <button
+                                type="button"
+                                disabled={isValidatingCoupon || !couponInput.trim()}
+                                onClick={handleApplyCoupon}
+                                className="px-4 py-2 bg-slate-900 hover:bg-black disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition cursor-pointer shrink-0"
+                              >
+                                {isValidatingCoupon ? "Checking…" : "Apply"}
+                              </button>
+                            </div>
+                          )}
+                          {couponError && (
+                            <p className="flex items-center gap-1.5 text-[11px] text-rose-600 font-medium">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              {couponError}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+
+                {/* QR order: what the customer already told us about payment */}
+                {/* QR order paid by UPI on the customer's phone: what to match on the soundbox (UPI / split only) */}
+                {getCustomerPaymentClaims(settlingOrder).upi && (paymentMode === "SPLIT" || paymentMethod === "UPI") && (() => {
+                  const claims = getCustomerPaymentClaims(settlingOrder);
+                  return (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2 text-[11px] text-amber-900">
+                      <QrCode className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="font-semibold">
+                          Customer paid by UPI on the QR page
+                          {claims.upiPaise > 0 && <> · {formatPaise(claims.upiPaise)}</>}
+                        </p>
+                        <p className="text-amber-800 break-all">
+                          {claims.upiReferences.length > 0 ? (
+                            <>UTR <span className="font-mono font-semibold">{claims.upiReferences.join(", ")}</span> · match it on the soundbox / UPI app</>
+                          ) : (
+                            <>No UTR given · match the amount on the soundbox / UPI app</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {getCustomerPaymentClaims(settlingOrder).payAtCounter && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-1.5 text-[11px] text-blue-900">
+                    <Banknote className="w-3.5 h-3.5 shrink-0" />
+                    <span>Customer chose <strong>Pay at Counter</strong> — collect now.</span>
+                  </div>
+                )}
+
+                <div className="border-t border-slate-100" />
+
+                {/* Payment: one method, or split across several */}
+                {(() => {
+                  const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                  if (balanceDuePaise === 0) {
+                    return (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-900">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>This bill is already fully paid ({describePaymentLines(settlingOrder)}). Settle to close it.</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Payment</span>
+                        <div role="group" aria-label="Payment mode" className="flex rounded-lg bg-slate-100 p-0.5">
+                          {(["SINGLE", "SPLIT"] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              aria-pressed={paymentMode === mode}
+                              onClick={() => {
+                                setSettleError(null);
+                                setPaymentMode(mode);
+                                if (mode === "SPLIT" && splitLines.length === 0) {
+                                  setSplitLines(initialSplitLines(balanceDuePaise, paymentMethod === "CASH" ? "UPI" : "CASH"));
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                                paymentMode === mode ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              {mode === "SINGLE" ? "Single" : "Split payment"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <AnimatePresence initial={false} mode="wait">
+                      <motion.div
+                        key={paymentMode}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                      {paymentMode === "SINGLE" ? (
+                        <div className="space-y-2">
+                        <div className="grid grid-cols-3 gap-2">
+                          {(
+                            [
+                              { value: "UPI", label: "UPI / QR", icon: QrCode },
+                              { value: "CASH", label: "Cash", icon: Banknote },
+                              { value: "CARD", label: "Card", icon: CreditCard },
+                            ] as const
+                          ).map(({ value, label, icon: Icon }) => {
+                            const isSelected = paymentMethod === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => setPaymentMethod(value)}
+                                aria-pressed={isSelected}
+                                className={`py-2.5 px-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+                                  isSelected
+                                    ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                              >
+                                <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                                <span>{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* UPI / card money lands outside the till: the cashier confirms it arrived before settling */}
+                        {isOnlineMethod(paymentMethod) && (() => {
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          return (
+                            <div
+                              className={`rounded-xl border p-2.5 space-y-2 transition-colors ${
+                                confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                              }`}
+                            >
+                              {paymentMethod === "UPI" && (
+                                <UpiPayQr {...upiPayeeFor(settlingOrder)} amountPaise={balanceDuePaise} />
+                              )}
+                              <label className="flex items-start gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={confirmed}
+                                  onChange={(e) => {
+                                    setSettleError(null);
+                                    setReceivedConfirmation(
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                    );
+                                  }}
+                                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                                />
+                                <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
+                                  {paymentMethod === "UPI"
+                                    ? <>I&apos;ve checked {formatPaise(balanceDuePaise)} was received on the soundbox / UPI app</>
+                                    : <>I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine</>}
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                aria-label={paymentMethod === "UPI" ? "UPI reference (UTR)" : "Card approval code"}
+                                placeholder={paymentMethod === "UPI" ? "UTR / last 4 digits (optional)" : "Approval code (optional)"}
+                                value={paymentReferenceFor(settlingOrder)}
+                                maxLength={64}
+                                onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-slate-800 transition placeholder:font-sans placeholder:text-slate-400"
+                              />
+                            </div>
+                          );
+                        })()}
+                        </div>
+                      ) : (
+                        <SplitPaymentEditor
+                          duePaise={balanceDuePaise}
+                          upi={upiPayeeFor(settlingOrder)}
+                          lines={splitLines}
+                          onChange={(next) => {
+                            setSettleError(null);
+                            setSplitLines(next);
+                          }}
+                        />
+                      )}
+                      </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
+
+                {settleError && duplicateReference && (
+                  <div role="alert" className="flex items-start gap-1.5 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <div className="flex-1 space-y-1.5">
+                      <span className="block">{settleError}</span>
+                      <button
+                        type="button"
+                        onClick={() => settleBill(settlingOrder, true)}
+                        disabled={isUpdating}
+                        className="px-2.5 py-1 text-[11px] font-semibold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-md transition cursor-pointer disabled:opacity-50"
+                      >
+                        Reference is correct — settle anyway
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {settleError && !duplicateReference && (
+                  <div role="alert" className="flex items-start gap-1.5 text-[11px] text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-lg p-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <span>{settleError}</span>
+                  </div>
+                )}
               </div>
 
               {/* Clean Footer Actions */}
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => {
-                    const subtotalVal =
-                      settlingOrder.subtotal !== undefined
-                        ? settlingOrder.subtotal
-                        : (settlingOrder as any).subtotalPaise !== undefined
-                          ? (settlingOrder as any).subtotalPaise / 100
-                          : 0;
-                    const discountVal = appliedCoupon
-                      ? appliedCoupon.discountAmount
-                      : (settlingOrder.discountAmount || 0);
-                    const netSubtotal = Math.max(0, subtotalVal - discountVal);
-                    const isDineIn = settlingOrder.isDineIn ?? (settlingOrder.orderSource === "TABLE" || settlingOrder.orderSource === "QR");
-                    const scRate = settlingOrder.serviceChargeRate !== undefined && settlingOrder.serviceChargeRate !== null
-                      ? Number(settlingOrder.serviceChargeRate)
-                      : (subtotalVal > 0 && settlingOrder.serviceChargeAmount ? Number(((settlingOrder.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
-                    const serviceChargeVal = isDineIn && !settlingOrder.serviceChargeWaived
-                      ? Math.round(((netSubtotal * scRate) / 100) * 100) / 100
-                      : 0;
-                    const collectsGst = settlingOrder.gstRegistrationType !== "COMPOSITION" && settlingOrder.gstRegistrationType !== "UNREGISTERED";
-                    const taxableVal = netSubtotal + serviceChargeVal;
-                    const cgstRateNum = settlingOrder.cgstRate != null ? Number(settlingOrder.cgstRate) : 2.5;
-                    const sgstRateNum = settlingOrder.sgstRate != null ? Number(settlingOrder.sgstRate) : 2.5;
-                    const cgstVal = collectsGst ? Math.round(((taxableVal * cgstRateNum) / 100) * 100) / 100 : 0;
-                    const sgstVal = collectsGst ? Math.round(((taxableVal * sgstRateNum) / 100) * 100) / 100 : 0;
-                    const grossVal = taxableVal + cgstVal + sgstVal;
-                    const totalVal = Math.round(grossVal);
-                    const roundOffVal = Math.round((totalVal - grossVal) * 100) / 100;
+                    const { discountVal, serviceChargeVal, cgstVal, sgstVal, roundOffVal, totalVal } =
+                      settlementBill(settlingOrder, appliedCoupon);
 
                     setPrintingOrder({
                       ...settlingOrder,
@@ -1711,64 +2037,32 @@ export default function LiveOrdersPage() {
                 </button>
 
                 <button
-                  onClick={async () => {
-                    const orderId = settlingOrder.id;
-                    const cName = customerName.trim() || undefined;
-                    const cPhone = customerPhone.trim() || undefined;
-                    const targetOrder = settlingOrder;
-
-                    const updatedResult = await handleStatusChange(
-                      orderId,
-                      "COMPLETED",
-                      paymentMethod,
-                      cName,
-                      cPhone,
-                      appliedCoupon
-                        ? {
-                            couponCode: appliedCoupon.code,
-                            couponId: appliedCoupon.couponId,
-                            discountAmount: appliedCoupon.discountAmount,
-                            discountPaise: appliedCoupon.discountPaise,
-                          }
-                        : undefined
-                    );
-
-                    if (updatedResult) {
-                      setSettlingOrder(null);
-                      // Print the same lines the pre-bill showed: fall back to the order on screen
-                      // for any line the settle response returned without its menu item details
-                      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
-                      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
-                      const printItems = settledItems.length > 0
-                        ? settledItems.map((it: any) => {
-                            const shown = shownItems.find((s: any) => s.id === it.id);
-                            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
-                          })
-                        : shownItems;
-                      const orderToPrint = {
-                        ...updatedResult,
-                        items: printItems,
-                        orderItems: printItems,
-                        status: "COMPLETED",
-                        paymentMethod,
-                        customerName: cName || targetOrder.customerName,
-                        customerPhone: cPhone || targetOrder.customerPhone,
-                        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
-                      };
-                      // Shoot print directly to printer — zero extra preview popup!
-                      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
-                        console.error("[Alayn] Direct receipt auto-print error:", err);
-                      });
-                    }
-                  }}
-                  disabled={isUpdating}
+                  onClick={() => settleBill(settlingOrder)}
+                  disabled={(() => {
+                    if (isUpdating) return true;
+                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                    if (balanceDuePaise === 0) return false;
+                    if (paymentMode === "SPLIT") return !summarizeSplit(splitLines, balanceDuePaise).canSettle;
+                    return isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                  })()}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
                 >
                   <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                  Settle & Print Receipt
+                  {(() => {
+                    if (isUpdating) return "Settling…";
+                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                    if (paymentMode === "SPLIT" && balanceDuePaise > 0) {
+                      return summarizeSplit(splitLines, balanceDuePaise).blocker || "Settle & Print Receipt";
+                    }
+                    if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
+                      return paymentMethod === "UPI" ? "Confirm UPI received" : "Confirm card payment";
+                    }
+                    return "Settle & Print Receipt";
+                  })()}
                 </button>
               </div>
             </div>
+            </MotionConfig>
           )}
         </TModal>
 

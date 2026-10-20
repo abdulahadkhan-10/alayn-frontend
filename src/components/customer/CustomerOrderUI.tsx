@@ -1,5 +1,8 @@
 "use client";
 
+import { estimateBill } from "@/lib/billing";
+import { buildUpiPayUrl, isValidUpiId } from "@/lib/upi";
+import { getCustomerPaymentClaims } from "@/lib/splitPayment";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Utensils,
@@ -88,6 +91,8 @@ export default function CustomerOrderUI({ token }: { token: string }) {
 
   // Active Order Live Tracking
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
+  // How the table said it would pay (UPI to verify / Pay at Counter)
+  const paymentClaims = getCustomerPaymentClaims(activeOrder);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
   const [isEditingNotesItemId, setIsEditingNotesItemId] = useState<string | null>(null);
 
@@ -100,6 +105,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const allowPayAtCounter = menuData?.allowPayAtCounter ?? true;
   const tableNumber = menuData?.tableNumber;
   const outletUpiId = menuData?.upiId || "";
+  // UPI needs the outlet's UPI ID; without one the bill can only be paid at the counter
+  const upiAvailable = isValidUpiId(outletUpiId);
+  const counterAvailable = allowPayAtCounter || !upiAvailable;
+  const selectedPayment: "UPI" | "CASH" = upiAvailable && (paymentMethod === "UPI" || !counterAvailable) ? "UPI" : "CASH";
 
   // 1. Initial Load of Menu and Active Table Order
   const loadMenuAndActiveOrder = async (isSilent = false) => {
@@ -315,44 +324,50 @@ export default function CustomerOrderUI({ token }: { token: string }) {
       0
     );
     const taxRates = menuData?.taxRates;
-    const isComposition = taxRates?.gstRegistrationType === "COMPOSITION" || taxRates?.gstRegistrationType === "UNREGISTERED";
-    
-    let cgstPaise = 0;
-    let sgstPaise = 0;
-    let serviceChargePaise = 0;
-
-    if (!isComposition && taxRates) {
-      cgstPaise = Math.round((subtotalPaise * (taxRates.cgstRate || 2.5)) / 100);
-      sgstPaise = Math.round((subtotalPaise * (taxRates.sgstRate || 2.5)) / 100);
-    }
-
-    if (taxRates?.serviceChargeRate && taxRates.serviceChargeRate > 0) {
-      serviceChargePaise = Math.round((subtotalPaise * taxRates.serviceChargeRate) / 100);
-    }
-
-    const totalPaise = subtotalPaise + cgstPaise + sgstPaise + serviceChargePaise;
+    // Same calculation as the server's bill (GST on service charge, rounded to the rupee), so the
+    // UPI amount the diner pays matches what the cashier sees
+    const bill = estimateBill(
+      cart.map((c) => ({ price: c.unitPricePaise / 100, quantity: c.quantity })),
+      {
+        cgstRate: taxRates?.cgstRate ?? 0,
+        sgstRate: taxRates?.sgstRate ?? 0,
+        serviceChargeRate: taxRates?.serviceChargeRate ?? 0,
+      },
+      { dineIn: true, gstRegistrationType: taxRates?.gstRegistrationType }
+    );
+    const cgstPaise = Math.round(bill.cgst * 100);
+    const sgstPaise = Math.round(bill.sgst * 100);
+    const serviceChargePaise = Math.round(bill.serviceCharge * 100);
+    const roundOffPaise = Math.round(bill.roundOff * 100);
+    const totalPaise = Math.round(bill.total * 100);
 
     return {
       subtotalPaise,
       cgstPaise,
       sgstPaise,
       serviceChargePaise,
+      roundOffPaise,
       totalPaise,
       subtotalRupees: (subtotalPaise / 100).toFixed(2),
       cgstRupees: (cgstPaise / 100).toFixed(2),
       sgstRupees: (sgstPaise / 100).toFixed(2),
       serviceChargeRupees: (serviceChargePaise / 100).toFixed(2),
+      roundOffRupees: (roundOffPaise / 100).toFixed(2),
       totalRupees: (totalPaise / 100).toFixed(2),
     };
   }, [cart, menuData]);
 
-  // Dynamic UPI URI
-  const dynamicUpiUrl = useMemo(() => {
-    if (!outletUpiId || billSummary.totalPaise <= 0) return "";
-    const amountStr = (billSummary.totalPaise / 100).toFixed(2);
-    const note = encodeURIComponent(`Table ${tableNumber || ""} Order - ${businessName}`);
-    return `upi://pay?pa=${encodeURIComponent(outletUpiId)}&pn=${encodeURIComponent(businessName)}&am=${amountStr}&cu=INR&tn=${note}`;
-  }, [outletUpiId, billSummary.totalPaise, tableNumber, businessName]);
+  // Pay-by-UPI link to the restaurant's own UPI ID for this order's exact amount
+  const dynamicUpiUrl = useMemo(
+    () =>
+      buildUpiPayUrl({
+        upiId: outletUpiId,
+        payeeName: businessName,
+        amountPaise: billSummary.totalPaise,
+        note: `Table ${tableNumber || ""} - ${businessName}`,
+      }),
+    [outletUpiId, billSummary.totalPaise, tableNumber, businessName]
+  );
 
   // Submit Order
   const handlePlaceOrder = async () => {
@@ -378,14 +393,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         items: itemsPayload,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
-        paymentMethod: paymentMethod,
-        paymentStatus: paymentMethod === "UPI" ? "CONFIRMED" : "PENDING",
-        paymentRef:
-          paymentMethod === "UPI" && upiRef.trim()
-            ? upiRef.trim()
-            : paymentMethod === "CASH"
-            ? "Pay at Counter"
-            : undefined,
+        paymentMethod: selectedPayment,
+        // The restaurant confirms the money arrived when the bill is settled
+        paymentStatus: "PENDING",
+        paymentRef: selectedPayment === "UPI" && upiRef.trim() ? upiRef.trim() : undefined,
       });
 
       if (res.ok) {
@@ -1050,39 +1061,51 @@ export default function CustomerOrderUI({ token }: { token: string }) {
 
                   <div className="grid grid-cols-2 gap-2.5">
                     {/* UPI Option */}
-                    <div
-                      onClick={() => setPaymentMethod("UPI")}
-                      className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                        paymentMethod === "UPI"
-                          ? "border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-600"
-                          : "border-zinc-200 bg-zinc-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <QrCode className="w-4 h-4 text-emerald-600" />
-                        {paymentMethod === "UPI" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                    {upiAvailable ? (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("UPI")}
+                        aria-pressed={selectedPayment === "UPI"}
+                        className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between text-left ${
+                          selectedPayment === "UPI"
+                            ? "border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-600"
+                            : "border-zinc-200 bg-zinc-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5 w-full">
+                          <QrCode className="w-4 h-4 text-emerald-600" />
+                          {selectedPayment === "UPI" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                        </div>
+                        <p className="text-xs font-black text-zinc-900">UPI Instant Pay</p>
+                        <p className="text-[10px] text-zinc-500">GPay, PhonePe, Paytm</p>
+                      </button>
+                    ) : (
+                      <div className="p-3 rounded-2xl border border-zinc-200 bg-zinc-100 opacity-60 flex flex-col justify-between">
+                        <QrCode className="w-4 h-4 text-zinc-400 mb-1.5" />
+                        <p className="text-xs font-bold text-zinc-400">UPI</p>
+                        <p className="text-[10px] text-zinc-400">Not available here</p>
                       </div>
-                      <p className="text-xs font-black text-zinc-900">UPI Instant Pay</p>
-                      <p className="text-[10px] text-zinc-500">GPay, PhonePe, Paytm</p>
-                    </div>
+                    )}
 
                     {/* Pay at Counter Option */}
-                    {allowPayAtCounter ? (
-                      <div
+                    {counterAvailable ? (
+                      <button
+                        type="button"
                         onClick={() => setPaymentMethod("CASH")}
-                        className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                          paymentMethod === "CASH"
+                        aria-pressed={selectedPayment === "CASH"}
+                        className={`p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between text-left ${
+                          selectedPayment === "CASH"
                             ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-xs ring-1 ring-[#1B2A4A]"
                             : "border-zinc-200 bg-zinc-50"
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-1.5 w-full">
                           <CreditCard className="w-4 h-4 text-[#1B2A4A]" />
-                          {paymentMethod === "CASH" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
+                          {selectedPayment === "CASH" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
                         </div>
                         <p className="text-xs font-black text-zinc-900">Pay at Counter</p>
                         <p className="text-[10px] text-zinc-500">Cash / Card at counter</p>
-                      </div>
+                      </button>
                     ) : (
                       <div className="p-3 rounded-2xl border border-zinc-200 bg-zinc-100 opacity-60 flex flex-col justify-between">
                         <CreditCard className="w-4 h-4 text-zinc-400 mb-1.5" />
@@ -1093,7 +1116,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                   </div>
 
                   {/* UPI QR Display if UPI is selected */}
-                  {paymentMethod === "UPI" && dynamicUpiUrl && (
+                  {selectedPayment === "UPI" && dynamicUpiUrl && (
                     <div className="mt-3 space-y-3">
                       <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3">
                         <div className="bg-white p-1.5 rounded-xl border border-emerald-200 shrink-0">
@@ -1130,7 +1153,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                           className="w-full text-xs font-mono px-3 py-2 bg-white border border-zinc-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 text-zinc-900 placeholder:text-zinc-400"
                         />
                         <p className="text-[10px] text-zinc-500 leading-tight">
-                          After paying on GPay, PhonePe or Paytm, entering the UTR or last 4 digits lets the cashier verify your order in 1 tap.
+                          Pay first, then enter the UTR (12 digits) shown in your UPI app so the cashier can match your payment. Your bill is marked paid once the restaurant confirms it.
                         </p>
                       </div>
                     </div>
@@ -1159,6 +1182,14 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <div className="flex justify-between text-zinc-500 font-medium">
                       <span>Service Charge</span>
                       <span>₹{billSummary.serviceChargeRupees}</span>
+                    </div>
+                  )}
+                  {billSummary.roundOffPaise !== 0 && (
+                    <div className="flex justify-between text-zinc-500 font-medium">
+                      <span>Round Off</span>
+                      <span>
+                        {billSummary.roundOffPaise > 0 ? "+" : "−"}₹{Math.abs(billSummary.roundOffPaise / 100).toFixed(2)}
+                      </span>
                     </div>
                   )}
                   <div className="pt-2 border-t border-zinc-200 flex justify-between text-sm font-black text-zinc-900">
@@ -1259,10 +1290,10 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                 </div>
               </div>
 
-              {/* Payment Acknowledgment Banner in Live Tracker */}
+              {/* Payment Acknowledgment Banner in Live Tracker: a UPI payment stays "awaiting check" until the cashier confirms it */}
               <div className="p-3.5 rounded-2xl border text-xs flex items-center justify-between gap-3 bg-zinc-50 border-zinc-200">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR") ? (
+                  {paymentClaims.upi ? (
                     <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
                       <QrCode className="w-4 h-4" />
                     </div>
@@ -1273,17 +1304,15 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                   )}
                   <div className="min-w-0">
                     <p className="font-bold text-zinc-900 truncate">
-                      {activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                      {paymentClaims.upi
                         ? "UPI Payment Submitted"
                         : "Pay at Counter"}
                     </p>
                     <p className="text-[11px] text-zinc-500 font-mono truncate">
-                      {activeOrder.placedByName?.includes("UTR:")
-                        ? `Ref: ${activeOrder.placedByName.split("UTR:")[1]?.trim()}`
-                        : activeOrder.paymentRef
-                        ? `Ref: ${activeOrder.paymentRef}`
-                        : activeOrder.paymentMethod === "UPI"
-                        ? "Direct Dynamic UPI"
+                      {paymentClaims.upiReferences.length > 0
+                        ? `Ref: ${paymentClaims.upiReferences.join(", ")} · cashier will confirm`
+                        : paymentClaims.upi
+                        ? "Cashier will confirm your payment"
                         : "Settle bill with cashier"}
                     </p>
                   </div>
@@ -1293,14 +1322,14 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0",
                     activeOrder.paymentStatus === "PAID"
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                      : activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                      : paymentClaims.upi
                       ? "bg-amber-100 text-amber-800 border border-amber-200"
                       : "bg-blue-100 text-blue-800 border border-blue-200"
                   )}
                 >
                   {activeOrder.paymentStatus === "PAID"
                     ? "Paid ✓"
-                    : activeOrder.paymentMethod === "UPI" || activeOrder.placedByName?.includes("UTR")
+                    : paymentClaims.upi
                     ? "Awaiting Check"
                     : "Pay Later"}
                 </span>
