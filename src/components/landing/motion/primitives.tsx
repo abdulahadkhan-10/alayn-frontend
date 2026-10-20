@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useInView, type Variants, type Transition } from "framer-motion";
+import { introHoldSeconds } from "../introTiming";
 
 /** Shared spring — "expensive, weighted, calm." Used everywhere instead of ease-out fades. */
 export const springSettle: Transition = { type: "spring", stiffness: 140, damping: 22, mass: 1 };
@@ -10,7 +11,9 @@ export const springSnappy: Transition = { type: "spring", stiffness: 320, dampin
 /**
  * Assemble-in-place reveal: elements arrive with weight (spring translate + slight
  * scale + soft blur-to-focus), not a plain opacity fade. Staggers children when used
- * with `stagger`.
+ * with `stagger`. On the first load of a session the delay also covers whatever
+ * is left of the logo reveal; it's read when the animation starts, so elements
+ * revealed later by scrolling don't wait.
  */
 const assembleVariants: Variants = {
   hidden: { opacity: 0, y: 26, scale: 0.98 },
@@ -18,7 +21,7 @@ const assembleVariants: Variants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { ...springSettle, delay },
+    transition: { ...springSettle, delay: delay + introHoldSeconds() },
   }),
 };
 
