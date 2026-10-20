@@ -126,6 +126,47 @@ export interface OrderPaymentsLike {
   payments?: { method: string; amountPaise: number; status: string; reference?: string | null }[];
 }
 
+export interface CustomerPaymentClaims {
+  /** The diner said they paid by UPI from the table QR */
+  upi: boolean;
+  /** UTRs the diner typed, in the order they were sent */
+  upiReferences: string[];
+  /** Total the diner said they paid by UPI (0 when unknown, e.g. older orders) */
+  upiPaise: number;
+  /** The diner chose Pay at Counter */
+  payAtCounter: boolean;
+}
+
+const NO_CLAIMS: CustomerPaymentClaims = { upi: false, upiReferences: [], upiPaise: 0, payAtCounter: false };
+
+/**
+ * What diners told us about paying from the table QR: PENDING payments the cashier still has to check.
+ * Only QR orders count — a POS order also carries a PENDING payment (the method picked at the till), which
+ * is not the customer saying they paid. Orders placed before claims were recorded as payments carry the
+ * same hints in placedByName.
+ */
+export function getCustomerPaymentClaims(
+  order:
+    | (OrderPaymentsLike & { placedByName?: string | null; source?: string | null; orderSource?: string | null })
+    | null
+    | undefined
+): CustomerPaymentClaims {
+  const isQrOrder = order?.source === "QR" || order?.orderSource === "QR";
+  if (!order || !isQrOrder) return NO_CLAIMS;
+  const pending = Array.isArray(order.payments) ? order.payments.filter((p) => p.status === "PENDING") : [];
+  const upiClaims = pending.filter((p) => p.method === "UPI");
+  const upiReferences = [...new Set(upiClaims.map((p) => p.reference).filter((r): r is string => !!r))];
+  const placedBy = order.placedByName || "";
+  const legacyUtr = placedBy.includes("UTR:") ? placedBy.split("UTR:")[1]?.trim() : "";
+  if (legacyUtr && legacyUtr !== "Pay at Counter" && !upiReferences.includes(legacyUtr)) upiReferences.push(legacyUtr);
+  return {
+    upi: upiClaims.length > 0 || upiReferences.length > 0,
+    upiReferences,
+    upiPaise: upiClaims.reduce((sum, p) => sum + p.amountPaise, 0),
+    payAtCounter: pending.some((p) => p.method === "CASH") || placedBy.includes("Pay at Counter"),
+  };
+}
+
 /** How a settled bill was paid, for receipts and reports (falls back to the single paymentMethod) */
 export function getPaymentLines(order: OrderPaymentsLike | null | undefined): PaymentLine[] {
   const fromApi: { method: string; amountPaise?: number; amount?: number; reference?: string | null }[] = Array.isArray(order?.paymentSplits)

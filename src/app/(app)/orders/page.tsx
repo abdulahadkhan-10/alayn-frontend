@@ -53,12 +53,15 @@ import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
 import SplitPaymentEditor, { initialSplitLines } from "@/components/pos/SplitPaymentEditor";
+import UpiPayQr from "@/components/pos/UpiPayQr";
 import { estimateBill } from "@/lib/billing";
 import {
   SplitLine,
   describePaymentLines,
   formatPaise,
+  getCustomerPaymentClaims,
   getPaymentLines,
+  isOnlineMethod,
   summarizeSplit,
   toPaymentPayload,
 } from "@/lib/splitPayment";
@@ -89,7 +92,8 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
   });
 
   const totalPaise = Math.round(bill.total * 100);
-  // Already confirmed on the bill (e.g. a QR customer's UPI payment) — only the rest is collected now
+  // Already confirmed on the bill — only the rest is collected now. A QR diner's "I paid by UPI" is PENDING
+  // until the cashier checks it, so it is still part of the amount due here
   const paidPaise = (order.payments || [])
     .filter((p) => p.status === "CONFIRMED")
     .reduce((sum, p) => sum + p.amountPaise, 0);
@@ -291,6 +295,11 @@ export default function LiveOrdersPage() {
   const [settleError, setSettleError] = useState<string | null>(null);
   // The server found the UTR / approval code on another bill: the cashier can check it or settle anyway
   const [duplicateReference, setDuplicateReference] = useState(false);
+  // Single UPI / card payment the cashier confirmed arrived. It only counts for the same bill, method and
+  // amount, so switching method or a coupon / service-charge change afterwards needs a fresh confirmation
+  const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; paise: number } | null>(null);
+  // UTR / approval code the cashier typed for that bill and method (otherwise the diner's own UTR is shown)
+  const [referenceDraft, setReferenceDraft] = useState<{ orderId: string; method: string; text: string } | null>(null);
   // The coupon and bill breakdown stay folded until the cashier needs them
   const [settleExtra, setSettleExtra] = useState<"COUPON" | null>(null);
   const [showBillDetails, setShowBillDetails] = useState(false);
@@ -370,6 +379,25 @@ export default function LiveOrdersPage() {
     setShowBillDetails(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settlingOrder?.id]);
+
+  // The restaurant's own UPI ID and name, for the payment QR shown at the counter
+  const upiPayeeFor = (order: Order) => ({
+    upiId: order.outlet?.upiId,
+    payeeName: order.outlet?.name || branches.find((b) => b.id === order.outletId)?.name || activeBranch?.name || "Restaurant",
+    note: `Bill ${order.orderNumber || order.orderNo || ""}`.trim(),
+  });
+
+  const isReceivedConfirmed = (order: Order, balanceDuePaise: number) =>
+    receivedConfirmation?.orderId === order.id &&
+    receivedConfirmation.method === paymentMethod &&
+    receivedConfirmation.paise === balanceDuePaise;
+
+  const paymentReferenceFor = (order: Order) =>
+    referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod
+      ? referenceDraft.text
+      : paymentMethod === "UPI"
+        ? getCustomerPaymentClaims(order).upiReferences.join(", ").slice(0, 64)
+        : "";
 
   useEffect(() => {
     if (settlingOrder) {
@@ -467,6 +495,8 @@ export default function LiveOrdersPage() {
     const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
     const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
     if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
+    const isOnlineSingle = !isSplit && balanceDuePaise > 0 && isOnlineMethod(paymentMethod);
+    if (isOnlineSingle && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) return;
     settleInFlightRef.current = true;
     setSettleError(null);
     setDuplicateReference(false);
@@ -491,7 +521,11 @@ export default function LiveOrdersPage() {
           }
         : undefined,
       {
-        payments: isSplit ? toPaymentPayload(splitLines) : undefined,
+        payments: isSplit
+          ? toPaymentPayload(splitLines)
+          : isOnlineSingle
+            ? [{ method: paymentMethod, amountPaise: balanceDuePaise, reference: paymentReferenceFor(settlingOrder).trim() || undefined, verified: true }]
+            : undefined,
         idempotencyKey: settlementKeyRef.current,
         allowDuplicateReference,
       }
@@ -951,12 +985,12 @@ export default function LiveOrdersPage() {
                               QR Order
                             </span>
                           )}
-                          {order.placedByName?.includes("UTR:") && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" title="Customer UPI UTR">
-                              ⚡ UTR: {order.placedByName.split("UTR:")[1]?.trim()}
+                          {getCustomerPaymentClaims(order).upi && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Customer says they paid by UPI — check before settling">
+                              ⚡ UPI to verify{getCustomerPaymentClaims(order).upiReferences.length > 0 ? ` · UTR ${getCustomerPaymentClaims(order).upiReferences.join(", ")}` : ""}
                             </span>
                           )}
-                          {order.placedByName?.includes("Pay at Counter") && (
+                          {getCustomerPaymentClaims(order).payAtCounter && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
                               💵 Pay at Counter
                             </span>
@@ -1057,9 +1091,10 @@ export default function LiveOrdersPage() {
                           onClick={() => {
                             setCustomerName(order.customerName || "");
                             setCustomerPhone(order.customerPhone || "");
-                            if (order.placedByName?.includes("UTR") || order.paymentMethod === "UPI") {
+                            const claims = getCustomerPaymentClaims(order);
+                            if (claims.upi || order.paymentMethod === "UPI") {
                               setPaymentMethod("UPI");
-                            } else if (order.placedByName?.includes("Pay at Counter") || order.paymentMethod === "CASH") {
+                            } else if (claims.payAtCounter || order.paymentMethod === "CASH") {
                               setPaymentMethod("CASH");
                             }
                             setSettlingOrder(order);
@@ -1774,19 +1809,30 @@ export default function LiveOrdersPage() {
                 </div>
 
                 {/* QR order: what the customer already told us about payment */}
-                {settlingOrder.placedByName?.includes("UTR:") && (
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
-                    <span className="flex items-center gap-1.5 text-emerald-900 min-w-0">
-                      <QrCode className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">
-                        Customer UPI ref <span className="font-mono font-semibold">{settlingOrder.placedByName.split("UTR:")[1]?.trim()}</span>
-                      </span>
-                    </span>
-                    <span className="shrink-0 font-semibold text-emerald-700">Match on soundbox</span>
-                  </div>
-                )}
+                {/* QR order paid by UPI on the customer's phone: what to match on the soundbox (UPI / split only) */}
+                {getCustomerPaymentClaims(settlingOrder).upi && (paymentMode === "SPLIT" || paymentMethod === "UPI") && (() => {
+                  const claims = getCustomerPaymentClaims(settlingOrder);
+                  return (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2 text-[11px] text-amber-900">
+                      <QrCode className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="font-semibold">
+                          Customer paid by UPI on the QR page
+                          {claims.upiPaise > 0 && <> · {formatPaise(claims.upiPaise)}</>}
+                        </p>
+                        <p className="text-amber-800 break-all">
+                          {claims.upiReferences.length > 0 ? (
+                            <>UTR <span className="font-mono font-semibold">{claims.upiReferences.join(", ")}</span> · match it on the soundbox / UPI app</>
+                          ) : (
+                            <>No UTR given · match the amount on the soundbox / UPI app</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
-                {settlingOrder.placedByName?.includes("Pay at Counter") && (
+                {getCustomerPaymentClaims(settlingOrder).payAtCounter && (
                   <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-1.5 text-[11px] text-blue-900">
                     <Banknote className="w-3.5 h-3.5 shrink-0" />
                     <span>Customer chose <strong>Pay at Counter</strong> — collect now.</span>
@@ -1842,6 +1888,7 @@ export default function LiveOrdersPage() {
                         transition={{ duration: 0.15 }}
                       >
                       {paymentMode === "SINGLE" ? (
+                        <div className="space-y-2">
                         <div className="grid grid-cols-3 gap-2">
                           {(
                             [
@@ -1869,9 +1916,53 @@ export default function LiveOrdersPage() {
                             );
                           })}
                         </div>
+                        {/* UPI / card money lands outside the till: the cashier confirms it arrived before settling */}
+                        {isOnlineMethod(paymentMethod) && (() => {
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          return (
+                            <div
+                              className={`rounded-xl border p-2.5 space-y-2 transition-colors ${
+                                confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                              }`}
+                            >
+                              {paymentMethod === "UPI" && (
+                                <UpiPayQr {...upiPayeeFor(settlingOrder)} amountPaise={balanceDuePaise} />
+                              )}
+                              <label className="flex items-start gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={confirmed}
+                                  onChange={(e) => {
+                                    setSettleError(null);
+                                    setReceivedConfirmation(
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                    );
+                                  }}
+                                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                                />
+                                <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
+                                  {paymentMethod === "UPI"
+                                    ? <>I&apos;ve checked {formatPaise(balanceDuePaise)} was received on the soundbox / UPI app</>
+                                    : <>I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine</>}
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                aria-label={paymentMethod === "UPI" ? "UPI reference (UTR)" : "Card approval code"}
+                                placeholder={paymentMethod === "UPI" ? "UTR / last 4 digits (optional)" : "Approval code (optional)"}
+                                value={paymentReferenceFor(settlingOrder)}
+                                maxLength={64}
+                                onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-slate-800 transition placeholder:font-sans placeholder:text-slate-400"
+                              />
+                            </div>
+                          );
+                        })()}
+                        </div>
                       ) : (
                         <SplitPaymentEditor
                           duePaise={balanceDuePaise}
+                          upi={upiPayeeFor(settlingOrder)}
                           lines={splitLines}
                           onChange={(next) => {
                             setSettleError(null);
@@ -1947,12 +2038,13 @@ export default function LiveOrdersPage() {
 
                 <button
                   onClick={() => settleBill(settlingOrder)}
-                  disabled={
-                    isUpdating ||
-                    (paymentMode === "SPLIT" &&
-                      settlementBill(settlingOrder, appliedCoupon).balanceDuePaise > 0 &&
-                      !summarizeSplit(splitLines, settlementBill(settlingOrder, appliedCoupon).balanceDuePaise).canSettle)
-                  }
+                  disabled={(() => {
+                    if (isUpdating) return true;
+                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                    if (balanceDuePaise === 0) return false;
+                    if (paymentMode === "SPLIT") return !summarizeSplit(splitLines, balanceDuePaise).canSettle;
+                    return isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                  })()}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
                 >
                   <Printer className="w-3.5 h-3.5 text-emerald-400" />
@@ -1961,6 +2053,9 @@ export default function LiveOrdersPage() {
                     const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
                     if (paymentMode === "SPLIT" && balanceDuePaise > 0) {
                       return summarizeSplit(splitLines, balanceDuePaise).blocker || "Settle & Print Receipt";
+                    }
+                    if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
+                      return paymentMethod === "UPI" ? "Confirm UPI received" : "Confirm card payment";
                     }
                     return "Settle & Print Receipt";
                   })()}

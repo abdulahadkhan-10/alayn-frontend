@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import UpiPayQr from "@/components/pos/UpiPayQr";
 import { Banknote, Check, CreditCard, Plus, QrCode, X } from "lucide-react";
 import {
   MAX_SPLIT_PAYMENTS,
@@ -27,6 +28,8 @@ interface SplitPaymentEditorProps {
   duePaise: number;
   lines: SplitLine[];
   onChange: (lines: SplitLine[]) => void;
+  /** The restaurant's UPI ID and name: UPI parts can show a QR for their exact amount */
+  upi?: { upiId: string | null | undefined; payeeName: string; note?: string };
 }
 
 /** Start a split: the cashier types the first part, the second follows the remaining balance */
@@ -35,8 +38,17 @@ export function initialSplitLines(duePaise: number, firstMethod: PaymentMethodCo
   return [newSplitLine(firstMethod), newSplitLine(second, duePaise, true)];
 }
 
-export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitPaymentEditorProps) {
+export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: SplitPaymentEditorProps) {
   const summary = summarizeSplit(lines, duePaise);
+  // UPI parts whose payment QR is open
+  const [qrOpen, setQrOpen] = useState<Set<string>>(new Set());
+  const toggleQr = (key: string) =>
+    setQrOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   // The bill can change while the modal is open (coupon, service charge) — keep the auto part in step
   useEffect(() => {
@@ -177,6 +189,21 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
                   {line.verified ? <Check className="w-3.5 h-3.5" /> : null}
                   {line.verified ? "Received" : `Mark ${amountPaise ? formatPaise(amountPaise) : ""} received`}
                 </button>
+              </div>
+            )}
+
+            {line.method === "UPI" && upi && amountPaise !== null && amountPaise > 0 && (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  aria-expanded={qrOpen.has(line.key)}
+                  onClick={() => toggleQr(line.key)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-slate-950 cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  {qrOpen.has(line.key) ? "Hide payment QR" : `Show QR for ${formatPaise(amountPaise)}`}
+                </button>
+                {qrOpen.has(line.key) && <UpiPayQr {...upi} amountPaise={amountPaise} size={96} />}
               </div>
             )}
           </div>

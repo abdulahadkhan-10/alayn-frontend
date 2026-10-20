@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { buildUpiPayUrl } from "@/lib/upi";
 import { Printer, X, CheckCircle, Smartphone, Loader2 } from "lucide-react";
 import { printThermalHtml } from "@/lib/printUtils";
 import { billItemRows } from "@/lib/billLines";
@@ -122,7 +123,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const outletGstin = actualOrder.outlet?.gstin || "";
   const tagline = actualOrder.outlet?.receiptTagline || "";
   const footerMessage = actualOrder.outlet?.receiptFooter || "Thank you for dining with us!\nWe hope to see you again soon.";
-  const upiVpa = actualOrder.outlet?.upiId || "merchant@upi";
+  const upiVpa = actualOrder.outlet?.upiId || "";
 
   const orderDate = actualOrder.createdAt ? new Date(actualOrder.createdAt) : new Date();
   const formattedDate = orderDate.toLocaleDateString("en-IN", {
@@ -229,8 +230,12 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
-  const isPaid = actualOrder.status === "COMPLETED" ||
-    (actualOrder.payments && actualOrder.payments.some((p: any) => p.status === "CONFIRMED"));
+  // Paid = settled, or confirmed payments already cover the whole bill (a part payment is not "paid")
+  const confirmedPaidPaise = (actualOrder.payments || [])
+    .filter((p: { status: string }) => p.status === "CONFIRMED")
+    .reduce((sum: number, p: { amountPaise?: number }) => sum + (p.amountPaise || 0), 0);
+  const amountDuePaise = Math.max(0, Math.round(grandTotalRupees * 100) - confirmedPaidPaise);
+  const isPaid = actualOrder.status === "COMPLETED" || amountDuePaise === 0;
   // A split bill prints each part under the PAID stamp
   const paymentLines = getPaymentLines(actualOrder);
   const isSplitPayment = paymentLines.length > 1;
@@ -238,8 +243,11 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     ? "SPLIT"
     : actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "CASH";
 
-  // Dynamic UPI Payment QR String
-  const upiPaymentUrl = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(outletName)}&am=${grandTotalRupees.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Bill ${billNo}`)}`;
+  // Pay-by-UPI QR for the amount still due — only on an unpaid bill (pre-bill), and only to the outlet's own
+  // UPI ID; a paid receipt never asks for money again
+  const upiPaymentUrl = isPaid
+    ? ""
+    : buildUpiPayUrl({ upiId: upiVpa, payeeName: outletName, amountPaise: amountDuePaise, note: `Bill ${billNo}` });
 
   const handlePrint = async () => {
     const content = receiptRef.current;
@@ -582,7 +590,8 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               {footerMessage}
             </div>
 
-            {/* -- UPI QR CODE -- */}
+            {/* -- UPI QR CODE (unpaid bills only) -- */}
+            {upiPaymentUrl && (
             <div className="flex flex-col items-center mt-2 pt-2 border-t border-dashed border-black">
               <div className="p-1 border border-black rounded-sm bg-white inline-block">
                 <QRCodeSVG value={upiPaymentUrl} size={88} level="M" />
@@ -592,6 +601,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               </p>
               <p className="text-[9px] font-medium mt-0.5">{upiVpa}</p>
             </div>
+            )}
 
             {/* -- BOTTOM SPACING -- */}
             <div className="mt-4 text-center text-[9px] tracking-widest font-bold">
