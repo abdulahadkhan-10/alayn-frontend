@@ -12,7 +12,7 @@ interface OutletPerformanceTableProps {
 const HEALTH_STATUS_CONFIG: Record<OutletHealthStatus, { label: string; cls: string }> = {
   EXCELLENT: { label: "Excellent", cls: "bg-emerald-50 text-emerald-800 border-emerald-200/80" },
   GOOD: { label: "Good", cls: "bg-blue-50 text-blue-800 border-blue-200/80" },
-  NEEDS_ATTENTION: { label: "Needs Attention", cls: "bg-amber-50 text-amber-800 border-amber-200/80" },
+  NEEDS_ATTENTION: { label: "Fair", cls: "bg-amber-50 text-amber-800 border-amber-200/80" },
   CRITICAL: { label: "Critical", cls: "bg-red-50 text-[#D3232A] border-red-200/80" },
 };
 
