@@ -13,6 +13,7 @@ import RunningScene from "@/components/landing/scenes/RunningScene";
 import VerticalsScene from "@/components/landing/scenes/VerticalsScene";
 import CalmScene from "@/components/landing/scenes/CalmScene";
 import WaitingScene from "@/components/landing/scenes/WaitingScene";
+import IntroReveal from "@/components/landing/IntroReveal";
 
 export const metadata: Metadata = {
   alternates: {
@@ -24,6 +25,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <SmoothScroll>
+      <IntroReveal />
       <GlobalFieldProvider>
         <div className="landing-root">
           <LandingNav />

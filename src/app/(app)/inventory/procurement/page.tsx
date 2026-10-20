@@ -1019,7 +1019,7 @@ export default function ProcurementPage() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleCreateSupplier} className="flex flex-col flex-1 min-h-0">
+              <form onSubmit={handleCreateSupplier} method="post" className="flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-y-auto p-7 space-y-6 scrollbar-thin">
                   {/* Mode Selector */}
                   <div className="space-y-2">
@@ -1149,7 +1149,7 @@ export default function ProcurementPage() {
                         </label>
                         <input
                           type="password"
-                          placeholder="Default: Supplier@123"
+                          placeholder="Leave blank to generate a secure one"
                           value={supplierForm.password || ""}
                           onChange={(e) => setSupplierForm({ ...supplierForm, password: e.target.value })}
                           className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs text-zinc-900 focus:border-zinc-800 focus:outline-none shadow-xs font-mono"

@@ -65,7 +65,11 @@ const DEMO_BRANCHES: Branch[] = [
 ];
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const authStatus = useAppSelector((state) => state.auth.status);
+  const isAuthenticated = authStatus === "authenticated";
+  // Placeholder branches are for visitors who are known to be signed out. While the server is still
+  // confirming the session ("unknown") there are simply no branches yet, never demo ones.
+  const isSessionPending = authStatus === "unknown";
 
   // Enterprise Redux RTK Query Store Cache Hook
   const { 
@@ -79,8 +83,8 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const [activeBranch, setActiveBranchState] = useState<Branch | null>(null);
 
   const rawOutlets = (fetchedOutlets as Branch[]) || [];
-  const isDemo = !isAuthenticated;
-  const loading = isAuthenticated ? (isQueryLoading && rawOutlets.length === 0) : false;
+  const isDemo = authStatus === "unauthenticated";
+  const loading = isAuthenticated ? (isQueryLoading && rawOutlets.length === 0) : isSessionPending;
 
   const branches: Branch[] = isDemo
     ? DEMO_BRANCHES

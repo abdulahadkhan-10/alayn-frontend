@@ -2,66 +2,44 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useGetMeQuery } from "@/redux/slices/authApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
-import { logout, setCredentials } from "@/redux/slices/authSlice";
+import { verifySession } from "@/redux/slices/authSlice";
+import { readNextFromLocation, roleHome } from "@/lib/authRedirect";
+import AuthLoader from "@/components/auth/AuthLoader";
 
 interface GuestGuardProps {
   children: React.ReactNode;
 }
 
+/**
+ * Wraps the sign-in, sign-up and password-reset pages: they are for people who are NOT signed in.
+ *
+ * The form shows straight away (a visitor should never wait on a network call to type their
+ * email). In the background the server is asked whether a session already exists; if it does, the
+ * person is sent on to where they were headed (?next=) or their role's home page.
+ */
 export default function GuestGuard({ children }: GuestGuardProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const hasUser = (!!user || isAuthenticated) && !isSuperAdmin;
+  const status = useAppSelector((s) => s.auth.status);
+  const role = useAppSelector((s) => s.auth.user?.role);
 
-  // Execute getMe in background to check if cookie session is active
-  const { data: meData } = useGetMeQuery(undefined);
-
+  // Find out whether a session already exists
   useEffect(() => {
-    if (meData) {
-      const userData = (meData as any)?.data || meData;
-      const parsedUser = userData?.user || userData;
-      const role = parsedUser?.role;
+    if (status === "unknown") void dispatch(verifySession());
+  }, [status, dispatch]);
 
-      if (role === "SUPER_ADMIN") {
-        dispatch(logout());
-        return;
-      }
-
-      if (userData?.user || userData?.id) {
-        dispatch(setCredentials(userData));
-        if (role === "STAFF") router.replace("/pos");
-        else if (role === "KITCHEN") router.replace("/kitchen");
-        else if (role === "SUPPLIER") router.replace("/supplier");
-        else router.replace("/dashboard");
-      }
-    }
-  }, [meData, dispatch, router]);
-
+  // Already signed in (found just now, or signed in here, or in another tab): move on
   useEffect(() => {
-    if (isSuperAdmin) {
-      dispatch(logout());
-      return;
+    if (status === "authenticated") {
+      router.replace(readNextFromLocation() ?? roleHome(role));
     }
+  }, [status, role, router]);
 
-    if (hasUser) {
-      if (user?.role === "STAFF") router.replace("/pos");
-      else if (user?.role === "KITCHEN") router.replace("/kitchen");
-      else if (user?.role === "SUPPLIER") router.replace("/supplier");
-      else router.replace("/dashboard");
-    }
-  }, [hasUser, isSuperAdmin, user?.role, dispatch, router]);
-
-  // If user is already authenticated, return null while redirecting to /dashboard
-  if (hasUser) {
-    return null;
+  if (status === "authenticated") {
+    return <AuthLoader label="Taking you to your account" />;
   }
 
-  // Render auth page children (login / signup) instantly without any dashboard skeleton flash
   return <>{children}</>;
 }

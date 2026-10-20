@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldScene } from "../motion/GlobalField";
 import { Assemble, useMagnetic, springSnappy } from "../motion/primitives";
+import { introHoldSeconds } from "../introTiming";
 
 /**
  * Hero for independent restaurants, cafés and cloud kitchens running on
@@ -63,6 +64,10 @@ export default function HeroScene() {
     const t = setTimeout(() => setShowAlert(true), 1500);
     return () => clearTimeout(t);
   }, []);
+
+  // The mockups below animate on mount rather than through Assemble, so they
+  // take the logo reveal's remaining time once, at mount.
+  const [introHold] = useState(introHoldSeconds);
 
   return (
     <FieldScene
@@ -201,7 +206,7 @@ export default function HeroScene() {
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: introHold }}
                 style={{
                   position: "relative",
                   borderRadius: "16px",
@@ -294,9 +299,9 @@ export default function HeroScene() {
                   initial={{ opacity: 0, y: 30, scale: 0.9 }}
                   animate={{ opacity: 1, y: [0, -6, 0], scale: 1 }}
                   transition={{
-                    opacity: { duration: 0.8, delay: 0.3 },
-                    scale: { duration: 0.8, delay: 0.3 },
-                    y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 },
+                    opacity: { duration: 0.8, delay: 0.3 + introHold },
+                    scale: { duration: 0.8, delay: 0.3 + introHold },
+                    y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.1 + introHold },
                   }}
                   style={{
                     willChange: "transform",

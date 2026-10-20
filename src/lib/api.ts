@@ -2,11 +2,11 @@
 // All branch-scoped calls accept outletId explicitly (from BranchContext).
 
 import { showToast } from "./toast";
+import { API_BASE_DOMAIN, API_BASE_URL } from "./apiBase";
+import { refreshSession, notifySessionExpired } from "./authSession";
 
-const RAW_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const API_VERSION = "v1";
-export const BASE_DOMAIN = RAW_URL.replace(/\/$/, "").replace(/\/api\/v\d+$/, "");
-const BACKEND_URL = `${BASE_DOMAIN}/api/${API_VERSION}`;
+export const BASE_DOMAIN = API_BASE_DOMAIN;
+const BACKEND_URL = API_BASE_URL;
 
 /** Base URL for resolving uploaded media files (images, documents, etc.) */
 const MEDIA_BASE = (process.env.NEXT_PUBLIC_API_URI || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
@@ -83,21 +83,16 @@ async function apiRequest<T>(
     const json = await res.json();
 
     if (!res.ok) {
-      if (res.status === 401 && !isRetry && !path.includes("/auth/")) {
-        try {
-          const refreshRes = await fetch(`${BACKEND_URL}/auth/refresh`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          });
-          if (refreshRes.ok) {
-            // Retry original request with refreshed HTTP-Only cookies
-            return apiRequest<T>(path, opts, true);
-          }
-        } catch {
-          // ignore refresh error
+      if (res.status === 401 && !path.includes("/auth/")) {
+        if (!isRetry) {
+          // Renew the login through the ONE shared refresh (no race with other requests or the
+          // Redux client), then repeat this request with the renewed cookies.
+          const refreshed = await refreshSession();
+          if (refreshed.ok) return apiRequest<T>(path, opts, true);
+          if (refreshed.definitive) notifySessionExpired();
+        } else {
+          // Renewed, yet still refused: the account or session is gone
+          notifySessionExpired();
         }
       }
 
@@ -543,9 +538,14 @@ export async function streamAlaynAI(
     return oneShot();
   }
 
-  if (res.status === 401 && !isRetry) {
-    const refreshed = await fetch(`${BACKEND_URL}/auth/refresh`, { method: "POST", credentials: "include" }).catch(() => null);
-    if (refreshed?.ok) return streamAlaynAI(prompt, outletId, target, { onChat, onTopics, onDelta, signal }, true);
+  if (res.status === 401) {
+    if (!isRetry) {
+      const refreshed = await refreshSession();
+      if (refreshed.ok) return streamAlaynAI(prompt, outletId, target, { onChat, onTopics, onDelta, signal }, true);
+      if (refreshed.definitive) notifySessionExpired();
+    } else {
+      notifySessionExpired();
+    }
   }
   if (res.status === 404) {
     return { ok: false, error: "This conversation was not found. It may have been deleted." };
