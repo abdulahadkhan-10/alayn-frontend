@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMagnetic, springSnappy } from "./motion/primitives";
-import { readStoredUser, logoutFromLanding, type LandingUser } from "./landingSession";
+import { readStoredUser, verifyStoredUser, logoutFromLanding, type LandingUser } from "./landingSession";
 import { formatRole } from "@/lib/utils";
 import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
@@ -23,11 +23,26 @@ export default function LandingNav() {
   const isAuthenticated = user !== null;
 
   useEffect(() => {
-    setUser(readStoredUser());
+    // Show the remembered name straight away, then let the server confirm it. If the session has
+    // ended the signed-in menu disappears; a network hiccup leaves it alone.
+    const hint = readStoredUser();
+    setUser(hint);
     setMounted(true);
+
+    let cancelled = false;
+    if (hint) {
+      verifyStoredUser().then((confirmed) => {
+        if (cancelled || confirmed === "unknown") return;
+        setUser(confirmed);
+      });
+    }
+
     const onScroll = () => setScrolled(window.scrollY > 32);
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   useEffect(() => {

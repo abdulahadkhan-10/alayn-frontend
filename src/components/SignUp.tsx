@@ -137,6 +137,10 @@ export default function SignupComponent() {
             errors.password = "Password is required.";
         } else if (formData.password.length < 8) {
             errors.password = "Password must be at least 8 characters.";
+        } else if (formData.password.length > 128) {
+            errors.password = "Password must be at most 128 characters.";
+        } else if (!/[A-Za-z]/.test(formData.password) || !/\d/.test(formData.password)) {
+            errors.password = "Password must include at least one letter and one number.";
         }
 
         if (!formData.confirmPassword) {
@@ -290,7 +294,7 @@ export default function SignupComponent() {
                     </div>
 
                     <ShakeContext.Provider value={shakeKey}>
-                    <form className="space-y-3.5" onSubmit={handleSubmit} noValidate>
+                    <form className="space-y-3.5" method="post" onSubmit={handleSubmit} noValidate>
                         {submitError && (
                             <div role="alert" className="rounded-lg bg-[#C41E2A]/10 p-2.5 text-xs text-[#C41E2A] border border-[#C41E2A]/20 font-medium">
                                 {submitError}

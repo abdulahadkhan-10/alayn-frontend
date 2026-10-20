@@ -1,96 +1,94 @@
 "use client";
 
-import React, { useEffect, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
-import { useGetMeQuery } from "@/redux/slices/authApiSlice";
+import React, { useCallback, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
-import { logout, setCredentials } from "@/redux/slices/authSlice";
-import FullDashboardSkeleton from "@/components/dashboard/FullDashboardSkeleton";
-
-/**
- * False while rendering on the server and during the browser's first (hydration) render, true after.
- * The saved login only exists in the browser, so deciding on it before this is true makes the first
- * browser render differ from the server's and React throws the server HTML away (a hydration error).
- */
-const noopSubscribe = () => () => {};
-function useHydrated() {
-  return useSyncExternalStore(noopSubscribe, () => true, () => false);
-}
+import { SESSION_FRESH_MS, verifySession } from "@/redux/slices/authSlice";
+import { loginUrlFor } from "@/lib/authRedirect";
+import AuthLoader from "@/components/auth/AuthLoader";
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
+// If the server cannot be reached, keep trying with a growing pause instead of signing anyone out.
+const RETRY_DELAYS_MS = [2000, 4000, 8000, 15000];
+
+/**
+ * Protects a page. It renders the page ONLY when the server has confirmed, in this page load, that
+ * there is a live session. Until then it shows the brand loader:
+ *
+ *   - Every full page load / refresh starts "unknown", so the server is always asked first.
+ *   - Moving between pages inside the app reuses a confirmation younger than a minute and quietly
+ *     re-checks in the background when it is older.
+ *   - A definite "no" (no cookie, expired, revoked, account disabled, signed out in another tab)
+ *     sends the person to /login, remembering where they were.
+ *   - A network error or server hiccup is NOT a "no": the page stays on the loader, retries, and
+ *     never throws a signed-in person out.
+ *
+ * The saved/cached user is never used to decide anything, so a stale browser can't show protected
+ * pages, and a valid session can't be bounced to /login by leftover local data.
+ */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const hydrated = useHydrated();
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const hasUser = (!!user || isAuthenticated) && !isSuperAdmin;
+  const status = useAppSelector((s) => s.auth.status);
+  const verifying = useAppSelector((s) => s.auth.verifying);
+  const verifyFailed = useAppSelector((s) => s.auth.verifyFailed);
+  const lastVerifiedAt = useAppSelector((s) => s.auth.lastVerifiedAt);
+  const retryCount = useRef(0);
 
-  // Execute getMe query in background to validate session
-  const { data: meData, isLoading, isError } = useGetMeQuery(undefined);
-
-  // Sync user state on getMe success
+  // 1. Ask the server on mount, and again whenever the last confirmation has gone stale
   useEffect(() => {
-    if (meData) {
-      const userData = (meData as any)?.data || meData;
-      const parsedUser = userData?.user || userData;
-      if (parsedUser?.role === "SUPER_ADMIN") {
-        dispatch(logout());
-        router.replace("/login");
-        return;
-      }
-      if (userData?.user || userData?.id) {
-        dispatch(setCredentials(userData));
-      }
-    }
-  }, [meData, dispatch, router]);
+    if (status === "unauthenticated") return;
+    const stale = lastVerifiedAt === null || Date.now() - lastVerifiedAt > SESSION_FRESH_MS;
+    if (stale) void dispatch(verifySession());
+  }, [status, lastVerifiedAt, dispatch]);
 
-  // Handle SUPER_ADMIN in customer frontend -> clear customer session and redirect to login
+  // 2. A definite "signed out": go to /login and come back here afterwards
   useEffect(() => {
-    if (isSuperAdmin) {
-      dispatch(logout());
-      router.replace("/login");
-    }
-  }, [isSuperAdmin, dispatch, router]);
+    if (status !== "unauthenticated") return;
+    const here = typeof window !== "undefined" ? `${pathname}${window.location.search}` : pathname;
+    router.replace(loginUrlFor(here));
+  }, [status, pathname, router]);
 
-  // Handle unauthorized session -> logout Redux state and redirect to /login
+  // 3. Server unreachable: retry quietly, backing off
   useEffect(() => {
-    if (isError || (!isLoading && !hasUser)) {
-      console.warn("AuthGuard: Unauthenticated session. Redirecting to /login...");
-      dispatch(logout());
-      router.replace("/login");
-    }
-  }, [isError, isLoading, hasUser, dispatch, router]);
+    if (status === "unauthenticated") return;
+    if (!verifyFailed || verifying) return;
+    const delay = RETRY_DELAYS_MS[Math.min(retryCount.current, RETRY_DELAYS_MS.length - 1)];
+    const timer = setTimeout(() => {
+      retryCount.current += 1;
+      void dispatch(verifySession());
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [status, verifyFailed, verifying, dispatch]);
 
-  // Match the server on the first render (see useHydrated); the saved login is checked right after
-  if (!hydrated) {
-    return <FullDashboardSkeleton />;
-  }
+  useEffect(() => {
+    if (lastVerifiedAt !== null) retryCount.current = 0;
+  }, [lastVerifiedAt]);
 
-  // If user is SUPER_ADMIN, prevent rendering restaurant UI while redirecting
-  if (user?.role === "SUPER_ADMIN") {
-    return <FullDashboardSkeleton />;
-  }
+  const retryNow = useCallback(() => {
+    retryCount.current = 0;
+    void dispatch(verifySession());
+  }, [dispatch]);
 
-  // If we already have a cached user in Redux store / localStorage, render immediately without blocking on network query
-  if (hasUser) {
+  if (status === "authenticated") {
     return <>{children}</>;
   }
 
-  // Show FullDashboardSkeleton only on cold boot when no cached user exists and session is being verified
-  if (isLoading) {
-    return <FullDashboardSkeleton />;
+  if (status === "unauthenticated") {
+    return <AuthLoader label="Redirecting you to sign in" />;
   }
 
-  // If session validation failed or unauthenticated, show FullDashboardSkeleton while redirecting
-  if (isError || !hasUser) {
-    return <FullDashboardSkeleton />;
+  // "unknown": still waiting on the server (or it could not be reached)
+  if (verifyFailed && !verifying) {
+    return <AuthLoader unreachable={{ onRetry: retryNow }} />;
   }
-
-  return <>{children}</>;
+  if (verifyFailed && verifying) {
+    return <AuthLoader unreachable={{ onRetry: retryNow, retrying: true }} />;
+  }
+  return <AuthLoader label="Checking your session" />;
 }

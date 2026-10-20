@@ -24,6 +24,7 @@ import {
   useResetPasswordMutation,
 } from "@/redux/slices/authApiSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/passwordPolicy";
 
 type Step = "email" | "otp" | "password" | "success";
 
@@ -215,8 +216,9 @@ export default function ForgotPasswordComponent() {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (newPassword.length < 6) {
-      setErrorMsg("Password must be at least 6 characters long.");
+    const problem = passwordProblem(newPassword);
+    if (problem) {
+      setErrorMsg(problem);
       return;
     }
 
@@ -310,7 +312,7 @@ export default function ForgotPasswordComponent() {
                 </p>
               </div>
 
-              <form onSubmit={handleSendOtp} className="space-y-5">
+              <form onSubmit={handleSendOtp} method="post" className="space-y-5">
                 <div>
                   <label
                     htmlFor="email"
@@ -385,7 +387,7 @@ export default function ForgotPasswordComponent() {
                 </button>
               </div>
 
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <form onSubmit={handleVerifyOtp} method="post" className="space-y-6">
                 {/* 6 Digit Inputs */}
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#6B7A90] text-center mb-3">
@@ -467,7 +469,7 @@ export default function ForgotPasswordComponent() {
                 </p>
               </div>
 
-              <form onSubmit={handleResetPassword} className="space-y-4">
+              <form onSubmit={handleResetPassword} method="post" className="space-y-4">
                 {/* New Password */}
                 <div>
                   <label
@@ -489,7 +491,7 @@ export default function ForgotPasswordComponent() {
                         setNewPassword(e.target.value);
                         if (errorMsg) setErrorMsg(null);
                       }}
-                      placeholder="Minimum 6 characters"
+                      placeholder={PASSWORD_HINT}
                       className={inputClasses}
                     />
                     <button
@@ -595,7 +597,7 @@ export default function ForgotPasswordComponent() {
                     type="submit"
                     disabled={
                       isResettingPassword ||
-                      newPassword.length < 6 ||
+                      passwordProblem(newPassword) !== null ||
                       newPassword !== confirmPassword
                     }
                     className="w-full flex justify-center items-center py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#C41E2A] hover:bg-[#b01e23] transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer group"
