@@ -36,15 +36,16 @@ const OPTIONS: { value: BillPaymentMethod; title: string; detail: string; icon: 
 export default function PayBillSheet(props: PayBillSheetProps) {
   const { open, onClose, amountDuePaise, tableNumber, orderNumber, upiAvailable, counterAvailable, onRequestBill } = props;
   const options = OPTIONS.filter((o) => (o.counter ? counterAvailable : upiAvailable));
-  const [method, setMethod] = useState<BillPaymentMethod>(options[0]?.value ?? "CASH");
+  // Nothing is picked for them: tapping straight through must never tell the cashier "I've paid by UPI"
+  const [method, setMethod] = useState<BillPaymentMethod | null>(options.length === 1 ? options[0].value : null);
   const [upiReference, setUpiReference] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<BillPaymentMethod | null>(null);
-  const chosen = options.some((o) => o.value === method) ? method : options[0]?.value ?? "CASH";
+  const chosen = options.some((o) => o.value === method) ? method : null;
   const where = tableNumber ? `Table ${tableNumber}` : `order ${orderNumber || ""}`.trim();
 
   const submit = async () => {
-    if (sending) return;
+    if (sending || !chosen) return;
     setSending(true);
     try {
       if (await onRequestBill(chosen, upiReference.trim())) setSent(chosen);
@@ -97,17 +98,18 @@ export default function PayBillSheet(props: PayBillSheetProps) {
         <button
           type="button"
           onClick={submit}
-          disabled={sending || options.length === 0}
+          disabled={sending || !chosen}
           aria-busy={sending}
           className={cn(
             "flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-(--amber) px-5 text-base font-semibold text-white",
             "transition-[transform,background-color] duration-150 ease-out hover:bg-[#A91A24] active:scale-[0.98]",
-            "disabled:cursor-wait disabled:opacity-80 disabled:active:scale-100",
+            sending ? "disabled:cursor-wait disabled:opacity-80" : "disabled:cursor-not-allowed disabled:bg-zinc-300",
+            "disabled:active:scale-100",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber)"
           )}
         >
           {sending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-          {sending ? "Sending…" : chosen === "UPI" ? "I've paid · get my bill" : "Request bill"}
+          {sending ? "Sending…" : !chosen ? "Choose how you'll pay" : chosen === "UPI" ? "I've paid · get my bill" : "Request bill"}
         </button>
       }
     >
@@ -136,7 +138,7 @@ export default function PayBillSheet(props: PayBillSheetProps) {
           })}
         </div>
 
-        {chosen === "UPI" ? (
+        {!chosen ? null : chosen === "UPI" ? (
           <UpiSteps {...props} upiReference={upiReference} onUpiReferenceChange={setUpiReference} />
         ) : (
           <p className="rounded-2xl bg-[#F4F5F8] px-4 py-3 text-[13px] leading-relaxed text-(--muted)">
