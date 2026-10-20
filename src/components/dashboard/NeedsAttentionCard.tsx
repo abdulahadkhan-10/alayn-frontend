@@ -38,7 +38,7 @@ export default function NeedsAttentionCard({ outletId }: NeedsAttentionCardProps
       <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
         <h2 id="needs-attention-title" className="text-sm font-bold text-slate-800">
-          Needs attention
+          Action items
         </h2>
         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{items.length}</span>
       </div>
