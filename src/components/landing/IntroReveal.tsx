@@ -11,11 +11,9 @@ import IntroRevealOverlay from "./IntroRevealOverlay";
 // If the intro already played this session, or the visitor prefers reduced
 // motion, it hides the overlay through a class on <html> (the root layout
 // sets suppressHydrationWarning there). Otherwise it marks the session and
-// tells the overlay to play, recording when it will start fading out so
-// the hero's entrance animations can wait for it (1700ms, the fade-out delay
-// in src/styles/intro.css; see introTiming.ts). Client-side navigations never run it, so going
+// tells the overlay to play. Client-side navigations never run it, so going
 // back to the homepage from another page doesn't replay the intro.
-const decideScript = `(function(){var d=document.documentElement,k="alayn-intro-seen";try{if(sessionStorage.getItem(k)||matchMedia("(prefers-reduced-motion: reduce)").matches){d.classList.add("intro-seen");return}sessionStorage.setItem(k,"1")}catch(e){}window.__alaynIntro="play";window.__alaynIntroEnd=performance.now()+1700})();`;
+const decideScript = `(function(){var d=document.documentElement,k="alayn-intro-seen";try{if(sessionStorage.getItem(k)||matchMedia("(prefers-reduced-motion: reduce)").matches){d.classList.add("intro-seen");return}sessionStorage.setItem(k,"1")}catch(e){}window.__alaynIntro="play"})();`;
 
 export default function IntroReveal() {
   // The strokes start animating 80ms in, so fetch them with the HTML rather
