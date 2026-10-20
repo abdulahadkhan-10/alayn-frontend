@@ -443,7 +443,10 @@ export async function fetchActiveTableOrder(
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
-  return { ok: true, order: result.data };
+  // No running order comes back as `data: null`, which apiRequest turns into the whole
+  // { success, data } envelope — only a real order (it has an id) counts
+  const order = result.data && typeof result.data === "object" && "id" in result.data ? result.data : null;
+  return { ok: true, order };
 }
 
 export async function createQROrder(
@@ -462,6 +465,16 @@ export async function createQROrder(
   }
   showToast.error("Order Failed", result.error);
   return { ok: false, error: result.error };
+}
+
+/** The diner asks for the table's bill and says how they'll pay; staff are alerted to print it and collect */
+export async function requestTableBill(
+  token: string,
+  payload: { paymentMethod: "UPI" | "CARD" | "CASH"; paymentRef?: string }
+): Promise<{ ok: boolean; order?: any; error?: string }> {
+  const result = await apiRequest<any>(`/orders/tables/${token}/bill-request`, { method: "POST", body: payload });
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, order: result.data };
 }
 
 // ── AlaynAI Executive Assistant API ───────────────────────────────────────
