@@ -11,7 +11,7 @@
 
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
 import { printThermalHtml } from "./printUtils";
-import { billItemRows } from "./billLines";
+import { billItemRows, receiptCashierName } from "./billLines";
 import { getPaymentLines } from "./splitPayment";
 
 const escapeHtml = (text: string) =>
@@ -522,7 +522,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? "Counter"
     : actualOrder.source || "Dine In";
 
-  const cashierName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
+  const cashierName = receiptCashierName(actualOrder);
   const customerName = actualOrder.customerName || "";
   const customerPhone = actualOrder.customerPhone || "";
   const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
@@ -648,7 +648,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           <div class="meta-row"><span>Bill No:</span><span class="bold">#${orderNumber}</span></div>
           <div class="meta-row"><span>Date:</span><span>${timestamp}</span></div>
           <div class="meta-row"><span>Table:</span><span class="bold">${tableDisplay}</span></div>
-          <div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>
+          ${cashierName ? `<div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>` : ""}
           ${customerName ? `<div class="meta-row"><span>Customer:</span><span>${customerName}</span></div>` : ""}
           ${customerPhone ? `<div class="meta-row"><span>Phone:</span><span>${customerPhone}</span></div>` : ""}
         </div>

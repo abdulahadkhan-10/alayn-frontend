@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { buildUpiPayUrl } from "@/lib/upi";
 import { Printer, X, CheckCircle, Smartphone, Loader2 } from "lucide-react";
 import { printThermalHtml } from "@/lib/printUtils";
-import { billItemRows } from "@/lib/billLines";
+import { billItemRows, receiptCashierName } from "@/lib/billLines";
 import { getPaymentLines } from "@/lib/splitPayment";
 import {
   autoPrintReceipt,
@@ -144,7 +144,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       ? "Counter / POS"
       : actualOrder.source || "Counter Direct";
 
-  const cashierName = actualOrder.placedByName || "Staff";
+  const cashierName = receiptCashierName(actualOrder);
   const customerName = actualOrder.customerName || "";
   const customerPhone = actualOrder.customerPhone || "";
 
@@ -438,10 +438,12 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                 <span>Type:</span>
                 <span className="font-bold">{orderSourceDisplay}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Cashier:</span>
-                <span className="font-bold">{cashierName}</span>
-              </div>
+              {cashierName && (
+                <div className="flex justify-between">
+                  <span>Cashier:</span>
+                  <span className="font-bold">{cashierName}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Bill No:</span>
                 <span className="font-black">{billNo}</span>

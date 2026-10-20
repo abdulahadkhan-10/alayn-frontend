@@ -2023,6 +2023,7 @@ export default function LiveOrdersPage() {
 
                     setPrintingOrder({
                       ...settlingOrder,
+                      cashierName: user?.name,
                       customerName: customerName.trim() || settlingOrder.customerName,
                       customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
                       paymentMethod,

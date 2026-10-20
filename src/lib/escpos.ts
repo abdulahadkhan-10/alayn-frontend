@@ -11,7 +11,7 @@
  * - Instant (< 200ms) execution over Bluetooth / USB / LAN.
  */
 
-import { billItemRows, itemModifiers } from "./billLines";
+import { billItemRows, itemModifiers, receiptCashierName } from "./billLines";
 import { getPaymentLines } from "./splitPayment";
 
 export interface ESCPOSOptions {
@@ -395,7 +395,8 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   builder.align("left");
   builder.twoColumns(`Bill No: ${billNo}`, tableTitle);
   builder.twoColumns(`Date: ${dateStr}`, `Time: ${timeStr}`);
-  builder.twoColumns(`Cashier: ${actualOrder.placedByName || "Staff"}`, `Mode: ${paymentMethod}`);
+  const cashierName = receiptCashierName(actualOrder);
+  builder.twoColumns(cashierName ? `Cashier: ${cashierName}` : "", `Mode: ${paymentMethod}`);
 
   if (actualOrder.customerName || actualOrder.customerPhone) {
     const custInfo = [actualOrder.customerName, actualOrder.customerPhone].filter(Boolean).join(" • ");
