@@ -7,13 +7,12 @@ import {
   createQROrder,
   fetchActiveTableOrder,
   fetchTableMenu,
+  requestTableBill,
   resolveUploadUrl,
   type CustomerMenuCategory,
   type CustomerMenuItem,
   type TableMenuResponse,
 } from "@/lib/api";
-import { estimateBill } from "@/lib/billing";
-import { getCustomerPaymentClaims } from "@/lib/splitPayment";
 import { buildUpiPayUrl, isValidUpiId } from "@/lib/upi";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -22,8 +21,9 @@ import CartSheet, { type CartLine } from "./CartSheet";
 import ItemOptionsSheet, { type CartModifierItem } from "./ItemOptionsSheet";
 import { DietaryMark, QuantityStepper } from "./MenuBits";
 import MenuItemCard from "./MenuItemCard";
-import OrderTrackerSheet from "./OrderTrackerSheet";
-import { ORDER_STEPS, dietaryTypeOf, formatRupees, orderStepIndex, type DietaryType } from "./menuFormat";
+import PayBillSheet from "./PayBillSheet";
+import TableBillSheet from "./TableBillSheet";
+import { ORDER_STEPS, dietaryTypeOf, formatRupees, orderStepIndex, tableBillStatus, type BillPaymentMethod, type DietaryType } from "./menuFormat";
 
 export type { CartModifierItem };
 
@@ -34,7 +34,8 @@ const UI_EASE = [0.23, 1, 0.32, 1] as const;
 
 /**
  * The page a diner sees after scanning the table QR: the menu, and (when the outlet allows it)
- * ordering and paying from their phone. Waiter-service outlets get a view-only menu.
+ * ordering from their phone, as many rounds as they like onto the table's one running bill.
+ * When they're done they ask for the bill and say how they'll pay. Waiter-service outlets get a view-only menu.
  */
 export default function CustomerOrderUI({ token }: { token: string }) {
   const [menu, setMenu] = useState<TableMenuResponse | null>(null);
@@ -52,14 +53,15 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const [detailItem, setDetailItem] = useState<CustomerMenuItem | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "CASH">("UPI");
-  const [upiReference, setUpiReference] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the table's running order comes untyped from the public API
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
-  const [isTrackerOpen, setIsTrackerOpen] = useState(false);
+  const [isBillOpen, setIsBillOpen] = useState(false);
+  const [isPayOpen, setIsPayOpen] = useState(false);
+  // A fresh payment form each time "Pay bill" is opened
+  const [payKey, setPayKey] = useState(0);
 
   const stickyRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -73,8 +75,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const upiId = menu?.upiId || "";
   const upiAvailable = isValidUpiId(upiId);
   const counterAvailable = (menu?.allowPayAtCounter ?? true) || !upiAvailable;
-  const selectedPayment: "UPI" | "CASH" = upiAvailable && (paymentMethod === "UPI" || !counterAvailable) ? "UPI" : "CASH";
-  const paymentClaims = getCustomerPaymentClaims(activeOrder);
+  const billStatus = tableBillStatus(activeOrder);
   const orderInProgress = !!activeOrder && !["COMPLETED", "CANCELLED"].includes(activeOrder.status);
 
   // ── Data ──
@@ -244,29 +245,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
 
   const itemCount = cart.reduce((sum, l) => sum + l.quantity, 0);
 
-  // Same calculation as the server's bill, so the UPI amount matches what the cashier sees
-  const bill = useMemo(() => {
-    const rates = menu?.taxRates;
-    const estimate = estimateBill(
-      cart.map((l) => ({ price: l.unitPricePaise / 100, quantity: l.quantity })),
-      { cgstRate: rates?.cgstRate ?? 0, sgstRate: rates?.sgstRate ?? 0, serviceChargeRate: rates?.serviceChargeRate ?? 0 },
-      { dineIn: true, gstRegistrationType: rates?.gstRegistrationType }
-    );
-    const paise = (rupees: number) => Math.round(rupees * 100);
-    return {
-      subtotalPaise: paise(estimate.subtotal),
-      serviceChargePaise: paise(estimate.serviceCharge),
-      cgstPaise: paise(estimate.cgst),
-      sgstPaise: paise(estimate.sgst),
-      roundOffPaise: paise(estimate.roundOff),
-      totalPaise: paise(estimate.total),
-    };
-  }, [cart, menu?.taxRates]);
+  // Taxes are worked out once on the table's whole bill, not on each round
+  const itemTotalPaise = cart.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0);
 
   const upiUrl = buildUpiPayUrl({
     upiId,
     payeeName: businessName,
-    amountPaise: bill.totalPaise,
+    amountPaise: billStatus.duePaise,
     note: `Table ${tableNumber || ""} - ${businessName}`,
   });
 
@@ -284,23 +269,34 @@ export default function CustomerOrderUI({ token }: { token: string }) {
         })),
         customerName: guestName.trim() || undefined,
         customerPhone: guestPhone.trim() || undefined,
-        paymentMethod: selectedPayment,
-        // The restaurant confirms the money arrived when the bill is settled
-        paymentStatus: "PENDING",
-        paymentRef: selectedPayment === "UPI" && upiReference.trim() ? upiReference.trim() : undefined,
       });
       if (res.ok) {
         setCart([]);
-        setUpiReference("");
         setIsCartOpen(false);
         await fetchMenu(true);
-        setIsTrackerOpen(true);
+        setIsBillOpen(true);
       }
     } catch (err) {
       showToast.error("Order not placed", err instanceof Error ? err.message : "Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }
+  };
+
+  const openPayment = () => {
+    setPayKey((k) => k + 1);
+    setIsBillOpen(false);
+    setIsPayOpen(true);
+  };
+
+  const requestBill = async (method: BillPaymentMethod, upiReference: string) => {
+    const res = await requestTableBill(token, { paymentMethod: method, paymentRef: method === "UPI" && upiReference ? upiReference : undefined });
+    if (!res.ok) {
+      showToast.error("Couldn't reach the restaurant", res.error || "Please try again, or ask a member of staff.");
+      return false;
+    }
+    if (res.order && typeof res.order === "object" && "id" in res.order) setActiveOrder(res.order);
+    return true;
   };
 
   // ── States ──
@@ -333,11 +329,11 @@ export default function CustomerOrderUI({ token }: { token: string }) {
             {showCartBar && orderInProgress && (
               <button
                 type="button"
-                onClick={() => setIsTrackerOpen(true)}
+                onClick={() => setIsBillOpen(true)}
                 className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-zinc-200 px-3.5 text-[13px] font-semibold transition-colors hover:bg-zinc-50"
               >
                 <span className="h-2 w-2 rounded-full bg-[#15803D] motion-safe:animate-pulse" aria-hidden="true" />
-                Track order
+                Your bill
               </button>
             )}
           </div>
@@ -505,7 +501,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <span className="block text-[13px] text-white/85">
                       {itemCount} item{itemCount === 1 ? "" : "s"}
                     </span>
-                    <span className="block text-base font-semibold tabular-nums">{formatRupees(bill.totalPaise, { exact: true })}</span>
+                    <span className="block text-base font-semibold tabular-nums">{formatRupees(itemTotalPaise, { exact: true })}</span>
                   </span>
                   <span className="flex items-center gap-1 text-[15px] font-semibold">
                     View order <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -514,18 +510,22 @@ export default function CustomerOrderUI({ token }: { token: string }) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setIsTrackerOpen(true)}
+                  onClick={() => setIsBillOpen(true)}
                   className="pointer-events-auto mx-auto flex h-14 w-full max-w-3xl items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-5 shadow-[0_12px_32px_-12px_rgba(11,18,32,0.3)] transition-transform duration-150 ease-out active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-(--espresso) focus-visible:ring-offset-2"
                 >
                   <span className="flex min-w-0 items-center gap-3 text-left">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#15803D] motion-safe:animate-pulse" aria-hidden="true" />
                     <span className="min-w-0 leading-tight">
-                      <span className="block truncate text-[15px] font-semibold">{ORDER_STEPS[Math.max(0, step)].label}</span>
-                      <span className="block truncate text-[13px] text-(--muted)">Order {activeOrder?.orderNumber}</span>
+                      <span className="block truncate text-[15px] font-semibold">
+                        Your bill · <span className="tabular-nums">{formatRupees(billStatus.duePaise || billStatus.totalPaise, { exact: true })}</span>
+                      </span>
+                      <span className="block truncate text-[13px] text-(--muted)">
+                        {billStatus.request && !billStatus.requestOutdated ? "Bill requested · collect it at the counter" : ORDER_STEPS[Math.max(0, step)].label}
+                      </span>
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1 text-[15px] font-semibold">
-                    Track <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                    View <ChevronRight className="h-5 w-5" aria-hidden="true" />
                   </span>
                 </button>
               )}
@@ -553,33 +553,39 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           open={isCartOpen}
           onClose={() => setIsCartOpen(false)}
           lines={cart}
-          bill={bill}
-          taxRates={menu?.taxRates}
+          itemTotalPaise={itemTotalPaise}
+          addingToBill={orderInProgress}
           onChangeQuantity={changeQuantity}
           onChangeNote={changeNote}
           guestName={guestName}
           guestPhone={guestPhone}
           onGuestNameChange={setGuestName}
           onGuestPhoneChange={setGuestPhone}
-          upiAvailable={upiAvailable}
-          counterAvailable={counterAvailable}
-          payment={selectedPayment}
-          onPaymentChange={setPaymentMethod}
-          upiUrl={upiUrl}
-          upiId={upiId}
-          upiReference={upiReference}
-          onUpiReferenceChange={setUpiReference}
           tableNumber={tableNumber}
           placing={isPlacingOrder}
           onPlaceOrder={placeOrder}
         />
 
-        <OrderTrackerSheet
-          open={isTrackerOpen && !!activeOrder}
-          onClose={() => setIsTrackerOpen(false)}
+        <TableBillSheet
+          open={isBillOpen && !!activeOrder}
+          onClose={() => setIsBillOpen(false)}
           order={activeOrder}
-          paymentClaims={paymentClaims}
           canOrderMore={canOrder}
+          onPay={openPayment}
+        />
+
+        <PayBillSheet
+          key={payKey}
+          open={isPayOpen && !!activeOrder}
+          onClose={() => setIsPayOpen(false)}
+          amountDuePaise={billStatus.duePaise}
+          tableNumber={tableNumber}
+          orderNumber={activeOrder?.orderNumber}
+          upiAvailable={upiAvailable}
+          counterAvailable={counterAvailable}
+          upiUrl={upiUrl}
+          upiId={upiId}
+          onRequestBill={requestBill}
         />
       </div>
     </MotionConfig>

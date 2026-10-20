@@ -992,7 +992,11 @@ export default function LiveOrdersPage() {
                           )}
                           {getCustomerPaymentClaims(order).payAtCounter && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                              💵 Pay at Counter
+                              {getCustomerPaymentClaims(order).counterMethod === "CARD"
+                                ? "💳 Card at counter"
+                                : getCustomerPaymentClaims(order).counterMethod === "CASH"
+                                  ? "💵 Cash at counter"
+                                  : "💵 Pay at Counter"}
                             </span>
                           )}
                         </div>
@@ -1094,6 +1098,8 @@ export default function LiveOrdersPage() {
                             const claims = getCustomerPaymentClaims(order);
                             if (claims.upi || order.paymentMethod === "UPI") {
                               setPaymentMethod("UPI");
+                            } else if (claims.counterMethod === "CARD") {
+                              setPaymentMethod("CARD");
                             } else if (claims.payAtCounter || order.paymentMethod === "CASH") {
                               setPaymentMethod("CASH");
                             }
@@ -1835,7 +1841,15 @@ export default function LiveOrdersPage() {
                 {getCustomerPaymentClaims(settlingOrder).payAtCounter && (
                   <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-1.5 text-[11px] text-blue-900">
                     <Banknote className="w-3.5 h-3.5 shrink-0" />
-                    <span>Customer chose <strong>Pay at Counter</strong> — collect now.</span>
+                    <span>
+                      {getCustomerPaymentClaims(settlingOrder).counterMethod === "CARD" ? (
+                        <>Customer will pay by <strong>card</strong> at the counter — collect now.</>
+                      ) : getCustomerPaymentClaims(settlingOrder).counterMethod === "CASH" ? (
+                        <>Customer will pay by <strong>cash</strong> at the counter — collect now.</>
+                      ) : (
+                        <>Customer chose <strong>Pay at Counter</strong> — collect now.</>
+                      )}
+                    </span>
                   </div>
                 )}
 

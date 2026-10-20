@@ -133,11 +133,13 @@ export interface CustomerPaymentClaims {
   upiReferences: string[];
   /** Total the diner said they paid by UPI (0 when unknown, e.g. older orders) */
   upiPaise: number;
-  /** The diner chose Pay at Counter */
+  /** The diner will pay at the counter */
   payAtCounter: boolean;
+  /** How they said they'll pay at the counter (null on older orders that didn't say) */
+  counterMethod: "CASH" | "CARD" | null;
 }
 
-const NO_CLAIMS: CustomerPaymentClaims = { upi: false, upiReferences: [], upiPaise: 0, payAtCounter: false };
+const NO_CLAIMS: CustomerPaymentClaims = { upi: false, upiReferences: [], upiPaise: 0, payAtCounter: false, counterMethod: null };
 
 /**
  * What diners told us about paying from the table QR: PENDING payments the cashier still has to check.
@@ -159,11 +161,13 @@ export function getCustomerPaymentClaims(
   const placedBy = order.placedByName || "";
   const legacyUtr = placedBy.includes("UTR:") ? placedBy.split("UTR:")[1]?.trim() : "";
   if (legacyUtr && legacyUtr !== "Pay at Counter" && !upiReferences.includes(legacyUtr)) upiReferences.push(legacyUtr);
+  const counterMethod = pending.some((p) => p.method === "CARD") ? "CARD" : pending.some((p) => p.method === "CASH") ? "CASH" : null;
   return {
     upi: upiClaims.length > 0 || upiReferences.length > 0,
     upiReferences,
     upiPaise: upiClaims.reduce((sum, p) => sum + p.amountPaise, 0),
-    payAtCounter: pending.some((p) => p.method === "CASH") || placedBy.includes("Pay at Counter"),
+    payAtCounter: !!counterMethod || placedBy.includes("Pay at Counter"),
+    counterMethod,
   };
 }
 
