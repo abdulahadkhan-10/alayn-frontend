@@ -5,8 +5,10 @@ export interface WasteLogApi {
   id: string;
   itemId: string;
   quantity: number;
+  unitCostAtLoggingPaise?: number;
   costAtLoggingPaise: number;
   reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR";
+  notes?: string | null;
   loggedById: string;
   outletId?: string;
   outlet?: { id: string; name: string };
@@ -44,7 +46,12 @@ export const wasteApiSlice = baseApi.injectEndpoints({
     }),
     logWaste: builder.mutation<
       WasteLogApi,
-      { itemId: string; quantity: number; reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR" }
+      {
+        itemId: string;
+        quantity: number;
+        reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR";
+        notes?: string;
+      }
     >({
       query: (data) => ({
         url: "/waste-logs",
