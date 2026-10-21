@@ -94,6 +94,7 @@ export default function WasteManagementPage() {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [quantity, setQuantity] = useState<number | "">("");
   const [reason, setReason] = useState<"SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR">("SPOILAGE");
+  const [notes, setNotes] = useState("");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   // Time Period & Date Shortcut Filter State
@@ -290,7 +291,8 @@ export default function WasteManagementPage() {
         (l) =>
           l.item?.name.toLowerCase().includes(q) ||
           l.item?.sku.toLowerCase().includes(q) ||
-          l.reason.toLowerCase().includes(q)
+          l.reason.toLowerCase().includes(q) ||
+          (l.notes && l.notes.toLowerCase().includes(q))
       );
     }
 
@@ -335,11 +337,13 @@ export default function WasteManagementPage() {
         itemId: selectedItemId,
         quantity: numQty,
         reason,
+        notes: notes.trim() || undefined,
       }).unwrap();
 
       setFeedback({ type: "success", msg: "Wastage recorded successfully! Stock balance updated." });
       setQuantity("");
       setSelectedItemId("");
+      setNotes("");
       setShowRecordModal(false);
       refetchLogs();
       refetchSummary();
@@ -351,16 +355,29 @@ export default function WasteManagementPage() {
   const handleExportCSV = () => {
     if (processedLogs.length === 0) return alert("No waste logs to export.");
 
-    const headers = ["Logged Date", "Item Name", "SKU", "Category", "Quantity", "Unit", "Loss Value (INR)", "Reason"];
+    const headers = [
+      "Logged Date",
+      "Item Name",
+      "SKU",
+      "Category",
+      "Quantity",
+      "Unit",
+      "Unit Rate (INR)",
+      "Loss Value (INR)",
+      "Reason",
+      "Notes",
+    ];
     const rows = processedLogs.map((log) => [
       new Date(log.createdAt).toLocaleString("en-IN"),
-      `"${log.item?.name || 'Item'}"`,
-      `"${log.item?.sku || ''}"`,
-      `"${log.item?.category || ''}"`,
+      `"${(log.item?.name || 'Item').replace(/"/g, '""')}"`,
+      `"${(log.item?.sku || '').replace(/"/g, '""')}"`,
+      `"${(log.item?.category || '').replace(/"/g, '""')}"`,
       log.quantity,
       log.item?.unit || "",
+      (((log.unitCostAtLoggingPaise ?? log.item?.unitCostPaise) || 0) / 100).toFixed(2),
       (log.costAtLoggingPaise / 100).toFixed(2),
       log.reason,
+      `"${(log.notes || '').replace(/"/g, '""')}"`,
     ]);
 
     const csvContent =
@@ -799,6 +816,9 @@ export default function WasteManagementPage() {
                         >
                           Wasted Qty
                         </th>
+                        <th className="px-4 py-3.5 text-right whitespace-nowrap">
+                          Rate (WAC)
+                        </th>
                         <th
                           className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900"
                           onClick={() => toggleSort("costAtLoggingPaise")}
@@ -818,6 +838,7 @@ export default function WasteManagementPage() {
                         };
 
                         const refId = `#WST-${String(startWasteIdx + idx + 1).padStart(3, "0")}`;
+                        const unitRatePaise = log.unitCostAtLoggingPaise ?? (log.item?.unitCostPaise || 0);
 
                         return (
                           <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
@@ -838,6 +859,11 @@ export default function WasteManagementPage() {
                             <td className="px-4 py-4">
                               <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
                               <span className="text-[10px] text-zinc-400 font-mono">SKU: {log.item?.sku || "N/A"}</span>
+                              {log.notes && (
+                                <p className="mt-1 text-[11px] text-zinc-600 italic bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 max-w-xs break-words">
+                                  "{log.notes}"
+                                </p>
+                              )}
                             </td>
 
                             {showWasteOutlet && (
@@ -851,6 +877,11 @@ export default function WasteManagementPage() {
 
                             <td className="px-4 py-4 text-center font-bold text-zinc-800 whitespace-nowrap">
                               {log.quantity} <span className="text-zinc-400 font-normal text-[10px]">{log.item?.unit || "units"}</span>
+                            </td>
+
+                            <td className="px-4 py-4 text-right font-medium text-zinc-600 whitespace-nowrap text-xs">
+                              ₹{(unitRatePaise / 100).toFixed(2)}
+                              <span className="text-[10px] text-zinc-400 block font-normal">/{log.item?.unit || "unit"}</span>
                             </td>
 
                             <td className="px-4 py-4 text-right font-black text-red-600 tabular-nums text-sm whitespace-nowrap">
@@ -932,93 +963,124 @@ export default function WasteManagementPage() {
             {/* Modal Form Body */}
             <form onSubmit={handleLogWasteSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
-                <div>
-                  <label htmlFor="modal-waste-item-select" className="block font-bold text-zinc-800 mb-1">
-                    Ingredient / Stock Item <span className="text-red-500">*</span>
-                  </label>
-                  {isLoadingItems || branchLoading ? (
-                    <Skeleton height={40} borderRadius={12} />
-                  ) : (
-                    <select
-                      required
-                      id="modal-waste-item-select"
-                      value={selectedItemId}
-                      onChange={(e) => setSelectedItemId(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
-                    >
-                      <option value="">-- Choose ingredient from inventory --</option>
-                      {items.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name} ({i.unit}){isAllOutlets || i.outlet ? ` — [${i.outlet?.name || 'Main'}]` : ''} — Available: {i.currentStock}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="modal-waste-reason-select" className="block font-bold text-zinc-800 mb-1">
-                    Reason for Waste <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="modal-waste-reason-select"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value as any)}
-                    className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
-                  >
-                    <option value="SPOILAGE">Spoiled / Expired</option>
-                    <option value="OVER_PREP">Over-Prepared</option>
-                    <option value="ERROR">Kitchen Error / Spillage</option>
-                    <option value="RETURN">Customer Return</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="modal-waste-quantity-input" className="block font-bold text-zinc-800 mb-1">
-                    Wasted Quantity ({selectedItem?.unit || "units"}) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="modal-waste-quantity-input"
-                    type="number"
-                    step="any"
-                    min="0.001"
-                    required
-                    placeholder="Enter quantity amount..."
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
-                  />
-                </div>
-
-                {/* Form Live Calculation Card */}
-                {selectedItem && numQty > 0 && (
-                  <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold">Calculated Loss:</span>
-                      <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
+                    <div>
+                      <label htmlFor="modal-waste-item-select" className="block font-bold text-zinc-800 mb-1">
+                        Ingredient / Stock Item <span className="text-red-500">*</span>
+                      </label>
+                      {isLoadingItems || branchLoading ? (
+                        <Skeleton height={40} borderRadius={12} />
+                      ) : (
+                        <select
+                          required
+                          id="modal-waste-item-select"
+                          value={selectedItemId}
+                          onChange={(e) => setSelectedItemId(e.target.value)}
+                          className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                        >
+                          <option value="">-- Choose ingredient from inventory --</option>
+                          {items.map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.name} ({i.unit}){isAllOutlets || i.outlet ? ` — [${i.outlet?.name || 'Main'}]` : ''} — Available: {i.currentStock}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {selectedItem && (
+                        <div className="mt-1.5 flex items-center justify-between text-[11px] bg-zinc-50 border border-zinc-200/80 rounded-lg px-3 py-1.5 text-zinc-600">
+                          <span className="font-medium">Live Moving Weighted Avg Rate:</span>
+                          <span className="font-extrabold text-zinc-900">
+                            ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[11px] text-zinc-600 font-medium">
-                      {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / unit
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
-                      <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                        <span className="block text-[10px] text-zinc-400 font-bold">CURRENT STOCK</span>
-                        <strong className="text-xs text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
-                      </div>
-                      <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                        <span className="block text-[10px] text-zinc-400 font-bold">REMAINING</span>
-                        <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
-                          {Number(remainingStock.toFixed(2))} {selectedItem.unit}
-                        </strong>
-                      </div>
+
+                    <div>
+                      <label htmlFor="modal-waste-reason-select" className="block font-bold text-zinc-800 mb-1">
+                        Reason for Waste <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="modal-waste-reason-select"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value as any)}
+                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                      >
+                        <option value="SPOILAGE">Spoiled / Expired</option>
+                        <option value="OVER_PREP">Over-Prepared</option>
+                        <option value="ERROR">Kitchen Error / Spillage</option>
+                        <option value="RETURN">Customer Return</option>
+                      </select>
                     </div>
-                    {remainingStock < selectedItem.reorderThreshold && (
-                      <p className="text-[11px] text-red-600 font-bold flex items-center gap-1 pt-0.5">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min threshold!
-                      </p>
+
+                    <div>
+                      <label htmlFor="modal-waste-quantity-input" className="block font-bold text-zinc-800 mb-1">
+                        Wasted Quantity ({selectedItem?.unit || "units"}) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        id="modal-waste-quantity-input"
+                        type="number"
+                        step="any"
+                        min="0.001"
+                        required
+                        placeholder="Enter quantity amount..."
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="modal-waste-notes-input" className="block font-bold text-zinc-800 mb-1">
+                        Incident Notes / Root Cause <span className="text-zinc-400 font-normal">(Optional)</span>
+                      </label>
+                      <textarea
+                        id="modal-waste-notes-input"
+                        rows={2}
+                        maxLength={500}
+                        placeholder="e.g. Fridge #2 temperature spike overnight, container dropped during prep..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs font-medium text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs resize-none"
+                      />
+                    </div>
+
+                    {/* Form Live Calculation Card */}
+                    {selectedItem && numQty > 0 && (
+                      <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold">Calculated Loss (WAC):</span>
+                          <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
+                        </div>
+                        <p className="text-[11px] text-zinc-600 font-medium">
+                          {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
+                          <div className="bg-white p-1.5 rounded-lg border border-red-100">
+                            <span className="block text-[10px] text-zinc-400 font-bold">CURRENT STOCK</span>
+                            <strong className="text-xs text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
+                          </div>
+                          <div className="bg-white p-1.5 rounded-lg border border-red-100">
+                            <span className="block text-[10px] text-zinc-400 font-bold">REMAINING STOCK</span>
+                            <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
+                              {Number(remainingStock.toFixed(2))} {selectedItem.unit}
+                            </strong>
+                            <span className="block text-[10px] text-zinc-500 font-medium">
+                              Val: ₹{((Math.max(0, remainingStock) * selectedItem.unitCostPaise) / 100).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        {remainingStock < selectedItem.reorderThreshold && (
+                          <p className="text-[11px] text-red-600 font-bold flex items-center gap-1 pt-0.5">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min threshold!
+                          </p>
+                        )}
+                        {Number(calculatedCostRupees) >= 500 && (
+                          <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded p-1.5 font-bold flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" /> High-Waste Alert: Loss exceeds ₹500. Automatic notification will be dispatched to branch management.
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
               </div>
 
               {/* Modal Sticky Footer */}
