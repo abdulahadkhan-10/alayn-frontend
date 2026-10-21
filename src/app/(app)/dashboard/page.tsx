@@ -29,7 +29,7 @@ interface PageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
+type RangeType = "TODAY" | "YESTERDAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH" | "LAST_MONTH";
 
 /** "YYYY-MM-DD" for India time, n days ago (toISOString would give the UTC date, a day behind before 5:30 AM) */
 const istDate = (daysAgo = 0) =>
@@ -38,15 +38,29 @@ const istDate = (daysAgo = 0) =>
 /** How the selected date range reads in card subtitles ("No dishes sold this month") */
 const RANGE_LABELS: Record<RangeType, string> = {
   TODAY: "today",
+  YESTERDAY: "yesterday",
   "7_DAY": "in the last 7 days",
   THIS_MONTH: "this month",
+  LAST_MONTH: "last month",
   CUSTOM: "in the selected dates",
+};
+
+/** The report preset that matches each Overview range, for the "Compare in detail" link */
+const REPORT_PRESETS: Record<RangeType, string> = {
+  TODAY: "TODAY",
+  YESTERDAY: "YESTERDAY",
+  "7_DAY": "LAST_7_DAYS",
+  THIS_MONTH: "THIS_MONTH",
+  LAST_MONTH: "LAST_MONTH",
+  CUSTOM: "CUSTOM",
 };
 
 const RANGE_OPTIONS: { value: RangeType; label: string }[] = [
   { value: "TODAY", label: "Today" },
+  { value: "YESTERDAY", label: "Yesterday" },
   { value: "7_DAY", label: "7 Days" },
   { value: "THIS_MONTH", label: "This Month" },
+  { value: "LAST_MONTH", label: "Last Month" },
   { value: "CUSTOM", label: "Choose Date" },
 ];
 
@@ -111,6 +125,13 @@ export default function MasterDashboardPage(props?: PageProps) {
         createdAt: o.createdAt ?? null,
       }));
   }, [realOrders]);
+
+  const compareParams = new URLSearchParams({ preset: REPORT_PRESETS[dateRange], compare: "PREVIOUS" });
+  if (dateRange === "CUSTOM") {
+    compareParams.set("from", startDate);
+    compareParams.set("to", endDate);
+  }
+  const compareHref = `/reports?${compareParams.toString()}`;
 
   const kpis = [
     {
@@ -244,9 +265,18 @@ export default function MasterDashboardPage(props?: PageProps) {
                       ))}
                   </div>
                   {kpi.note && <p className="mt-1.5 text-xs leading-snug text-slate-500">{kpi.note}</p>}
-                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500 tabular-nums">Before: {kpi.prev}</p>
+                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500 tabular-nums">{kpiData?.comparison?.label || "Before"}: {kpi.prev}</p>
                 </Link>
               ))}
+            </div>
+
+            <div className="-mt-3 flex justify-end">
+              <Link
+                href={compareHref}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Compare in detail →
+              </Link>
             </div>
 
             {/* What to act on right now — directly under the numbers */}

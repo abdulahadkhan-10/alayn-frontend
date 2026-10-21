@@ -1,6 +1,8 @@
 import { baseApi } from "../store/baseApi";
 
 export interface KpiResponse {
+  // What the "prev" figures are compared with, e.g. "vs yesterday, same time"
+  comparison?: { label: string; current: string; previous: string };
   totalRevenue: { value: string; change: string; isPositive: boolean; prev?: string };
   laborCosts: { value: string; change: string; isPositive: boolean; prev?: string };
   // Stock logged as waste (menu items aren't linked to stock, so there is no food cost or margin)

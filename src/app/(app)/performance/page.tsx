@@ -32,7 +32,7 @@ export default function PerformancePage() {
 
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const placeholder = kpisLoading ? "…" : "—";
-  const compareNote = "This month vs the same number of days before";
+  const compareNote = kpis?.comparison?.label ?? "";
 
   return (
     <AuthGuard>
