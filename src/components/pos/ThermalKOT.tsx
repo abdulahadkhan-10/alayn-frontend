@@ -131,7 +131,9 @@ export default function ThermalKOT({
     actualOrder.placedByName ||
     (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Cashier / Staff");
 
-  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (i: any) => (isCancellation ? true : i.status !== "CANCELLED")
+  );
   const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
 
   const timestamp = actualOrder.createdAt

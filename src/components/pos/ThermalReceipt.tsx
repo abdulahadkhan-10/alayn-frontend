@@ -113,7 +113,9 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     actualOrder.orderNumber ||
     actualOrder.orderNo ||
     (actualOrder.id ? String(actualOrder.id).slice(0, 8).toUpperCase() : "BILL-1001");
-  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (item: any) => item.status !== "CANCELLED"
+  );
 
   const outletName = actualOrder.outlet?.name || "ALAYN CAFE & RESTO";
   const outletAddress = actualOrder.outlet?.address

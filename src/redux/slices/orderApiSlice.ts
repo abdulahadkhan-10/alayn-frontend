@@ -220,6 +220,19 @@ export const orderApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data || response,
       invalidatesTags: ["Orders", "KitchenTickets"],
     }),
+
+    cancelOrderItem: builder.mutation<
+      Order,
+      { orderId: string; itemId: string; cancelQuantity?: number; reason: string }
+    >({
+      query: ({ orderId, itemId, cancelQuantity, reason }) => ({
+        url: `/orders/${orderId}/items/${itemId}/cancel`,
+        method: "POST",
+        body: { cancelQuantity, reason },
+      }),
+      transformResponse: (response: any) => response?.data || response,
+      invalidatesTags: ["Orders", "KitchenTickets"],
+    }),
   }),
 });
 
@@ -229,4 +242,6 @@ export const {
   useCreateOrderMutation,
   useUpdateOrderStatusMutation,
   useSetServiceChargeWaiverMutation,
+  useCancelOrderItemMutation,
 } = orderApi;
+
