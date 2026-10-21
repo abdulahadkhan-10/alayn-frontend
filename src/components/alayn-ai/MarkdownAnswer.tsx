@@ -21,7 +21,7 @@ const components: Components = {
   blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-white/15 pl-4 text-slate-300">{children}</blockquote>,
   a: ({ children, href }) => {
     // Links into the app (like the full report) open in the same tab; everything else leaves the app
-    if (href && href.startsWith("/") && !href.startsWith("//")) {
+    if (href && href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\")) {
       return (
         <Link href={href} className="text-rose-300 underline underline-offset-2 hover:text-rose-200">
           {children}
