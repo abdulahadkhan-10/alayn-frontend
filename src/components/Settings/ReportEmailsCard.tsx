@@ -34,8 +34,25 @@ const errorMessage = (err: unknown, fallback: string) =>
  */
 export default function ReportEmailsCard() {
   const user = useAppSelector((state) => state.auth.user);
-  const { data: schedules, isLoading } = useGetReportScheduleQuery();
+  const { data: schedules, isLoading, isError, refetch } = useGetReportScheduleQuery();
   const { data: options } = useGetReportOptionsQuery();
+
+  if (isError && !schedules) {
+    return (
+      <CardShell>
+        <div role="alert" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-red-100 bg-red-50">
+          <p className="text-sm text-red-800">Couldn&apos;t load your report email settings.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="px-3.5 py-2 text-xs font-bold rounded-lg border border-red-200 bg-white text-red-800 hover:bg-red-100 cursor-pointer shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      </CardShell>
+    );
+  }
 
   if (isLoading || !schedules) {
     return (
@@ -127,9 +144,10 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
   const handleTest = async () => {
     if (dirty) return toast.info("Save your changes first, then send a test");
     try {
-      const { sent } = await sendTest({ outletId }).unwrap();
+      const { sent, reason } = await sendTest({ outletId }).unwrap();
       if (sent) toast.success(`Last week's report sent to ${recipients.join(", ")}`);
-      else toast.warn("Report built, but email isn't set up on the server yet (SMTP missing)");
+      else if (reason === "failed") toast.error("Couldn't send the test email. Please try again in a few minutes.");
+      else toast.warn("Email isn't set up on this server yet, so nothing was sent.");
     } catch (err) {
       toast.error(errorMessage(err, "Could not send the test email"));
     }

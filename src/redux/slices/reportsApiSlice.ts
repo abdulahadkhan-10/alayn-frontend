@@ -85,6 +85,12 @@ export interface ReportOptions {
 }
 
 /** One emailed report schedule. `outletId: null` means every outlet. */
+/** `reason` says why nothing was sent: email isn't set up on the server, or sending failed. */
+export interface TestReportEmailResult {
+  sent: boolean;
+  reason?: "not_configured" | "failed";
+}
+
 export interface ReportSchedule {
   frequency: "DAILY" | "WEEKLY" | "MONTHLY";
   enabled: boolean;
@@ -129,9 +135,9 @@ export const reportsApiSlice = baseApi.injectEndpoints({
       transformResponse: (response: { data: ReportSchedule[] }) => response.data,
       invalidatesTags: ["ReportSchedule"],
     }),
-    sendTestReportEmail: builder.mutation<{ sent: boolean }, { outletId: string | null }>({
+    sendTestReportEmail: builder.mutation<TestReportEmailResult, { outletId: string | null }>({
       query: (body) => ({ url: "/reports/schedule/test", method: "POST", body }),
-      transformResponse: (response: { data: { sent: boolean } }) => response.data,
+      transformResponse: (response: { data: TestReportEmailResult }) => response.data,
     }),
   }),
 });
