@@ -84,13 +84,13 @@ export interface ReportOptions {
   earliestSale: string | null;
 }
 
-/** One emailed report schedule. `outletId: null` means every outlet. */
-/** `reason` says why nothing was sent: email isn't set up on the server, or sending failed. */
+/** Result of a test report email. `reason` says why nothing was sent: email isn't set up on the server, or sending failed. */
 export interface TestReportEmailResult {
   sent: boolean;
   reason?: "not_configured" | "failed";
 }
 
+/** One emailed report schedule. `outletId: null` means every outlet. */
 export interface ReportSchedule {
   frequency: "DAILY" | "WEEKLY" | "MONTHLY";
   enabled: boolean;
