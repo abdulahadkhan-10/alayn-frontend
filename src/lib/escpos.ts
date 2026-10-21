@@ -221,11 +221,7 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
 
   // ── ITEMS TABLE ──
   builder.bold(true);
-  if (is80mm) {
-    builder.threeColumns("ITEM NAME", "QTY", "STATUS", 6, 8);
-  } else {
-    builder.twoColumns("ITEM", "QTY");
-  }
+  builder.twoColumns("ITEM", "QTY");
   builder.bold(false);
   builder.divider("-");
 
@@ -234,10 +230,27 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
     const qty = `[ ${item.quantity}x ]`;
 
     builder.bold(true);
-    if (is80mm) {
-      builder.threeColumns(name, qty, isCancellation ? "VOID" : "NEW", 8, 8);
-    } else {
+    const maxCols = is80mm ? 48 : 32;
+    const maxNameWidth = maxCols - qty.length - 2;
+
+    if (name.length <= maxNameWidth) {
       builder.twoColumns(name, qty);
+    } else {
+      // Wrap long item name cleanly across lines by words so it is never truncated
+      const words = name.split(" ");
+      let line1 = "";
+      let remaining = "";
+      for (const w of words) {
+        if ((line1 + (line1 ? " " : "") + w).length <= maxNameWidth) {
+          line1 += (line1 ? " " : "") + w;
+        } else {
+          remaining += (remaining ? " " : "") + w;
+        }
+      }
+      builder.twoColumns(line1 || name.slice(0, maxNameWidth), qty);
+      if (remaining) {
+        builder.textLine(remaining);
+      }
     }
     builder.bold(false);
 

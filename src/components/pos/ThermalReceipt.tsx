@@ -272,18 +272,22 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             @page { size: 80mm auto; margin: 0mm; }
             @media print {
               html, body {
-                width: 78mm;
-                margin: 0 auto;
-                padding: 0;
-                background: #fff;
-                color: #000;
+                width: 70mm !important;
+                max-width: 70mm !important;
+                margin: 0 auto !important;
+                padding: 0 1.5mm !important;
+                background: #fff !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
             }
             body {
               font-family: 'Courier New', Courier, monospace;
-              width: 78mm;
+              width: 70mm;
+              max-width: 70mm;
               margin: 0 auto;
-              padding: 4mm 2mm;
+              padding: 2mm 1.5mm 16mm 1.5mm;
               color: #000;
               background: #fff;
             }
