@@ -3,7 +3,8 @@
 import React, { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import type { ReportItemRow } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { CsvButton } from "./ExportMenu";
 
 type SortKey = "qty" | "sales" | "change";
 const FIRST_ROWS = 25;
@@ -15,10 +16,11 @@ interface ItemsTableProps {
   items: ReportItemRow[];
   hasPrev: boolean;
   empty: boolean;
+  params: ReportParams;
 }
 
 /** Every dish sold in the period: searchable, sortable, the first 25 until "Show all". */
-export default function ItemsTable({ items, hasPrev, empty }: ItemsTableProps) {
+export default function ItemsTable({ items, hasPrev, empty, params }: ItemsTableProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "sales", desc: true });
   const [showAll, setShowAll] = useState(false);
@@ -72,7 +74,7 @@ export default function ItemsTable({ items, hasPrev, empty }: ItemsTableProps) {
               />
             </label>
           )}
-          {/* Download slot: the CSV button goes here (Task 8) */}
+          {!empty && items.length > 0 && <CsvButton params={params} section="items" label="items" />}
         </div>
       </div>
 

@@ -2,7 +2,8 @@
 
 import React from "react";
 import type { ReportBreakdownRow } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { CsvButton } from "./ExportMenu";
 
 interface BreakdownTableProps {
   title: string;
@@ -14,10 +15,13 @@ interface BreakdownTableProps {
   emptyMessage?: string;
   /** Waste: the money column is cost, the count column is entries, and a fall is good */
   waste?: boolean;
+  params: ReportParams;
+  /** The export section this table downloads as CSV */
+  section: string;
 }
 
 /** One way of splitting the period's sales (channel, payment, category…), with share and change. */
-export default function BreakdownTable({ title, subtitle, firstColumn, rows, hasPrev, emptyMessage, waste = false }: BreakdownTableProps) {
+export default function BreakdownTable({ title, subtitle, firstColumn, rows, hasPrev, emptyMessage, waste = false, params, section }: BreakdownTableProps) {
   const moneyLabel = waste ? "Cost" : "Sales";
   const countLabel = waste ? "Entries" : "Orders";
   const id = `report-${title.toLowerCase().replace(/\W+/g, "-")}-title`;
@@ -29,8 +33,7 @@ export default function BreakdownTable({ title, subtitle, firstColumn, rows, has
           <h2 id={id} className="text-base font-bold text-slate-800 tracking-tight">{title}</h2>
           {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
         </div>
-        {/* Download slot: the CSV button goes here (Task 8) */}
-        <div className="flex items-center gap-2" />
+        {rows.length > 0 && <CsvButton params={params} section={section} label={title} />}
       </div>
 
       {rows.length === 0 ? (

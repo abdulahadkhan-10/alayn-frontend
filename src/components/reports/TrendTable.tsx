@@ -2,7 +2,8 @@
 
 import React from "react";
 import type { ReportData } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { CsvButton } from "./ExportMenu";
 
 // Same rule as the backend's pctChange: no percentage when there was nothing before
 const pct = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 1000) / 10 : null);
@@ -10,7 +11,7 @@ const pct = (now: number, before: number) => (before > 0 ? Math.round(((now - be
 const GROUP_LABEL = { hour: "Hour", day: "Day", week: "Week", month: "Month" } as const;
 
 /** The trend chart's numbers, one row per bucket, next to the matching comparison bucket. */
-export default function TrendTable({ report, empty }: { report: ReportData; empty: boolean }) {
+export default function TrendTable({ report, empty, params }: { report: ReportData; empty: boolean; params: ReportParams }) {
   const { current, previous, granularity } = report.trend;
   const hasPrev = report.comparison != null;
 
@@ -21,8 +22,7 @@ export default function TrendTable({ report, empty }: { report: ReportData; empt
           <h2 id="report-trend-table-title" className="text-base font-bold text-slate-800 tracking-tight">Sales by {GROUP_LABEL[granularity].toLowerCase()}</h2>
           <p className="text-xs text-slate-500">Sales before tax, settled orders and stock wasted</p>
         </div>
-        {/* Download slot: the CSV button goes here (Task 8) */}
-        <div className="flex items-center gap-2" />
+        {!empty && <CsvButton params={params} section="trend" label="sales by period" />}
       </div>
 
       {empty ? (

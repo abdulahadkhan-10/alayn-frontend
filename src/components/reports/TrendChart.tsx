@@ -55,7 +55,7 @@ export default function TrendChart({ report, empty }: { report: ReportData; empt
       const c = current[i];
       const p = previous[i];
       return {
-        label: c?.label ?? "",
+        label: c?.label ?? p?.label ?? "",
         prevLabel: p?.label ?? null,
         current: c ? c.netSalesPaise / 100 : null,
         previous: p ? p.netSalesPaise / 100 : null,

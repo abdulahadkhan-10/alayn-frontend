@@ -15,6 +15,7 @@ import TrendChart from "@/components/reports/TrendChart";
 import TrendTable from "@/components/reports/TrendTable";
 import BreakdownTable from "@/components/reports/BreakdownTable";
 import ItemsTable from "@/components/reports/ItemsTable";
+import ExportMenu from "@/components/reports/ExportMenu";
 import HighlightsCard from "@/components/reports/HighlightsCard";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
@@ -58,33 +59,36 @@ function ReportSkeleton() {
   );
 }
 
-function ReportBody({ report }: { report: ReportData }) {
+function ReportBody({ report, params }: { report: ReportData; params: ReportParams }) {
   const empty = report.totals.current.orders === 0;
   const hasPrev = report.comparison != null;
   const noRows = empty ? "No sales in this period" : "Nothing to show with these filters";
-  const sales = { hasPrev, emptyMessage: noRows, subtitle: "Sales before tax" };
+  const sales = { hasPrev, params, emptyMessage: noRows, subtitle: "Sales before tax" };
 
   return (
     <div className="space-y-6">
       <HighlightsCard highlights={report.highlights} empty={empty} />
       <ComparisonKpis report={report} />
       <TrendChart report={report} empty={empty} />
-      <TrendTable report={report} empty={empty} />
+      <TrendTable report={report} empty={empty} params={params} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <BreakdownTable title="Channels" firstColumn="Channel" rows={report.channels} {...sales} />
+        <BreakdownTable title="Channels" section="channels" firstColumn="Channel" rows={report.channels} {...sales} />
         <BreakdownTable
           title="Payments"
+          section="payments"
           firstColumn="Payment method"
           rows={report.payments}
           {...sales}
           subtitle="Amounts received, including tax"
         />
-        <BreakdownTable title="Categories" firstColumn="Category" rows={report.categories} {...sales} subtitle="Item sales before bill discounts" />
-        <BreakdownTable title="Hours" firstColumn="Hour" rows={report.hours} {...sales} />
-        <BreakdownTable title="Weekdays" firstColumn="Weekday" rows={report.weekdays} {...sales} />
+        <BreakdownTable title="Categories" section="categories" firstColumn="Category" rows={report.categories} {...sales} subtitle="Item sales before bill discounts" />
+        <BreakdownTable title="Hours" section="hours" firstColumn="Hour" rows={report.hours} {...sales} />
+        <BreakdownTable title="Weekdays" section="weekdays" firstColumn="Weekday" rows={report.weekdays} {...sales} />
         <BreakdownTable
           title="Stock wasted"
+          section="waste"
+          params={params}
           firstColumn="Reason"
           rows={report.waste}
           hasPrev={hasPrev}
@@ -92,10 +96,10 @@ function ReportBody({ report }: { report: ReportData }) {
           subtitle="Value of stock logged as waste"
           emptyMessage="No stock logged as waste in this period"
         />
-        {report.outlets.length > 1 && <BreakdownTable title="Outlets" firstColumn="Outlet" rows={report.outlets} {...sales} />}
+        {report.outlets.length > 1 && <BreakdownTable title="Outlets" section="outlets" firstColumn="Outlet" rows={report.outlets} {...sales} />}
       </div>
 
-      <ItemsTable items={report.items} hasPrev={hasPrev} empty={empty} />
+      <ItemsTable items={report.items} hasPrev={hasPrev} empty={empty} params={params} />
 
       {report.notes.length > 0 && (
         <section className={`${CARD} p-5`} aria-label="Notes">
@@ -155,8 +159,7 @@ function ReportsContent() {
               : "Compare sales, orders and waste across any period"}
           </p>
         </div>
-        {/* Download slot: the PDF / Excel menu goes here (Task 8) */}
-        <div className="flex shrink-0 items-center gap-2" />
+        {ready && <div className="flex shrink-0 items-center gap-2"><ExportMenu params={params} /></div>}
       </div>
 
       <QuickCompare params={params} onChange={setParams} />
@@ -168,7 +171,11 @@ function ReportsContent() {
         currentOutlet={activeBranch ? { id: activeBranch.id, name: activeBranch.name } : null}
       />
 
-      {isError ? (
+      {!branchLoading && activeBranch == null ? (
+        <div className={`${CARD} p-8 text-center`}>
+          <p className="text-sm font-semibold text-slate-800">Pick an outlet to see its report.</p>
+        </div>
+      ) : isError ? (
         <div className={`${CARD} p-8 text-center`} role="alert">
           <p className="text-sm font-semibold text-slate-800">Couldn&apos;t load this report. Check the dates and try again.</p>
           {detail && <p className="mt-1 text-xs text-slate-500">{detail}</p>}
@@ -176,7 +183,7 @@ function ReportsContent() {
       ) : !report || isFetching ? (
         <ReportSkeleton />
       ) : (
-        <ReportBody report={report} />
+        <ReportBody report={report} params={params} />
       )}
     </div>
   );
