@@ -1,0 +1,117 @@
+import { baseApi } from "../store/baseApi";
+import { paramsToSearch, type ReportParams } from "@/lib/reportQuery";
+
+// Shapes copied from alayn-backend src/modules/reports/aggregate.ts and report.service.ts.
+// Money is integer paise throughout; format it only when showing it.
+
+export type ReportChannel = "TABLE" | "QR" | "COUNTER" | "DELIVERY";
+
+export interface ReportTotals {
+  netSalesPaise: number;
+  orders: number;
+  avgOrderPaise: number;
+  discountPaise: number;
+  taxPaise: number;
+  serviceChargePaise: number;
+  cancelledOrders: number;
+  cancelledPaise: number;
+  wastePaise: number;
+  itemsSold: number;
+}
+
+export interface ReportFigures {
+  netSalesPaise: number;
+  orders: number;
+}
+
+/** `key` is an identifier for the row only (categories use a lowercased name); show `label`. */
+export interface ReportBreakdownRow {
+  key: string;
+  label: string;
+  current: ReportFigures;
+  previous: ReportFigures | null;
+  changePct: number | null;
+  sharePct: number;
+}
+
+export interface ReportItemRow {
+  menuItemId: string;
+  name: string;
+  category: string;
+  qty: number;
+  salesPaise: number;
+  prevQty: number | null;
+  prevSalesPaise: number | null;
+  changePct: number | null;
+}
+
+export interface ReportTrendBucket {
+  label: string;
+  start: string;
+  netSalesPaise: number;
+  orders: number;
+  wastePaise: number;
+}
+
+export interface ReportData {
+  period: { start: string; end: string; label: string };
+  comparison: { start: string; end: string; label: string; compareLabel: string } | null;
+  totals: {
+    current: ReportTotals;
+    previous: ReportTotals | null;
+    changePct: Partial<Record<keyof ReportTotals, number | null>>;
+  };
+  trend: { granularity: "hour" | "day" | "week" | "month"; current: ReportTrendBucket[]; previous: ReportTrendBucket[] };
+  channels: ReportBreakdownRow[];
+  payments: ReportBreakdownRow[];
+  categories: ReportBreakdownRow[];
+  outlets: ReportBreakdownRow[];
+  hours: ReportBreakdownRow[];
+  weekdays: ReportBreakdownRow[];
+  /** netSalesPaise holds the waste cost and orders the number of entries */
+  waste: ReportBreakdownRow[];
+  items: ReportItemRow[];
+  highlights: string[];
+  notes: string[];
+  scope: { outletNames: string[]; businessName: string };
+}
+
+/** Categories come per outlet, so one name can appear several times with different ids. */
+export interface ReportOptions {
+  outlets: { id: string; name: string }[];
+  categories: { id: string; name: string }[];
+  channels: { key: ReportChannel; label: string }[];
+  earliestSale: string | null;
+}
+
+/**
+ * Several outlets need the "all" outlet header plus the chosen ids; one outlet is sent as the
+ * header alone; none chosen leaves baseApi's current branch header in place.
+ */
+export function reportRequest(params: ReportParams): { query: string; outletHeader?: string } {
+  const outlets = params.outlets ?? [];
+  if (outlets.length > 1) return { query: paramsToSearch(params), outletHeader: "all" };
+  const query = paramsToSearch({ ...params, outlets: undefined });
+  return outlets.length === 1 ? { query, outletHeader: outlets[0] } : { query };
+}
+
+export const reportsApiSlice = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getReport: builder.query<ReportData, ReportParams>({
+      query: (params) => {
+        const { query, outletHeader } = reportRequest(params);
+        return {
+          url: `/reports${query ? `?${query}` : ""}`,
+          headers: outletHeader ? { "x-outlet-id": outletHeader } : undefined,
+        };
+      },
+      transformResponse: (response: { data: ReportData }) => response.data,
+    }),
+    getReportOptions: builder.query<ReportOptions, void>({
+      query: () => ({ url: "/reports/options" }),
+      transformResponse: (response: { data: ReportOptions }) => response.data,
+    }),
+  }),
+});
+
+export const { useGetReportQuery, useGetReportOptionsQuery } = reportsApiSlice;
