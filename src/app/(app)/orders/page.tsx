@@ -9,6 +9,7 @@ import {
   useUpdateOrderStatusMutation,
   useSetServiceChargeWaiverMutation,
   Order,
+  SplitPaymentPart,
 } from "@/redux/slices/orderApiSlice";
 import { useAppSelector } from "@/redux/store/hooks";
 import { useBranch } from "@/lib/BranchContext";
@@ -62,9 +63,18 @@ import {
   getCustomerPaymentClaims,
   getPaymentLines,
   isOnlineMethod,
+  isPlatformMethod,
   summarizeSplit,
   toPaymentPayload,
+  type SettleMethodCode,
 } from "@/lib/splitPayment";
+
+// Dine-in partner platforms: brand colour for the method buttons
+const PLATFORM_META = {
+  SWIGGY: { label: "Swiggy", dot: "bg-[#FC8019]" },
+  ZOMATO: { label: "Zomato", dot: "bg-[#E23744]" },
+  EAZYDINER: { label: "EazyDiner", dot: "bg-[#FF6F00]" },
+} as const;
 
 /**
  * The bill the settle modal shows and collects, in paise — same formula as the server's final
@@ -284,9 +294,7 @@ export default function LiveOrdersPage() {
   ];
   const [selectedCancelPreset, setSelectedCancelPreset] = useState<string>("Customer changed mind");
   const [customCancelReason, setCustomCancelReason] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">(
-    "UPI"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<SettleMethodCode>("UPI");
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   // Split payment at settlement
@@ -436,7 +444,7 @@ export default function LiveOrdersPage() {
   const handleStatusChange = async (
     orderId: string,
     nextStatus: Order["status"],
-    methodOrComment?: "CASH" | "CARD" | "UPI" | string,
+    methodOrComment?: SettleMethodCode | string,
     custName?: string,
     custPhone?: string,
     couponPayload?: {
@@ -446,7 +454,7 @@ export default function LiveOrdersPage() {
       discountPaise?: number;
     },
     settlement?: {
-      payments?: ReturnType<typeof toPaymentPayload>;
+      payments?: SplitPaymentPart[];
       idempotencyKey?: string;
       allowDuplicateReference?: boolean;
     }
@@ -455,7 +463,10 @@ export default function LiveOrdersPage() {
       const isPaymentMethod =
         methodOrComment === "CASH" ||
         methodOrComment === "CARD" ||
-        methodOrComment === "UPI";
+        methodOrComment === "UPI" ||
+        methodOrComment === "SWIGGY" ||
+        methodOrComment === "ZOMATO" ||
+        methodOrComment === "EAZYDINER";
       const updatedResult = await updateOrderStatus({
         id: orderId,
         status: nextStatus,
@@ -1903,12 +1914,16 @@ export default function LiveOrdersPage() {
                       >
                       {paymentMode === "SINGLE" ? (
                         <div className="space-y-2">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-6 gap-2">
                           {(
                             [
                               { value: "UPI", label: "UPI / QR", icon: QrCode },
                               { value: "CASH", label: "Cash", icon: Banknote },
                               { value: "CARD", label: "Card", icon: CreditCard },
+                              // Dine-in booked on partner apps: Swiggy, Zomato, EazyDiner
+                              { value: "SWIGGY", label: PLATFORM_META.SWIGGY.label, icon: null },
+                              { value: "ZOMATO", label: PLATFORM_META.ZOMATO.label, icon: null },
+                              { value: "EAZYDINER", label: PLATFORM_META.EAZYDINER.label, icon: null },
                             ] as const
                           ).map(({ value, label, icon: Icon }) => {
                             const isSelected = paymentMethod === value;
@@ -1916,22 +1931,74 @@ export default function LiveOrdersPage() {
                               <button
                                 key={value}
                                 type="button"
-                                onClick={() => setPaymentMethod(value)}
+                                onClick={() => {
+                                  setSettleError(null);
+                                  setPaymentMethod(value);
+                                }}
                                 aria-pressed={isSelected}
-                                className={`py-2.5 px-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+                                className={`col-span-2 py-2.5 px-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
                                   isSelected
                                     ? "bg-slate-900 text-white border-slate-900 shadow-sm"
                                     : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                                 }`}
                               >
-                                <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                                {Icon ? (
+                                  <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                                ) : (
+                                  <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[value].dot}`} />
+                                )}
                                 <span>{label}</span>
                               </button>
                             );
                           })}
                         </div>
+                        {/* Swiggy / Zomato / EazyDiner dine-in: overall bill settlement */}
+                        {isPlatformMethod(paymentMethod) && (() => {
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          const app = PLATFORM_META[paymentMethod].label;
+                          return (
+                            <div
+                              className={`rounded-xl border p-3 space-y-2.5 transition-colors ${
+                                confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                              }`}
+                            >
+                              <div className="flex justify-between items-center text-xs font-semibold px-0.5">
+                                <span className="text-slate-700 flex items-center gap-1.5">
+                                  <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[paymentMethod].dot}`} />
+                                  Dine-in bill via {app}
+                                </span>
+                                <span className="text-slate-900 font-bold tabular-nums text-sm">{formatPaise(balanceDuePaise)}</span>
+                              </div>
+                              <label className="flex items-start gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={confirmed}
+                                  onChange={(e) => {
+                                    setSettleError(null);
+                                    setReceivedConfirmation(
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                    );
+                                  }}
+                                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                                />
+                                <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
+                                  I&apos;ve verified payment was completed in the {app} app
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                aria-label={`${app} booking ID`}
+                                placeholder={`${app} booking / reference ID (optional)`}
+                                value={paymentReferenceFor(settlingOrder)}
+                                maxLength={64}
+                                onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-slate-800 transition placeholder:font-sans placeholder:text-slate-400"
+                              />
+                            </div>
+                          );
+                        })()}
                         {/* UPI / card money lands outside the till: the cashier confirms it arrived before settling */}
-                        {isOnlineMethod(paymentMethod) && (() => {
+                        {isOnlineMethod(paymentMethod) && !isPlatformMethod(paymentMethod) && (() => {
                           const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
                           return (
                             <div
@@ -2070,6 +2137,7 @@ export default function LiveOrdersPage() {
                       return summarizeSplit(splitLines, balanceDuePaise).blocker || "Settle & Print Receipt";
                     }
                     if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
+                      if (isPlatformMethod(paymentMethod)) return `Confirm ${PLATFORM_META[paymentMethod].label} payment`;
                       return paymentMethod === "UPI" ? "Confirm UPI received" : "Confirm card payment";
                     }
                     return "Settle & Print Receipt";

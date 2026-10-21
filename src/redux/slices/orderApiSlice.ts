@@ -23,13 +23,13 @@ export interface OrderItem {
   };
 }
 
-/** One part of a split payment. Amounts are whole paise. */
+/** One part of a payment or split payment. Amounts are whole paise. */
 export interface SplitPaymentPart {
-  method: "CASH" | "CARD" | "UPI";
+  method: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
   amountPaise: number;
-  /** UPI UTR / card approval code */
+  /** UPI UTR / card approval code / partner order ref */
   reference?: string;
-  /** Cashier confirmed an online payment was received (required for UPI / card at settlement) */
+  /** Cashier confirmed an online payment was received (required for UPI / card / partner at settlement) */
   verified?: boolean;
 }
 
@@ -82,12 +82,12 @@ export interface Order {
   couponCode?: string | null;
   couponId?: string | null;
   /** "SPLIT" when the bill was paid with more than one method */
-  paymentMethod: "CASH" | "CARD" | "UPI" | "SPLIT";
+  paymentMethod: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER" | "SPLIT";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   isSplitPayment?: boolean;
   /** Confirmed payments on the bill, one per part of a split */
-  paymentSplits?: { method: "CASH" | "CARD" | "UPI"; amountPaise: number; amount: number; reference: string | null }[];
-  payments?: { id: string; method: "CASH" | "CARD" | "UPI"; amountPaise: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
+  paymentSplits?: { method: string; amountPaise: number; amount: number; reference: string | null }[];
+  payments?: { id: string; method: string; amountPaise: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
   paidAmount?: number;
   balanceDue?: number;
   balanceDuePaise?: number;
@@ -160,7 +160,7 @@ export const orderApi = baseApi.injectEndpoints({
         id: string;
         status: Order["status"];
         comment?: string;
-        paymentMethod?: "CASH" | "CARD" | "UPI";
+        paymentMethod?: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
         /** Settle with a split instead of one paymentMethod */
         payments?: SplitPaymentPart[];
         /** Same key for retries of one settle attempt — the server never settles twice */

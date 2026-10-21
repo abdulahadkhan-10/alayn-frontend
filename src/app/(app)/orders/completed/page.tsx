@@ -389,14 +389,16 @@ export default function CompletedOrdersPage() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(["CASH", "UPI", "CARD"] as const).map((method) => {
+            {(["CASH", "UPI", "CARD", "SWIGGY", "ZOMATO", "EAZYDINER"] as const)
+              .filter((method) => collectionsByMethod.totals[method]?.bills > 0 || !["SWIGGY", "ZOMATO", "EAZYDINER"].includes(method))
+              .map((method) => {
               const entry = collectionsByMethod.totals[method];
               return (
                 <div key={method} className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
                   <span className="block text-[11px] font-bold text-gray-500">{PAYMENT_METHOD_LABELS[method]}</span>
-                  <span className="block text-lg font-bold text-[#1B2A4A] tabular-nums">{formatPaise(entry.paise)}</span>
+                  <span className="block text-lg font-bold text-[#1B2A4A] tabular-nums">{formatPaise(entry?.paise || 0)}</span>
                   <span className="block text-[10px] text-gray-400 font-medium">
-                    {entry.bills} bill{entry.bills === 1 ? "" : "s"}
+                    {entry?.bills || 0} bill{(entry?.bills || 0) === 1 ? "" : "s"}
                   </span>
                 </div>
               );
@@ -485,6 +487,9 @@ export default function CompletedOrdersPage() {
                 <option value="CASH">Cash</option>
                 <option value="CARD">Card</option>
                 <option value="UPI">UPI</option>
+                <option value="SWIGGY">Swiggy</option>
+                <option value="ZOMATO">Zomato</option>
+                <option value="EAZYDINER">EazyDiner</option>
               </select>
             </div>
 

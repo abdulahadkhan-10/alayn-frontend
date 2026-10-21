@@ -7,13 +7,33 @@
  */
 
 export type PaymentMethodCode = "CASH" | "CARD" | "UPI";
+export type PlatformMethodCode = "SWIGGY" | "ZOMATO" | "EAZYDINER";
+export type SettleMethodCode = PaymentMethodCode | PlatformMethodCode;
 
 export const PAYMENT_METHODS: PaymentMethodCode[] = ["UPI", "CASH", "CARD"];
-export const PAYMENT_METHOD_LABELS: Record<string, string> = { UPI: "UPI / QR", CASH: "Cash", CARD: "Card", SPLIT: "Split" };
-const SHORT_LABELS: Record<string, string> = { UPI: "UPI", CASH: "Cash", CARD: "Card" };
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  UPI: "UPI / QR",
+  CASH: "Cash",
+  CARD: "Card",
+  SWIGGY: "Swiggy",
+  ZOMATO: "Zomato",
+  EAZYDINER: "EazyDiner",
+  SPLIT: "Split",
+};
+const SHORT_LABELS: Record<string, string> = {
+  UPI: "UPI",
+  CASH: "Cash",
+  CARD: "Card",
+  SWIGGY: "Swiggy",
+  ZOMATO: "Zomato",
+  EAZYDINER: "EazyDiner",
+};
+
+export const isPlatformMethod = (method: string): method is PlatformMethodCode =>
+  method === "SWIGGY" || method === "ZOMATO" || method === "EAZYDINER";
 
 /** Money arrives outside the till, so the cashier must confirm it was received */
-export const isOnlineMethod = (method: string) => method === "UPI" || method === "CARD";
+export const isOnlineMethod = (method: string) => method === "UPI" || method === "CARD" || isPlatformMethod(method);
 
 export const MAX_SPLIT_PAYMENTS = 6;
 
