@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, BaseQueryApi, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
-import { API_BASE_URL, API_VERSION } from "@/lib/apiBase";
+import { API_BASE_URL, API_VERSION, activeOutletId } from "@/lib/apiBase";
 import { refreshSession } from "@/lib/authSession";
 import { verifySession, type AuthState } from "../slices/authSlice";
 
@@ -20,11 +20,9 @@ const baseQuery = fetchBaseQuery({
     credentials: "include",
     prepareHeaders: (headers) => {
         headers.set("x-portal", "tenant");
-        if (typeof window !== "undefined") {
-            const outletId = localStorage.getItem("alayn_active_branch_id");
-            if (outletId && !headers.has("x-outlet-id")) {
-                headers.set("x-outlet-id", outletId);
-            }
+        const outletId = activeOutletId();
+        if (outletId && !headers.has("x-outlet-id")) {
+            headers.set("x-outlet-id", outletId);
         }
         return headers;
     },

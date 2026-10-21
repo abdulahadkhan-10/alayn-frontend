@@ -1,19 +1,9 @@
-import { API_BASE_URL } from "@/lib/apiBase";
+import { API_BASE_URL, activeOutletId } from "@/lib/apiBase";
 import { refreshSession } from "@/lib/authSession";
 import { reportRequest } from "@/redux/slices/reportsApiSlice";
 import type { ReportParams } from "@/lib/reportQuery";
 
 export type DownloadFormat = "pdf" | "xlsx" | "csv";
-
-/** Same rule as baseApi: an explicit outlet choice wins, otherwise the active branch. */
-function outletHeader(chosen: string | undefined): string | null {
-  if (chosen) return chosen;
-  try {
-    return localStorage.getItem("alayn_active_branch_id");
-  } catch {
-    return null;
-  }
-}
 
 async function readError(res: Response): Promise<string> {
   try {
@@ -51,7 +41,7 @@ export async function downloadReport(params: ReportParams, format: DownloadForma
   const url = `${API_BASE_URL}/reports/export?${search.toString()}`;
 
   const headers: Record<string, string> = { "x-portal": "tenant" };
-  const outlet = outletHeader(chosen);
+  const outlet = chosen ?? activeOutletId();
   if (outlet) headers["x-outlet-id"] = outlet;
 
   let res = await fetch(url, { credentials: "include", headers });
