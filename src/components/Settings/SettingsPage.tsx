@@ -47,6 +47,7 @@ import {
   Tag,
 } from "lucide-react";
 import CouponsSettingsTab from "./CouponsSettingsTab";
+import ReportEmailsCard from "./ReportEmailsCard";
 
 export default function SettingsPage() {
   const { activeBranch } = useBranch();
@@ -598,6 +599,8 @@ export default function SettingsPage() {
         {activeTab === "GENERAL" && (
           /* General Store Preferences View */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Weekly / monthly report emails (owners only) */}
+            {user?.role === "BUSINESS_OWNER" && <ReportEmailsCard />}
             {/* Dining & Table Ordering Operational Mode Card */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

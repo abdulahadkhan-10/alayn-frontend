@@ -84,6 +84,14 @@ export interface ReportOptions {
   earliestSale: string | null;
 }
 
+/** One emailed report schedule. `outletId: null` means every outlet. */
+export interface ReportSchedule {
+  frequency: "WEEKLY" | "MONTHLY";
+  enabled: boolean;
+  recipients: string[];
+  outletId: string | null;
+}
+
 /**
  * Several outlets need the "all" outlet header plus the chosen ids; one outlet is sent as the
  * header alone; none chosen leaves baseApi's current branch header in place.
@@ -111,7 +119,27 @@ export const reportsApiSlice = baseApi.injectEndpoints({
       query: () => ({ url: "/reports/options" }),
       transformResponse: (response: { data: ReportOptions }) => response.data,
     }),
+    getReportSchedule: builder.query<ReportSchedule[], void>({
+      query: () => ({ url: "/reports/schedule" }),
+      transformResponse: (response: { data: ReportSchedule[] }) => response.data,
+      providesTags: ["ReportSchedule"],
+    }),
+    saveReportSchedule: builder.mutation<ReportSchedule[], ReportSchedule>({
+      query: (body) => ({ url: "/reports/schedule", method: "PUT", body }),
+      transformResponse: (response: { data: ReportSchedule[] }) => response.data,
+      invalidatesTags: ["ReportSchedule"],
+    }),
+    sendTestReportEmail: builder.mutation<{ sent: boolean }, { outletId: string | null }>({
+      query: (body) => ({ url: "/reports/schedule/test", method: "POST", body }),
+      transformResponse: (response: { data: { sent: boolean } }) => response.data,
+    }),
   }),
 });
 
-export const { useGetReportQuery, useGetReportOptionsQuery } = reportsApiSlice;
+export const {
+  useGetReportQuery,
+  useGetReportOptionsQuery,
+  useGetReportScheduleQuery,
+  useSaveReportScheduleMutation,
+  useSendTestReportEmailMutation,
+} = reportsApiSlice;

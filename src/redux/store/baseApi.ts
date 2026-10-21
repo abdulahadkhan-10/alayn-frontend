@@ -141,6 +141,7 @@ export const baseApi = createApi({
         "Subscription",
         "RestaurantCoupons",
         "ModifierGroups",
+        "ReportSchedule",
     ],
 
     endpoints: () => ({}),
