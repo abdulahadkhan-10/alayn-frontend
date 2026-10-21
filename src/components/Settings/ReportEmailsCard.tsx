@@ -25,8 +25,11 @@ const FREQUENCY_COPY: Record<Frequency, { title: string; when: string }> = {
   MONTHLY: { title: "Monthly report", when: "On the 1st at 9 AM, covering last month" },
 };
 
-const errorMessage = (err: unknown, fallback: string) =>
-  (err as { data?: { message?: string } })?.data?.message || fallback;
+// The API sends { error: { message } }; a plain { message } is still read just in case
+const errorMessage = (err: unknown, fallback: string) => {
+  const data = (err as { data?: { error?: { message?: string }; message?: string } })?.data;
+  return data?.error?.message || data?.message || fallback;
+};
 
 /**
  * Owner-only card: weekly and monthly sales reports emailed as a PDF.
