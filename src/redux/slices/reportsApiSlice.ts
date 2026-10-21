@@ -86,7 +86,7 @@ export interface ReportOptions {
 
 /** One emailed report schedule. `outletId: null` means every outlet. */
 export interface ReportSchedule {
-  frequency: "WEEKLY" | "MONTHLY";
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY";
   enabled: boolean;
   recipients: string[];
   outletId: string | null;

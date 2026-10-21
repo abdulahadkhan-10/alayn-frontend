@@ -17,7 +17,10 @@ type Frequency = ReportSchedule["frequency"];
 const MAX_RECIPIENTS = 5;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const FREQUENCIES: Frequency[] = ["DAILY", "WEEKLY", "MONTHLY"];
+
 const FREQUENCY_COPY: Record<Frequency, { title: string; when: string }> = {
+  DAILY: { title: "Daily report", when: "Every morning at 9 AM: yesterday vs the same day last week" },
   WEEKLY: { title: "Weekly report", when: "Every Monday at 9 AM, covering last week (Mon–Sun)" },
   MONTHLY: { title: "Monthly report", when: "On the 1st at 9 AM, covering last month" },
 };
@@ -46,6 +49,7 @@ export default function ReportEmailsCard() {
   const saved = schedules.find((s) => s.recipients.length > 0);
   const initial: FormValues = {
     enabled: {
+      DAILY: schedules.find((s) => s.frequency === "DAILY")?.enabled ?? false,
       WEEKLY: schedules.find((s) => s.frequency === "WEEKLY")?.enabled ?? false,
       MONTHLY: schedules.find((s) => s.frequency === "MONTHLY")?.enabled ?? false,
     },
@@ -110,7 +114,7 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
   const handleSave = async () => {
     if (recipients.length === 0) return toast.error("Add at least one recipient");
     try {
-      for (const frequency of ["WEEKLY", "MONTHLY"] as Frequency[]) {
+      for (const frequency of FREQUENCIES) {
         await saveSchedule({ frequency, enabled: enabled[frequency], recipients, outletId }).unwrap();
       }
       setDirty(false);
@@ -146,8 +150,8 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
       }
     >
       <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(["WEEKLY", "MONTHLY"] as Frequency[]).map((frequency) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {FREQUENCIES.map((frequency) => {
               const on = enabled[frequency];
               return (
                 <label
