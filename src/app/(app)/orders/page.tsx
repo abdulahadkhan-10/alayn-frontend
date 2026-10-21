@@ -1823,7 +1823,7 @@ export default function LiveOrdersPage() {
 
                 {/* ── Bill Items Review & Manager Edit before settlement ── */}
                 {(() => {
-                  const rawItems = settlingOrder.items || settlingOrder.orderItems || (settlingOrder as any).items || [];
+                  const rawItems = settlingOrder.orderItems || (settlingOrder as any).items || [];
                   const activeItems = rawItems.filter((i: any) => i.status !== "CANCELLED");
                   const cancelledItems = rawItems.filter((i: any) => i.status === "CANCELLED");
 
