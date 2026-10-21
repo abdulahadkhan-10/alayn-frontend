@@ -95,7 +95,12 @@ export default function MasterDashboardPage(props?: PageProps) {
   const [startDate, setStartDate] = useState<string>(istDate(7));
   const [endDate, setEndDate] = useState<string>(istDate());
 
-  const { data: kpiData, isLoading: isKpiLoading } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
+  const { data: kpiData, isLoading: isKpiLoading, isError: isKpiError, error: kpiError } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
+  // e.g. a custom range over 400 days: say so instead of showing ₹0 everywhere
+  const kpiErrorMessage = isKpiError
+    ? (kpiError as { data?: { error?: { message?: string } } } | undefined)?.data?.error?.message ||
+      "Couldn't load figures for these dates."
+    : null;
   const { data: topSelling = [] } = useGetTopSellingItemsQuery({ outletId, range: dateRange, startDate, endDate });
 
   // Only orders still open: the Right now card counts and lists those, and fetching every past order is slow
@@ -215,13 +220,19 @@ export default function MasterDashboardPage(props?: PageProps) {
                 {dateRange === "CUSTOM" && (
                   <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="w-36">
-                      <CustomDatePicker value={startDate} onChange={setStartDate} />
+                      <CustomDatePicker value={startDate} onChange={setStartDate} maxDate={endDate} />
                     </div>
                     <span className="text-xs text-slate-500 font-medium">to</span>
                     <div className="w-36">
-                      <CustomDatePicker value={endDate} onChange={setEndDate} />
+                      <CustomDatePicker value={endDate} onChange={setEndDate} minDate={startDate} />
                     </div>
                   </div>
+                )}
+
+                {kpiErrorMessage && (
+                  <p role="alert" className="basis-full text-sm text-rose-600 lg:text-right">
+                    {kpiErrorMessage}
+                  </p>
                 )}
               </div>
             </div>
