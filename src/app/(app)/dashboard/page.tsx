@@ -29,7 +29,7 @@ interface PageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type RangeType = "TODAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH";
+type RangeType = "TODAY" | "YESTERDAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH" | "LAST_MONTH";
 
 /** "YYYY-MM-DD" for India time, n days ago (toISOString would give the UTC date, a day behind before 5:30 AM) */
 const istDate = (daysAgo = 0) =>
@@ -38,15 +38,29 @@ const istDate = (daysAgo = 0) =>
 /** How the selected date range reads in card subtitles ("No dishes sold this month") */
 const RANGE_LABELS: Record<RangeType, string> = {
   TODAY: "today",
+  YESTERDAY: "yesterday",
   "7_DAY": "in the last 7 days",
   THIS_MONTH: "this month",
+  LAST_MONTH: "last month",
   CUSTOM: "in the selected dates",
+};
+
+/** The report preset that matches each Overview range, for the "Compare in detail" link */
+const REPORT_PRESETS: Record<RangeType, string> = {
+  TODAY: "TODAY",
+  YESTERDAY: "YESTERDAY",
+  "7_DAY": "LAST_7_DAYS",
+  THIS_MONTH: "THIS_MONTH",
+  LAST_MONTH: "LAST_MONTH",
+  CUSTOM: "CUSTOM",
 };
 
 const RANGE_OPTIONS: { value: RangeType; label: string }[] = [
   { value: "TODAY", label: "Today" },
+  { value: "YESTERDAY", label: "Yesterday" },
   { value: "7_DAY", label: "7 Days" },
   { value: "THIS_MONTH", label: "This Month" },
+  { value: "LAST_MONTH", label: "Last Month" },
   { value: "CUSTOM", label: "Choose Date" },
 ];
 
@@ -81,7 +95,12 @@ export default function MasterDashboardPage(props?: PageProps) {
   const [startDate, setStartDate] = useState<string>(istDate(7));
   const [endDate, setEndDate] = useState<string>(istDate());
 
-  const { data: kpiData, isLoading: isKpiLoading } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
+  const { data: kpiData, isLoading: isKpiLoading, isError: isKpiError, error: kpiError } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
+  // e.g. a custom range over 400 days: say so instead of showing ₹0 everywhere
+  const kpiErrorMessage = isKpiError
+    ? (kpiError as { data?: { error?: { message?: string } } } | undefined)?.data?.error?.message ||
+      "Couldn't load figures for these dates."
+    : null;
   const { data: topSelling = [] } = useGetTopSellingItemsQuery({ outletId, range: dateRange, startDate, endDate });
 
   // Only orders still open: the Right now card counts and lists those, and fetching every past order is slow
@@ -111,6 +130,13 @@ export default function MasterDashboardPage(props?: PageProps) {
         createdAt: o.createdAt ?? null,
       }));
   }, [realOrders]);
+
+  const compareParams = new URLSearchParams({ preset: REPORT_PRESETS[dateRange], compare: "PREVIOUS" });
+  if (dateRange === "CUSTOM") {
+    compareParams.set("from", startDate);
+    compareParams.set("to", endDate);
+  }
+  const compareHref = `/reports?${compareParams.toString()}`;
 
   const kpis = [
     {
@@ -194,13 +220,19 @@ export default function MasterDashboardPage(props?: PageProps) {
                 {dateRange === "CUSTOM" && (
                   <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="w-36">
-                      <CustomDatePicker value={startDate} onChange={setStartDate} />
+                      <CustomDatePicker value={startDate} onChange={setStartDate} maxDate={endDate} />
                     </div>
                     <span className="text-xs text-slate-500 font-medium">to</span>
                     <div className="w-36">
-                      <CustomDatePicker value={endDate} onChange={setEndDate} />
+                      <CustomDatePicker value={endDate} onChange={setEndDate} minDate={startDate} />
                     </div>
                   </div>
+                )}
+
+                {kpiErrorMessage && (
+                  <p role="alert" className="basis-full text-sm text-rose-600 lg:text-right">
+                    {kpiErrorMessage}
+                  </p>
                 )}
               </div>
             </div>
@@ -244,9 +276,18 @@ export default function MasterDashboardPage(props?: PageProps) {
                       ))}
                   </div>
                   {kpi.note && <p className="mt-1.5 text-xs leading-snug text-slate-500">{kpi.note}</p>}
-                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500 tabular-nums">Before: {kpi.prev}</p>
+                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500 tabular-nums">{kpiData?.comparison?.label || "Before"}: {kpi.prev}</p>
                 </Link>
               ))}
+            </div>
+
+            <div className="-mt-3 flex justify-end">
+              <Link
+                href={compareHref}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Compare in detail →
+              </Link>
             </div>
 
             {/* What to act on right now — directly under the numbers */}

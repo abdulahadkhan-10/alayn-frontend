@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -18,11 +19,21 @@ const components: Components = {
   li: ({ children }) => <li className="pl-1 leading-7 text-slate-200">{children}</li>,
   hr: () => <hr className="my-5 border-white/10" />,
   blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-white/15 pl-4 text-slate-300">{children}</blockquote>,
-  a: ({ children, href }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-rose-300 underline underline-offset-2 hover:text-rose-200">
-      {children}
-    </a>
-  ),
+  a: ({ children, href }) => {
+    // Links into the app (like the full report) open in the same tab; everything else leaves the app
+    if (href && href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\")) {
+      return (
+        <Link href={href} className="text-rose-300 underline underline-offset-2 hover:text-rose-200">
+          {children}
+        </Link>
+      );
+    }
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-rose-300 underline underline-offset-2 hover:text-rose-200">
+        {children}
+      </a>
+    );
+  },
   code: ({ children }) => <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[13px] text-slate-100">{children}</code>,
   table: ({ children }) => (
     <div className="my-4 overflow-x-auto rounded-xl border border-white/10">

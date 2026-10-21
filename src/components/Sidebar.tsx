@@ -27,6 +27,7 @@ import {
   LogOut,
   Loader2,
   Lock,
+  FileBarChart,
 } from "lucide-react";
 import { cn, formatRole } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
@@ -63,6 +64,7 @@ const CATEGORY_ORDER: NavCategory[] = [
 
 const ownerNavItems: NavItem[] = [
   { name: "Overview", icon: LayoutGrid, href: "/dashboard", category: "Core" },
+  { name: "Reports", icon: FileBarChart, href: "/reports", category: "Core" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos", category: "Service & Floor" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders", category: "Service & Floor" },
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen", category: "Service & Floor" },
@@ -78,6 +80,7 @@ const ownerNavItems: NavItem[] = [
 
 const managerNavItems: NavItem[] = [
   { name: "Overview", icon: LayoutGrid, href: "/dashboard", category: "Core" },
+  { name: "Reports", icon: FileBarChart, href: "/reports", category: "Core" },
   { name: "POS Terminal", icon: CreditCard, href: "/pos", category: "Service & Floor" },
   { name: "Live Orders", icon: ClipboardList, href: "/orders", category: "Service & Floor" },
   { name: "Kitchen Dispatch", icon: ChefHat, href: "/kitchen", category: "Service & Floor" },

@@ -6,9 +6,10 @@ interface CustomDatePickerProps {
   value: string; // YYYY-MM-DD
   onChange: (date: string) => void;
   minDate?: string; // YYYY-MM-DD
+  maxDate?: string; // YYYY-MM-DD
 }
 
-export function CustomDatePicker({ value, onChange, minDate }: CustomDatePickerProps) {
+export function CustomDatePicker({ value, onChange, minDate, maxDate }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -117,7 +118,7 @@ export function CustomDatePicker({ value, onChange, minDate }: CustomDatePickerP
                   const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
 
                   const isSelected = value && parseInt(value.split('-')[2], 10) === day && parseInt(value.split('-')[1], 10) === currentMonth + 1 && parseInt(value.split('-')[0], 10) === currentYear;
-                  const isDisabled = minDate ? dateStr < minDate : false;
+                  const isDisabled = (minDate ? dateStr < minDate : false) || (maxDate ? dateStr > maxDate : false);
 
                   return (
                     <button
