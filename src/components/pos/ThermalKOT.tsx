@@ -9,6 +9,7 @@ import {
   isWebBluetoothSupported,
   getConnectedPrinterName,
 } from "@/lib/bluetoothAutoPrinter";
+import { billItemRows } from "@/lib/billLines";
 
 export interface ThermalKOTProps {
   order: {
@@ -165,7 +166,7 @@ export default function ThermalKOT({
 
   const handlePrint = async () => {
     setIsPrinting(true);
-    const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
+    const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
 
     const kotHtml = `
       <!DOCTYPE html>
@@ -180,11 +181,14 @@ export default function ThermalKOT({
             }
             @media print {
               html, body {
-                width: ${printWidth};
-                margin: 0 auto;
-                padding: 0;
+                width: ${printWidth} !important;
+                max-width: ${printWidth} !important;
+                margin: 0 auto !important;
+                padding: 0 1.5mm !important;
                 background: #fff !important;
                 color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
             }
             * {
@@ -194,10 +198,11 @@ export default function ThermalKOT({
             }
             body {
               width: ${printWidth};
+              max-width: ${printWidth};
               margin: 0 auto;
-              padding: 4mm 2mm;
+              padding: 2mm 1.5mm 16mm 1.5mm;
               font-size: 13px;
-              line-height: 1.3;
+              line-height: 1.25;
             }
             .center { text-align: center; }
             .bold { font-weight: 900; }
@@ -206,48 +211,62 @@ export default function ThermalKOT({
               padding: 6px;
               text-align: center;
               font-weight: 900;
-              margin: 8px 0;
+              margin: 6px 0;
             }
             .meta-table {
               width: 100%;
               border-top: 1px dashed #000;
               border-bottom: 1px dashed #000;
-              padding: 6px 0;
-              margin: 6px 0;
+              padding: 5px 0;
+              margin: 5px 0;
               font-size: 12px;
             }
             .meta-row {
               display: flex;
               justify-content: space-between;
-              margin: 3px 0;
+              margin: 2px 0;
             }
-            .items-header {
-              display: flex;
-              justify-content: space-between;
+            .kot-items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 6px;
+            }
+            .kot-items-table th {
+              border-bottom: 1.5px solid #000;
               font-weight: 900;
-              border-bottom: 1px solid #000;
+              padding: 3px 0;
+              font-size: 12px;
+            }
+            .kot-items-table td {
               padding: 4px 0;
-              margin-top: 8px;
+              vertical-align: top;
+              border-bottom: 1px dotted #888;
             }
-            .item-row {
-              display: flex;
-              justify-content: space-between;
-              padding: 6px 0;
-              border-bottom: 1px dotted #aaa;
+            .item-name-cell {
+              padding-right: 6px;
+              word-break: break-word;
+              overflow-wrap: break-word;
             }
-            .item-qty {
+            .item-qty-cell {
+              text-align: right;
+              white-space: nowrap;
+              width: 44px;
+            }
+            .item-qty-box {
               border: 1.5px solid #000;
               padding: 1px 6px;
               font-weight: 900;
-              min-width: 26px;
+              min-width: 24px;
               text-align: center;
+              display: inline-block;
+              font-size: 14px;
             }
             .footer-line {
               text-align: center;
               font-weight: 900;
               border-top: 1.5px dashed #000;
-              margin-top: 14px;
-              padding-top: 8px;
+              margin-top: 10px;
+              padding-top: 6px;
               font-size: 11px;
             }
           </style>
@@ -256,7 +275,7 @@ export default function ThermalKOT({
           <div class="center bold" style="font-size: 15px; text-transform: uppercase;">
             ${outletName}
           </div>
-          <div class="center" style="font-size: 11px; margin-bottom: 6px;">
+          <div class="center" style="font-size: 11px; margin-bottom: 4px;">
             KITCHEN ORDER TICKET (KOT)
           </div>
 
@@ -269,13 +288,13 @@ export default function ThermalKOT({
               </div>
             `
               : `
-              <div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 2px 8px; display: inline-block; margin: 4px 0;">
+              <div class="center bold" style="font-size: 12px; border: 1.5px solid #000; padding: 2px 8px; display: inline-block; margin: 3px 0;">
                 KOT #${maxKotNo}
               </div>
             `
           }
 
-          <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 6px 0;">
+          <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 5px 0;">
             ${tableDisplay.toUpperCase()} (${orderSource})
           </div>
 
@@ -300,30 +319,44 @@ export default function ThermalKOT({
             }
           </div>
 
-          <div class="items-header">
-            <span>ITEM</span>
-            <span>QTY</span>
-          </div>
-
-          ${itemsList
-            .map((item: any) => {
-              const name = item.menuItem?.name || item.menuItemName || "Item";
-              const note = item.notes ? `<div style="font-size: 10px; font-style: italic; margin-left: 10px;">Note: ${item.notes}</div>` : "";
-              return `
-                <div class="item-row">
-                  <div style="flex: 1; padding-right: 8px;">
-                    <span class="bold">${name}</span>
-                    ${note}
-                  </div>
-                  <div class="item-qty">${item.quantity}</div>
-                </div>
-              `;
-            })
-            .join("")}
+          <table class="kot-items-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">ITEM</th>
+                <th style="text-align: right;">QTY</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsList
+                .map((item: any) => {
+                  const line = billItemRows(item);
+                  const addons = line.addons
+                    .map((a) => `<div style="font-size: 12px; font-weight: 800; margin-left: 8px;">+ ${a.name}</div>`)
+                    .join("");
+                  const note = item.notes
+                    ? `<div style="font-size: 10px; font-style: italic; margin-left: 8px;">Note: ${item.notes}</div>`
+                    : "";
+                  return `
+                    <tr>
+                      <td class="item-name-cell">
+                        <span class="bold" style="font-size: 13px;">${line.name}</span>
+                        ${addons}
+                        ${note}
+                      </td>
+                      <td class="item-qty-cell">
+                        <span class="item-qty-box">${item.quantity}</span>
+                      </td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
 
           <div class="footer-line">
             ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : `--- END OF KOT #${maxKotNo} ---`}
           </div>
+          <div style="height: 12mm;"></div>
         </body>
       </html>
     `;

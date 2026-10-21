@@ -5,6 +5,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { setCredentials } from "@/redux/slices/authSlice";
+import { passwordProblem } from "@/lib/passwordPolicy";
 import {
   useUpdateProfileMutation,
   useChangePasswordMutation,
@@ -137,8 +138,9 @@ export default function ProfilePage() {
       setPwErrorMsg("New passwords do not match.");
       return;
     }
-    if (pwForm.newPassword.length < 6) {
-      setPwErrorMsg("New password must be at least 6 characters.");
+    const pwProblem = passwordProblem(pwForm.newPassword);
+    if (pwProblem) {
+      setPwErrorMsg(pwProblem);
       return;
     }
 
@@ -483,7 +485,7 @@ export default function ProfilePage() {
             {/* Collapsible Form Body */}
             {showPasswordSection && (
               <div className="px-6 sm:px-10 pb-8 pt-2 border-t border-gray-100">
-                <form onSubmit={handleChangePassword} className="space-y-4">
+                <form onSubmit={handleChangePassword} method="post" className="space-y-4">
                   {pwErrorMsg && (
                     <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                       <AlertCircle className="w-4 h-4 shrink-0" />

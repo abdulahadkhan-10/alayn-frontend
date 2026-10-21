@@ -1,3 +1,5 @@
+import { store } from "@/redux/store/store";
+
 /**
  * Splits an order line into what a bill prints: the dish at its own price, then one row per
  * paid / free add-on with that add-on's price. The rows always add up to the line's subtotal.
@@ -76,4 +78,17 @@ export function billItemRows(item: any): BillItemRows {
     addons,
     notes: item.notes?.trim() || undefined,
   };
+}
+
+/**
+ * The cashier printed on a bill: the staff member logged in on the device printing it. Without a signed-in
+ * user it falls back to who settled the bill, then who took the order at the till — never "Customer (QR)".
+ */
+export function receiptCashierName(order: any): string {
+  const loggedIn = store.getState().auth.user?.name;
+  if (loggedIn) return loggedIn;
+  if (order?.cashierName) return order.cashierName;
+  if (order?.settledByName) return order.settledByName;
+  const isQr = order?.placedByRole === "QR" || order?.source === "QR" || order?.orderSource === "QR";
+  return (!isQr && order?.placedByName) || "Staff";
 }

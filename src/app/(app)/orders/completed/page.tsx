@@ -37,6 +37,7 @@ import {
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
+import { PAYMENT_METHOD_LABELS, describePaymentLines, formatPaise, getPaymentLines } from "@/lib/splitPayment";
 
 export default function CompletedOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -216,6 +217,32 @@ export default function CompletedOrdersPage() {
     [filteredCompletedOrders]
   );
 
+  // Money collected per method: each part of a split bill counts under its own method
+  const collectionsByMethod = useMemo(() => {
+    const totals: Record<string, { paise: number; bills: number }> = {
+      CASH: { paise: 0, bills: 0 },
+      UPI: { paise: 0, bills: 0 },
+      CARD: { paise: 0, bills: 0 },
+    };
+    let splitBills = 0;
+    for (const order of filteredCompletedOrders) {
+      const lines = getPaymentLines(order);
+      // Bills settled before payment parts were returned: the whole total in its one method
+      const parts = lines.length > 0
+        ? lines
+        : [{ method: order.paymentMethod || "CASH", amountPaise: Math.round((order.totalAmount || 0) * 100) }];
+      if (parts.length > 1) splitBills += 1;
+      const seen = new Set<string>();
+      for (const part of parts) {
+        if (!totals[part.method]) totals[part.method] = { paise: 0, bills: 0 };
+        totals[part.method].paise += part.amountPaise;
+        if (!seen.has(part.method)) totals[part.method].bills += 1;
+        seen.add(part.method);
+      }
+    }
+    return { totals, splitBills };
+  }, [filteredCompletedOrders]);
+
   const avgOrderValue = useMemo(
     () =>
       filteredCompletedOrders.length > 0
@@ -348,6 +375,37 @@ export default function CompletedOrdersPage() {
           </div>
         </div>
 
+        {/* ── Collections by payment method ── */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5" />
+              Collections by Payment Method
+            </p>
+            {collectionsByMethod.splitBills > 0 && (
+              <span className="text-[11px] font-semibold text-gray-500">
+                {collectionsByMethod.splitBills} split bill{collectionsByMethod.splitBills === 1 ? "" : "s"} counted per part
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {(["CASH", "UPI", "CARD", "SWIGGY", "ZOMATO", "EAZYDINER"] as const)
+              .filter((method) => collectionsByMethod.totals[method]?.bills > 0 || !["SWIGGY", "ZOMATO", "EAZYDINER"].includes(method))
+              .map((method) => {
+              const entry = collectionsByMethod.totals[method];
+              return (
+                <div key={method} className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+                  <span className="block text-[11px] font-bold text-gray-500">{PAYMENT_METHOD_LABELS[method]}</span>
+                  <span className="block text-lg font-bold text-[#1B2A4A] tabular-nums">{formatPaise(entry?.paise || 0)}</span>
+                  <span className="block text-[10px] text-gray-400 font-medium">
+                    {entry?.bills || 0} bill{(entry?.bills || 0) === 1 ? "" : "s"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* ── Advanced Filter Bar ── */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -429,6 +487,9 @@ export default function CompletedOrdersPage() {
                 <option value="CASH">Cash</option>
                 <option value="CARD">Card</option>
                 <option value="UPI">UPI</option>
+                <option value="SWIGGY">Swiggy</option>
+                <option value="ZOMATO">Zomato</option>
+                <option value="EAZYDINER">EazyDiner</option>
               </select>
             </div>
 
@@ -582,8 +643,17 @@ export default function CompletedOrdersPage() {
                         <td className="py-3.5 px-4">
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 text-[11px]">
                             <Check className="w-3 h-3 text-emerald-600" />
-                            {order.paymentMethod || "CASH"}
+                            {getPaymentLines(order).length > 1 ? "SPLIT" : order.paymentMethod || "CASH"}
                           </span>
+                          {getPaymentLines(order).length > 1 && (
+                            <div className="mt-1 space-y-0.5 text-[10px] text-gray-500 font-medium tabular-nums">
+                              {getPaymentLines(order).map((line, idx) => (
+                                <div key={idx}>
+                                  {line.label} {formatPaise(line.amountPaise)}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
@@ -727,7 +797,7 @@ export default function CompletedOrdersPage() {
                   <div>
                     <span className="text-gray-400 font-medium block">Payment Status</span>
                     <span className="font-bold text-emerald-600 uppercase">
-                      CONFIRMED ({selectedOrder.paymentMethod || "CASH"})
+                      CONFIRMED ({describePaymentLines(selectedOrder, selectedOrder.paymentMethod || "CASH")})
                     </span>
                   </div>
                   <div>

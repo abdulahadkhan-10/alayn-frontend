@@ -26,6 +26,45 @@ import DashboardLayout from "../layout/DashboardLayout";
 import { useBranch } from "@/lib/BranchContext";
 import { useSocket } from "@/lib/useSocket";
 
+// Minutes after which a waiting ticket turns amber, then red
+const TICKET_WARN_MINUTES = 10;
+const TICKET_LATE_MINUTES = 20;
+
+/** How long a ticket has been waiting: "04:32", or "1h 05m" past an hour, plus its urgency colour */
+function ticketAge(createdAt: string | undefined, now: number) {
+  const placedAt = createdAt ? new Date(createdAt).getTime() : NaN;
+  if (Number.isNaN(placedAt)) return null;
+  const totalSeconds = Math.max(0, Math.floor((now - placedAt) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const label = minutes >= 60
+    ? `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m`
+    : `${pad(minutes)}:${pad(totalSeconds % 60)}`;
+  const tone = minutes >= TICKET_LATE_MINUTES
+    ? "bg-red-600 text-white border-red-700 animate-pulse"
+    : minutes >= TICKET_WARN_MINUTES
+      ? "bg-amber-100 text-amber-800 border-amber-300"
+      : "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return { label, minutes, tone };
+}
+
+/** A ticket's items split by KOT, each timed from when that KOT reached the kitchen */
+type KotGroup<T> = { kotNo: number; sentAt: string | undefined; items: T[] };
+
+function groupByKot<T extends { kotNo?: number; createdAt?: string }>(items: T[]): KotGroup<T>[] {
+  const groups = new Map<number, KotGroup<T>>();
+  for (const item of items) {
+    const kotNo = item.kotNo || 1;
+    const group: KotGroup<T> = groups.get(kotNo) || { kotNo, sentAt: undefined, items: [] };
+    group.items.push(item);
+    if (item.createdAt && (!group.sentAt || new Date(item.createdAt) < new Date(group.sentAt))) {
+      group.sentAt = item.createdAt;
+    }
+    groups.set(kotNo, group);
+  }
+  return [...groups.values()].sort((a, b) => a.kotNo - b.kotNo);
+}
+
 export default function KitchenDispatchBoardComponent() {
   const { activeBranch } = useBranch();
   const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
@@ -39,7 +78,7 @@ export default function KitchenDispatchBoardComponent() {
   // Dismissed cancelled orders state (manually cleared by cook)
   const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(new Set());
 
-  // Real-time clock ticker for 3-minute cancellation countdowns
+  // Real-time clock ticker for ticket timers and 3-minute cancellation countdowns
   const [now, setNow] = useState<number>(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -373,9 +412,17 @@ export default function KitchenDispatchBoardComponent() {
                   }
                   return item.status === col.status;
                 });
-                return { ...t, activeItems: matchingItems };
+                const kots = groupByKot(matchingItems);
+                // The card is as urgent as its oldest KOT still in this column
+                const waitingSince = kots.reduce<string | undefined>(
+                  (oldest, k) => (k.sentAt && (!oldest || new Date(k.sentAt) < new Date(oldest)) ? k.sentAt : oldest),
+                  undefined
+                ) || t.createdAt;
+                return { ...t, activeItems: matchingItems, kots, waitingSince };
               })
-              .filter((t) => t.activeItems.length > 0);
+              .filter((t) => t.activeItems.length > 0)
+              // Longest-waiting first, so the kitchen works in the order KOTs came in
+              .sort((a, b) => new Date(a.waitingSince).getTime() - new Date(b.waitingSince).getTime());
 
             const IconComponent = col.icon;
 
@@ -415,6 +462,7 @@ export default function KitchenDispatchBoardComponent() {
                       const ticketSource = ticket.orderSource || ticket.source || "TABLE";
                       const ticketItems = ticket.activeItems || [];
                       const maxKotNo = Math.max(...ticketItems.map((i: any) => i.kotNo || 1), 1);
+                      const age = ticketAge(ticket.waitingSince, now);
 
                       return (
                         <div
@@ -437,78 +485,104 @@ export default function KitchenDispatchBoardComponent() {
                                   {ticketSource}
                                 </span>
                               </div>
+                              {age && (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-black font-mono tabular-nums ${age.tone}`}
+                                  title={ticket.kots.length > 1 ? `Oldest KOT waiting ${age.minutes} min` : `Waiting ${age.minutes} min since the KOT was sent`}
+                                >
+                                  <Clock className="w-3 h-3" />
+                                  {age.label}
+                                </span>
+                              )}
                               <span className="text-[10px] text-gray-500 font-bold font-mono">
-                                {new Date(ticket.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(ticket.waitingSince).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           </div>
 
                           {/* Ticket Items List */}
                           <div className="space-y-2 py-1">
-                            {ticketItems.map((item: any, idx: number) => {
-                              const isVeg = item.menuItem?.dietaryType === "VEG" || item.menuItem?.isVeg === true;
-                              const isNonVeg = item.menuItem?.dietaryType === "NON_VEG" || (item.menuItem?.isVeg === false);
-
-                              const itemMods: any[] = (() => {
-                                if (Array.isArray(item.modifiers) && item.modifiers.length > 0) return item.modifiers;
-                                if (item.modifiersJson) {
-                                  try {
-                                    const parsed = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
-                                    if (Array.isArray(parsed)) return parsed;
-                                  } catch {
-                                    return [];
-                                  }
-                                }
-                                return [];
-                              })();
-
+                            {ticket.kots.map((group: KotGroup<unknown>) => {
+                              const kotAge = ticket.kots.length > 1 ? ticketAge(group.sentAt, now) : null;
                               return (
-                                <div key={idx} className="flex flex-col gap-1">
-                                  <div className="flex items-start gap-2 text-[13px]">
-                                    <span className="font-black text-white bg-red-600 px-1.5 py-0.5 rounded-sm shrink-0 border border-red-700 shadow-xs leading-none flex items-center justify-center">
-                                      {item.quantity}
-                                    </span>
-                                    <div className="flex-1 leading-tight pt-0.5">
-                                      <div className="flex items-center gap-1.5">
-                                        {isVeg && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Veg" />}
-                                        {isNonVeg && <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" title="Non-Veg" />}
-                                        <span className="font-bold text-[#1B2A4A]">
-                                          {item.menuItem?.name || item.menuItemName || "Item"}
+                                <div key={group.kotNo} className="space-y-2">
+                                  {/* Several KOTs on one card: each shows how long it has waited */}
+                                  {kotAge && (
+                                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 first:border-t-0 first:pt-0">
+                                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">KOT #{group.kotNo}</span>
+                                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-black font-mono tabular-nums ${kotAge.tone}`}>
+                                        <Clock className="w-2.5 h-2.5" />
+                                        {kotAge.label}
+                                      </span>
+                                    </div>
+                                  )}
+                                {group.items.map((item: any, idx: number) => {
+                                  const isVeg = item.menuItem?.dietaryType === "VEG" || item.menuItem?.isVeg === true;
+                                  const isNonVeg = item.menuItem?.dietaryType === "NON_VEG" || (item.menuItem?.isVeg === false);
+
+                                  const itemMods: any[] = (() => {
+                                    if (Array.isArray(item.modifiers) && item.modifiers.length > 0) return item.modifiers;
+                                    if (item.modifiersJson) {
+                                      try {
+                                        const parsed = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                        if (Array.isArray(parsed)) return parsed;
+                                      } catch {
+                                        return [];
+                                      }
+                                    }
+                                    return [];
+                                  })();
+
+                                  return (
+                                    <div key={idx} className="flex flex-col gap-1">
+                                      <div className="flex items-start gap-2 text-[13px]">
+                                        <span className="font-black text-white bg-red-600 px-1.5 py-0.5 rounded-sm shrink-0 border border-red-700 shadow-xs leading-none flex items-center justify-center">
+                                          {item.quantity}
                                         </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Modifiers / Add-ons badge pills */}
-                                  {itemMods.length > 0 && (
-                                    <div className="ml-7 flex flex-wrap gap-1.5 mt-0.5">
-                                      {itemMods.map((mod: any, mIdx: number) => {
-                                        const modName = mod.name || mod.title || "Extra";
-                                        return (
-                                          <span
-                                            key={mIdx}
-                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] shadow-2xs ${
-                                              mod.isVariant
-                                                ? "bg-indigo-100 text-indigo-950 border border-indigo-300"
-                                                : "bg-amber-100 text-amber-950 border border-amber-300"
-                                            }`}
-                                          >
-                                            <span className={mod.isVariant ? "text-indigo-700 font-black" : "text-amber-700 font-black"}>
-                                              {mod.isVariant ? "●" : "+"}
+                                        <div className="flex-1 leading-tight pt-0.5">
+                                          <div className="flex items-center gap-1.5">
+                                            {isVeg && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Veg" />}
+                                            {isNonVeg && <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" title="Non-Veg" />}
+                                            <span className="font-bold text-[#1B2A4A]">
+                                              {item.menuItem?.name || item.menuItemName || "Item"}
                                             </span>
-                                            <span>{mod.isVariant ? `Size: ${modName}` : modName}</span>
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                          </div>
+                                        </div>
+                                      </div>
 
-                                  {item.notes && (
-                                    <div className="ml-7 bg-amber-100/60 border-l-2 border-amber-400 px-2 py-1 rounded-r-md">
-                                      <span className="text-[9px] text-amber-900 font-bold uppercase tracking-widest block opacity-75 mb-0.5">Prep Note</span>
-                                      <span className="text-[11px] text-amber-950 font-semibold">{item.notes}</span>
+                                      {/* Modifiers / Add-ons badge pills */}
+                                      {itemMods.length > 0 && (
+                                        <div className="ml-7 flex flex-wrap gap-1.5 mt-0.5">
+                                          {itemMods.map((mod: any, mIdx: number) => {
+                                            const modName = mod.name || mod.title || "Extra";
+                                            return (
+                                              <span
+                                                key={mIdx}
+                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-[11px] shadow-2xs ${
+                                                  mod.isVariant
+                                                    ? "bg-indigo-100 text-indigo-950 border border-indigo-300"
+                                                    : "bg-amber-100 text-amber-950 border border-amber-300"
+                                                }`}
+                                              >
+                                                <span className={mod.isVariant ? "text-indigo-700 font-black" : "text-amber-700 font-black"}>
+                                                  {mod.isVariant ? "●" : "+"}
+                                                </span>
+                                                <span>{mod.isVariant ? `Size: ${modName}` : modName}</span>
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+
+                                      {item.notes && (
+                                        <div className="ml-7 bg-amber-100/60 border-l-2 border-amber-400 px-2 py-1 rounded-r-md">
+                                          <span className="text-[9px] text-amber-900 font-bold uppercase tracking-widest block opacity-75 mb-0.5">Prep Note</span>
+                                          <span className="text-[11px] text-amber-950 font-semibold">{item.notes}</span>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                  );
+                                })}
                                 </div>
                               );
                             })}

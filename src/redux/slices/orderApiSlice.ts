@@ -23,6 +23,16 @@ export interface OrderItem {
   };
 }
 
+/** One part of a payment or split payment. Amounts are whole paise. */
+export interface SplitPaymentPart {
+  method: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
+  amountPaise: number;
+  /** UPI UTR / card approval code / partner order ref */
+  reference?: string;
+  /** Cashier confirmed an online payment was received (required for UPI / card / partner at settlement) */
+  verified?: boolean;
+}
+
 export interface CreateOrderPayload {
   outletId?: string;
   orderSource: "TABLE" | "COUNTER" | "QR" | "DELIVERY";
@@ -71,8 +81,16 @@ export interface Order {
   discountAmount: number;
   couponCode?: string | null;
   couponId?: string | null;
-  paymentMethod: "CASH" | "CARD" | "UPI";
+  /** "SPLIT" when the bill was paid with more than one method */
+  paymentMethod: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER" | "SPLIT";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
+  isSplitPayment?: boolean;
+  /** Confirmed payments on the bill, one per part of a split */
+  paymentSplits?: { method: string; amountPaise: number; amount: number; reference: string | null }[];
+  payments?: { id: string; method: string; amountPaise: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
+  paidAmount?: number;
+  balanceDue?: number;
+  balanceDuePaise?: number;
   placedByName?: string;
   placedByRole?: string;
   customerName?: string;
@@ -142,7 +160,13 @@ export const orderApi = baseApi.injectEndpoints({
         id: string;
         status: Order["status"];
         comment?: string;
-        paymentMethod?: "CASH" | "CARD" | "UPI";
+        paymentMethod?: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
+        /** Settle with a split instead of one paymentMethod */
+        payments?: SplitPaymentPart[];
+        /** Same key for retries of one settle attempt — the server never settles twice */
+        idempotencyKey?: string;
+        /** Settle even though a UTR / approval code was already used on another bill */
+        allowDuplicateReference?: boolean;
         customerName?: string;
         customerPhone?: string;
         couponCode?: string;
@@ -156,6 +180,9 @@ export const orderApi = baseApi.injectEndpoints({
         status,
         comment,
         paymentMethod,
+        payments,
+        idempotencyKey,
+        allowDuplicateReference,
         customerName,
         customerPhone,
         couponCode,
@@ -169,6 +196,9 @@ export const orderApi = baseApi.injectEndpoints({
           status,
           comment,
           paymentMethod,
+          payments,
+          idempotencyKey,
+          allowDuplicateReference,
           customerName,
           customerPhone,
           couponCode,

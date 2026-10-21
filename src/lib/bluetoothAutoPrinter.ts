@@ -11,7 +11,11 @@
 
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
 import { printThermalHtml } from "./printUtils";
-import { billItemRows } from "./billLines";
+import { billItemRows, receiptCashierName } from "./billLines";
+import { getPaymentLines } from "./splitPayment";
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 
 export interface PrintResult {
   success: boolean;
@@ -407,7 +411,7 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
   const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
   const itemsList = actualOrder.items || actualOrder.orderItems || [];
   const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
-  const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
+  const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
   const timestamp = actualOrder.createdAt
     ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
         day: "2-digit",
@@ -440,34 +444,47 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
           @page { size: ${paperWidth} auto; margin: 0mm; }
           @media print {
             html, body {
-              width: ${printWidth};
-              margin: 0 auto;
-              padding: 0;
+              width: ${printWidth} !important;
+              max-width: ${printWidth} !important;
+              margin: 0 auto !important;
+              padding: 0 1.5mm !important;
               background: #fff !important;
               color: #000 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
           }
           * { box-sizing: border-box; color: #000 !important; font-family: 'Courier New', Courier, monospace !important; }
-          body { width: ${printWidth}; margin: 0 auto; padding: 4mm 2mm; font-size: 13px; line-height: 1.3; }
+          body {
+            width: ${printWidth};
+            max-width: ${printWidth};
+            margin: 0 auto;
+            padding: 2mm 1.5mm 16mm 1.5mm;
+            font-size: 13px;
+            line-height: 1.25;
+          }
           .center { text-align: center; }
           .bold { font-weight: 900; }
-          .cancel-banner { border: 2px solid #000; padding: 6px; text-align: center; font-weight: 900; margin: 8px 0; }
-          .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin: 6px 0; font-size: 12px; }
-          .meta-row { display: flex; justify-content: space-between; margin: 3px 0; }
-          .items-header { display: flex; justify-content: space-between; font-weight: 900; border-bottom: 1px solid #000; padding: 4px 0; margin-top: 8px; }
-          .item-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dotted #aaa; }
-          .item-qty { border: 1.5px solid #000; padding: 1px 6px; font-weight: 900; min-width: 26px; text-align: center; }
-          .footer-line { text-align: center; font-weight: 900; border-top: 1.5px dashed #000; margin-top: 14px; padding-top: 8px; font-size: 11px; }
+          .cancel-banner { border: 2px solid #000; padding: 6px; text-align: center; font-weight: 900; margin: 6px 0; }
+          .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-size: 12px; }
+          .meta-row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .kot-items-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+          .kot-items-table th { border-bottom: 1.5px solid #000; font-weight: 900; padding: 3px 0; font-size: 12px; }
+          .kot-items-table td { padding: 4px 0; vertical-align: top; border-bottom: 1px dotted #888; }
+          .item-name-cell { padding-right: 6px; word-break: break-word; overflow-wrap: break-word; }
+          .item-qty-cell { text-align: right; white-space: nowrap; width: 44px; }
+          .item-qty-box { border: 1.5px solid #000; padding: 1px 6px; font-weight: 900; min-width: 24px; text-align: center; display: inline-block; font-size: 14px; }
+          .footer-line { text-align: center; font-weight: 900; border-top: 1.5px dashed #000; margin-top: 10px; padding-top: 6px; font-size: 11px; }
         </style>
       </head>
       <body>
         <div class="center bold" style="font-size: 15px; text-transform: uppercase;">${outletName}</div>
-        <div class="center" style="font-size: 11px; margin-bottom: 6px;">KITCHEN ORDER TICKET (KOT)</div>
+        <div class="center" style="font-size: 11px; margin-bottom: 4px;">KITCHEN ORDER TICKET (KOT)</div>
         ${isCancellation
           ? '<div class="cancel-banner"><div style="font-size: 14px; font-weight: 900;">*** VOID / CANCELLED ***</div><div style="font-size: 11px; font-weight: 800; margin-top: 2px;">DO NOT PREPARE FOOD</div></div>'
-          : '<div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 2px 8px; display: inline-block; margin: 4px 0;">KOT #' + maxKotNo + '</div>'
+          : '<div class="center bold" style="font-size: 12px; border: 1.5px solid #000; padding: 2px 8px; display: inline-block; margin: 3px 0;">KOT #' + maxKotNo + '</div>'
         }
-        <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 6px 0;">
+        <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 5px 0;">
           ${tableDisplay.toUpperCase()} (${orderSource})
         </div>
         <div class="meta-table">
@@ -478,22 +495,39 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
           ${actualOrder.customerName ? '<div class="meta-row"><span>Customer:</span><span>' + actualOrder.customerName + '</span></div>' : ""}
           ${isCancellation && cancelReason ? '<div style="margin-top: 4px; padding: 4px; border-left: 2px solid #000; font-size: 11px;"><strong>Reason:</strong> ' + cancelReason + '</div>' : ""}
         </div>
-        <div class="items-header"><span>ITEM</span><span>QTY</span></div>
-        ${itemsList.map((item: any) => {
-          const line = billItemRows(item);
-          // The kitchen needs every add-on to prepare the dish (prices don't matter here)
-          const addons = line.addons.map((a) => '<div style="font-size: 12px; font-weight: 800; margin-left: 10px;">+ ' + a.name + '</div>').join("");
-          const note = item.notes ? '<div style="font-size: 10px; font-style: italic; margin-left: 10px;">Note: ' + item.notes + '</div>' : "";
-          return `
-            <div class="item-row">
-              <div style="flex: 1; padding-right: 8px;"><span class="bold">${line.name}</span>${addons}${note}</div>
-              <div class="item-qty">${item.quantity}</div>
-            </div>
-          `;
-        }).join("")}
+
+        <table class="kot-items-table">
+          <thead>
+            <tr>
+              <th style="text-align: left;">ITEM</th>
+              <th style="text-align: right;">QTY</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsList.map((item: any) => {
+              const line = billItemRows(item);
+              const addons = line.addons.map((a) => '<div style="font-size: 12px; font-weight: 800; margin-left: 8px;">+ ' + a.name + '</div>').join("");
+              const note = item.notes ? '<div style="font-size: 10px; font-style: italic; margin-left: 8px;">Note: ' + item.notes + '</div>' : "";
+              return `
+                <tr>
+                  <td class="item-name-cell">
+                    <span class="bold" style="font-size: 13px;">${line.name}</span>
+                    ${addons}
+                    ${note}
+                  </td>
+                  <td class="item-qty-cell">
+                    <span class="item-qty-box">${item.quantity}</span>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+
         <div class="footer-line">
           ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : '--- END OF KOT #' + maxKotNo + ' ---'}
         </div>
+        <div style="height: 12mm;"></div>
       </body>
     </html>
   `;
@@ -518,10 +552,10 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? "Counter"
     : actualOrder.source || "Dine In";
 
-  const cashierName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
+  const cashierName = receiptCashierName(actualOrder);
   const customerName = actualOrder.customerName || "";
   const customerPhone = actualOrder.customerPhone || "";
-  const printWidth = paperWidth === "80mm" ? "78mm" : "56mm";
+  const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
 
   const timestamp = actualOrder.createdAt
     ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
@@ -586,7 +620,15 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? "RETAIL INVOICE"
     : "TAX INVOICE";
 
-  const paymentMethodLabel = (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
+  const paymentLines = getPaymentLines(actualOrder);
+  const paymentMethodLabel = paymentLines.length > 1
+    ? "SPLIT"
+    : (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
+  const splitRows = paymentLines.length > 1
+    ? paymentLines.map((line) =>
+        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>₹${(line.amountPaise / 100).toFixed(2)}</span></div>`
+      ).join("")
+    : "";
 
   return `
     <!DOCTYPE html>
@@ -598,15 +640,25 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           @page { size: ${paperWidth} auto; margin: 0mm; }
           @media print {
             html, body {
-              width: ${printWidth};
-              margin: 0 auto;
-              padding: 0;
+              width: ${printWidth} !important;
+              max-width: ${printWidth} !important;
+              margin: 0 auto !important;
+              padding: 0 1.5mm !important;
               background: #fff !important;
               color: #000 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
           }
           * { box-sizing: border-box; color: #000 !important; font-family: 'Courier New', Courier, monospace !important; }
-          body { width: ${printWidth}; margin: 0 auto; padding: 4mm 2mm; font-size: 12px; line-height: 1.3; }
+          body {
+            width: ${printWidth};
+            max-width: ${printWidth};
+            margin: 0 auto;
+            padding: 2mm 1.5mm 16mm 1.5mm;
+            font-size: 12px;
+            line-height: 1.25;
+          }
           .center { text-align: center; }
           .bold { font-weight: 900; }
           .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-size: 11px; }
@@ -636,7 +688,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           <div class="meta-row"><span>Bill No:</span><span class="bold">#${orderNumber}</span></div>
           <div class="meta-row"><span>Date:</span><span>${timestamp}</span></div>
           <div class="meta-row"><span>Table:</span><span class="bold">${tableDisplay}</span></div>
-          <div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>
+          ${cashierName ? `<div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>` : ""}
           ${customerName ? `<div class="meta-row"><span>Customer:</span><span>${customerName}</span></div>` : ""}
           ${customerPhone ? `<div class="meta-row"><span>Phone:</span><span>${customerPhone}</span></div>` : ""}
         </div>
@@ -688,6 +740,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         <div class="center bold" style="font-size: 12px; margin: 4px 0;">
           PAID VIA ${paymentMethodLabel}
         </div>
+        ${splitRows ? `<div class="summary-table">${splitRows}</div>` : ""}
 
         <div class="footer-line">
           <div>THANK YOU FOR DINING WITH US!</div>
