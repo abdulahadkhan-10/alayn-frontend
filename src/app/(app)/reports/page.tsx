@@ -9,11 +9,11 @@ import { Info } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ReportFilterBar from "@/components/reports/ReportFilterBar";
-import QuickCompare from "@/components/reports/QuickCompare";
 import ComparisonKpis from "@/components/reports/ComparisonKpis";
 import TrendChart from "@/components/reports/TrendChart";
-import TrendTable from "@/components/reports/TrendTable";
-import BreakdownTable from "@/components/reports/BreakdownTable";
+import SalesBreakdown from "@/components/reports/SalesBreakdown";
+import WhenPeopleBuy from "@/components/reports/WhenPeopleBuy";
+import WasteList from "@/components/reports/WasteList";
 import ItemsTable from "@/components/reports/ItemsTable";
 import ExportMenu from "@/components/reports/ExportMenu";
 import HighlightsCard from "@/components/reports/HighlightsCard";
@@ -34,8 +34,8 @@ function serverMessage(error: unknown): string | null {
 function ReportSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading report">
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-        {Array.from({ length: 5 }, (_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className={`${CARD} p-5`}>
             <Skeleton width="50%" height={12} />
             <Skeleton width="70%" height={28} className="mt-3" />
@@ -47,13 +47,9 @@ function ReportSkeleton() {
         <Skeleton width={160} height={16} />
         <Skeleton height={260} className="mt-4" />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className={`${CARD} p-5`}>
-            <Skeleton width={120} height={16} />
-            <Skeleton count={5} height={20} className="mt-3" />
-          </div>
-        ))}
+      <div className={`${CARD} p-5`}>
+        <Skeleton width={180} height={16} />
+        <Skeleton count={5} height={20} className="mt-3" />
       </div>
     </div>
   );
@@ -62,44 +58,16 @@ function ReportSkeleton() {
 function ReportBody({ report, params }: { report: ReportData; params: ReportParams }) {
   const empty = report.totals.current.orders === 0;
   const hasPrev = report.comparison != null;
-  const noRows = empty ? "No sales in this period" : "Nothing to show with these filters";
-  const sales = { hasPrev, params, emptyMessage: noRows, subtitle: "Sales before tax" };
 
   return (
     <div className="space-y-6">
       <HighlightsCard highlights={report.highlights} empty={empty} />
       <ComparisonKpis report={report} />
-      <TrendChart report={report} empty={empty} />
-      <TrendTable report={report} empty={empty} params={params} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <BreakdownTable title="Channels" section="channels" firstColumn="Channel" rows={report.channels} {...sales} />
-        <BreakdownTable
-          title="Payments"
-          section="payments"
-          firstColumn="Payment method"
-          rows={report.payments}
-          {...sales}
-          subtitle="Amounts received, including tax"
-        />
-        <BreakdownTable title="Categories" section="categories" firstColumn="Category" rows={report.categories} {...sales} subtitle="Item sales before bill discounts" />
-        <BreakdownTable title="Hours" section="hours" firstColumn="Hour" rows={report.hours} {...sales} />
-        <BreakdownTable title="Weekdays" section="weekdays" firstColumn="Weekday" rows={report.weekdays} {...sales} />
-        <BreakdownTable
-          title="Stock wasted"
-          section="waste"
-          params={params}
-          firstColumn="Reason"
-          rows={report.waste}
-          hasPrev={hasPrev}
-          waste
-          subtitle="Value of stock logged as waste"
-          emptyMessage="No stock logged as waste in this period"
-        />
-        {report.outlets.length > 1 && <BreakdownTable title="Outlets" section="outlets" firstColumn="Outlet" rows={report.outlets} {...sales} />}
-      </div>
-
+      <TrendChart report={report} empty={empty} params={params} />
+      <SalesBreakdown report={report} params={params} />
+      <WhenPeopleBuy report={report} params={params} />
       <ItemsTable items={report.items} hasPrev={hasPrev} empty={empty} params={params} />
+      <WasteList rows={report.waste} params={params} />
 
       {report.notes.length > 0 && (
         <section className={`${CARD} p-5`} aria-label="Notes">
@@ -162,7 +130,6 @@ function ReportsContent() {
         {ready && <div className="flex shrink-0 items-center gap-2"><ExportMenu params={params} /></div>}
       </div>
 
-      <QuickCompare params={params} onChange={setParams} />
       <ReportFilterBar
         params={params}
         onChange={setParams}

@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { LineChart } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { ReportData } from "@/redux/slices/reportsApiSlice";
-import { formatPaise } from "@/lib/reportQuery";
+import { formatPaise, type ReportParams } from "@/lib/reportQuery";
+import TrendTable from "./TrendTable";
+import { CsvButton } from "./ExportMenu";
 
-const CURRENT = "#2563EB";
-const PREVIOUS = "#94A3B8";
+const BY = { hour: "hour by hour", day: "day by day", week: "week by week", month: "month by month" } as const;
+
+export const CURRENT = "#2563EB";
+export const PREVIOUS = "#94A3B8";
 
 // Axis labels in rupees: ₹1.2k, ₹15k, ₹1.5L
-const compactInr = (rupees: number) => {
+export const compactInr = (rupees: number) => {
   if (rupees >= 100000) return `₹${+(rupees / 100000).toFixed(1)}L`;
   if (rupees >= 10000) return `₹${Math.round(rupees / 1000)}k`;
   if (rupees >= 1000) return `₹${+(rupees / 1000).toFixed(1)}k`;
@@ -46,8 +50,9 @@ function TrendTooltip({ active, payload, compareLabel }: { active?: boolean; pay
   );
 }
 
-/** Sales over the period as a solid area, the comparison as a dashed line, bucket by bucket. */
-export default function TrendChart({ report, empty }: { report: ReportData; empty: boolean }) {
+/** Sales over the period as a solid area, the comparison as a dashed line, bucket by bucket; the numbers on request. */
+export default function TrendChart({ report, empty, params }: { report: ReportData; empty: boolean; params: ReportParams }) {
+  const [showTable, setShowTable] = useState(false);
   const { current, previous } = report.trend;
   const rows = useMemo<Row[]>(() => {
     const n = Math.max(current.length, previous.length);
@@ -69,21 +74,16 @@ export default function TrendChart({ report, empty }: { report: ReportData; empt
   return (
     <section className="min-w-0 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col gap-4" aria-labelledby="report-trend-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-            <LineChart className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 id="report-trend-title" className="text-base font-bold text-slate-800 tracking-tight">Sales trend</h2>
-            <p className="text-xs text-slate-500">Sales before tax, {report.period.label}</p>
-          </div>
+        <div className="min-w-0">
+          <h2 id="report-trend-title" className="text-base font-bold text-slate-800 tracking-tight">Sales trend</h2>
+          <p className="text-xs text-slate-500">Sales before tax, {report.period.label}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
-          <span className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-slate-500">
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: CURRENT }} /> This period
           </span>
           {compareLabel && (
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
               <span className="w-4 border-t-2 border-dashed" style={{ borderColor: PREVIOUS }} /> {compareLabel}
             </span>
           )}
@@ -96,12 +96,6 @@ export default function TrendChart({ report, empty }: { report: ReportData; empt
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <defs>
-                <linearGradient id="reportTrendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={CURRENT} stopOpacity={0.22} />
-                  <stop offset="95%" stopColor={CURRENT} stopOpacity={0} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
               <XAxis
                 dataKey="label"
@@ -121,13 +115,36 @@ export default function TrendChart({ report, empty }: { report: ReportData; empt
                 allowDecimals={false}
               />
               <Tooltip content={<TrendTooltip compareLabel={compareLabel} />} cursor={{ stroke: "#94A3B8", strokeDasharray: "3 3" }} />
-              <Area type="monotone" dataKey="current" stroke={CURRENT} strokeWidth={2.5} fill="url(#reportTrendGradient)" dot={false} />
+              <Area type="monotone" dataKey="current" stroke={CURRENT} strokeWidth={2.5} fill={CURRENT} fillOpacity={0.08} dot={false} />
               {compareLabel && (
                 <Line type="monotone" dataKey="previous" stroke={PREVIOUS} strokeWidth={2} strokeDasharray="4 4" dot={false} connectNulls />
               )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+      )}
+
+      {!empty && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+            <button
+              type="button"
+              aria-expanded={showTable}
+              aria-controls="report-trend-table"
+              onClick={() => setShowTable((v) => !v)}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+            >
+              {showTable ? "Hide" : "Show"} {BY[report.trend.granularity]}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showTable ? "rotate-180" : ""}`} />
+            </button>
+            <CsvButton params={params} section="trend" label="sales by period" />
+          </div>
+          {showTable && (
+            <div id="report-trend-table">
+              <TrendTable report={report} />
+            </div>
+          )}
+        </>
       )}
     </section>
   );

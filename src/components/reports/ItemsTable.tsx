@@ -40,11 +40,11 @@ export default function ItemsTable({ items, hasPrev, empty, params }: ItemsTable
   const header = (key: SortKey, label: string) => {
     const active = sort.key === key;
     return (
-      <th className="px-3 py-2 text-right" aria-sort={active ? (sort.desc ? "descending" : "ascending") : "none"}>
+      <th className="whitespace-nowrap px-3 py-2 text-right" aria-sort={active ? (sort.desc ? "descending" : "ascending") : "none"}>
         <button
           type="button"
           onClick={() => setSort(active ? { key, desc: !sort.desc } : { key, desc: true })}
-          className={`inline-flex items-center gap-1 font-semibold ${active ? "text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
+          className={`inline-flex items-center gap-1 whitespace-nowrap font-semibold ${active ? "text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
         >
           {label}
           {active && (sort.desc ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
@@ -85,13 +85,13 @@ export default function ItemsTable({ items, hasPrev, empty, params }: ItemsTable
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border border-slate-100">
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full min-w-[480px] text-sm">
               <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 text-left">Item</th>
+                  <th className="whitespace-nowrap px-3 py-2 text-left">Item</th>
                   {header("qty", "Quantity")}
                   {header("sales", "Sales")}
-                  {hasPrev && <th className="px-3 py-2 text-right">Before</th>}
+                  {hasPrev && <th className="whitespace-nowrap px-3 py-2 text-right">Before</th>}
                   {hasPrev && header("change", "Change")}
                 </tr>
               </thead>
@@ -109,7 +109,11 @@ export default function ItemsTable({ items, hasPrev, empty, params }: ItemsTable
                         {r.prevSalesPaise == null ? "—" : formatPaise(r.prevSalesPaise)}
                       </td>
                     )}
-                    {hasPrev && <td className={`px-3 py-2 text-right font-semibold tabular-nums ${changeTone(r.changePct)}`}>{formatChange(r.changePct)}</td>}
+                    {hasPrev && (
+                      <td className={`px-3 py-2 text-right font-semibold tabular-nums ${r.changePct == null ? "font-normal text-slate-400" : changeTone(r.changePct)}`}>
+                        {formatChange(r.changePct)}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
