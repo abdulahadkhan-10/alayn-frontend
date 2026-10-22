@@ -145,14 +145,14 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
   };
 
   const handleTest = async () => {
-    if (dirty) return toast.info("Save your changes first, then send a test");
+    if (dirty) return toast.info("Save your changes first, then email a sample");
     try {
       const { sent, reason } = await sendTest({ outletId }).unwrap();
-      if (sent) toast.success(`Last week's report sent to ${recipients.join(", ")}`);
-      else if (reason === "failed") toast.error("Couldn't send the test email. Please try again in a few minutes.");
+      if (sent) toast.success(`Sample of last week's report sent to ${recipients.join(", ")}`);
+      else if (reason === "failed") toast.error("Couldn't send the sample email. Please try again in a few minutes.");
       else toast.warn("Email isn't set up on this server yet, so nothing was sent.");
     } catch (err) {
-      toast.error(errorMessage(err, "Could not send the test email"));
+      toast.error(errorMessage(err, "Could not send the sample email"));
     }
   };
 
@@ -166,7 +166,7 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
           className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg border border-gray-200 text-gray-800 hover:bg-gray-50 disabled:opacity-50 cursor-pointer shrink-0"
         >
           <Send className="h-3.5 w-3.5" />
-          {isSendingTest ? "Sending..." : "Send a test now"}
+          {isSendingTest ? "Sending..." : "Email a sample"}
         </button>
       }
     >

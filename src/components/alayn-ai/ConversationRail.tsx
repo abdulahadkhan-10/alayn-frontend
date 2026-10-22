@@ -83,7 +83,7 @@ export default function ConversationRail({
 
       <div className="flex items-center gap-2.5 px-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white" aria-hidden="true">
-          <Image src="/justlogo.png" alt="" width={20} height={20} className="object-contain" />
+          <Image src="/alayn-mark-tm.png" alt="" width={20} height={20} className="object-contain" />
         </span>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white">Alayn AI</p>

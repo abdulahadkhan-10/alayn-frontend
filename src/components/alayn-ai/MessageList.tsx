@@ -74,7 +74,7 @@ export default function MessageList({ turns, copiedId, onCopy, onShare, onRetry,
             {/* AlaynAI's answer, full width */}
             <motion.div {...enter} className="flex gap-3">
               <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white" aria-hidden="true">
-                <Image src="/justlogo.png" alt="" width={16} height={16} />
+                <Image src="/alayn-mark-tm.png" alt="" width={15} height={15} className="object-contain" />
               </span>
               <div className="min-w-0 flex-1">
                 {waiting ? (

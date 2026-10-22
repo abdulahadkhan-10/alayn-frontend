@@ -23,13 +23,14 @@ export default function NotFound() {
   return (
     <main className="min-h-screen flex items-center justify-center py-20 px-4 sm:px-6 bg-[#07080a] text-white relative overflow-hidden">
       <div className="max-w-2xl w-full mx-auto text-center relative z-10">
-        <Link href="/" className="inline-block mb-8">
+        <Link href="/" className="inline-flex mb-8 rounded-xl bg-white px-5 py-3 ring-1 ring-white/10 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
+          {/* Trademarked logo in its registered colours, on a white panel against the dark page */}
           <Image
-            src="/whitelogo.png"
+            src="/alayn-logo-tm.png"
             alt="Alayn AI Logo"
-            width={160}
-            height={40}
-            className="h-10 w-auto mx-auto object-contain"
+            width={960}
+            height={188}
+            className="h-7 w-auto mx-auto object-contain"
           />
         </Link>
 

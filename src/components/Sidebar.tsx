@@ -283,20 +283,27 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
         <div className="flex items-center justify-between w-full h-full min-w-0">
           {!isCollapsed ? (
             <div className="flex items-center min-w-0">
-              <Image
-                src="/whitelogo.png"
-                alt="Alayn AI"
-                width={150}
-                height={40}
+              {/* Trademarked logo in its registered colours, on a white panel against the dark sidebar */}
+              <button
+                type="button"
                 onClick={() => {
                   if (role === "SUPPLIER") router.push("/supplier");
                   else if (role === "STAFF") router.push("/pos");
                   else if (role === "KITCHEN") router.push("/kitchen");
                   else router.push("/dashboard");
                 }}
-                className="w-[122px] h-auto object-contain cursor-pointer transition-opacity hover:opacity-90"
-                priority
-              />
+                aria-label="Go to home"
+                className="inline-flex items-center rounded-lg bg-white px-3 py-2 ring-1 ring-white/10 shadow-[0_4px_14px_-6px_rgba(0,0,0,0.6)] cursor-pointer transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                <Image
+                  src="/alayn-logo-tm.png"
+                  alt="Alayn AI"
+                  width={960}
+                  height={188}
+                  className="h-[20px] w-auto object-contain"
+                  priority
+                />
+              </button>
             </div>
           ) : (
             <button
@@ -306,14 +313,16 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               aria-label="Expand sidebar"
               className="group relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
             >
-              <Image
-                src="/whitealogo.png"
-                alt="Alayn AI"
-                width={64}
-                height={64}
-                className="w-8 h-8 object-contain scale-[2.1] transition-opacity duration-150 group-hover:opacity-0"
-                priority
-              />
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white ring-1 ring-white/10 shadow-[0_4px_14px_-6px_rgba(0,0,0,0.6)] transition-opacity duration-150 group-hover:opacity-0">
+                <Image
+                  src="/alayn-mark-tm.png"
+                  alt="Alayn AI"
+                  width={256}
+                  height={232}
+                  className="h-[22px] w-auto object-contain"
+                  priority
+                />
+              </span>
               <PanelLeftOpen className="absolute h-4 w-4 text-slate-300 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
             </button>
           )}

@@ -18,16 +18,17 @@ export default function LandingFooter() {
           <div className="md:col-span-12 lg:col-span-4 flex flex-col items-start md:mb-8 lg:mb-0">
             <Link 
               href="/" 
-              className="group mb-8 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-sm"
+              className="group mb-8 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-xl"
             >
-              <div className="relative overflow-hidden flex items-center">
+              {/* The trademarked logo is only used in its registered colours, so it sits on a white panel on dark backgrounds */}
+              <div className="inline-flex items-center rounded-xl bg-white px-5 py-3.5 ring-1 ring-white/10 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.55)]">
                 <Image
-                  src="/whitelogo.png"
+                  src="/alayn-logo-tm.png"
                   alt="Alayn"
-                  sizes="360px"
-                  width={800}
-                  height={186}
-                  className="h-16 sm:h-20 w-auto object-contain transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-105 origin-left"
+                  sizes="180px"
+                  width={960}
+                  height={188}
+                  className="h-7 sm:h-8 w-auto object-contain transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.03] origin-left"
                 />
               </div>
             </Link>
