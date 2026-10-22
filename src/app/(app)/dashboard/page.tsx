@@ -194,20 +194,21 @@ export default function MasterDashboardPage(props?: PageProps) {
         ) : (
           <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-6 font-sans bg-[#F8FAFC]">
             {/* Header & date range */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <div>
+            {/* The date buttons keep their size; when there isn't room beside the title they move below it */}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="min-w-0 flex-1 basis-64">
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Overview</h1>
                 <p className="text-sm text-slate-500">{activeBranch?.name || "All Outlets"} · Sales, orders, staff and stock at a glance</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center bg-slate-100/70 p-1 rounded-xl border border-slate-200" role="group" aria-label="Date range">
+              <div className="flex max-w-full flex-wrap items-center gap-3">
+                <div className="flex max-w-full flex-wrap sm:flex-nowrap items-center sm:overflow-x-auto bg-slate-100/70 p-1 rounded-xl border border-slate-200" role="group" aria-label="Date range">
                   {RANGE_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => setDateRange(opt.value)}
                       aria-pressed={dateRange === opt.value}
-                      className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                      className={`shrink-0 whitespace-nowrap px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                         dateRange === opt.value ? "bg-white shadow-xs border border-slate-200 text-slate-800" : "text-slate-500 hover:text-slate-800"
                       }`}
                     >
@@ -249,10 +250,11 @@ export default function MasterDashboardPage(props?: PageProps) {
                     <span className="text-xs font-semibold text-slate-500">{kpi.label}</span>
                     <ArrowUpRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                   </div>
-                  <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+                  {/* Four narrow cards in a row (laptops) put the change under the number on every card, so they match */}
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-2 lg:flex-col lg:items-start lg:gap-1.5 2xl:flex-row 2xl:items-end 2xl:justify-between 2xl:gap-2">
                     {/* Sales is the number owners look for first, so it reads largest */}
                     <span
-                      className={`${idx === 0 ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} font-bold tabular-nums tracking-tight ${
+                      className={`${idx === 0 ? "text-2xl sm:text-3xl lg:text-2xl 2xl:text-3xl" : "text-xl sm:text-2xl"} font-bold tabular-nums tracking-tight ${
                         kpi.value.startsWith("-") ? "text-rose-600" : "text-slate-800"
                       }`}
                     >
@@ -260,13 +262,13 @@ export default function MasterDashboardPage(props?: PageProps) {
                     </span>
                     {kpi.trend &&
                       (isFlatTrend(kpi.trend) ? (
-                        <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
+                        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200">
                           <Minus className="h-3.5 w-3.5" />
                           0%
                         </span>
                       ) : (
                         <span
-                          className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          className={`flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-semibold px-2 py-0.5 rounded-full ${
                             kpi.positive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
                           }`}
                         >
