@@ -30,7 +30,7 @@ export default function QuickCompare({ params, onChange }: QuickCompareProps) {
             onClick={() =>
               onChange({ ...params, preset: q.preset, compare: "PREVIOUS", from: undefined, to: undefined, cFrom: undefined, cTo: undefined })
             }
-            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
               active
                 ? "border-blue-200 bg-blue-50 text-blue-700"
                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800"
