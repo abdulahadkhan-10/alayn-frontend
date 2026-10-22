@@ -409,9 +409,9 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
   const orderSource = (actualOrder.orderSource || actualOrder.source || "DINE-IN").toUpperCase();
   const outletName = actualOrder.outlet?.name || "ALAYN RESTAURANT";
   const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
-  // A void slip lists the cancelled items; a normal KOT leaves them out
+  // Items removed earlier already got their own void slip: only an item-void slip lists cancelled items
   const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
-    (i: any) => (isCancellation ? true : i.status !== "CANCELLED")
+    (i: any) => (actualOrder.isItemVoid ? true : i.status !== "CANCELLED")
   );
   const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
   const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";

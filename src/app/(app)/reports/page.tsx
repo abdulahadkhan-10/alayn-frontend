@@ -14,6 +14,7 @@ import TrendChart from "@/components/reports/TrendChart";
 import SalesBreakdown from "@/components/reports/SalesBreakdown";
 import WhenPeopleBuy from "@/components/reports/WhenPeopleBuy";
 import WasteList from "@/components/reports/WasteList";
+import RemovedItemsList from "@/components/reports/RemovedItemsList";
 import ItemsTable from "@/components/reports/ItemsTable";
 import ExportMenu from "@/components/reports/ExportMenu";
 import HighlightsCard from "@/components/reports/HighlightsCard";
@@ -68,6 +69,7 @@ function ReportBody({ report, params }: { report: ReportData; params: ReportPara
       <WhenPeopleBuy report={report} params={params} />
       <ItemsTable items={report.items} hasPrev={hasPrev} empty={empty} params={params} />
       <WasteList rows={report.waste} params={params} />
+      <RemovedItemsList params={params} />
 
       {report.notes.length > 0 && (
         <section className={`${CARD} p-5`} aria-label="Notes">

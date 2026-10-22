@@ -98,6 +98,36 @@ export interface ReportSchedule {
   outletId: string | null;
 }
 
+// Shape copied from alayn-backend src/modules/reports/removals.ts
+export interface RemovalTotals {
+  removals: number;
+  quantity: number;
+  amountPaise: number;
+}
+
+export interface RemovedItemsReport {
+  period: { label: string };
+  /** afterServed: the food went to the table and was then taken off the bill */
+  totals: RemovalTotals & { afterServedRemovals: number; afterServedPaise: number };
+  byPerson: (RemovalTotals & { key: string; name: string; role: string })[];
+  byReason: (RemovalTotals & { reason: string })[];
+  rows: {
+    id: string;
+    at: string;
+    orderNumber: string;
+    tableNumber: number | null;
+    outletName: string;
+    itemName: string;
+    quantity: number;
+    amountPaise: number;
+    reason: string;
+    itemStage: string;
+    removedByName: string;
+    removedByRole: string;
+  }[];
+  truncated: boolean;
+}
+
 /**
  * Several outlets need the "all" outlet header plus the chosen ids; one outlet is sent as the
  * header alone; none chosen leaves baseApi's current branch header in place.
@@ -120,6 +150,16 @@ export const reportsApiSlice = baseApi.injectEndpoints({
         };
       },
       transformResponse: (response: { data: ReportData }) => response.data,
+    }),
+    getRemovedItemsReport: builder.query<RemovedItemsReport, ReportParams>({
+      query: (params) => {
+        const { query, outletHeader } = reportRequest(params);
+        return {
+          url: `/reports/removed-items${query ? `?${query}` : ""}`,
+          headers: outletHeader ? { "x-outlet-id": outletHeader } : undefined,
+        };
+      },
+      transformResponse: (response: { data: RemovedItemsReport }) => response.data,
     }),
     getReportOptions: builder.query<ReportOptions, void>({
       query: () => ({ url: "/reports/options" }),
@@ -145,6 +185,7 @@ export const reportsApiSlice = baseApi.injectEndpoints({
 export const {
   useGetReportQuery,
   useGetReportOptionsQuery,
+  useGetRemovedItemsReportQuery,
   useGetReportScheduleQuery,
   useSaveReportScheduleMutation,
   useSendTestReportEmailMutation,

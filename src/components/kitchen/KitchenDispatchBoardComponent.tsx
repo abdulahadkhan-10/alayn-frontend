@@ -331,7 +331,10 @@ export default function KitchenDispatchBoardComponent() {
 
                 const cOrderNo = cancelledTicket.orderNo || cancelledTicket.orderNumber || `#${cancelledTicket.id.slice(0, 6)}`;
                 const cTableNo = cancelledTicket.tableNo || cancelledTicket.tableNumber || "COUNTER";
-                const cItems = cancelledTicket.items || cancelledTicket.orderItems || [];
+                // Items removed before the order was cancelled were already alerted on their own
+                const cItems = (cancelledTicket.items || cancelledTicket.orderItems || []).filter(
+                  (ci: any) => ci.status !== "CANCELLED"
+                );
 
                 return (
                   <div

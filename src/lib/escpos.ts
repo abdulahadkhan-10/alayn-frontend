@@ -176,9 +176,9 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
     String(rawTable) !== "COUNTER";
   const tableTitle = isTable ? `TABLE #${rawTable}` : "COUNTER / TAKEAWAY";
 
-  // A void slip lists the cancelled items; a normal KOT leaves them out
+  // Items removed earlier already got their own void slip: only an item-void slip lists cancelled items
   const items = (actualOrder.items || actualOrder.orderItems || []).filter(
-    (i: any) => (isCancellation ? true : i.status !== "CANCELLED")
+    (i: any) => (actualOrder.isItemVoid ? true : i.status !== "CANCELLED")
   );
   const maxKotNo = Math.max(...items.map((i: any) => i.kotNo || 1), 1);
 
