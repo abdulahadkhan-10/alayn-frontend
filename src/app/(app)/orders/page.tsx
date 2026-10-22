@@ -232,6 +232,9 @@ export default function LiveOrdersPage() {
     user?.role === "MANAGER" ||
     user?.role === "BUSINESS_OWNER" ||
     user?.role === "SUPER_ADMIN";
+  // Removing a wrongly punched item is open to floor staff too (who/why is kept in the audit trail);
+  // cancelling a whole order stays Manager/Owner only
+  const canRemoveBillItems = isManagerOrOwner || isStaffRole;
 
   // Workforce employee record (staff only)
   const { data: employeesRaw } = useGetEmployeesQuery(
@@ -389,6 +392,11 @@ export default function LiveOrdersPage() {
   const [cancelItemCustomReason, setCancelItemCustomReason] = useState<string>("");
   const [cancelItemError, setCancelItemError] = useState<string | null>(null);
   const [showSettleItems, setShowSettleItems] = useState<boolean>(false);
+  const [printItemVoidKOT, setPrintItemVoidKOT] = useState<boolean>(true);
+
+  // Item has reached the kitchen and isn't served yet, so the cooks must be told to stop
+  const isItemInKitchen = (item: any) =>
+    ["SENT_TO_KITCHEN", "RECEIVED", "PREPARING", "READY"].includes(item?.status);
 
   const handleOpenCancelItem = (order: Order, item: any) => {
     setCancellingItemTarget({ order, item });
@@ -430,6 +438,22 @@ export default function LiveOrdersPage() {
       }
       refetch();
       setCancellingItemTarget(null);
+
+      if (kitchenCaps.supportsKotPrint && printItemVoidKOT && isItemInKitchen(item)) {
+        // Void slip lists only the removed quantity, not the rest of the order
+        const voidedItem = { ...item, quantity: cancelItemQty, status: "CANCELLED" };
+        setPrintingKOT({
+          order: {
+            ...order,
+            items: [voidedItem],
+            orderItems: [voidedItem],
+            comment: finalReason,
+            cancelledAt: new Date().toISOString(),
+            isItemVoid: true,
+          },
+          isCancellation: true,
+        });
+      }
     } catch (err: any) {
       setCancelItemError(err?.data?.message || err?.message || "Failed to remove item from bill.");
     }
@@ -1088,7 +1112,9 @@ export default function LiveOrdersPage() {
                       <div className="flex flex-wrap gap-1.5">
                         {(() => {
                           const consolidatedMap = new Map<string, { item: any; totalQty: number; variantName?: string }>();
-                          items.forEach((item: any) => {
+                          // Items removed from the bill are not part of the order any more
+                          const removedCount = items.filter((item: any) => item.status === "CANCELLED").length;
+                          items.filter((item: any) => item.status !== "CANCELLED").forEach((item: any) => {
                             let itemMods: any[] = [];
                             if (Array.isArray(item.modifiers) && item.modifiers.length > 0) itemMods = item.modifiers;
                             else if (item.modifiersJson) {
@@ -1128,6 +1154,12 @@ export default function LiveOrdersPage() {
                               {remaining > 0 && (
                                 <span className="inline-flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-400 text-[10px] font-bold rounded-lg italic">
                                   +{remaining} more
+                                </span>
+                              )}
+                              {removedCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold rounded-lg">
+                                  <XCircle className="w-3 h-3" />
+                                  {removedCount} removed
                                 </span>
                               )}
                             </>
@@ -1375,12 +1407,12 @@ export default function LiveOrdersPage() {
                                 </span>
                                 {selectedOrder.status !== "COMPLETED" &&
                                   selectedOrder.status !== "CANCELLED" &&
-                                  isManagerOrOwner && (
+                                  canRemoveBillItems && (
                                     <button
                                       type="button"
                                       onClick={() => handleOpenCancelItem(selectedOrder, item)}
                                       className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 transition cursor-pointer"
-                                      title="Remove item from bill (Manager)"
+                                      title="Remove item from bill"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -1842,9 +1874,9 @@ export default function LiveOrdersPage() {
                               {cancelledItems.length} removed
                             </span>
                           )}
-                          {isManagerOrOwner && (
+                          {canRemoveBillItems && (
                             <span className="text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md">
-                              Manager Edit
+                              {isManagerOrOwner ? "Manager Edit" : "Item Edit"}
                             </span>
                           )}
                         </div>
@@ -1928,7 +1960,7 @@ export default function LiveOrdersPage() {
 
                                       {!isCancelled && (
                                         <>
-                                          {isManagerOrOwner ? (
+                                          {canRemoveBillItems ? (
                                             <button
                                               type="button"
                                               onClick={() =>
@@ -1948,7 +1980,7 @@ export default function LiveOrdersPage() {
                                           ) : (
                                             <span
                                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-slate-400 bg-slate-50 border border-slate-200/60"
-                                              title="Only a Manager or Owner can remove items"
+                                              title="You don't have permission to remove items"
                                             >
                                               <Lock className="w-2.5 h-2.5" />
                                             </span>
@@ -2679,7 +2711,7 @@ export default function LiveOrdersPage() {
           )}
         </TModal>
 
-        {/* ── Modal: Cancel / Remove Item from Bill (Manager Authorization) ── */}
+        {/* ── Modal: Cancel / Remove Item from Bill (Staff, Manager or Owner) ── */}
         <TModal
           open={!!cancellingItemTarget}
           onClose={() => {
@@ -2700,7 +2732,7 @@ export default function LiveOrdersPage() {
                       Remove Item from Bill
                     </h4>
                     <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      Manager Authority Action
+                      By {user?.name || "Staff"} ({user?.role?.replace("_", " ")})
                     </p>
                   </div>
                 </div>
@@ -2831,8 +2863,23 @@ export default function LiveOrdersPage() {
                       </div>
                     )}
 
+                    {/* Void KOT: tell the kitchen to stop preparing what was removed */}
+                    {kitchenCaps.supportsKotPrint && isItemInKitchen(item) && (
+                      <label className="flex items-center gap-2 text-xs font-semibold text-rose-900 bg-rose-50/60 border border-rose-200 rounded-lg px-3 py-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={printItemVoidKOT}
+                          onChange={(e) => setPrintItemVoidKOT(e.target.checked)}
+                          className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
+                        />
+                        <Printer className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Print Cancellation KOT to Kitchen Printer</span>
+                      </label>
+                    )}
+
                     <p className="text-[10px] text-slate-400 italic">
-                      * Logged with manager ID in audit trail. Bill will recompute automatically.
+                      * Logged with your user ID in audit trail. Bill will recompute automatically.
+                      {isItemInKitchen(item) && " Kitchen screen will be alerted to stop preparing."}
                     </p>
 
                     {/* Actions */}

@@ -142,7 +142,8 @@ export default function KitchenDispatchBoardComponent() {
       refetch();
       const orderStatus = data?.status || data?.order?.status;
 
-      if (orderStatus === "CANCELLED") {
+      // An item removed from a running order rings the cancel bell, not the new-order bell
+      if (orderStatus === "CANCELLED" || data?.itemCancelled) {
         playKitchenChime(true);
       } else if (orderStatus === "SENT_TO_KITCHEN" || orderStatus === "RECEIVED") {
         playKitchenChime(false);
@@ -180,6 +181,31 @@ export default function KitchenDispatchBoardComponent() {
   const handleDismissCancelled = (id: string) => {
     setDismissedCancelledIds((prev) => new Set([...Array.from(prev), id]));
   };
+
+  // Items removed from a still-running order within 3 minutes (whole-order voids are shown above)
+  const activeCancelledItems = useMemo(() => {
+    const kitchenStages = ["SENT_TO_KITCHEN", "RECEIVED", "PREPARING", "READY"];
+    const rawTickets = (tickets as any[]) || [];
+    return rawTickets
+      .filter((t) => t.status !== "CANCELLED" && t.status !== "COMPLETED")
+      .flatMap((t) =>
+        (t.items || t.orderItems || [])
+          .filter((item: any) => {
+            if (!item.cancelledAt || !(item.cancelledQuantity > 0)) return false;
+            // Fully removed: only alert if it was still in the kitchen; partly removed: the rest is still cooking
+            const stage = item.status === "CANCELLED" ? item.cancelledFromStatus : item.status;
+            if (!kitchenStages.includes(stage)) return false;
+            return Math.floor((now - new Date(item.cancelledAt).getTime()) / 1000) < 180;
+          })
+          .map((item: any) => ({
+            key: `${item.id}:${item.cancelledAt}`,
+            ticket: t,
+            item,
+            isFullyRemoved: item.status === "CANCELLED",
+          }))
+      )
+      .filter((entry) => !dismissedCancelledIds.has(entry.key));
+  }, [tickets, dismissedCancelledIds, now]);
 
   const columns: { title: string; status: Order["status"]; color: string; buttonColor: string; icon: any }[] = [
     { title: "Sent to Kitchen", status: "SENT_TO_KITCHEN", color: "border-gray-200 text-gray-800 bg-white", buttonColor: "bg-[#1B2A4A] hover:bg-black text-white", icon: Clock },
@@ -391,6 +417,71 @@ export default function KitchenDispatchBoardComponent() {
                         Acknowledge & Clear
                       </button>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── PRIORITY ALERT TRAY: ITEMS REMOVED FROM RUNNING ORDERS (Retained for 3 Minutes) ── */}
+        {activeCancelledItems.length > 0 && (
+          <div className="bg-amber-500/10 border-2 border-amber-500 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-amber-800">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-600"></span>
+                </span>
+                <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  Item Cancelled — Stop Preparing
+                </h3>
+              </div>
+              <span className="text-xs font-bold text-amber-800 font-mono">
+                {activeCancelledItems.length} item(s) removed &bull; Auto-dismissing in 3 min
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {activeCancelledItems.map(({ key, ticket, item, isFullyRemoved }) => {
+                const remainingSeconds = Math.max(0, 180 - Math.floor((now - new Date(item.cancelledAt).getTime()) / 1000));
+                const formattedTime = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
+                const cOrderNo = ticket.orderNo || ticket.orderNumber || `#${ticket.id.slice(0, 6)}`;
+                const cTableNo = ticket.tableNo || ticket.tableNumber || "COUNTER";
+
+                return (
+                  <div key={key} className="bg-white border-2 border-amber-400 rounded-xl p-3 shadow-md space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-sm font-black text-[#1B2A4A] tracking-tight">{cOrderNo}</span>
+                        <div className="text-xs font-black uppercase text-zinc-900 mt-0.5">
+                          TBL: <span className="text-rose-600 text-sm">{cTableNo}</span>
+                          {item.kotNo > 1 && <span className="ml-1.5 text-[10px] text-gray-500">KOT #{item.kotNo}</span>}
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-mono font-black text-amber-700">{formattedTime}</span>
+                    </div>
+
+                    <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 flex items-center justify-between gap-2">
+                      <span className="text-xs font-black text-rose-900 line-through truncate">
+                        {item.menuItem?.name || item.menuItemName || "Item"}
+                      </span>
+                      <span className="font-black px-1.5 py-0.5 bg-rose-200 text-rose-900 rounded-xs text-[11px] shrink-0">
+                        −{item.cancelledQuantity}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">
+                      {isFullyRemoved ? "Do not cook" : `Reduce to ${item.quantity} — cook only ${item.quantity}`}
+                    </p>
+
+                    <button
+                      onClick={() => handleDismissCancelled(key)}
+                      className="w-full py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Acknowledge
+                    </button>
                   </div>
                 );
               })}

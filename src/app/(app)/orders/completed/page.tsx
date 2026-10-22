@@ -815,10 +815,13 @@ export default function CompletedOrdersPage() {
                   </h4>
                   <div className="divide-y divide-gray-100 border border-gray-100 rounded-2xl overflow-hidden">
                     {selectedOrder.orderItems && selectedOrder.orderItems.length > 0 ? (
-                      selectedOrder.orderItems.map((item, idx) => (
+                      selectedOrder.orderItems.map((item, idx) => {
+                        // Removed from the bill: keep it visible for the audit, but not as a charge
+                        const isRemoved = (item as any).status === "CANCELLED";
+                        return (
                         <div
                           key={idx}
-                          className="flex items-center justify-between p-3 text-xs bg-white"
+                          className={`flex items-center justify-between p-3 text-xs ${isRemoved ? "bg-rose-50/40 opacity-70 line-through" : "bg-white"}`}
                         >
                           <div className="flex items-center gap-2.5">
                             <span className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-[#1B2A4A] text-[11px]">
@@ -835,11 +838,18 @@ export default function CompletedOrdersPage() {
                               )}
                             </div>
                           </div>
-                          <span className="font-bold text-gray-800">
-                            ₹{getItemPrice(item).toFixed(2)}
-                          </span>
+                          {isRemoved ? (
+                            <span className="text-[10px] font-bold uppercase text-rose-600 no-underline">
+                              Removed
+                            </span>
+                          ) : (
+                            <span className="font-bold text-gray-800">
+                              ₹{getItemPrice(item).toFixed(2)}
+                            </span>
+                          )}
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="p-3 text-xs text-gray-400 italic">
                         No item breakdown available

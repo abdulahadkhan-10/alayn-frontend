@@ -409,7 +409,10 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
   const orderSource = (actualOrder.orderSource || actualOrder.source || "DINE-IN").toUpperCase();
   const outletName = actualOrder.outlet?.name || "ALAYN RESTAURANT";
   const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
-  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+  // A void slip lists the cancelled items; a normal KOT leaves them out
+  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (i: any) => (isCancellation ? true : i.status !== "CANCELLED")
+  );
   const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
   const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
   const timestamp = actualOrder.createdAt
@@ -568,7 +571,10 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
       })
     : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
-  const itemsList = actualOrder.items || actualOrder.orderItems || [];
+  // Items removed from the bill are not charged, so they don't print
+  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (item: any) => item.status !== "CANCELLED"
+  );
 
   // Financial math (in Rupees)
   const subtotalRupees = actualOrder.subtotalPaise !== undefined

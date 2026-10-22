@@ -176,7 +176,10 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
     String(rawTable) !== "COUNTER";
   const tableTitle = isTable ? `TABLE #${rawTable}` : "COUNTER / TAKEAWAY";
 
-  const items = actualOrder.items || actualOrder.orderItems || [];
+  // A void slip lists the cancelled items; a normal KOT leaves them out
+  const items = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (i: any) => (isCancellation ? true : i.status !== "CANCELLED")
+  );
   const maxKotNo = Math.max(...items.map((i: any) => i.kotNo || 1), 1);
 
   const timeStr = actualOrder.createdAt
@@ -278,7 +281,8 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
   builder.align("center");
   if (isCancellation) {
     builder.bold(true);
-    builder.textLine("*** ORDER CANCELLED ***");
+    // isItemVoid: only the listed items were removed, the rest of the order still stands
+    builder.textLine(actualOrder.isItemVoid ? "*** ITEM CANCELLED ***" : "*** ORDER CANCELLED ***");
     if (actualOrder.comment || actualOrder.cancelReason) {
       builder.textLine(`Reason: ${actualOrder.comment || actualOrder.cancelReason}`);
     }
@@ -322,7 +326,10 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     String(rawTable) !== "COUNTER";
   const tableTitle = isTable ? `Table: #${rawTable}` : "Counter Direct";
 
-  const items = actualOrder.items || actualOrder.orderItems || [];
+  // Items removed from the bill are not charged, so they don't print
+  const items = (actualOrder.items || actualOrder.orderItems || []).filter(
+    (item: any) => item.status !== "CANCELLED"
+  );
 
   const orderDate = actualOrder.createdAt ? new Date(actualOrder.createdAt) : new Date();
   const dateStr = orderDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });

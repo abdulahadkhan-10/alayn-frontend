@@ -28,6 +28,7 @@ export interface ThermalKOTProps {
     comment?: string;
     cancelReason?: string;
     cancelledAt?: string;
+    isItemVoid?: boolean;
     items?: Array<{
       id?: string;
       quantity: number;
@@ -456,10 +457,12 @@ export default function ThermalKOT({
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-extrabold text-rose-700 uppercase tracking-wide">
-                  Order Voided &amp; Cancelled
+                  {actualOrder.isItemVoid ? "Item Cancelled from Order" : <>Order Voided &amp; Cancelled</>}
                 </div>
                 <div className="text-[10px] font-medium text-rose-600">
-                  Do not prepare food • Discard active prep
+                  {actualOrder.isItemVoid
+                    ? "Stop preparing the items below • Rest of the order continues"
+                    : "Do not prepare food • Discard active prep"}
                 </div>
               </div>
             </div>
