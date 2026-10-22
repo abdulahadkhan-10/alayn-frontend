@@ -90,7 +90,6 @@ export function paramsFromSearch(sp: URLSearchParams): ReportParams {
 
 /** The query string for these filters (no leading "?"). Defaults are left out to keep links short. */
 const LINK_KEYS = new Set(["preset", "compare", "from", "to", "cFrom", "cTo", "outlets", "sources", "categories", "weekdays", "hourFrom", "hourTo", "granularity"]);
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * The report a "/reports?…" link in an Alayn AI answer points to, or null when the link isn't one the
