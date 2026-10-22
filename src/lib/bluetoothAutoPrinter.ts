@@ -12,6 +12,7 @@
 import { buildKOTBytes, buildReceiptBytes, buildFormattedPlainText } from "./escpos";
 import { printThermalHtml } from "./printUtils";
 import { billItemRows, receiptCashierName } from "./billLines";
+import { kotHeader, kotItems } from "./kotLines";
 import { getPaymentLines } from "./splitPayment";
 
 const escapeHtml = (text: string) =>
@@ -400,48 +401,38 @@ export async function autoPrintKOT(order: any, isCancellation = false, paperWidt
 }
 
 /**
- * 🖨️ Builds standard thermal HTML for Kitchen Order Tickets
+ * 🖨️ Builds standard thermal HTML for Kitchen Order Tickets (kitchen essentials only, see kotLines)
  */
 export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80mm" | "58mm" = "80mm"): string {
   const actualOrder = (order as any)?.data || order || {};
-  const orderNumber = actualOrder.orderNumber || actualOrder.orderNo || (actualOrder.id ? String(actualOrder.id).slice(0, 8) : "KOT-1");
-  const tableDisplay = actualOrder.tableNumber || actualOrder.tableNo ? `Table ${actualOrder.tableNumber || actualOrder.tableNo}` : "Counter Direct";
-  const orderSource = (actualOrder.orderSource || actualOrder.source || "DINE-IN").toUpperCase();
-  const outletName = actualOrder.outlet?.name || "ALAYN RESTAURANT";
-  const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Staff");
-  // Items removed earlier already got their own void slip: only an item-void slip lists cancelled items
-  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
-    (i: any) => (actualOrder.isItemVoid ? true : i.status !== "CANCELLED")
-  );
-  const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
+  const itemsList = kotItems(actualOrder);
+  const kot = kotHeader(actualOrder, itemsList);
   const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
-  const timestamp = actualOrder.createdAt
-    ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
-  const cancelTimestamp = actualOrder.cancelledAt
-    ? new Date(actualOrder.cancelledAt).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : timestamp;
+  const top = isCancellation
+    ? `<div class="cancel-banner">
+         <div style="font-size: 15px;">${actualOrder.isItemVoid ? "*** ITEM CANCELLED ***" : "*** ORDER CANCELLED ***"}</div>
+         <div style="font-size: 11px; margin-top: 2px;">DO NOT PREPARE</div>
+       </div>
+       <div class="row"><span>Cancelled</span><span class="bold">${kot.cancelledAt}</span></div>`
+    : `<div class="row" style="font-size: 15px;"><span class="bold">KOT #${kot.kotNo}</span><span class="bold">${kot.sentAt}</span></div>`;
 
-  const cancelReason = actualOrder.comment || actualOrder.cancelReason;
+  const items = itemsList.map((item: any) => {
+    const line = billItemRows(item);
+    const addons = line.addons.map((a) => `<div class="sub">+ ${escapeHtml(a.name)}</div>`).join("");
+    const note = item.notes ? `<div class="sub note">* NOTE: ${escapeHtml(item.notes)}</div>` : "";
+    return `
+      <tr>
+        <td class="item-name-cell"><span class="bold" style="font-size: 14px;">${escapeHtml(line.name)}</span>${addons}${note}</td>
+        <td class="item-qty-cell"><span class="item-qty-box">${item.quantity}</span></td>
+      </tr>`;
+  }).join("");
 
   return `
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${isCancellation ? "VOID-KOT" : "KOT"}-${orderNumber}</title>
+        <title>${isCancellation ? "VOID-KOT" : "KOT"}-${escapeHtml(kot.orderNumber)}</title>
         <meta charset="UTF-8" />
         <style>
           @page { size: ${paperWidth} auto; margin: 0mm; }
@@ -466,37 +457,29 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
             font-size: 13px;
             line-height: 1.25;
           }
-          .center { text-align: center; }
           .bold { font-weight: 900; }
-          .cancel-banner { border: 2px solid #000; padding: 6px; text-align: center; font-weight: 900; margin: 6px 0; }
-          .meta-table { width: 100%; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin: 5px 0; font-size: 12px; }
-          .meta-row { display: flex; justify-content: space-between; margin: 2px 0; }
-          .kot-items-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+          .row { display: flex; justify-content: space-between; gap: 6px; margin: 2px 0; }
+          .cancel-banner { border: 2px solid #000; padding: 6px; text-align: center; font-weight: 900; margin-bottom: 6px; }
+          .location { text-align: center; font-weight: 900; font-size: 20px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 6px 0; }
+          .meta { font-size: 12px; padding-bottom: 5px; border-bottom: 1px dashed #000; }
+          .kot-items-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
           .kot-items-table th { border-bottom: 1.5px solid #000; font-weight: 900; padding: 3px 0; font-size: 12px; }
           .kot-items-table td { padding: 4px 0; vertical-align: top; border-bottom: 1px dotted #888; }
           .item-name-cell { padding-right: 6px; word-break: break-word; overflow-wrap: break-word; }
           .item-qty-cell { text-align: right; white-space: nowrap; width: 44px; }
           .item-qty-box { border: 1.5px solid #000; padding: 1px 6px; font-weight: 900; min-width: 24px; text-align: center; display: inline-block; font-size: 14px; }
-          .footer-line { text-align: center; font-weight: 900; border-top: 1.5px dashed #000; margin-top: 10px; padding-top: 6px; font-size: 11px; }
+          .sub { font-size: 12px; font-weight: 800; margin-left: 8px; }
+          .note { font-style: italic; }
+          .end { border-top: 2px solid #000; margin-top: 6px; }
         </style>
       </head>
       <body>
-        <div class="center bold" style="font-size: 15px; text-transform: uppercase;">${outletName}</div>
-        <div class="center" style="font-size: 11px; margin-bottom: 4px;">KITCHEN ORDER TICKET (KOT)</div>
-        ${isCancellation
-          ? '<div class="cancel-banner"><div style="font-size: 14px; font-weight: 900;">*** VOID / CANCELLED ***</div><div style="font-size: 11px; font-weight: 800; margin-top: 2px;">DO NOT PREPARE FOOD</div></div>'
-          : '<div class="center bold" style="font-size: 12px; border: 1.5px solid #000; padding: 2px 8px; display: inline-block; margin: 3px 0;">KOT #' + maxKotNo + '</div>'
-        }
-        <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 5px 0;">
-          ${tableDisplay.toUpperCase()} (${orderSource})
-        </div>
-        <div class="meta-table">
-          <div class="meta-row"><span>Order #:</span><span class="bold">${orderNumber}</span></div>
-          <div class="meta-row"><span>Staff:</span><span>${serverName}</span></div>
-          <div class="meta-row"><span>Placed:</span><span>${timestamp}</span></div>
-          ${isCancellation ? '<div class="meta-row bold"><span>Cancelled:</span><span>' + cancelTimestamp + '</span></div>' : ""}
-          ${actualOrder.customerName ? '<div class="meta-row"><span>Customer:</span><span>' + actualOrder.customerName + '</span></div>' : ""}
-          ${isCancellation && cancelReason ? '<div style="margin-top: 4px; padding: 4px; border-left: 2px solid #000; font-size: 11px;"><strong>Reason:</strong> ' + cancelReason + '</div>' : ""}
+        ${top}
+        <div class="location">${escapeHtml(kot.location)}</div>
+        <div class="meta">
+          <div class="row"><span>Order:</span><span class="bold">${escapeHtml(kot.orderNumber)}</span></div>
+          <div class="row"><span>Server:</span><span>${escapeHtml(kot.serverName)}</span></div>
+          ${isCancellation && kot.cancelReason ? `<div style="margin-top: 4px;"><strong>Reason:</strong> ${escapeHtml(kot.cancelReason)}</div>` : ""}
         </div>
 
         <table class="kot-items-table">
@@ -506,30 +489,9 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
               <th style="text-align: right;">QTY</th>
             </tr>
           </thead>
-          <tbody>
-            ${itemsList.map((item: any) => {
-              const line = billItemRows(item);
-              const addons = line.addons.map((a) => '<div style="font-size: 12px; font-weight: 800; margin-left: 8px;">+ ' + a.name + '</div>').join("");
-              const note = item.notes ? '<div style="font-size: 10px; font-style: italic; margin-left: 8px;">Note: ' + item.notes + '</div>' : "";
-              return `
-                <tr>
-                  <td class="item-name-cell">
-                    <span class="bold" style="font-size: 13px;">${line.name}</span>
-                    ${addons}
-                    ${note}
-                  </td>
-                  <td class="item-qty-cell">
-                    <span class="item-qty-box">${item.quantity}</span>
-                  </td>
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
+          <tbody>${items}</tbody>
         </table>
-
-        <div class="footer-line">
-          ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : '--- END OF KOT #' + maxKotNo + ' ---'}
-        </div>
+        <div class="end"></div>
         <div style="height: 12mm;"></div>
       </body>
     </html>

@@ -5,11 +5,12 @@ import { Printer, X, CheckCircle, Utensils, Ban, AlertCircle, Loader2, Bluetooth
 import { printThermalHtml } from "@/lib/printUtils";
 import {
   autoPrintKOT,
+  buildKotHtml,
   pairWebBluetoothPrinter,
   isWebBluetoothSupported,
   getConnectedPrinterName,
 } from "@/lib/bluetoothAutoPrinter";
-import { billItemRows } from "@/lib/billLines";
+import { kotHeader, kotItems } from "@/lib/kotLines";
 
 export interface ThermalKOTProps {
   order: {
@@ -108,261 +109,14 @@ export default function ThermalKOT({
   };
 
   const actualOrder = (order as any)?.data || order || {};
-  const orderNumber =
-    actualOrder.orderNumber ||
-    actualOrder.orderNo ||
-    (actualOrder.id ? `#${String(actualOrder.id).slice(0, 8).toUpperCase()}` : "ORD-101");
-
-  const rawTable = actualOrder.tableNumber ?? actualOrder.tableNo;
-  const isTableOrder =
-    rawTable !== null &&
-    rawTable !== undefined &&
-    String(rawTable).trim() !== "" &&
-    String(rawTable) !== "COUNTER";
-  const tableDisplay = isTableOrder ? `Table ${rawTable}` : "Counter / Direct";
-
-  const orderSource = (
-    actualOrder.source ||
-    actualOrder.orderSource ||
-    (isTableOrder ? "DINE-IN" : "COUNTER")
-  ).toUpperCase();
-
-  const outletName = actualOrder.outlet?.name || "ALAYN RESTAURANT";
-  const serverName =
-    actualOrder.placedByName ||
-    (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Cashier / Staff");
-
-  const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
-    (i: any) => (actualOrder.isItemVoid ? true : i.status !== "CANCELLED")
-  );
-  const maxKotNo = Math.max(...itemsList.map((i: any) => i.kotNo || 1), 1);
-
-  const timestamp = actualOrder.createdAt
-    ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : new Date().toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-
-  const cancelTimestamp = actualOrder.cancelledAt
-    ? new Date(actualOrder.cancelledAt).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-
-  const cancelReason = actualOrder.comment || actualOrder.cancelReason;
+  const itemsList = kotItems(actualOrder);
+  const kot = kotHeader(actualOrder, itemsList);
+  const maxKotNo = kot.kotNo;
+  const orderNumber = kot.orderNumber;
 
   const handlePrint = async () => {
     setIsPrinting(true);
-    const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
-
-    const kotHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${isCancellation ? "VOID-KOT" : "KOT"}-${orderNumber}</title>
-          <meta charset="UTF-8" />
-          <style>
-            @page {
-              size: ${paperWidth} auto;
-              margin: 0mm;
-            }
-            @media print {
-              html, body {
-                width: ${printWidth} !important;
-                max-width: ${printWidth} !important;
-                margin: 0 auto !important;
-                padding: 0 1.5mm !important;
-                background: #fff !important;
-                color: #000 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-            }
-            * {
-              box-sizing: border-box;
-              color: #000 !important;
-              font-family: 'Courier New', Courier, monospace !important;
-            }
-            body {
-              width: ${printWidth};
-              max-width: ${printWidth};
-              margin: 0 auto;
-              padding: 2mm 1.5mm 16mm 1.5mm;
-              font-size: 13px;
-              line-height: 1.25;
-            }
-            .center { text-align: center; }
-            .bold { font-weight: 900; }
-            .cancel-banner {
-              border: 2px solid #000;
-              padding: 6px;
-              text-align: center;
-              font-weight: 900;
-              margin: 6px 0;
-            }
-            .meta-table {
-              width: 100%;
-              border-top: 1px dashed #000;
-              border-bottom: 1px dashed #000;
-              padding: 5px 0;
-              margin: 5px 0;
-              font-size: 12px;
-            }
-            .meta-row {
-              display: flex;
-              justify-content: space-between;
-              margin: 2px 0;
-            }
-            .kot-items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 6px;
-            }
-            .kot-items-table th {
-              border-bottom: 1.5px solid #000;
-              font-weight: 900;
-              padding: 3px 0;
-              font-size: 12px;
-            }
-            .kot-items-table td {
-              padding: 4px 0;
-              vertical-align: top;
-              border-bottom: 1px dotted #888;
-            }
-            .item-name-cell {
-              padding-right: 6px;
-              word-break: break-word;
-              overflow-wrap: break-word;
-            }
-            .item-qty-cell {
-              text-align: right;
-              white-space: nowrap;
-              width: 44px;
-            }
-            .item-qty-box {
-              border: 1.5px solid #000;
-              padding: 1px 6px;
-              font-weight: 900;
-              min-width: 24px;
-              text-align: center;
-              display: inline-block;
-              font-size: 14px;
-            }
-            .footer-line {
-              text-align: center;
-              font-weight: 900;
-              border-top: 1.5px dashed #000;
-              margin-top: 10px;
-              padding-top: 6px;
-              font-size: 11px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="center bold" style="font-size: 15px; text-transform: uppercase;">
-            ${outletName}
-          </div>
-          <div class="center" style="font-size: 11px; margin-bottom: 4px;">
-            KITCHEN ORDER TICKET (KOT)
-          </div>
-
-          ${
-            isCancellation
-              ? `
-              <div class="cancel-banner">
-                <div style="font-size: 14px; font-weight: 900;">*** VOID / CANCELLED ***</div>
-                <div style="font-size: 11px; font-weight: 800; margin-top: 2px;">DO NOT PREPARE FOOD</div>
-              </div>
-            `
-              : `
-              <div class="center bold" style="font-size: 12px; border: 1.5px solid #000; padding: 2px 8px; display: inline-block; margin: 3px 0;">
-                KOT #${maxKotNo}
-              </div>
-            `
-          }
-
-          <div class="center bold" style="font-size: 15px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 4px 0; margin: 5px 0;">
-            ${tableDisplay.toUpperCase()} (${orderSource})
-          </div>
-
-          <div class="meta-table">
-            <div class="meta-row"><span>Order #:</span><span class="bold">${orderNumber}</span></div>
-            <div class="meta-row"><span>Staff:</span><span>${serverName}</span></div>
-            <div class="meta-row"><span>Placed:</span><span>${timestamp}</span></div>
-            ${
-              isCancellation
-                ? `<div class="meta-row bold"><span>Cancelled:</span><span>${cancelTimestamp}</span></div>`
-                : ""
-            }
-            ${
-              actualOrder.customerName
-                ? `<div class="meta-row"><span>Customer:</span><span>${actualOrder.customerName}</span></div>`
-                : ""
-            }
-            ${
-              isCancellation && cancelReason
-                ? `<div style="margin-top: 4px; padding: 4px; border-left: 2px solid #000; font-size: 11px;"><strong>Reason:</strong> ${cancelReason}</div>`
-                : ""
-            }
-          </div>
-
-          <table class="kot-items-table">
-            <thead>
-              <tr>
-                <th style="text-align: left;">ITEM</th>
-                <th style="text-align: right;">QTY</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsList
-                .map((item: any) => {
-                  const line = billItemRows(item);
-                  const addons = line.addons
-                    .map((a) => `<div style="font-size: 12px; font-weight: 800; margin-left: 8px;">+ ${a.name}</div>`)
-                    .join("");
-                  const note = item.notes
-                    ? `<div style="font-size: 10px; font-style: italic; margin-left: 8px;">Note: ${item.notes}</div>`
-                    : "";
-                  return `
-                    <tr>
-                      <td class="item-name-cell">
-                        <span class="bold" style="font-size: 13px;">${line.name}</span>
-                        ${addons}
-                        ${note}
-                      </td>
-                      <td class="item-qty-cell">
-                        <span class="item-qty-box">${item.quantity}</span>
-                      </td>
-                    </tr>
-                  `;
-                })
-                .join("")}
-            </tbody>
-          </table>
-
-          <div class="footer-line">
-            ${isCancellation ? "*** CANCELLED • DO NOT PREPARE ***" : `--- END OF KOT #${maxKotNo} ---`}
-          </div>
-          <div style="height: 12mm;"></div>
-        </body>
-      </html>
-    `;
+    const kotHtml = buildKotHtml(actualOrder, isCancellation, paperWidth);
 
     // Dispatch through hardware auto-printer (Native Bluetooth -> Direct ESC/POS stream -> System fallback)
     const result = await autoPrintKOT(actualOrder, isCancellation, paperWidth);
@@ -441,16 +195,6 @@ export default function ThermalKOT({
             paperWidth === "80mm" ? "max-w-[380px]" : "max-w-[310px]"
           }`}
         >
-          {/* Restaurant Header */}
-          <div className="text-center pb-3 border-b border-slate-100">
-            <h3 className="text-sm font-extrabold text-slate-900 tracking-wide uppercase">
-              {outletName}
-            </h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
-              Kitchen Dispatch Order
-            </p>
-          </div>
-
           {/* Cancellation Alert Banner */}
           {isCancellation ? (
             <div className="my-3 p-3 bg-rose-50 border border-rose-200/90 rounded-xl flex items-center gap-2.5">
@@ -467,59 +211,43 @@ export default function ThermalKOT({
               </div>
             </div>
           ) : (
-            <div className="text-center my-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 bg-slate-100 text-slate-800 rounded-lg inline-block">
-                KOT #{maxKotNo}
-              </span>
+            <div className="flex items-center justify-between mb-2.5 text-sm font-extrabold text-slate-900">
+              <span>KOT #{maxKotNo}</span>
+              <span className="font-mono">{kot.sentAt}</span>
             </div>
           )}
 
           {/* Table / Destination Tag */}
           <div className="my-3 py-2 px-3 bg-slate-900 text-white rounded-xl text-center">
-            <div className="text-sm font-extrabold tracking-tight uppercase">
-              {tableDisplay}
-            </div>
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-0.5">
-              Type: {orderSource}
-            </div>
+            <div className="text-base font-extrabold tracking-tight uppercase">{kot.location}</div>
           </div>
 
           {/* Metadata Grid */}
           <div className="py-2.5 border-y border-dashed border-slate-200 text-xs space-y-1.5">
             <div className="flex justify-between items-center">
-              <span className="text-slate-500 font-medium">Order #:</span>
+              <span className="text-slate-500 font-medium">Order:</span>
               <span className="font-bold text-slate-900 font-mono">{orderNumber}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-500 font-medium">Staff:</span>
-              <span className="font-semibold text-slate-800">{serverName}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500 font-medium">Placed:</span>
-              <span className="text-slate-700">{timestamp}</span>
+              <span className="text-slate-500 font-medium">Server:</span>
+              <span className="font-semibold text-slate-800">{kot.serverName}</span>
             </div>
             {isCancellation && (
               <div className="flex justify-between items-center font-semibold text-rose-600">
-                <span>Cancelled At:</span>
-                <span>{cancelTimestamp}</span>
-              </div>
-            )}
-            {actualOrder.customerName && (
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-medium">Customer:</span>
-                <span className="font-medium text-slate-800">{actualOrder.customerName}</span>
+                <span>Cancelled:</span>
+                <span>{kot.cancelledAt}</span>
               </div>
             )}
           </div>
 
           {/* Cancellation Reason Box */}
-          {isCancellation && cancelReason && (
+          {isCancellation && kot.cancelReason && (
             <div className="mt-3 p-3 bg-rose-50/70 border border-rose-200 rounded-xl">
               <div className="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-0.5">
                 Cancellation Reason
               </div>
               <div className="text-xs font-semibold text-rose-950">
-                {cancelReason}
+                {kot.cancelReason}
               </div>
             </div>
           )}
@@ -590,14 +318,6 @@ export default function ThermalKOT({
             </div>
           </div>
 
-          {/* Ticket Footer Status */}
-          <div className="mt-4 pt-3 border-t border-dashed border-slate-200 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-            {isCancellation ? (
-              <span className="text-rose-600 font-extrabold">*** CANCELLED — DO NOT PREPARE ***</span>
-            ) : (
-              <span>--- END OF KOT #{maxKotNo} ---</span>
-            )}
-          </div>
         </div>
       </div>
 

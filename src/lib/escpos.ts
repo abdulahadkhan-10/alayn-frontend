@@ -12,6 +12,7 @@
  */
 
 import { billItemRows, itemModifiers, receiptCashierName } from "./billLines";
+import { kotHeader, kotItems } from "./kotLines";
 import { getPaymentLines } from "./splitPayment";
 
 export interface ESCPOSOptions {
@@ -163,47 +164,24 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
   const is80mm = paperWidth === "80mm";
   const builder = new ESCPOSBuilder(paperWidth);
 
-  const orderNumber =
-    actualOrder.orderNumber ||
-    actualOrder.orderNo ||
-    (actualOrder.id ? `#${String(actualOrder.id).slice(0, 8).toUpperCase()}` : "ORD-101");
+  const items = kotItems(actualOrder);
+  const kot = kotHeader(actualOrder, items);
 
-  const rawTable = actualOrder.tableNumber ?? actualOrder.tableNo;
-  const isTable =
-    rawTable !== null &&
-    rawTable !== undefined &&
-    String(rawTable).trim() !== "" &&
-    String(rawTable) !== "COUNTER";
-  const tableTitle = isTable ? `TABLE #${rawTable}` : "COUNTER / TAKEAWAY";
-
-  // Items removed earlier already got their own void slip: only an item-void slip lists cancelled items
-  const items = (actualOrder.items || actualOrder.orderItems || []).filter(
-    (i: any) => (actualOrder.isItemVoid ? true : i.status !== "CANCELLED")
-  );
-  const maxKotNo = Math.max(...items.map((i: any) => i.kotNo || 1), 1);
-
-  const timeStr = actualOrder.createdAt
-    ? new Date(actualOrder.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
-    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
-
-  const dateStr = actualOrder.createdAt
-    ? new Date(actualOrder.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-    : new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-
-  const serverName = actualOrder.placedByName || (actualOrder.placedByRole ? `Staff (${actualOrder.placedByRole})` : "Cashier");
-
-  // ── HEADER ──
-  builder.align("center");
+  // ── HEADER: kitchen essentials only (see kotLines) ──
   if (isCancellation) {
+    builder.align("center");
     builder.bold(true).textSize(2, 2);
-    builder.textLine("!! CANCELLED KOT !!");
-    builder.textSize(1, 1).bold(false);
+    builder.textLine(actualOrder.isItemVoid ? "ITEM CANCELLED" : "ORDER CANCELLED");
+    builder.textSize(1, 1);
     builder.textLine("*** DO NOT PREPARE ***");
+    builder.bold(false);
+    builder.align("left");
+    builder.twoColumns("Cancelled", kot.cancelledAt);
   } else {
-    builder.bold(true).textSize(2, 2);
-    builder.textLine("KITCHEN TICKET");
-    builder.textSize(1, 1).bold(false);
-    builder.textLine(`KOT #${maxKotNo} • ${orderNumber}`);
+    builder.align("left");
+    builder.bold(true);
+    builder.twoColumns(`KOT #${kot.kotNo}`, kot.sentAt);
+    builder.bold(false);
   }
 
   builder.divider("=");
@@ -211,16 +189,18 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
   // ── TABLE / LOCATION (Extra Large) ──
   builder.align("center");
   builder.bold(true).textSize(2, 2);
-  builder.textLine(tableTitle);
+  builder.textLine(kot.location);
   builder.textSize(1, 1).bold(false);
 
-  builder.divider("-");
-
-  // ── ORDER METADATA ──
-  builder.align("left");
-  builder.twoColumns(`Date: ${dateStr}`, `Time: ${timeStr}`);
-  builder.twoColumns(`Order: ${orderNumber}`, `Server: ${serverName}`);
   builder.divider("=");
+
+  builder.align("left");
+  builder.textLine(`Order: ${kot.orderNumber}`);
+  builder.textLine(`Server: ${kot.serverName}`);
+  if (isCancellation && kot.cancelReason) {
+    builder.textLine(`Reason: ${kot.cancelReason}`);
+  }
+  builder.divider("-");
 
   // ── ITEMS TABLE ──
   builder.bold(true);
@@ -276,20 +256,6 @@ export function buildKOTBytes(order: any, isCancellation = false, paperWidth: "8
   }
 
   builder.divider("=");
-
-  // ── FOOTER ──
-  builder.align("center");
-  if (isCancellation) {
-    builder.bold(true);
-    // isItemVoid: only the listed items were removed, the rest of the order still stands
-    builder.textLine(actualOrder.isItemVoid ? "*** ITEM CANCELLED ***" : "*** ORDER CANCELLED ***");
-    if (actualOrder.comment || actualOrder.cancelReason) {
-      builder.textLine(`Reason: ${actualOrder.comment || actualOrder.cancelReason}`);
-    }
-  } else {
-    builder.bold(true);
-    builder.textLine(`--- END OF KOT #${maxKotNo} ---`);
-  }
 
   builder.beep(1);
   builder.cut(true);
