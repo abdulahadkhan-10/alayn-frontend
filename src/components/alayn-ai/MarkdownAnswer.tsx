@@ -4,6 +4,8 @@ import React from "react";
 import Link from "next/link";
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { reportLinkParams } from "@/lib/reportQuery";
+import ReportLinkActions from "./ReportLinkActions";
 
 /* Dark-theme styling for each Markdown element AlaynAI uses (lists, bold, short headings, tables) */
 const components: Components = {
@@ -20,7 +22,13 @@ const components: Components = {
   hr: () => <hr className="my-5 border-white/10" />,
   blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-white/15 pl-4 text-slate-300">{children}</blockquote>,
   a: ({ children, href }) => {
-    // Links into the app (like the full report) open in the same tab; everything else leaves the app
+    // A full-report link becomes "Open full report" + "Download PDF"; one the Reports page can't show
+    // exactly (e.g. a made-up preset) is shown as plain text rather than opening a different report
+    if (href && (href === "/reports" || href.startsWith("/reports?"))) {
+      const params = reportLinkParams(href);
+      return params ? <ReportLinkActions params={params} /> : <>{children}</>;
+    }
+    // Other links into the app open in the same tab; everything else leaves the app
     if (href && href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/\\")) {
       return (
         <Link href={href} className="text-rose-300 underline underline-offset-2 hover:text-rose-200">

@@ -89,6 +89,28 @@ export function paramsFromSearch(sp: URLSearchParams): ReportParams {
 }
 
 /** The query string for these filters (no leading "?"). Defaults are left out to keep links short. */
+const LINK_KEYS = new Set(["preset", "compare", "from", "to", "cFrom", "cTo", "outlets", "sources", "categories", "weekdays", "hourFrom", "hourTo", "granularity"]);
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The report a "/reports?…" link in an Alayn AI answer points to, or null when the link isn't one the
+ * Reports page understands exactly (an unknown setting, a made-up preset, a custom period without its
+ * dates). A link the model invented must not quietly open a different report.
+ */
+export function reportLinkParams(href: string): ReportParams | null {
+  const [path, query = ""] = href.split("?");
+  if (path !== "/reports") return null;
+  const sp = new URLSearchParams(query);
+  for (const key of sp.keys()) if (!LINK_KEYS.has(key)) return null;
+  const preset = sp.get("preset");
+  const compare = sp.get("compare");
+  if (preset !== null && !PRESETS.includes(preset as ReportPreset)) return null;
+  if (compare !== null && !COMPARES.includes(compare as CompareMode)) return null;
+  if (preset === "CUSTOM" && !(DAY.test(sp.get("from") ?? "") && DAY.test(sp.get("to") ?? ""))) return null;
+  if (compare === "CUSTOM" && !(DAY.test(sp.get("cFrom") ?? "") && DAY.test(sp.get("cTo") ?? ""))) return null;
+  return paramsFromSearch(sp);
+}
+
 export function paramsToSearch(p: ReportParams): string {
   const sp = new URLSearchParams();
   if (p.preset !== DEFAULT_PRESET) sp.set("preset", p.preset);
