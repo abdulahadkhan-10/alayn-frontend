@@ -686,6 +686,8 @@ export default function MenuManagementComponent() {
       setPendingConfirmAction(null);
     } catch (err) {
       console.error("Failed to create menu item:", err);
+      // e.g. the image could not be saved to storage: say why instead of leaving the form open silently
+      alert((err as { data?: { error?: { message?: string } } })?.data?.error?.message || "Failed to save menu item.");
     }
   };
 
@@ -866,6 +868,8 @@ export default function MenuManagementComponent() {
       setIsEditItemOpen(false);
     } catch (err) {
       console.error("Failed to update menu item:", err);
+      // e.g. the image could not be saved to storage: say why instead of leaving the form open silently
+      alert((err as { data?: { error?: { message?: string } } })?.data?.error?.message || "Failed to save menu item.");
     }
   };
 
