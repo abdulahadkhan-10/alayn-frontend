@@ -131,7 +131,7 @@ const NavLinkItem = memo(function NavLinkItem({
       href={item.href}
       title={isCollapsed ? (isLocked ? `${item.name} (Subscription Required)` : item.name) : undefined}
       className={cn(
-        "group relative flex items-center rounded-lg text-[13px] transition-all duration-150 ease-out min-w-0",
+        "group relative flex items-center rounded-lg text-[13px] transition-colors duration-150 ease-out min-w-0",
         isCollapsed ? "h-9 w-9 justify-center px-0 mx-auto" : "h-9 px-2.5 w-full",
         isActive
           ? "bg-white/[0.08] text-white font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] ring-1 ring-white/[0.07]"

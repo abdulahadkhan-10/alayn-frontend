@@ -11,6 +11,16 @@ const EXPANDED = 244;
 const COLLAPSED = 72;
 const LS_KEY = "alayn_sidebar_collapsed";
 
+function getInitialCollapsed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    return saved !== null ? Boolean(JSON.parse(saved)) : false;
+  } catch {
+    return false;
+  }
+}
+
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { 
@@ -24,19 +34,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const user = useAppSelector((state) => state.auth.user);
   
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  // Always start false (matches SSR), then sync from localStorage after mount
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Read synchronously on client so navigating between pages never flashes expanded -> collapsed
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(getInitialCollapsed);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LS_KEY);
-      if (saved !== null) setIsCollapsed(JSON.parse(saved));
-    } catch { /* noop */ }
     setMounted(true);
   }, []);
 
   const handleToggleCollapse = useCallback(() => {
+    setIsAnimating(true);
     setIsCollapsed((prev: boolean) => {
       const next = !prev;
       try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch { /* noop */ }
@@ -44,8 +52,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const closeMobileSidebar = useCallback(() => setMobileSidebarOpen(false), []);
-  const openMobileSidebar = useCallback(() => setMobileSidebarOpen(true), []);
+  const closeMobileSidebar = useCallback(() => {
+    setIsAnimating(true);
+    setMobileSidebarOpen(false);
+  }, []);
+  const openMobileSidebar = useCallback(() => {
+    setIsAnimating(true);
+    setMobileSidebarOpen(true);
+  }, []);
 
   const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
   const isSupplier = user?.role === "SUPPLIER";
@@ -64,8 +78,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   // Show paywall if not demo, not loading, route is restricted, not a supplier, and active branch is not subscribed
   const showPaywall = mounted && !isSupplier && !isDemo && !branchesLoading && !isUnrestrictedRoute && !hasActiveSubscription;
 
-  // Before mount: always render expanded width (matches SSR)
-  const sidebarW = mounted ? (isCollapsed ? COLLAPSED : EXPANDED) : EXPANDED;
+  const sidebarW = isCollapsed ? COLLAPSED : EXPANDED;
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F4F7F9]">
@@ -92,7 +105,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             width: sidebarW,
             contain: "layout style",
             willChange: "width, transform",
-            transition: mounted
+            transition: isAnimating
               ? "width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)"
               : "none",
           }}
