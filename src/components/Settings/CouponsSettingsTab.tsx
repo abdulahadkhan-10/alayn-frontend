@@ -20,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { TModal } from "@/components/ui/TModal";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import { useBranch } from "@/lib/BranchContext";
 import {
   useGetRestaurantCouponsQuery,
@@ -268,7 +270,21 @@ export default function CouponsSettingsTab() {
       <div className="bg-white border border-gray-200/80 rounded-2xl shadow-xs overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-gray-400 text-xs font-semibold">
-            Loading coupon configurations...
+            <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50/40 gap-4">
+                    <div className="space-y-1.5 text-left">
+                      <Skeleton width={120} height={18} borderRadius={6} />
+                      <Skeleton width={180} height={12} borderRadius={4} />
+                    </div>
+                    <Skeleton width={90} height={22} borderRadius={6} />
+                    <Skeleton width={110} height={16} borderRadius={4} />
+                    <Skeleton width={80} height={24} borderRadius={8} />
+                  </div>
+                ))}
+              </div>
+            </SkeletonTheme>
           </div>
         ) : filteredCoupons.length === 0 ? (
           <div className="p-12 text-center">

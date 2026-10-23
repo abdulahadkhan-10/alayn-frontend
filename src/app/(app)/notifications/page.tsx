@@ -26,6 +26,8 @@ import {
   NotificationItem,
 } from "@/redux/slices/notificationApiSlice";
 import { toast } from "react-toastify";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 // Helper functions (duplicated from dropdown for isolated use)
 const getIcon = (type: string) => {
@@ -193,7 +195,22 @@ export default function NotificationsPage() {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="text-sm font-medium">Loading your notifications...</span>
+              <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+                <div className="w-full divide-y divide-gray-100">
+                  {[1, 2, 3, 4, 5].map((idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-5">
+                      <Skeleton width={48} height={48} borderRadius={16} />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Skeleton width={220} height={16} borderRadius={4} />
+                          <Skeleton width={80} height={12} borderRadius={4} />
+                        </div>
+                        <Skeleton width="75%" height={14} borderRadius={4} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SkeletonTheme>
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center px-4">

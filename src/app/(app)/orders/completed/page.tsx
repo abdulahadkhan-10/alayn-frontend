@@ -35,6 +35,8 @@ import {
   Printer,
 } from "lucide-react";
 import ThermalReceipt from "@/components/pos/ThermalReceipt";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { PAYMENT_METHOD_LABELS, describePaymentLines, formatPaise, getPaymentLines } from "@/lib/splitPayment";
@@ -546,7 +548,23 @@ export default function CompletedOrdersPage() {
           {isLoading ? (
             <div className="py-16 text-center text-gray-400">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#D3232A] mb-2" />
-              <p className="text-sm font-medium">Loading completed orders...</p>
+              <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+                <div className="p-4 space-y-3 text-left">
+                  {[1, 2, 3, 4, 5, 6].map((idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50/40 gap-4">
+                      <div className="space-y-1.5">
+                        <Skeleton width={110} height={16} borderRadius={4} />
+                        <Skeleton width={90} height={12} borderRadius={4} />
+                      </div>
+                      <Skeleton width={90} height={24} borderRadius={8} />
+                      <Skeleton width={100} height={16} borderRadius={4} />
+                      <Skeleton width={160} height={16} borderRadius={4} />
+                      <Skeleton width={70} height={22} borderRadius={6} />
+                      <Skeleton width={80} height={18} borderRadius={4} />
+                    </div>
+                  ))}
+                </div>
+              </SkeletonTheme>
             </div>
           ) : paginatedOrders.length === 0 ? (
             <div className="py-16 text-center text-gray-400">

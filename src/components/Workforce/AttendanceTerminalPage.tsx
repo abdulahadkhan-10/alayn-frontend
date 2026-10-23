@@ -6,6 +6,8 @@ import DashboardLayout from "../layout/DashboardLayout";
 import { useAppSelector } from "@/redux/store/hooks";
 import { clockInWithConfirmation, getApiErrorMessage } from "@/lib/attendance";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import {
   useClockInMutation,
   useClockOutMutation,
@@ -328,7 +330,18 @@ export default function AttendanceTerminalPage() {
                 {isLogsLoading ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                      Loading attendance records...
+                      <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+                        <div className="space-y-3 text-left">
+                          {[1, 2, 3].map((idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-4">
+                              <Skeleton width={140} height={16} borderRadius={4} />
+                              <Skeleton width={90} height={16} borderRadius={4} />
+                              <Skeleton width={90} height={16} borderRadius={4} />
+                              <Skeleton width={80} height={22} borderRadius={999} />
+                            </div>
+                          ))}
+                        </div>
+                      </SkeletonTheme>
                     </td>
                   </tr>
                 ) : logs.length === 0 ? (

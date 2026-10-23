@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import CouponsSettingsTab from "./CouponsSettingsTab";
 import ReportEmailsCard from "./ReportEmailsCard";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 export default function SettingsPage() {
   const { activeBranch } = useBranch();
@@ -67,7 +69,7 @@ export default function SettingsPage() {
   const { data: holidaysData, isLoading } = useGetHolidaysQuery(outletId ? { outletId } : undefined);
   const [createHoliday, { isLoading: isCreatingHoliday }] = useCreateHolidayMutation();
 
-  const { data: outletsData = [] } = useGetOutletsQuery();
+  const { data: outletsData = [], isLoading: isOutletsLoading } = useGetOutletsQuery();
   const currentOutlet = outletsData.find((o) => o.id === activeBranch?.id) || outletsData[0];
 
   const [cgstInput, setCgstInput] = useState<string>("2.5");
@@ -540,7 +542,24 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="divide-y divide-gray-200">
-                  {holidays.length === 0 ? (
+                  {isLoading ? (
+                    <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+                      {[1, 2, 3, 4].map((idx) => (
+                        <div key={idx} className="p-5 flex items-center justify-between">
+                          <div className="flex items-start gap-3.5 w-full">
+                            <Skeleton width={40} height={40} borderRadius={12} />
+                            <div className="space-y-2 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Skeleton width={160} height={16} borderRadius={4} />
+                                <Skeleton width={65} height={18} borderRadius={6} />
+                              </div>
+                              <Skeleton width={220} height={12} borderRadius={4} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </SkeletonTheme>
+                  ) : holidays.length === 0 ? (
                     <div className="p-8 text-center text-gray-500 space-y-2">
                       <Palmtree className="h-10 w-10 text-amber-500 mx-auto opacity-40" />
                       <p className="text-sm font-medium text-gray-900">No Store Holidays Configured Yet</p>
@@ -596,7 +615,36 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {activeTab === "GENERAL" && (
+        {activeTab === "GENERAL" && isOutletsLoading && (
+          <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[1, 2].map((idx) => (
+                <div key={idx} className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton width={260} height={20} borderRadius={6} />
+                      <Skeleton width={420} height={14} borderRadius={4} />
+                    </div>
+                    <Skeleton width={140} height={26} borderRadius={999} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <Skeleton height={150} borderRadius={16} />
+                    <Skeleton height={150} borderRadius={16} />
+                  </div>
+                </div>
+              ))}
+              {[3, 4].map((idx) => (
+                <div key={idx} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+                  <Skeleton width={200} height={20} borderRadius={6} />
+                  <Skeleton width={300} height={14} borderRadius={4} />
+                  <Skeleton height={180} borderRadius={12} />
+                </div>
+              ))}
+            </div>
+          </SkeletonTheme>
+        )}
+
+        {activeTab === "GENERAL" && !isOutletsLoading && (
           /* General Store Preferences View */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weekly / monthly report emails (owners only) */}
