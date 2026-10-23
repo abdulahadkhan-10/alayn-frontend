@@ -110,7 +110,7 @@ export default function HeroScene() {
                 marginBottom: "18px",
               }}
             >
-              For Restaurants, Cafés &amp; Cloud Kitchens
+              Billing Software &amp; POS for Restaurants, Cafés &amp; Cloud Kitchens
             </Assemble>
 
             <Assemble
@@ -127,7 +127,7 @@ export default function HeroScene() {
                 marginBottom: "24px",
               }}
             >
-              <span className="sr-only">Alayn AI —{" "}</span>
+              <span className="sr-only">Alayn AI Restaurant Billing Software &amp; POS —{" "}</span>
               The Intelligent Operating System{" "}
               <br />
               <em style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: 400 }}>
@@ -135,14 +135,9 @@ export default function HeroScene() {
               </em>
             </Assemble>
 
-            
-
             <Assemble as="p" delay={0.12} visibleOnLoad style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
-              Orders, inventory, staffing and operations—unified in one intelligent platform with real-time visibility across every location. Built for the standards of modern hospitality, wherever your business grows.
+              GST billing, counter &amp; table POS, instant KOTs, kitchen display, FEFO inventory, waste tracking and staff scheduling—unified in one intelligent platform with real-time visibility across every location.
             </Assemble>
-
-            {/* Semantic Headings for AI Crawlers & Assistive Tech */}
-            
 
             <Assemble
               as="div"
@@ -194,7 +189,11 @@ export default function HeroScene() {
             </Assemble>
 
             <Assemble as="p" delay={0.24} className="hidden sm:block" style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0 }}>
-              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
+              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent{" "}
+              <Link href="/billing-software" className="underline underline-offset-2 hover:text-slate-900">
+                restaurant billing software
+              </Link>{" "}
+              and operational automation can transform your outlets.
             </Assemble>
           </div>
 
@@ -266,7 +265,7 @@ export default function HeroScene() {
                 <div style={{ position: "relative", width: "100%", backgroundColor: "#f8fafc", overflow: "hidden" }}>
                   <Image
                     src="/websitepreview.png"
-                    alt="Alayn Web Dashboard Interface"
+                    alt="Alayn AI Restaurant Billing Software & POS Web Dashboard Interface"
                     width={1440}
                     height={900}
                     loading="eager"
@@ -310,7 +309,7 @@ export default function HeroScene() {
                 >
                   <Image
                     src="/screencapture.png"
-                    alt="Alayn Mobile App Interface"
+                    alt="Alayn AI Mobile Billing & Restaurant Management Interface"
                     width={393}
                     height={799}
                     loading="eager"
@@ -323,57 +322,17 @@ export default function HeroScene() {
                   />
                 </motion.div>
               </div>
-
-              {/* Floating Alert / Live Sync Badge */}
-              {/* <AnimatePresence>
-                {showAlert && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 14, scale: 0.94 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 160, damping: 18 }}
-                    style={{
-                      position: "absolute",
-                      top: "-14px",
-                      right: "-12px",
-                      background: "rgba(15, 23, 42, 0.92)",
-                      border: "1px solid rgba(255, 255, 255, 0.18)",
-                      borderRadius: "14px",
-                      padding: "10px 14px",
-                      boxShadow: "0 16px 36px rgba(0,0,0,0.25)",
-                      zIndex: 25,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        background: "#10b981",
-                        boxShadow: "0 0 10px #10b981",
-                      }}
-                    />
-                    <div>
-                      <div style={{ fontSize: "0.6875rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.03em" }}>
-                        Live POS &amp; Inventory Sync
-                      </div>
-                      <div style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.7)" }}>
-                        Multi-outlet telemetry active
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence> */}
-
             </div>
           </Assemble>
 
           {/* Mobile-only paragraph below the fold */}
           <div className="sm:hidden mt-8 px-2 text-center w-full max-w-[320px] mx-auto">
             <Assemble as="p" delay={0.4} style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>
-              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent automation can transform your operations.
+              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent{" "}
+              <Link href="/billing-software" className="underline underline-offset-2">
+                billing software
+              </Link>{" "}
+              can transform your operations.
             </Assemble>
           </div>
         </div>

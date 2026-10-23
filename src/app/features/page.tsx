@@ -5,11 +5,11 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
-const title = "Features — Restaurant POS, KDS, Inventory & Workforce | Alayn AI";
-const description = "Everything in Alayn AI: counter and table POS, kitchen display, batch inventory with expiry tracking, waste tracking, staff rosters and attendance, multi-outlet management and analytics.";
+const title = "Features — Restaurant Billing Software, POS, KDS, Inventory & Workforce | Alayn AI";
+const description = "Everything in Alayn AI: GST counter and table POS billing software, kitchen display, batch inventory with expiry tracking, waste tracking, staff rosters and attendance, multi-outlet management and analytics.";
 
 export const metadata: Metadata = {
-  title: "Features",
+  title: "Features — Billing Software, POS, KDS & Inventory",
   description,
   alternates: {
     canonical: `${siteUrl}/features`,
@@ -22,13 +22,14 @@ export const metadata: Metadata = {
 const MODULES = [
   {
     number: "01",
-    title: "Point of Sale",
+    title: "Point of Sale & GST Billing Software",
     items: [
-      "Counter and table billing with UPI, card and cash",
+      "Counter and table GST billing with UPI, card and cash",
       "Printed KOTs and thermal receipts",
       "Table QR codes that open the menu on the guest's phone",
       "Unlimited POS terminals per outlet",
     ],
+    link: { href: "/billing-software", label: "Explore Restaurant Billing Software" },
   },
   {
     number: "02",
@@ -131,7 +132,11 @@ export default function FeaturesPage() {
             Everything your restaurant runs on, <span className="italic text-amber-400 font-normal">in one place.</span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed">
-            Alayn AI is a restaurant operating system for restaurants, cafés, cloud kitchens and multi-outlet groups. Billing, the kitchen, stock, waste and staff all work from the same live data, and every feature is included in one{" "}
+            Alayn AI is a{" "}
+            <Link href="/billing-software" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              restaurant billing software
+            </Link>{" "}
+            and operating system for restaurants, cafés, cloud kitchens and multi-outlet groups. Billing, the kitchen, stock, waste and staff all work from the same live data, and every feature is included in one{" "}
             <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
               per-outlet plan
             </Link>

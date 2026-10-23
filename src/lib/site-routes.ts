@@ -5,6 +5,7 @@
 // Indexable marketing and legal pages ("" is the homepage).
 export const PUBLIC_PATHS = [
   "",
+  "/billing-software",
   "/features",
   "/pricing",
   "/about",

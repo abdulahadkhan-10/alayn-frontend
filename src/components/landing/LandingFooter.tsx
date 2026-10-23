@@ -33,7 +33,7 @@ export default function LandingFooter() {
               </div>
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm tracking-wide">
-              Billing, stock, staff and kitchen for restaurants, cafés and cloud kitchens, on one screen.
+              GST billing software, POS, stock, staff and kitchen display for restaurants, cafés and cloud kitchens, on one screen.
             </p>
           </div>
 
@@ -42,6 +42,9 @@ export default function LandingFooter() {
           {/* Navigation Links (Platform) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
             <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-1">Platform</h3>
+            <Link href="/billing-software" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+              Billing Software
+            </Link>
             <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Features
             </Link>
@@ -115,6 +118,7 @@ export default function LandingFooter() {
             &copy; {new Date().getFullYear()} Alayn AI (BRAHM Global Holdings). All Rights Reserved.
           </p>
           <div className="flex items-center gap-6 text-xs text-white/40">
+            <Link href="/billing-software" className="hover:text-white transition-colors">Billing Software</Link>
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
             <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
             <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy</Link>

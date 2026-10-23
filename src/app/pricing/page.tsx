@@ -5,11 +5,11 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
-const title = "Pricing — ₹1,999 per Outlet per Month | Alayn AI";
-const description = "Alayn AI costs ₹1,999 per outlet per month + 18% GST, with POS, kitchen display, inventory, waste tracking, workforce and analytics all included.";
+const title = "Pricing — ₹1,999 per Outlet per Month | Restaurant Billing & POS | Alayn AI";
+const description = "Alayn AI restaurant billing software and POS costs ₹1,999 per outlet per month + 18% GST, with POS billing, kitchen display, inventory, waste tracking, workforce and analytics all included.";
 
 export const metadata: Metadata = {
-  title: "Pricing",
+  title: "Pricing — ₹1,999/mo Restaurant Billing & POS",
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
@@ -26,7 +26,7 @@ const GST_PERCENT = 18;
 const MONTHLY_TOTAL = (MONTHLY_FEE * (100 + GST_PERCENT)) / 100;
 
 const INCLUDED = [
-  "Unlimited POS terminals and table QR menus",
+  "Unlimited POS billing terminals and table QR menus",
   "Live kitchen display system (KDS)",
   "Batch inventory with expiry tracking and purchase orders",
   "Waste tracking with AI menu and wastage insights",
@@ -97,7 +97,11 @@ export default function PricingPage() {
             One plan. <span className="italic text-amber-400 font-normal">Every feature.</span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed">
-            Alayn AI is priced per outlet, with nothing held back for a higher tier.
+            Alayn AI{" "}
+            <Link href="/billing-software" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              restaurant billing software
+            </Link>{" "}
+            is priced per outlet, with nothing held back for a higher tier.
           </p>
         </div>
 

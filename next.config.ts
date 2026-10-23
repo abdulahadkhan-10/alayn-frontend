@@ -75,6 +75,10 @@ const nextConfig: NextConfig = {
       { source: "/developers", destination: "/api-docs", permanent: true },
       // Agents guess /demo when looking for how to book one.
       { source: "/demo", destination: "/contact", permanent: true },
+      // Common commercial search slug aliases for billing software.
+      { source: "/restaurant-billing-software", destination: "/billing-software", permanent: true },
+      { source: "/pos-billing-software", destination: "/billing-software", permanent: true },
+      { source: "/gst-billing-software", destination: "/billing-software", permanent: true },
     ];
   },
   async headers() {
