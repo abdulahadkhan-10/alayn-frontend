@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useGetOutletsQuery, Outlet } from "@/redux/slices/outletApiSlice";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { baseApi } from "@/redux/store/baseApi";
 
@@ -75,16 +75,19 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const { 
     data: fetchedOutlets, 
     isLoading: isQueryLoading, 
+    isUninitialized: isQueryUninitialized,
     refetch 
   } = useGetOutletsQuery(undefined, {
     skip: !isAuthenticated,
   });
 
-  const [activeBranch, setActiveBranchState] = useState<Branch | null>(null);
+  const [activeBranchState, setActiveBranchState] = useState<Branch | null>(null);
 
   const rawOutlets = (fetchedOutlets as Branch[]) || [];
   const isDemo = authStatus === "unauthenticated";
-  const loading = isAuthenticated ? (isQueryLoading && rawOutlets.length === 0) : isSessionPending;
+  const loading = isAuthenticated
+    ? ((isQueryLoading || isQueryUninitialized) && fetchedOutlets === undefined)
+    : isSessionPending;
 
   const branches: Branch[] = isDemo
     ? DEMO_BRANCHES
@@ -98,7 +101,25 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
 
   const hasAnyActiveBranch: boolean = isDemo ? true : activeBranches.length > 0;
 
+  // Derive activeBranch synchronously so there is never a 1-frame null gap after outlets load
+  const activeBranch: Branch | null = useMemo(() => {
+    if (isDemo) return activeBranchState || DEMO_BRANCHES[0];
+    if (branches.length === 0) return null;
+    if (activeBranchState && branches.some((b) => b.id === activeBranchState.id)) {
+      return branches.find((b) => b.id === activeBranchState.id) || activeBranchState;
+    }
+    const savedId = typeof window !== "undefined" ? localStorage.getItem("alayn_active_branch_id") : null;
+    const matched = savedId ? branches.find((b) => b.id === savedId) : undefined;
+    // Prefer a subscribed branch if the saved branch is not subscribed and there is an active branch
+    if (matched && (matched.id === "all" ? hasAnyActiveBranch : isBranchSubscribed(matched))) {
+      return matched;
+    }
+    return activeBranches[0] || matched || branches[0] || null;
+  }, [isDemo, activeBranchState, branches, activeBranches, hasAnyActiveBranch]);
+
   const hasActiveSubscription: boolean = isDemo
+    ? true
+    : loading
     ? true
     : activeBranch?.id === "all"
     ? hasAnyActiveBranch
@@ -107,18 +128,15 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isDemo) {
       setActiveBranchState(DEMO_BRANCHES[0]);
-    } else if (branches.length > 0) {
-      const savedId = typeof window !== "undefined" ? localStorage.getItem("alayn_active_branch_id") : null;
-      const matched = branches.find((b) => b.id === savedId);
-      const nextBranch = matched || activeBranches[0] || branches[0];
-      setActiveBranchState(nextBranch);
-      if (nextBranch && typeof window !== "undefined") {
-        localStorage.setItem("alayn_active_branch_id", nextBranch.id);
+    } else if (activeBranch) {
+      setActiveBranchState(activeBranch);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("alayn_active_branch_id", activeBranch.id);
       }
     } else {
       setActiveBranchState(null);
     }
-  }, [branches.length, isDemo, activeBranches.length]);
+  }, [activeBranch, isDemo]);
 
   const dispatch = useAppDispatch();
 
