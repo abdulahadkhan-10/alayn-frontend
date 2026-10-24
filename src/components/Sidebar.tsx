@@ -264,26 +264,26 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   return (
     <aside
       suppressHydrationWarning
-      className="flex h-full flex-col bg-[#090D16] border-r border-white/[0.06] relative select-none w-full overflow-hidden"
+      className="flex h-full flex-col bg-[#090D16] relative select-none w-full overflow-hidden"
       aria-label="Sidebar navigation"
     >
       {/* Subtle top ambient radial highlight */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/[0.025] to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-16 h-28 bg-gradient-to-b from-white/[0.025] to-transparent"
         aria-hidden="true"
       />
 
       {/* ── Brand Header & Collapse Control ───────── */}
       <div
         className={cn(
-          "relative flex h-16 shrink-0 items-center border-b border-white/[0.06] transition-all duration-200 ease-out",
+          "relative flex h-16 shrink-0 items-center bg-white border-b border-gray-200 border-r border-gray-200 transition-all duration-200 ease-out",
           isCollapsed ? "justify-center px-2" : "justify-between px-4"
         )}
       >
         <div className="flex items-center justify-between w-full h-full min-w-0">
           {!isCollapsed ? (
             <div className="flex items-center min-w-0">
-              {/* Trademarked logo in its registered colours, on a white panel against the dark sidebar */}
+              {/* Trademarked logo in its registered colours on the unified white top header bar */}
               <button
                 type="button"
                 onClick={() => {
@@ -293,14 +293,14 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                   else router.push("/dashboard");
                 }}
                 aria-label="Go to home"
-                className="inline-flex items-center rounded-lg bg-white px-3 py-2 ring-1 ring-white/10 shadow-[0_4px_14px_-6px_rgba(0,0,0,0.6)] cursor-pointer transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="inline-flex items-center py-1 rounded-md cursor-pointer transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3167]/30"
               >
                 <Image
                   src="/alayn-logo-tm.png"
                   alt="Alayn AI"
                   width={960}
                   height={188}
-                  className="h-[20px] w-auto object-contain"
+                  className="h-[22px] w-auto object-contain"
                   priority
                 />
               </button>
@@ -311,9 +311,9 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               onClick={onToggleCollapse}
               title="Expand sidebar"
               aria-label="Expand sidebar"
-              className="group relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer"
+              className="group relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white ring-1 ring-white/10 shadow-[0_4px_14px_-6px_rgba(0,0,0,0.6)] transition-opacity duration-150 group-hover:opacity-0">
+              <span className="flex h-9 w-9 items-center justify-center transition-opacity duration-150 group-hover:opacity-0">
                 <Image
                   src="/alayn-mark-tm.png"
                   alt="Alayn AI"
@@ -323,7 +323,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                   priority
                 />
               </span>
-              <PanelLeftOpen className="absolute h-4 w-4 text-slate-300 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
+              <PanelLeftOpen className="absolute h-4 w-4 text-slate-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100" />
             </button>
           )}
 
@@ -333,7 +333,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               onClick={onToggleCollapse}
               aria-label="Collapse sidebar"
               title="Collapse sidebar"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-white/[0.06] hover:text-white ring-1 ring-transparent hover:ring-white/[0.08] transition-all duration-150 cursor-pointer ml-auto"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 ring-1 ring-transparent hover:ring-slate-200/80 transition-all duration-150 cursor-pointer ml-auto"
             >
               <PanelLeftClose className="h-4 w-4" />
             </button>
@@ -344,7 +344,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
       {/* ── Categorized Operational Navigation ── */}
       <div
         className={cn(
-          "flex-1 min-h-0 flex flex-col py-3 overflow-y-auto overflow-x-hidden transition-all duration-200 ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "flex-1 min-h-0 flex flex-col py-3 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden transition-all duration-200 ease-out [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           isCollapsed ? "px-2" : "px-3"
         )}
       >
@@ -403,7 +403,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
 
       {/* ── Subscription Warning Banner when unpaid ── */}
       {!isDemo && !hasActiveSubscription && (
-        <div className={cn("shrink-0 px-3 pb-2.5 transition-all duration-200", isCollapsed && "px-2")}>
+        <div className={cn("shrink-0 px-3 pb-2.5 border-r border-white/[0.06] transition-all duration-200", isCollapsed && "px-2")}>
           {isCollapsed ? (
             <Link
               href="/outlets"
@@ -435,7 +435,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
       {/* ── Operator Dock Footer (User Context + Sign Out) ─────────── */}
       <div
         className={cn(
-          "shrink-0 border-t border-white/[0.06] p-2.5 bg-[#060911]",
+          "shrink-0 border-t border-r border-white/[0.06] p-2.5 bg-[#060911]",
           isCollapsed ? "flex flex-col items-center gap-1.5" : ""
         )}
       >
