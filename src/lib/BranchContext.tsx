@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from "react";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { baseApi } from "@/redux/store/baseApi";
@@ -82,11 +82,18 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [activeBranchState, setActiveBranchState] = useState<Branch | null>(null);
+  const lastKnownOutletsRef = useRef<Branch[]>([]);
 
-  const rawOutlets = (fetchedOutlets as Branch[]) || [];
+  if (!isAuthenticated) {
+    lastKnownOutletsRef.current = [];
+  } else if (fetchedOutlets !== undefined) {
+    lastKnownOutletsRef.current = fetchedOutlets as Branch[];
+  }
+
+  const rawOutlets = (fetchedOutlets as Branch[]) ?? lastKnownOutletsRef.current;
   const isDemo = authStatus === "unauthenticated";
   const loading = isAuthenticated
-    ? ((isQueryLoading || isQueryUninitialized) && fetchedOutlets === undefined)
+    ? ((isQueryLoading || isQueryUninitialized) && rawOutlets.length === 0)
     : isSessionPending;
 
   const branches: Branch[] = isDemo
@@ -104,18 +111,18 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   // Derive activeBranch synchronously so there is never a 1-frame null gap after outlets load
   const activeBranch: Branch | null = useMemo(() => {
     if (isDemo) return activeBranchState || DEMO_BRANCHES[0];
-    if (branches.length === 0) return null;
+    if (branches.length === 0) return loading ? activeBranchState : null;
     if (activeBranchState && branches.some((b) => b.id === activeBranchState.id)) {
       return branches.find((b) => b.id === activeBranchState.id) || activeBranchState;
     }
     const savedId = typeof window !== "undefined" ? localStorage.getItem("alayn_active_branch_id") : null;
     const matched = savedId ? branches.find((b) => b.id === savedId) : undefined;
-    // Prefer a subscribed branch if the saved branch is not subscribed and there is an active branch
-    if (matched && (matched.id === "all" ? hasAnyActiveBranch : isBranchSubscribed(matched))) {
+    // Respect any specific outlet explicitly chosen by the user; for "all", require at least one active branch
+    if (matched && (matched.id !== "all" || hasAnyActiveBranch)) {
       return matched;
     }
     return activeBranches[0] || matched || branches[0] || null;
-  }, [isDemo, activeBranchState, branches, activeBranches, hasAnyActiveBranch]);
+  }, [isDemo, activeBranchState, branches, activeBranches, hasAnyActiveBranch, loading]);
 
   const hasActiveSubscription: boolean = isDemo
     ? true
@@ -133,10 +140,10 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.setItem("alayn_active_branch_id", activeBranch.id);
       }
-    } else {
+    } else if (!loading) {
       setActiveBranchState(null);
     }
-  }, [activeBranch, isDemo]);
+  }, [activeBranch, isDemo, loading]);
 
   const dispatch = useAppDispatch();
 
