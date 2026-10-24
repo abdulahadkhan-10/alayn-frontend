@@ -48,9 +48,9 @@ export default function LandingFooter() {
             <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Features
             </Link>
-            <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            {/* <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               Pricing
-            </Link>
+            </Link> */}
             <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               About Us
             </Link>
@@ -77,8 +77,29 @@ export default function LandingFooter() {
             <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
               info@alaynai.com
             </a>
-            <Link href="https://www.instagram.com/alayn.si/" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
-              Instagram
+            <Link
+              href="https://www.instagram.com/alayn.si/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              title="Instagram"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.05] ring-1 ring-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300 w-fit"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+              </svg>
             </Link>
           </div>
 
