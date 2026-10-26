@@ -57,11 +57,18 @@ export const openCashfreeCheckout = async ({
   onSuccess,
   onFailure,
 }: {
-  paymentSessionId: string;
+  paymentSessionId: string | null;
   mode?: "sandbox" | "production";
   onSuccess?: (res: any) => void;
   onFailure?: (err: any) => void;
 }) => {
+  // No session means the order was already settled server-side (fully discounted), so go
+  // straight to the success handler, which verifies the order like any other payment
+  if (!paymentSessionId) {
+    if (onSuccess) onSuccess({ paidWithoutGateway: true });
+    return null;
+  }
+
   try {
     const cashfree = await loadCashfree(mode);
     const checkoutResult = await cashfree.checkout({

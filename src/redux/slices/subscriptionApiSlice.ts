@@ -15,8 +15,10 @@ export interface SubscriptionPlan {
 
 export interface InitiateSubscriptionResponse {
   orderId: string;
-  cfOrderId: string;
-  paymentSessionId: string;
+  cfOrderId: string | null;
+  paymentSessionId: string | null;
+  /** True when a coupon covered the whole amount and the server activated the branch directly. */
+  paidWithoutGateway?: boolean;
   orderAmountRupees: number;
   baseAmountRupees: number;
   gstAmountRupees: number;

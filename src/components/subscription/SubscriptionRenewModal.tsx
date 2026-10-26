@@ -101,7 +101,8 @@ export default function SubscriptionRenewModal({
 
       const { paymentSessionId, orderId } = res;
 
-      if (!paymentSessionId) {
+      // A coupon covering the whole amount is activated by the server with no gateway payment
+      if (!paymentSessionId && !res.paidWithoutGateway) {
         throw new Error("Could not initialize Cashfree payment session.");
       }
 
