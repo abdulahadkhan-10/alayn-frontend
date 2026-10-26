@@ -173,7 +173,7 @@ const NavLinkItem = memo(function NavLinkItem({
       {/* Label */}
       <span
         className={cn(
-          "truncate leading-none transition-all duration-150 ease-out whitespace-nowrap overflow-hidden",
+          "truncate leading-5 transition-all duration-150 ease-out whitespace-nowrap overflow-hidden",
           isCollapsed
             ? "opacity-0 max-w-0 pointer-events-none"
             : "opacity-100 max-w-[155px]"
