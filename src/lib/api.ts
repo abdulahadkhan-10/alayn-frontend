@@ -496,22 +496,46 @@ export interface AlaynAIChatTarget {
   retry?: boolean;
 }
 
+/** What an outlet has left of today's Ask Alayn AI questions (resets at midnight India time) */
+export interface AlaynAIAllowance {
+  used: number;
+  limit: number;
+  remaining: number;
+  resetsAt: string;
+}
+
+export async function getAlaynAIAllowance(outletId?: string) {
+  return apiRequest<{ allowance: AlaynAIAllowance }>("/ai/allowance", { outletId });
+}
+
 /** Asks AlaynAI and gets the whole answer at once (used when streaming isn't available). */
 export async function askAlaynAI(
   prompt: string,
   outletId: string | undefined,
   target: AlaynAIChatTarget = {}
-): Promise<{ ok: boolean; answer?: string; chatId?: string | null; title?: string | null; error?: string }> {
-  const result = await apiRequest<{ answer: string; chatId: string | null; title: string | null }>("/ai/assistant", {
-    method: "POST",
-    body: { prompt, outletId, chatId: target.chatId ?? null, retry: !!target.retry },
-    outletId,
-  });
+): Promise<{
+  ok: boolean;
+  answer?: string;
+  chatId?: string | null;
+  title?: string | null;
+  allowance?: AlaynAIAllowance;
+  error?: string;
+  limited?: boolean;
+}> {
+  const result = await apiRequest<{ answer: string; chatId: string | null; title: string | null; allowance?: AlaynAIAllowance }>(
+    "/ai/assistant",
+    {
+      method: "POST",
+      body: { prompt, outletId, chatId: target.chatId ?? null, retry: !!target.retry },
+      outletId,
+    }
+  );
 
   if (result.ok) {
-    return { ok: true, answer: result.data.answer, chatId: result.data.chatId, title: result.data.title };
+    const { answer, chatId, title, allowance } = result.data;
+    return { ok: true, answer, chatId, title, allowance };
   }
-  return { ok: false, error: result.error };
+  return { ok: false, error: result.error, limited: result.status === 429 };
 }
 
 interface StreamHandlers {
@@ -519,6 +543,8 @@ interface StreamHandlers {
   onChat?: (chatId: string, title: string) => void;
   onTopics?: (topics: AlaynAITopic[]) => void;
   onDelta: (text: string) => void;
+  /** What the outlet has left today, sent after each answer */
+  onAllowance?: (allowance: AlaynAIAllowance) => void;
   signal?: AbortSignal;
 }
 
@@ -531,9 +557,9 @@ export async function streamAlaynAI(
   prompt: string,
   outletId: string | undefined,
   target: AlaynAIChatTarget,
-  { onChat, onTopics, onDelta, signal }: StreamHandlers,
+  { onChat, onTopics, onDelta, onAllowance, signal }: StreamHandlers,
   isRetry = false
-): Promise<{ ok: boolean; stopped?: boolean; error?: string }> {
+): Promise<{ ok: boolean; stopped?: boolean; error?: string; limited?: boolean }> {
   let res: Response;
   try {
     res = await fetch(`${BACKEND_URL}/ai/assistant/stream`, {
@@ -551,7 +577,7 @@ export async function streamAlaynAI(
   if (res.status === 401) {
     if (!isRetry) {
       const refreshed = await refreshSession();
-      if (refreshed.ok) return streamAlaynAI(prompt, outletId, target, { onChat, onTopics, onDelta, signal }, true);
+      if (refreshed.ok) return streamAlaynAI(prompt, outletId, target, { onChat, onTopics, onDelta, onAllowance, signal }, true);
       if (refreshed.definitive) notifySessionExpired();
     } else {
       notifySessionExpired();
@@ -560,11 +586,18 @@ export async function streamAlaynAI(
   if (res.status === 404) {
     return { ok: false, error: "This conversation was not found. It may have been deleted." };
   }
+  // Today's questions are used up, or asked too quickly: the one-piece endpoint would say the same
+  if (res.status === 429) {
+    const body = await res.json().catch(() => null);
+    if (body?.data?.allowance) onAllowance?.(body.data.allowance);
+    return { ok: false, limited: true, error: body?.error?.message || "Too many questions just now. Please wait a minute." };
+  }
   if (!res.ok || !res.body || !res.headers.get("content-type")?.includes("text/event-stream")) return oneShot();
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let failure: string | null = null;
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -581,15 +614,17 @@ export async function streamAlaynAI(
           | { type: "topics"; topics: AlaynAITopic[] }
           | { type: "delta"; text: string }
           | { type: "done" }
-          | { type: "error"; message: string };
+          | { type: "error"; message: string }
+          | { type: "allowance"; allowance: AlaynAIAllowance };
         if (event.type === "chat") onChat?.(event.chatId, event.title);
         else if (event.type === "topics") onTopics?.(event.topics);
         else if (event.type === "delta") onDelta(event.text);
-        else if (event.type === "error") return { ok: false, error: event.message };
-        else if (event.type === "done") return { ok: true };
+        else if (event.type === "error") failure = event.message;
+        else if (event.type === "allowance") onAllowance?.(event.allowance);
+        // "done" needs nothing: the allowance follows it, then the stream ends
       }
     }
-    return { ok: true };
+    return failure ? { ok: false, error: failure } : { ok: true };
   } catch {
     if (signal?.aborted) return { ok: false, stopped: true };
     return { ok: false, error: "The answer was cut off. Please ask again." };
@@ -601,9 +636,14 @@ export async function streamAlaynAI(
     if (result.ok && result.answer) {
       if (result.chatId && result.title) onChat?.(result.chatId, result.title);
       onDelta(result.answer);
+      if (result.allowance) onAllowance?.(result.allowance);
       return { ok: true };
     }
-    return { ok: false, error: result.error || "Alayn AI could not answer just now. Please try again." };
+    return {
+      ok: false,
+      limited: result.limited,
+      error: result.error || "Alayn AI could not answer just now. Please try again.",
+    };
   }
 }
 

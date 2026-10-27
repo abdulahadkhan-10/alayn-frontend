@@ -8,9 +8,11 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import {
+  AlaynAIAllowance,
   AlaynAISavedMessage,
   deleteAlaynAIChat,
   deleteAllAlaynAIChats,
+  getAlaynAIAllowance,
   getAlaynAIChat,
   listAlaynAIChats,
   streamAlaynAI,
@@ -106,6 +108,8 @@ function AlaynAIWorkspace() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Today's questions left for this outlet; unknown (null) until loaded, and never blocks asking then
+  const [allowanceOf, setAllowanceOf] = useState<{ outletKey: string; allowance: AlaynAIAllowance } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const composerRef = useRef<ComposerHandle>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -116,6 +120,8 @@ function AlaynAIWorkspace() {
   const activeChat = chats.find((c) => c.id === activeId) ?? null;
   const turns = activeChat?.turns ?? [];
   const chatLoading = !!activeChat && activeChat.turns === null;
+  const allowance = allowanceOf?.outletKey === outletKey ? allowanceOf.allowance : null;
+  const usedUp = allowance?.remaining === 0;
 
   /** Changes this outlet's chat list (ignored if the outlet has changed meanwhile) */
   const updateChats = useCallback(
@@ -132,6 +138,9 @@ function AlaynAIWorkspace() {
       if (cancelled) return;
       setStore({ outletKey: key, chats: res.ok ? res.data.chats.map((c) => ({ ...c, turns: null })) : [] });
       if (!res.ok) setNotice("Couldn't load your saved chats. New questions still work.");
+    });
+    getAlaynAIAllowance(key).then((res) => {
+      if (!cancelled && res.ok) setAllowanceOf({ outletKey: key, allowance: res.data.allowance });
     });
     return () => {
       cancelled = true;
@@ -193,7 +202,7 @@ function AlaynAIWorkspace() {
   async function ask(question: string, retry = false) {
     const q = question.trim();
     // Wait until the outlet and its chats are known, so the answer is filed under the right outlet
-    if (!q || generating || !activeBranch || listLoading || chatLoading) return;
+    if (!q || generating || !activeBranch || listLoading || chatLoading || usedUp) return;
 
     const key = outletKey;
     const existing = activeChat;
@@ -233,6 +242,7 @@ function AlaynAIWorkspace() {
         },
         onTopics: (topics) => updateTurn((t) => ({ ...t, topics })),
         onDelta: (text) => updateTurn((t) => ({ ...t, answer: t.answer + text })),
+        onAllowance: (a) => setAllowanceOf({ outletKey: key, allowance: a }),
         signal: abort.signal,
       },
     );
@@ -304,6 +314,17 @@ function AlaynAIWorkspace() {
   // A chat from an earlier day: its numbers were right then, not necessarily now
   const staleSince = last?.askedAt && istDay(new Date(last.askedAt)) !== istDay(new Date()) ? new Date(last.askedAt) : null;
 
+  // Quiet until it matters: a count while plenty is left, amber near the end, a full line when used up
+  const allowanceLine = !allowance ? null : usedUp ? (
+    <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-2.5 text-center text-sm text-amber-200" role="status">
+      This outlet has used all {allowance.limit} Alayn AI questions for today. More questions at midnight.
+    </p>
+  ) : (
+    <span className={allowance.remaining <= 3 ? "text-amber-300" : undefined}>
+      {allowance.remaining} of {allowance.limit} questions left today
+    </span>
+  );
+
   const composer = (
     <Composer
       ref={composerRef}
@@ -312,9 +333,11 @@ function AlaynAIWorkspace() {
       onSend={() => ask(prompt)}
       onStop={stop}
       generating={generating}
-      disabled={!activeBranch || chatLoading}
+      disabled={!activeBranch || chatLoading || usedUp}
       reduceMotion={reduceMotion}
-      placeholder={!activeBranch ? "Loading your outlet…" : turns.length ? "Ask a follow-up…" : "Ask about your café…"}
+      placeholder={
+        !activeBranch ? "Loading your outlet…" : usedUp ? "No questions left today" : turns.length ? "Ask a follow-up…" : "Ask about your café…"
+      }
     />
   );
 
@@ -404,13 +427,14 @@ function AlaynAIWorkspace() {
               </div>
               {notice && <p className="mb-3 text-center text-sm text-rose-300">{notice}</p>}
               {composer}
+              {usedUp ? allowanceLine : allowanceLine && <p className="mt-2 text-center text-[11px] text-slate-400">{allowanceLine}</p>}
               <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s.label}
                     type="button"
                     onClick={() => ask(s.prompt)}
-                    disabled={!activeBranch}
+                    disabled={!activeBranch || usedUp}
                     className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left text-sm text-slate-200 transition-colors hover:border-white/20 hover:bg-white/[0.05] disabled:opacity-50"
                   >
                     {s.label}
@@ -432,7 +456,7 @@ function AlaynAIWorkspace() {
                 onCopy={copy}
                 onShare={share}
                 onRetry={(t) => ask(t.question, true)}
-                followUps={generating ? [] : followUps}
+                followUps={generating || usedUp ? [] : followUps}
                 onFollowUp={(q) => ask(q)}
                 reduceMotion={reduceMotion}
               />
@@ -445,7 +469,14 @@ function AlaynAIWorkspace() {
           <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
             {notice && <p className="mb-2 text-center text-sm text-rose-300">{notice}</p>}
             {composer}
-            <p className="mt-2 text-center text-[11px] text-slate-400">Enter to send · Shift + Enter for a new line</p>
+            {usedUp ? (
+              allowanceLine
+            ) : (
+              <p className="mt-2 text-center text-[11px] text-slate-400">
+                Enter to send · Shift + Enter for a new line
+                {allowanceLine && <> · {allowanceLine}</>}
+              </p>
+            )}
           </div>
         )}
       </main>
