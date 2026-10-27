@@ -21,6 +21,7 @@ import {
   CreditCard,
   QrCode,
   Receipt,
+  WifiOff,
   CheckCircle2,
   Utensils,
   LayoutGrid,
@@ -68,7 +69,13 @@ import {
   useOfflineStatus,
 } from "@/lib/offline/offlineStatus";
 import { loadOfflinePack, saveOfflinePack, type OfflinePack } from "@/lib/offline/offlinePack";
-import { createOfflineOrder } from "@/lib/offline/offlineOrders";
+import {
+  createOfflineOrder,
+  findOpenOfflineBill,
+  previewOfflineBill,
+  settleOfflineBill,
+  type QueuedOrder,
+} from "@/lib/offline/offlineOrders";
 import { onSyncOutcome, startSyncWorker } from "@/lib/offline/syncQueue";
 import { registerPosServiceWorker } from "@/lib/offline/serviceWorker";
 
@@ -352,6 +359,8 @@ export default function PosTerminalComponent() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isOutletSelectModalOpen, setIsOutletSelectModalOpen] = useState<boolean>(false);
   const [completedOrder, setCompletedOrder] = useState<any>(null);
+  // Offline only: an open offline bill being paid from the connection badge (checkout charges it, not the cart)
+  const [chargeTarget, setChargeTarget] = useState<QueuedOrder | null>(null);
 
   // Clear cart if 'All Outlets' is selected
   useEffect(() => {
@@ -653,6 +662,7 @@ export default function PosTerminalComponent() {
       setCustomerPhone("");
       setIsCheckoutOpen(false);
       setIsMobileCartOpen(false);
+      refreshTableBill();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not save the bill on this device.");
     }
@@ -739,7 +749,20 @@ export default function PosTerminalComponent() {
 
   // Order Submission Handler
   const handleProcessCheckout = async () => {
-    if (cart.length === 0) return;
+    if (chargeTarget) {
+      try {
+        const order = await settleOfflineBill(chargeTarget.clientOrderId, paymentMethod);
+        setCompletedOrder({ ...order, _flow: "CHECKOUT" });
+        showToast.info("Paid · saved offline", `Bill ${order.orderNumber} will sync as paid when the internet is back.`);
+        setChargeTarget(null);
+        setIsCheckoutOpen(false);
+        refreshTableBill();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Could not save the payment on this device.");
+      }
+      return;
+    }
+    if (cart.length === 0 && !(!offlineStatus.online && openTableBill)) return;
 
     // Strict validation: Require explicit outlet selection
     if (isAllOutletsSelected) {
@@ -897,6 +920,51 @@ export default function PosTerminalComponent() {
   const canSendToKitchen =
     !isAllOutletsSelected && cart.length > 0 && !isSubmitting && !(isStaffRole && !selectedTableNo);
 
+  // Offline: the selected table's open offline bill (earlier rounds), so "Charge" bills the whole table
+  const [foundTableBill, setFoundTableBill] = useState<QueuedOrder | null>(null);
+  useEffect(() => {
+    if (offlineStatus.online || !currentOutletId || !selectedTableNo) return;
+    let cancelled = false;
+    void findOpenOfflineBill(currentOutletId, selectedTableNo).then((bill) => !cancelled && setFoundTableBill(bill ?? null));
+    return () => {
+      cancelled = true;
+    };
+  }, [offlineStatus.online, offlineStatus.pending, currentOutletId, selectedTableNo]);
+  const openTableBill =
+    !offlineStatus.online &&
+    selectedTableNo &&
+    foundTableBill?.outletId === currentOutletId &&
+    String(foundTableBill.payload.tableNumber) === selectedTableNo
+      ? foundTableBill
+      : null;
+  // After an offline round or payment the table's bill has changed: look it up again
+  const refreshTableBill = () => {
+    if (!currentOutletId || !selectedTableNo) return;
+    void findOpenOfflineBill(currentOutletId, selectedTableNo).then((bill) => setFoundTableBill(bill ?? null));
+  };
+
+  // What checkout charges while offline: a bill picked from the badge, or the table's open bill plus the cart
+  const offlineOutlet = currentOutlet as unknown as Parameters<typeof previewOfflineBill>[0] | undefined;
+  const offlineCheckout =
+    offlineStatus.online || !offlineOutlet
+      ? null
+      : chargeTarget
+        ? previewOfflineBill(offlineOutlet, chargeTarget, [], "COUNTER", 0)
+        : previewOfflineBill(offlineOutlet, openTableBill, cart, selectedTableNo ? "TABLE" : "COUNTER", discount);
+
+  const canChargeOffline =
+    !offlineStatus.online &&
+    !isAllOutletsSelected &&
+    !offlineBillingExpired(offlineStatus) &&
+    (cart.length > 0 || !!openTableBill) &&
+    !(isStaffRole && !selectedTableNo);
+
+  const openOfflineCheckout = (bill: QueuedOrder | null = null) => {
+    setChargeTarget(bill);
+    setIsMobileCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
   const orderContextLabel = isAllOutletsSelected
     ? "No outlet selected"
     : selectedTableNo
@@ -1022,6 +1090,35 @@ export default function PosTerminalComponent() {
       );
     });
 
+  // Offline checkout: the whole bill being paid (earlier table rounds included), from the offline bill maths
+  const renderOfflineSummary = (b: NonNullable<typeof offlineCheckout>) => (
+    <div className="space-y-1.5 text-xs">
+      <SummaryRow label="Subtotal" value={formatMoney(b.subtotalPaise / 100)} />
+      {b.discountPaise > 0 && <SummaryRow label="Discount" value={`-${formatMoney(b.discountPaise / 100)}`} tone="positive" />}
+      {b.serviceChargePaise > 0 && (
+        <SummaryRow label={`Service charge (${b.rates.serviceChargeRate}%)`} value={formatMoney(b.serviceChargePaise / 100)} />
+      )}
+      {b.gstRegistrationType === "REGULAR" ? (
+        <>
+          {b.cgstPaise > 0 && <SummaryRow label={`CGST (${b.rates.cgstRate}%)`} value={formatMoney(b.cgstPaise / 100)} />}
+          {b.sgstPaise > 0 && <SummaryRow label={`SGST (${b.rates.sgstRate}%)`} value={formatMoney(b.sgstPaise / 100)} />}
+        </>
+      ) : (
+        <SummaryRow label={b.gstRegistrationType === "COMPOSITION" ? "Composition scheme" : "Unregistered"} value="No GST" />
+      )}
+      {b.roundOffPaise !== 0 && (
+        <SummaryRow
+          label="Round off"
+          value={`${b.roundOffPaise > 0 ? "+" : "-"}${formatMoney(Math.abs(b.roundOffPaise) / 100)}`}
+        />
+      )}
+      <div className="flex items-end justify-between pt-3 mt-1 border-t border-dashed border-slate-200">
+        <p className="text-[13px] font-semibold text-slate-900">Total payable</p>
+        <span className="font-heading text-xl font-bold text-slate-900 tabular-nums">{formatMoney(b.totalPaise / 100)}</span>
+      </div>
+    </div>
+  );
+
   // Shared bill breakdown (desktop panel + mobile drawer)
   const renderBillSummary = () => (
     <div className="space-y-1.5 text-xs">
@@ -1068,7 +1165,31 @@ export default function PosTerminalComponent() {
     </div>
   );
 
-  const renderSendToKitchenButton = (onClick: () => void) => (
+  const renderChargeButton = () => (
+    <button
+      type="button"
+      disabled={!canChargeOffline}
+      onClick={() => openOfflineCheckout(null)}
+      className="w-full h-11 rounded-xl text-[13px] font-semibold transition flex items-center justify-center gap-2 cursor-pointer bg-[#D3232A] hover:bg-[#b91c23] text-white shadow-sm disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
+    >
+      <Receipt className="w-4 h-4" />
+      {offlineCheckout && canChargeOffline ? `Charge ${formatMoney(offlineCheckout.totalPaise / 100)}` : "Charge"}
+    </button>
+  );
+
+  // Offline adds "Charge" beside "Send to kitchen": there's no Live Orders screen to take payment on
+  const renderOrderActions = (onSend: () => void) =>
+    offlineStatus.online ? (
+      renderSendToKitchenButton(onSend)
+    ) : (
+      <div className="grid grid-cols-2 gap-2">
+        {renderSendToKitchenButton(onSend, true)}
+        {renderChargeButton()}
+      </div>
+    );
+
+  // compact: half width beside "Charge", so the item count is left off to keep it on one line
+  const renderSendToKitchenButton = (onClick: () => void, compact = false) => (
     <button
       type="button"
       disabled={!canSendToKitchen}
@@ -1082,7 +1203,9 @@ export default function PosTerminalComponent() {
           ? "Add items to start"
           : isSubmitting
             ? "Sending…"
-            : `Send to kitchen · ${totalItemCount} ${totalItemCount === 1 ? "item" : "items"}`}
+            : compact
+              ? "Send to kitchen"
+              : `Send to kitchen · ${totalItemCount} ${totalItemCount === 1 ? "item" : "items"}`}
     </button>
   );
 
@@ -1115,7 +1238,7 @@ export default function PosTerminalComponent() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <OfflineBadge />
+                <OfflineBadge outletId={currentOutletId} onSettle={(bill) => openOfflineCheckout(bill)} />
                 {!isAllOutletsSelected &&
                   (isStaffRole && assignedTables.length === 0 ? (
                     <div className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-medium">
@@ -1706,7 +1829,7 @@ export default function PosTerminalComponent() {
               {/* Summary & action */}
               <div className="px-4 pt-3.5 pb-4 border-t border-slate-100 bg-slate-50/60 space-y-3.5 shrink-0">
                 {renderBillSummary()}
-                {renderSendToKitchenButton(handleSendToKitchen)}
+                {renderOrderActions(handleSendToKitchen)}
               </div>
             </div>
           )}
@@ -1803,7 +1926,7 @@ export default function PosTerminalComponent() {
 
                 <div className="px-4 pt-3.5 pb-5 border-t border-slate-100 bg-slate-50/60 space-y-3.5">
                   {renderBillSummary()}
-                  {renderSendToKitchenButton(() => {
+                  {renderOrderActions(() => {
                     setIsMobileCartOpen(false);
                     handleSendToKitchen();
                   })}
@@ -1880,7 +2003,11 @@ export default function PosTerminalComponent() {
         {/* -- CHECKOUT PAYMENT MODAL -- */}
         <TModal
           open={isCheckoutOpen}
-          onClose={() => !isSubmitting && setIsCheckoutOpen(false)}
+          onClose={() => {
+            if (isSubmitting) return;
+            setIsCheckoutOpen(false);
+            setChargeTarget(null);
+          }}
           className="p-4 bg-slate-900/50 backdrop-blur-[2px]"
         >
           {isCheckoutOpen && (
@@ -1889,14 +2016,28 @@ export default function PosTerminalComponent() {
                 icon={<Receipt className="w-[18px] h-[18px]" />}
                 title="Checkout"
                 subtitle={
-                  activeBranch
-                    ? `${activeBranch.name} · ${orderContextLabel}`
-                    : orderContextLabel
+                  chargeTarget
+                    ? `${activeBranch?.name ?? ""} · ${chargeTarget.payload.tableNumber ? `Table ${chargeTarget.payload.tableNumber}` : "Counter"} · ${chargeTarget.payload.orderNumber}`
+                    : activeBranch
+                      ? `${activeBranch.name} · ${orderContextLabel}`
+                      : orderContextLabel
                 }
-                onClose={() => setIsCheckoutOpen(false)}
+                onClose={() => {
+                  setIsCheckoutOpen(false);
+                  setChargeTarget(null);
+                }}
               />
 
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+                {offlineCheckout && (
+                  <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                    <WifiOff className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>
+                      Offline: this bill is saved on this device and syncs as paid when the internet is back.
+                      {!chargeTarget && openTableBill && " It includes the earlier rounds on this table."}
+                    </span>
+                  </p>
+                )}
                 {/* Customer details */}
                 <section className="space-y-2">
                   <FieldLabel>
@@ -1927,7 +2068,11 @@ export default function PosTerminalComponent() {
                 {/* Coupon */}
                 <section className="space-y-2">
                   <FieldLabel>Coupon</FieldLabel>
-                  {appliedCoupon ? (
+                  {offlineCheckout ? (
+                    <p className="h-10 flex items-center px-3 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400">
+                      Coupons need an internet connection.
+                    </p>
+                  ) : appliedCoupon ? (
                     <div className="flex items-center justify-between gap-2 h-10 pl-3 pr-1.5 rounded-xl bg-emerald-50 border border-emerald-200">
                       <div className="flex items-center gap-2 min-w-0">
                         <Check className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -2018,11 +2163,16 @@ export default function PosTerminalComponent() {
                       );
                     })}
                   </div>
+                  {offlineCheckout && paymentMethod !== "CASH" && (
+                    <p className="text-xs text-slate-500">
+                      Only confirm once the {paymentMethod === "UPI" ? "UPI payment" : "card payment"} has actually reached you.
+                    </p>
+                  )}
                 </section>
 
                 {/* Summary */}
                 <section className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  {renderBillSummary()}
+                  {offlineCheckout ? renderOfflineSummary(offlineCheckout) : renderBillSummary()}
                 </section>
               </div>
 
@@ -2041,7 +2191,9 @@ export default function PosTerminalComponent() {
                   className="flex-1 h-11 px-4 rounded-xl bg-[#D3232A] hover:bg-[#b91c23] text-white text-[13px] font-semibold shadow-sm transition flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>{isSubmitting ? "Processing…" : "Confirm & pay"}</span>
-                  <span className="tabular-nums">{formatMoney(grandTotal)}</span>
+                  <span className="tabular-nums">
+                    {formatMoney(offlineCheckout ? offlineCheckout.totalPaise / 100 : grandTotal)}
+                  </span>
                 </button>
               </div>
             </div>
@@ -2066,10 +2218,16 @@ export default function PosTerminalComponent() {
               </motion.div>
 
               <h3 className="font-heading mt-5 text-lg font-bold text-slate-900">
-                {isKitchenDispatch ? "Sent to kitchen" : "Order placed"}
+                {completedOrderObj?.isOffline && completedOrderObj?.status === "COMPLETED"
+                  ? "Paid · saved offline"
+                  : isKitchenDispatch
+                    ? "Sent to kitchen"
+                    : "Order placed"}
               </h3>
               <p className="mt-1 text-[13px] text-slate-500">
-                {isKitchenDispatch
+                {completedOrderObj?.isOffline && completedOrderObj?.status === "COMPLETED"
+                  ? "Saved on this device. It reaches the server as paid when the internet is back."
+                  : isKitchenDispatch
                   ? "KOT dispatched to the kitchen and connected printer."
                   : kitchenCaps.isKotOnly
                     ? "KOT is ready for the thermal printer."

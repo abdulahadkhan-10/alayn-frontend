@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, CloudUpload, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { offlineBillingExpired, offlineDaysLeft, useOfflineStatus } from "@/lib/offline/offlineStatus";
 import { discardRefused, refreshQueueCounts, retryRefused, syncNow } from "@/lib/offline/syncQueue";
-import type { QueuedOrder } from "@/lib/offline/offlineOrders";
+import { listOpenOfflineBills, type QueuedOrder } from "@/lib/offline/offlineOrders";
 
 const PANEL_WIDTH = 320;
 const EDGE_GAP = 12;
@@ -14,10 +14,18 @@ const EDGE_GAP = 12;
  * The POS's connection pill: green when online, amber while bills are waiting to reach the server,
  * red when the server refused some. Clicking it lists refused bills so someone can retry or drop them.
  */
-export default function OfflineBadge() {
+interface OfflineBadgeProps {
+  /** Outlet whose open offline bills are listed. */
+  outletId?: string | null;
+  /** Take payment for an open offline bill (opens the POS checkout for it). */
+  onSettle?: (bill: QueuedOrder) => void;
+}
+
+export default function OfflineBadge({ outletId, onSettle }: OfflineBadgeProps) {
   const status = useOfflineStatus();
   const [open, setOpen] = useState(false);
   const [refused, setRefused] = useState<QueuedOrder[]>([]);
+  const [openBills, setOpenBills] = useState<QueuedOrder[]>([]);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -61,7 +69,8 @@ export default function OfflineBadge() {
   useEffect(() => {
     if (!open) return;
     void refreshQueueCounts().then((all) => setRefused(all.filter((q) => q.status === "attention")));
-  }, [open, status.attention]);
+    void listOpenOfflineBills(outletId || undefined).then(setOpenBills);
+  }, [open, status.attention, status.pending, outletId]);
 
   const daysLeft = offlineDaysLeft(status);
   const expired = offlineBillingExpired(status);
@@ -125,6 +134,34 @@ export default function OfflineBadge() {
             >
               Sync now
             </button>
+          )}
+
+          {!status.online && onSettle && openBills.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <p className="font-semibold text-slate-900">Open bills on this device</p>
+              <ul className="mt-2 flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                {openBills.map((q) => (
+                  <li key={q.clientOrderId} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-2.5 py-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-800 truncate">
+                        {q.payload.tableNumber ? `Table ${q.payload.tableNumber}` : "Counter"} · ₹{(q.payload.totalPaise / 100).toFixed(2)}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-mono truncate">{q.payload.orderNumber}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        onSettle(q);
+                      }}
+                      className="h-7 px-3 rounded-md bg-[#D3232A] hover:bg-[#b91c23] text-white font-semibold shrink-0 cursor-pointer"
+                    >
+                      Settle
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {refused.length > 0 && (
