@@ -52,6 +52,7 @@ import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
 import { TModal } from "@/components/ui/TModal";
 import CreatePurchaseOrderModal from "@/components/Inventory/CreatePurchaseOrderModal";
+import SupplierMarketplaceSection from "@/components/Inventory/SupplierMarketplaceSection";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
 function generateTimestampBatchNo(category?: string): string {
@@ -81,12 +82,14 @@ export default function ProcurementPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");
 
-  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS">("POS");
+  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS" | "MARKETPLACE">("POS");
   const [supplierViewMode, setSupplierViewMode] = useState<"TABLE" | "CARDS">("TABLE");
 
   useEffect(() => {
     if (tabParam === "suppliers") {
       setActiveTab("SUPPLIERS");
+    } else if (tabParam === "marketplace") {
+      setActiveTab("MARKETPLACE");
     } else {
       setActiveTab("POS");
     }
@@ -487,6 +490,15 @@ export default function ProcurementPage() {
             }`}
           >
             Supplier Directory ({filteredSuppliers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("MARKETPLACE")}
+            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+              activeTab === "MARKETPLACE" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            Marketplace & Best Rates
           </button>
         </div>
 
@@ -994,6 +1006,17 @@ export default function ProcurementPage() {
               );
             })()}
           </div>
+        )}
+
+        {/* TAB 3: MARKETPLACE */}
+        {activeTab === "MARKETPLACE" && (
+          <SupplierMarketplaceSection
+            inventoryItems={items as any}
+            onOrderPO={(supplierId) => {
+              setSelectedSupplierId(supplierId);
+              setShowCreatePOModal(true);
+            }}
+          />
         )}
 
         {/* MODAL 1: ADD SUPPLIER */}

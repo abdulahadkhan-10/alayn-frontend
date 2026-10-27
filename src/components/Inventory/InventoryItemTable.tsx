@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Building2, Sliders } from "lucide-react";
+import { ChevronLeft, ChevronRight, Building2, Sliders, Sparkles } from "lucide-react";
 import { InventoryItem } from "@/lib/api";
 
 interface Props {
   items: (InventoryItem & { outlet?: { id: string; name: string } })[];
   onAdjust: (item: InventoryItem) => void;
+  onCompareSuppliers?: (item: InventoryItem) => void;
   canManage: boolean;
   isAllOutlets?: boolean;
   onClearFilters?: () => void;
@@ -134,14 +135,26 @@ export default function InventoryItemTable({ items, onAdjust, canManage, isAllOu
                   {/* Action */}
                   {canManage && (
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <button
-                        id={`update-btn-${item.id}`}
-                        onClick={() => onAdjust(item)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:border-zinc-800 hover:bg-zinc-900 hover:text-white transition-all duration-150 shadow-sm"
-                      >
-                        <Sliders className="h-3.5 w-3.5" />
-                        Update
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {onCompareSuppliers && (
+                          <button
+                            onClick={() => onCompareSuppliers(item)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50/70 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-all shadow-2xs"
+                            title="Compare suppliers to find cheapest & best prices"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                            Compare
+                          </button>
+                        )}
+                        <button
+                          id={`update-btn-${item.id}`}
+                          onClick={() => onAdjust(item)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:border-zinc-800 hover:bg-zinc-900 hover:text-white transition-all duration-150 shadow-sm"
+                        >
+                          <Sliders className="h-3.5 w-3.5" />
+                          Update
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -200,12 +213,23 @@ export default function InventoryItemTable({ items, onAdjust, canManage, isAllOu
               </div>
 
               {canManage && (
-                <button
-                  onClick={() => onAdjust(item)}
-                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shrink-0"
-                >
-                  Update
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {onCompareSuppliers && (
+                    <button
+                      onClick={() => onCompareSuppliers(item)}
+                      className="rounded-lg border border-amber-200 bg-amber-50/70 p-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-all"
+                      title="Compare suppliers"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onAdjust(item)}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all"
+                  >
+                    Update
+                  </button>
+                </div>
               )}
             </div>
           );

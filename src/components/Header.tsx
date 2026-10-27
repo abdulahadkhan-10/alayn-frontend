@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home } from "lucide-react";
+import { Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAppSelector } from "@/redux/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
+import { useLogoutMutation } from "@/redux/slices/authApiSlice";
+import { logout } from "@/redux/slices/authSlice";
+import { baseApi } from "@/redux/store/baseApi";
 import { useBranch } from "@/lib/BranchContext";
 import { formatRole } from "@/lib/utils";
 import Skeleton from "react-loading-skeleton";
@@ -18,6 +21,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const dispatch = useAppDispatch();
+  const [logoutApi] = useLogoutMutation();
   const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
@@ -193,6 +198,28 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <Settings className="h-4 w-4 text-gray-400" />
                   Settings
                 </Link>
+
+                <div className="my-1 border-t border-gray-100" />
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setProfileDropdownOpen(false);
+                    try {
+                      await logoutApi(undefined).unwrap();
+                    } catch {
+                      // ignore network errors
+                    } finally {
+                      dispatch(baseApi.util.resetApiState());
+                      dispatch(logout());
+                      window.location.href = "/login";
+                    }
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
+                >
+                  <LogOut className="h-4 w-4 text-red-500" />
+                  Sign Out
+                </button>
               </div>
             )}
           </div>

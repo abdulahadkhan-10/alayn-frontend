@@ -1,7 +1,9 @@
 "use client";
 
 import { TModal } from "@/components/ui/TModal";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { roleHome } from "@/lib/authRedirect";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAppSelector } from "@/redux/store/hooks";
 import {
@@ -27,6 +29,7 @@ import {
   Check,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
+import SupplierCatalogSection from "@/components/supplier/SupplierCatalogSection";
 
 function formatOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
   if (po.poNumber) return po.poNumber;
@@ -36,7 +39,33 @@ function formatOrderNo(po: { id: string; poNumber?: string; createdAt?: string }
 
 export default function SupplierPortalPage() {
   const user = useAppSelector((state) => state.auth.user);
-  const { data: purchaseOrders = [], isLoading, refetch } = useGetSupplierPortalOrdersQuery();
+  const router = useRouter();
+
+  // If a restaurant user (e.g. BUSINESS_OWNER, MANAGER, STAFF) lands on /supplier, redirect to their home
+  useEffect(() => {
+    if (user && user.role !== "SUPPLIER") {
+      router.replace(roleHome(user.role));
+    }
+  }, [user, router]);
+
+  const isSupplier = user?.role === "SUPPLIER";
+  const [portalView, setPortalView] = useState<"ORDERS" | "CATALOG">("ORDERS");
+  const { data: purchaseOrders = [], isLoading, refetch } = useGetSupplierPortalOrdersQuery(undefined, {
+    skip: !isSupplier,
+  });
+
+  if (user && user.role !== "SUPPLIER") {
+    return (
+      <DashboardLayout>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#C41E2A]" />
+            <p className="mt-2 text-sm text-gray-500 font-medium">Redirecting to your dashboard...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
   const [updateStatus, { isLoading: isUpdating }] = useUpdateSupplierPOStatusMutation();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -215,11 +244,41 @@ export default function SupplierPortalPage() {
           </div>
         </div>
 
-        {/* Action Filter Tabs & Search Bar (Single Row) */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200 shadow-2xs">
-          
-          {/* Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        {/* Portal Section Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-zinc-200 bg-white px-3 rounded-2xl shadow-2xs">
+          <button
+            onClick={() => setPortalView("ORDERS")}
+            className={`py-3 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
+              portalView === "ORDERS"
+                ? "border-[#D3232A] text-[#D3232A]"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Truck className="h-4 w-4" />
+            Purchase Orders & Dispatch ({purchaseOrders.length})
+          </button>
+          <button
+            onClick={() => setPortalView("CATALOG")}
+            className={`py-3 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
+              portalView === "CATALOG"
+                ? "border-[#D3232A] text-[#D3232A]"
+                : "border-transparent text-zinc-500 hover:text-zinc-800"
+            }`}
+          >
+            <Package className="h-4 w-4" />
+            My Products & Price Book
+          </button>
+        </div>
+
+        {portalView === "CATALOG" ? (
+          <SupplierCatalogSection />
+        ) : (
+          <>
+            {/* Action Filter Tabs & Search Bar (Single Row) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-zinc-200 shadow-2xs">
+              
+              {/* Tabs */}
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab("ACTION")}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
@@ -442,6 +501,8 @@ export default function SupplierPortalPage() {
             </div>
           )}
         </div>
+      </>
+    )}
 
         {/* MODAL 1: DISPATCH SHIPMENT MODAL */}
         <TModal open={Boolean(actionModalType === "DISPATCH" && selectedPO)} className="bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">

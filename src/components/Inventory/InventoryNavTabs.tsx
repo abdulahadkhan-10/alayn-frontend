@@ -6,9 +6,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { name: "Inventory",       href: "/inventory" },
-  { name: "Purchase Orders", href: "/inventory/procurement" },
-  { name: "Vendors",         href: "/inventory/procurement?tab=suppliers" },
+  { name: "Inventory",               href: "/inventory" },
+  { name: "Purchase Orders",         href: "/inventory/procurement" },
+  { name: "Vendors",                 href: "/inventory/procurement?tab=suppliers" },
+  { name: "Marketplace & Best Rates", href: "/inventory/procurement?tab=marketplace" },
 ];
 
 export default function InventoryNavTabs() {
@@ -18,16 +19,19 @@ export default function InventoryNavTabs() {
 
   return (
     <div className="w-full border-b border-zinc-200 bg-white">
-      <nav aria-label="Inventory Navigation" className="flex items-center gap-0 px-0">
+      <nav aria-label="Inventory Navigation" className="flex items-center gap-0 px-0 overflow-x-auto">
         {tabs.map((tab) => {
+          const isMarketplaceTab = tab.href.includes("tab=marketplace");
           const isVendorsTab = tab.href.includes("tab=suppliers");
-          const isPOsTab = tab.href === "/inventory/procurement" && !isVendorsTab;
+          const isPOsTab = tab.href === "/inventory/procurement" && !isVendorsTab && !isMarketplaceTab;
 
           let isActive = false;
-          if (isVendorsTab) {
+          if (isMarketplaceTab) {
+            isActive = pathname === "/inventory/procurement" && activeTabParam === "marketplace";
+          } else if (isVendorsTab) {
             isActive = pathname === "/inventory/procurement" && activeTabParam === "suppliers";
           } else if (isPOsTab) {
-            isActive = pathname === "/inventory/procurement" && activeTabParam !== "suppliers";
+            isActive = pathname === "/inventory/procurement" && activeTabParam !== "suppliers" && activeTabParam !== "marketplace";
           } else {
             isActive = pathname === "/inventory" || pathname === "/inventory/adjust" || pathname === "/inventory/count";
           }

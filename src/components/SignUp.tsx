@@ -10,13 +10,17 @@ import {
     Phone,
     Lock,
     Store,
+    Truck,
     Eye,
     EyeOff,
     ArrowRight,
     ArrowLeft,
     CheckCircle2,
+    MapPin,
+    Tag,
 } from "lucide-react";
-import { useRegisterMutation } from "@/redux/slices/authApiSlice";
+import { useSearchParams } from "next/navigation";
+import { useRegisterMutation, useRegisterSupplierMutation } from "@/redux/slices/authApiSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
 
 interface SignupFormState {
@@ -26,11 +30,17 @@ interface SignupFormState {
     phone: string;
     password: string;
     confirmPassword: string;
-    // Step 2 — Business
+    // Step 2 — Restaurant Business
     businessName: string;
     locationsCount: string;
     businessType: string;
     contactDetail: string;
+    // Step 2 — Supplier Business
+    supplierName: string;
+    supplierCategory: string;
+    supplierAddress: string;
+    supplierDeliveryTerms: string;
+    supplierGst: string;
 }
 
 type FormErrors = Partial<Record<keyof SignupFormState, string>>;
@@ -45,6 +55,11 @@ const INITIAL_FORM_STATE: SignupFormState = {
     locationsCount: "",
     businessType: "",
     contactDetail: "",
+    supplierName: "",
+    supplierCategory: "Dairy & Agro",
+    supplierAddress: "",
+    supplierDeliveryTerms: "",
+    supplierGst: "",
 };
 
 const STEPS = [
@@ -94,6 +109,12 @@ function Field({
 }
 
 export default function SignupComponent() {
+    const searchParams = useSearchParams();
+    const roleParam = searchParams?.get("role") || searchParams?.get("type");
+    const [accountType, setAccountType] = useState<"RESTAURANT" | "SUPPLIER">(
+        roleParam === "supplier" ? "SUPPLIER" : "RESTAURANT"
+    );
+
     const [step, setStep] = useState<StepId>(1);
     const [formData, setFormData] = useState<SignupFormState>(INITIAL_FORM_STATE);
     const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
@@ -103,7 +124,9 @@ export default function SignupComponent() {
     const [submitError, setSubmitError] = useState("");
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
-    const [register, { isLoading }] = useRegisterMutation();
+    const [register, { isLoading: isRegisteringOwner }] = useRegisterMutation();
+    const [registerSupplier, { isLoading: isRegisteringSupplier }] = useRegisterSupplierMutation();
+    const isLoading = isRegisteringOwner || isRegisteringSupplier;
 
     const handleChange = (field: keyof SignupFormState) => (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -157,13 +180,19 @@ export default function SignupComponent() {
     const validateStep2 = (): boolean => {
         const errors: FormErrors = {};
 
-        if (!formData.businessName.trim()) errors.businessName = "Business name is required.";
-        if (!formData.locationsCount.trim()) errors.locationsCount = "Number of locations is required.";
-        if (!formData.businessType.trim()) errors.businessType = "Business type is required.";
-        if (!formData.contactDetail.trim()) {
-            errors.contactDetail = "Contact detail is required.";
-        } else if (formData.contactDetail.length < 10) {
-            errors.contactDetail = "Contact detail must be at least 10 characters.";
+        if (accountType === "RESTAURANT") {
+            if (!formData.businessName.trim()) errors.businessName = "Business name is required.";
+            if (!formData.locationsCount.trim()) errors.locationsCount = "Number of locations is required.";
+            if (!formData.businessType.trim()) errors.businessType = "Business type is required.";
+            if (!formData.contactDetail.trim()) {
+                errors.contactDetail = "Contact detail is required.";
+            } else if (formData.contactDetail.length < 10) {
+                errors.contactDetail = "Contact detail must be at least 10 characters.";
+            }
+        } else {
+            if (!formData.supplierName.trim()) errors.supplierName = "Supplier or Company name is required.";
+            if (!formData.supplierAddress.trim()) errors.supplierAddress = "Supply address / city is required.";
+            if (!formData.supplierCategory.trim()) errors.supplierCategory = "Supply category is required.";
         }
 
         setFieldErrors(errors);
@@ -190,25 +219,49 @@ export default function SignupComponent() {
         if (!validateStep2()) return;
 
         try {
-            await register({
-                user: {
-                    name: formData.fullName,
-                    email: formData.email,
-                    password: formData.password,
-                    phoneNo: formData.phone,
-                },
-                business: {
-                    name: formData.businessName,
-                    locationsCount: formData.locationsCount,
-                    businessType: formData.businessType,
-                    contactDetail: formData.contactDetail,
-                },
-            }).unwrap();
+            if (accountType === "SUPPLIER") {
+                await registerSupplier({
+                    user: {
+                        name: formData.fullName,
+                        email: formData.email,
+                        password: formData.password,
+                        phoneNo: formData.phone,
+                    },
+                    supplier: {
+                        name: formData.supplierName,
+                        contactPerson: formData.fullName,
+                        address: formData.supplierAddress,
+                        category: formData.supplierCategory || "General",
+                        deliveryTerms: formData.supplierDeliveryTerms || undefined,
+                        gstNumber: formData.supplierGst || undefined,
+                    },
+                }).unwrap();
 
-            setSubmitSuccess(true);
-            setTimeout(() => {
-                window.location.href = "/login";
-            }, 1500);
+                setSubmitSuccess(true);
+                setTimeout(() => {
+                    window.location.href = "/supplier";
+                }, 1200);
+            } else {
+                await register({
+                    user: {
+                        name: formData.fullName,
+                        email: formData.email,
+                        password: formData.password,
+                        phoneNo: formData.phone,
+                    },
+                    business: {
+                        name: formData.businessName,
+                        locationsCount: formData.locationsCount,
+                        businessType: formData.businessType,
+                        contactDetail: formData.contactDetail,
+                    },
+                }).unwrap();
+
+                setSubmitSuccess(true);
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 1500);
+            }
         } catch (err: any) {
             setSubmitError(
                 err?.data?.error?.message ||
@@ -263,13 +316,50 @@ export default function SignupComponent() {
                         </Link>
                     </div>
 
+                    {/* Account Type Toggle */}
+                    <div className="mb-4 flex p-1 bg-zinc-100 rounded-xl text-xs font-bold w-full">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setAccountType("RESTAURANT");
+                                setFieldErrors({});
+                                setSubmitError("");
+                            }}
+                            className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                accountType === "RESTAURANT" ? "bg-white text-zinc-900 shadow-2xs font-extrabold" : "text-zinc-600 hover:text-zinc-900"
+                            }`}
+                        >
+                            <Store className="h-3.5 w-3.5" />
+                            Restaurant Owner
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setAccountType("SUPPLIER");
+                                setFieldErrors({});
+                                setSubmitError("");
+                            }}
+                            className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                accountType === "SUPPLIER" ? "bg-white text-[#C41E2A] shadow-2xs font-extrabold" : "text-zinc-600 hover:text-zinc-900"
+                            }`}
+                        >
+                            <Truck className="h-3.5 w-3.5" />
+                            Supplier Partner
+                        </button>
+                    </div>
+
                     <div className="text-center lg:text-left mb-4">
                         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1B2A4A] font-serif">
-                            Create your restaurant
+                            {accountType === "SUPPLIER" ? "Join as Supplier Partner" : "Create your restaurant"}
                         </h2>
                         <p className="mt-1 text-xs text-[#6B7A90] font-medium leading-normal">
-                            {step === 1 && "Let's start with your admin account details."}
-                            {step === 2 && "Now, set up your first outlet."}
+                            {accountType === "SUPPLIER"
+                                ? step === 1
+                                    ? "Set up your verified supplier account credentials."
+                                    : "Now, provide your company details & supply category."
+                                : step === 1
+                                    ? "Let's start with your admin account details."
+                                    : "Now, set up your first outlet."}
                         </p>
                     </div>
 
@@ -451,74 +541,156 @@ export default function SignupComponent() {
                             </div>
                         )}
 
-                        {/* STEP 2 — First Outlet */}
+                        {/* STEP 2 — Business / Supplier Profile */}
                         {step === 2 && (
                             <div className="space-y-3">
-                                <Field id="businessName" label="Business / Restaurant Name" icon={<Store className={iconClasses} />} error={fieldErrors.businessName}>
-                                    <input
-                                        id="businessName"
-                                        name="businessName"
-                                        type="text"
-                                        autoComplete="off"
-                                        required
-                                        value={formData.businessName}
-                                        onChange={handleChange("businessName")}
-                                        placeholder="Microsoft Cafe"
-                                        aria-invalid={!!fieldErrors.businessName}
-                                        aria-describedby={fieldErrors.businessName ? "businessName-error" : undefined}
-                                        className={fieldErrors.businessName ? errorInputClasses : inputClasses}
-                                    />
-                                </Field>
+                                {accountType === "SUPPLIER" ? (
+                                    <>
+                                        <Field id="supplierName" label="Company / Trading Name" icon={<Store className={iconClasses} />} error={fieldErrors.supplierName}>
+                                            <input
+                                                id="supplierName"
+                                                name="supplierName"
+                                                type="text"
+                                                autoComplete="organization"
+                                                required
+                                                value={formData.supplierName}
+                                                onChange={handleChange("supplierName")}
+                                                placeholder="e.g. Metro Agro & Dairy Farms Ltd"
+                                                aria-invalid={!!fieldErrors.supplierName}
+                                                aria-describedby={fieldErrors.supplierName ? "supplierName-error" : undefined}
+                                                className={fieldErrors.supplierName ? errorInputClasses : inputClasses}
+                                            />
+                                        </Field>
 
-                                <Field id="locationsCount" label="Number of Locations" icon={<Store className={iconClasses} />} error={fieldErrors.locationsCount}>
-                                    <select
-                                        id="locationsCount"
-                                        name="locationsCount"
-                                        required
-                                        value={formData.locationsCount}
-                                        onChange={handleChange("locationsCount")}
-                                        className={fieldErrors.locationsCount ? errorInputClasses : inputClasses}
-                                    >
-                                        <option value="">Select location range</option>
-                                        <option value="1">1 Location</option>
-                                        <option value="2-5">2-5 Locations</option>
-                                        <option value="6-10">6-10 Locations</option>
-                                        <option value="10+">10+ Locations</option>
-                                    </select>
-                                </Field>
+                                        <Field id="supplierCategory" label="Primary Supply Category" icon={<Tag className={iconClasses} />} error={fieldErrors.supplierCategory}>
+                                            <select
+                                                id="supplierCategory"
+                                                name="supplierCategory"
+                                                required
+                                                value={formData.supplierCategory}
+                                                onChange={handleChange("supplierCategory")}
+                                                className={fieldErrors.supplierCategory ? errorInputClasses : inputClasses}
+                                            >
+                                                <option value="Dairy & Agro">Dairy & Agro Products</option>
+                                                <option value="Vegetables & Fresh Produce">Vegetables & Fresh Produce</option>
+                                                <option value="Meat, Poultry & Seafood">Meat, Poultry & Seafood</option>
+                                                <option value="Dry Goods, Grains & Pulses">Dry Goods, Grains & Pulses</option>
+                                                <option value="Spices, Oils & Sauces">Spices, Oils & Sauces</option>
+                                                <option value="Packaging & Disposable Items">Packaging & Disposable Items</option>
+                                                <option value="Bakery & Pastry Ingredients">Bakery & Pastry Ingredients</option>
+                                                <option value="Beverages & Syrups">Beverages & Syrups</option>
+                                                <option value="General Multi-Category">General Multi-Category</option>
+                                            </select>
+                                        </Field>
 
-                                <Field id="businessType" label="Business Type" icon={<Store className={iconClasses} />} error={fieldErrors.businessType}>
-                                    <select
-                                        id="businessType"
-                                        name="businessType"
-                                        required
-                                        value={formData.businessType}
-                                        onChange={handleChange("businessType")}
-                                        className={fieldErrors.businessType ? errorInputClasses : inputClasses}
-                                    >
-                                        <option value="">Select business type</option>
-                                        <option value="restaurant">Restaurant</option>
-                                        <option value="cafe">Café</option>
-                                        <option value="bar">Bar</option>
-                                        <option value="qsr">QSR (Quick Service Restaurant)</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </Field>
+                                        <Field id="supplierAddress" label="Warehouse / Business Address & City" icon={<MapPin className={iconClasses} />} error={fieldErrors.supplierAddress}>
+                                            <input
+                                                id="supplierAddress"
+                                                name="supplierAddress"
+                                                type="text"
+                                                required
+                                                value={formData.supplierAddress}
+                                                onChange={handleChange("supplierAddress")}
+                                                placeholder="e.g. Plot 12, APMC Market Yard, Mumbai"
+                                                aria-invalid={!!fieldErrors.supplierAddress}
+                                                aria-describedby={fieldErrors.supplierAddress ? "supplierAddress-error" : undefined}
+                                                className={fieldErrors.supplierAddress ? errorInputClasses : inputClasses}
+                                            />
+                                        </Field>
 
-                                <Field id="contactDetail" label="Company Contact Detail (Email / Phone)" icon={<Phone className={iconClasses} />} error={fieldErrors.contactDetail}>
-                                    <input
-                                        id="contactDetail"
-                                        name="contactDetail"
-                                        type="text"
-                                        required
-                                        value={formData.contactDetail}
-                                        onChange={handleChange("contactDetail")}
-                                        placeholder="contact@company.com or +91 98765 43210"
-                                        aria-invalid={!!fieldErrors.contactDetail}
-                                        aria-describedby={fieldErrors.contactDetail ? "contactDetail-error" : undefined}
-                                        className={fieldErrors.contactDetail ? errorInputClasses : inputClasses}
-                                    />
-                                </Field>
+                                        <Field id="supplierDeliveryTerms" label="Delivery Terms / Minimum Order (Optional)" icon={<Truck className={iconClasses} />} error={fieldErrors.supplierDeliveryTerms}>
+                                            <input
+                                                id="supplierDeliveryTerms"
+                                                name="supplierDeliveryTerms"
+                                                type="text"
+                                                value={formData.supplierDeliveryTerms}
+                                                onChange={handleChange("supplierDeliveryTerms")}
+                                                placeholder="e.g. Next day delivery, Min order ₹2,000"
+                                                className={inputClasses}
+                                            />
+                                        </Field>
+
+                                        <Field id="supplierGst" label="GSTIN / Business Tax ID (Optional)" icon={<Tag className={iconClasses} />}>
+                                            <input
+                                                id="supplierGst"
+                                                name="supplierGst"
+                                                type="text"
+                                                value={formData.supplierGst}
+                                                onChange={handleChange("supplierGst")}
+                                                placeholder="e.g. 27AAAAA0000A1Z5"
+                                                className={inputClasses}
+                                            />
+                                        </Field>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Field id="businessName" label="Business / Restaurant Name" icon={<Store className={iconClasses} />} error={fieldErrors.businessName}>
+                                            <input
+                                                id="businessName"
+                                                name="businessName"
+                                                type="text"
+                                                autoComplete="off"
+                                                required
+                                                value={formData.businessName}
+                                                onChange={handleChange("businessName")}
+                                                placeholder="Microsoft Cafe"
+                                                aria-invalid={!!fieldErrors.businessName}
+                                                aria-describedby={fieldErrors.businessName ? "businessName-error" : undefined}
+                                                className={fieldErrors.businessName ? errorInputClasses : inputClasses}
+                                            />
+                                        </Field>
+
+                                        <Field id="locationsCount" label="Number of Locations" icon={<Store className={iconClasses} />} error={fieldErrors.locationsCount}>
+                                            <select
+                                                id="locationsCount"
+                                                name="locationsCount"
+                                                required
+                                                value={formData.locationsCount}
+                                                onChange={handleChange("locationsCount")}
+                                                className={fieldErrors.locationsCount ? errorInputClasses : inputClasses}
+                                            >
+                                                <option value="">Select location range</option>
+                                                <option value="1">1 Location</option>
+                                                <option value="2-5">2-5 Locations</option>
+                                                <option value="6-10">6-10 Locations</option>
+                                                <option value="10+">10+ Locations</option>
+                                            </select>
+                                        </Field>
+
+                                        <Field id="businessType" label="Business Type" icon={<Store className={iconClasses} />} error={fieldErrors.businessType}>
+                                            <select
+                                                id="businessType"
+                                                name="businessType"
+                                                required
+                                                value={formData.businessType}
+                                                onChange={handleChange("businessType")}
+                                                className={fieldErrors.businessType ? errorInputClasses : inputClasses}
+                                            >
+                                                <option value="">Select business type</option>
+                                                <option value="restaurant">Restaurant</option>
+                                                <option value="cafe">Café</option>
+                                                <option value="bar">Bar</option>
+                                                <option value="qsr">QSR (Quick Service Restaurant)</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </Field>
+
+                                        <Field id="contactDetail" label="Company Contact Detail (Email / Phone)" icon={<Phone className={iconClasses} />} error={fieldErrors.contactDetail}>
+                                            <input
+                                                id="contactDetail"
+                                                name="contactDetail"
+                                                type="text"
+                                                required
+                                                value={formData.contactDetail}
+                                                onChange={handleChange("contactDetail")}
+                                                placeholder="contact@company.com or +91 98765 43210"
+                                                aria-invalid={!!fieldErrors.contactDetail}
+                                                aria-describedby={fieldErrors.contactDetail ? "contactDetail-error" : undefined}
+                                                className={fieldErrors.contactDetail ? errorInputClasses : inputClasses}
+                                            />
+                                        </Field>
+                                    </>
+                                )}
 
                                 <div className="flex gap-2.5 pt-2">
                                     <button
@@ -538,7 +710,7 @@ export default function SignupComponent() {
                                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                         ) : (
                                             <>
-                                                Create Business
+                                                {accountType === "SUPPLIER" ? "Complete Supplier Registration" : "Create Business"}
                                                 <ArrowRight className="h-3.5 w-3.5" />
                                             </>
                                         )}

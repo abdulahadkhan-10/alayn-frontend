@@ -11,6 +11,16 @@ export const authApi = baseApi.injectEndpoints({
             invalidatesTags: ["Auth"],
         }),
 
+        registerSupplier: builder.mutation({
+            query: (body) => ({
+                url: "/auth/register-supplier",
+                method: "POST",
+                body,
+                credentials: "include",
+            }),
+            invalidatesTags: ["Auth"],
+        }),
+
         login: builder.mutation({
             query: (body) => ({
                 url: "/auth/login",
@@ -91,6 +101,7 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
     useRegisterMutation,
+    useRegisterSupplierMutation,
     useLoginMutation,
     useGetMeQuery,
     useLogoutMutation,

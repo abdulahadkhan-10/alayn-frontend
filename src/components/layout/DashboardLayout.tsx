@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, memo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
 import AuthGuard from "../auth/AuthGuard";
@@ -23,6 +23,7 @@ function getInitialCollapsed(): boolean {
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { 
     branches, 
     activeBranch,
@@ -43,6 +44,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
+  const isSupplier = user?.role === "SUPPLIER";
+
+  // Suppliers can only access the supplier portal; redirect them if they try to access other dashboard pages
+  useEffect(() => {
+    if (mounted && isSupplier && pathname !== "/supplier") {
+      router.replace("/supplier");
+    }
+  }, [mounted, isSupplier, pathname, router]);
+
   const handleToggleCollapse = useCallback(() => {
     setIsAnimating(true);
     setIsCollapsed((prev: boolean) => {
@@ -62,7 +72,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isOwner = user?.role === "BUSINESS_OWNER" || user?.role === "SUPER_ADMIN";
-  const isSupplier = user?.role === "SUPPLIER";
   const isCaptiveOnboarding = mounted && isOwner && !isDemo && !branchesLoading && branches.length === 0;
 
   // Unrestricted routes where users manage outlets or view billing/support without active subscription

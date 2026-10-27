@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { logout, setCredentials } from "@/redux/slices/authSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
-import { readNextFromLocation, roleHome } from "@/lib/authRedirect";
+import { readNextFromLocation, roleAllowedNext } from "@/lib/authRedirect";
 import { useHydrated } from "@/lib/useHydrated";
 export default function LoginComponent() {
   const hydrated = useHydrated();
@@ -46,10 +46,14 @@ export default function LoginComponent() {
         return;
       }
 
+      if (role === "SUPPLIER" && typeof window !== "undefined") {
+        localStorage.removeItem("alayn_active_branch_id");
+      }
+
       dispatch(setCredentials(payload));
 
-      // Back to the page they were on when the session ended, otherwise their role's home
-      router.replace(readNextFromLocation() ?? roleHome(role));
+      // Route safely based on authenticated user's role
+      router.replace(roleAllowedNext(role, readNextFromLocation()));
     } catch (err: any) {
       setError(
         err?.data?.error?.message ||
@@ -204,12 +208,20 @@ export default function LoginComponent() {
               </button>
             </div>
             
-            <p className="text-center lg:text-left text-xs text-[#6B7A90] font-medium mt-5">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="font-semibold text-[#C41E2A] hover:text-[#b01e23] transition-colors">
-                Sign Up
+            <div className="mt-5 pt-4 border-t border-[#1B2A4A]/10 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B7A90] font-medium gap-2">
+              <p>
+                Don&apos;t have an account?{" "}
+                <Link href="/signup" className="font-semibold text-[#C41E2A] hover:text-[#b01e23] transition-colors">
+                  Sign Up
+                </Link>
+              </p>
+              <Link
+                href="/signup?role=supplier"
+                className="text-xs font-bold text-zinc-800 hover:text-[#C41E2A] transition-colors flex items-center gap-1"
+              >
+                🚚 Join as Supplier Partner →
               </Link>
-            </p>
+            </div>
           </form>
         </div>
         
