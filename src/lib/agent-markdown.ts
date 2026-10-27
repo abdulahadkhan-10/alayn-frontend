@@ -19,7 +19,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
 ## Pricing
-₹1,999 per outlet per month + 18% GST, with every feature included. Details: https://alaynai.com/pricing
+₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST, with every feature included. Details: https://alaynai.com/pricing
 
 - Restaurant Billing Software: https://alaynai.com/billing-software
 - Full feature list: https://alaynai.com/features
@@ -53,7 +53,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 6. **Multi-Outlet Billing & Ask Alayn AI**: Manage every location from one login and ask plain-language questions about daily billing, top sellers, and margins.
 
 ## Pricing
-₹1,999 per outlet per month + 18% GST (₹2,358.82 total per month). Every module included.
+₹3,000 per outlet per month + 18% GST (₹3,540 total per month), or ₹26,000 a year + 18% GST (₹30,680 total). Every module included.
 
 - Pricing details: https://alaynai.com/pricing
 - Features: https://alaynai.com/features
@@ -111,11 +111,10 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
 - Book a demonstration: https://alaynai.com/contact
 `,
 
-  // Keep in step with src/app/pricing/page.tsx and the fee in
-  // src/components/subscription/SubscriptionMonthSelector.tsx.
+  // Keep in step with src/app/pricing/page.tsx and the prices in src/lib/pricing.ts.
   "/pricing": `# Alayn AI Pricing
 
-> One plan, priced per outlet: ₹1,999 per month + 18% GST (₹2,358.82 per month in total).
+> One plan, priced per outlet: ₹3,000 a month + 18% GST (₹3,540 in total), or ₹26,000 a year + 18% GST (₹30,680 in total, saving ₹10,000). The yearly payment is non-refundable.
 
 ## What's Included
 Every feature, for every outlet on the plan:
@@ -124,12 +123,15 @@ Every feature, for every outlet on the plan:
 - Batch inventory with expiry tracking and purchase orders
 - Waste tracking with AI menu and wastage insights
 - Staff rosters, shift swaps, leave and geofenced attendance
-- Sales and P&L analytics, and Ask Alayn AI
+- Sales and P&L analytics
+- Ask Alayn AI, with a daily question allowance for each outlet
 - REST API access
 
 ## How Billing Works
 - Each outlet has its own subscription.
-- Pay for 1 to 36 months at a time.
+- Prices are before 18% GST, which is added at checkout.
+- Pay for 1 to 36 months at a time. Each full year is charged at the yearly price.
+- Yearly payments are non-refundable.
 - Payments are processed by Cashfree.
 - Refunds and cancellations: https://alaynai.com/legal/refund
 

@@ -74,7 +74,7 @@ export default function SubscriptionRenewModal({
 
   if (!mounted || !outlet) return null;
 
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
   const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd);
   const now = new Date();
   const existingEnd = outlet.subscription?.currentPeriodEnd ? new Date(outlet.subscription.currentPeriodEnd) : null;

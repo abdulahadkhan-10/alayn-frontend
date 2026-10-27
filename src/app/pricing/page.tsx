@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { formatRupees, GST_PERCENT, MONTHLY_FEE, withGst, YEARLY_FEE, YEARLY_SAVING } from "@/lib/pricing";
 
 const siteUrl = "https://alaynai.com";
-const title = "Pricing — ₹1,999 per Outlet per Month | Restaurant Billing & POS | Alayn AI";
-const description = "Alayn AI restaurant billing software and POS costs ₹1,999 per outlet per month + 18% GST, with POS billing, kitchen display, inventory, waste tracking, workforce and analytics all included.";
+const title = "Pricing — ₹3,000 per Outlet per Month or ₹26,000 a Year | Restaurant Billing & POS | Alayn AI";
+const description = "Alayn AI restaurant billing software and POS costs ₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST, with POS billing, kitchen display, inventory, waste tracking, workforce, analytics and Ask Alayn AI all included.";
 
 export const metadata: Metadata = {
-  title: "Pricing — ₹1,999/mo Restaurant Billing & POS",
+  title: "Pricing — ₹3,000/mo Restaurant Billing & POS",
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
@@ -18,12 +20,8 @@ export const metadata: Metadata = {
   ...socialMetadata({ title, description, path: "/pricing" }),
 };
 
-// Keep in step with the fee in
-// src/components/subscription/SubscriptionMonthSelector.tsx and the
-// "/pricing" entry in src/lib/agent-markdown.ts.
-const MONTHLY_FEE = 1999;
-const GST_PERCENT = 18;
-const MONTHLY_TOTAL = (MONTHLY_FEE * (100 + GST_PERCENT)) / 100;
+// Prices live in src/lib/pricing.ts (the backend's src/modules/subscription/pricing.ts decides what
+// is charged). Keep the "/pricing" entry in src/lib/agent-markdown.ts in step with this page.
 
 const INCLUDED = [
   "Unlimited POS billing terminals and table QR menus",
@@ -31,20 +29,53 @@ const INCLUDED = [
   "Batch inventory with expiry tracking and purchase orders",
   "Waste tracking with AI menu and wastage insights",
   "Staff rosters, shift swaps, leave and geofenced attendance",
-  "Sales and P&L analytics, and Ask Alayn AI",
+  "Sales and P&L analytics",
+  "Ask Alayn AI, with a daily question allowance for each outlet",
   "REST API access",
 ];
 
 const BILLING = [
   "Each outlet has its own subscription.",
-  "Pay for 1 to 36 months at a time.",
+  `Prices are before ${GST_PERCENT}% GST, which is added at checkout.`,
+  "Pay for 1 to 36 months at a time. Each full year is charged at the yearly price.",
+  "Yearly payments are non-refundable.",
   "Payments are processed by Cashfree.",
 ];
 
-const formatRupees = (amount: number) =>
-  `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const PLANS = [
+  {
+    name: "Monthly",
+    price: MONTHLY_FEE,
+    per: "month",
+    note: `${formatRupees(withGst(MONTHLY_FEE))} per month with GST`,
+    detail: "Pay month by month.",
+    featured: false,
+  },
+  {
+    name: "Yearly",
+    price: YEARLY_FEE,
+    per: "year",
+    note: `${formatRupees(withGst(YEARLY_FEE))} per year with GST`,
+    detail: `Works out to ${formatRupees(Math.round(YEARLY_FEE / 12))} a month. Non-refundable.`,
+    featured: true,
+  },
+];
 
 export default function PricingPage() {
+  const offer = (name: string, price: number, duration: string, unitText: string) => ({
+    "@type": "Offer",
+    "name": name,
+    "url": `${siteUrl}/pricing`,
+    "itemOffered": { "@id": `${siteUrl}/#software` },
+    "priceSpecification": {
+      "@type": "UnitPriceSpecification",
+      "price": price,
+      "priceCurrency": "INR",
+      "valueAddedTaxIncluded": false,
+      "billingDuration": duration,
+      "unitText": unitText,
+    },
+  });
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -58,21 +89,8 @@ export default function PricingPage() {
         "about": { "@id": `${siteUrl}/#software` },
         "breadcrumb": { "@id": `${siteUrl}/pricing#breadcrumb` }
       },
-      {
-        "@type": "Offer",
-        "@id": `${siteUrl}/pricing#offer`,
-        "name": "Alayn AI — per outlet",
-        "url": `${siteUrl}/pricing`,
-        "itemOffered": { "@id": `${siteUrl}/#software` },
-        "priceSpecification": {
-          "@type": "UnitPriceSpecification",
-          "price": MONTHLY_FEE,
-          "priceCurrency": "INR",
-          "valueAddedTaxIncluded": false,
-          "billingDuration": "P1M",
-          "unitText": "per outlet per month"
-        }
-      },
+      { "@id": `${siteUrl}/pricing#offer`, ...offer("Alayn AI — per outlet, monthly", MONTHLY_FEE, "P1M", "per outlet per month") },
+      { "@id": `${siteUrl}/pricing#offer-yearly`, ...offer("Alayn AI — per outlet, yearly", YEARLY_FEE, "P1Y", "per outlet per year") },
       {
         "@type": "BreadcrumbList",
         "@id": `${siteUrl}/pricing#breadcrumb`,
@@ -88,8 +106,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
-        <div className="max-w-3xl mb-16">
+      <main className="pt-32 sm:pt-36 pb-24 px-4 sm:px-8 max-w-6xl mx-auto w-full">
+        <div className="max-w-3xl mb-12 sm:mb-14">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
             PRICING
           </span>
@@ -101,90 +119,112 @@ export default function PricingPage() {
             <Link href="/billing-software" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
               restaurant billing software
             </Link>{" "}
-            is priced per outlet, with nothing held back for a higher tier.
+            is priced per outlet, with nothing held back for a higher tier. Pay monthly, or pay for the
+            year and save {formatRupees(YEARLY_SAVING)}.
           </p>
         </div>
 
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-start mb-16">
-          <div className="md:col-span-5 p-6 sm:p-8 rounded-2xl border border-amber-500/30 bg-white/[0.03]">
-            <span className="text-xs uppercase tracking-widest text-amber-400 font-bold block mb-4">
-              PER OUTLET
-            </span>
-            <p className="text-5xl font-extrabold text-white tracking-tight">
-              {formatRupees(MONTHLY_FEE)}
-              <span className="text-base font-light text-slate-400"> / month</span>
-            </p>
-            <p className="mt-2 text-sm text-slate-400 font-light">
-              + {GST_PERCENT}% GST ({formatRupees(MONTHLY_TOTAL)} per month in total)
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+        <section aria-label="Plans" className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl">
+          {PLANS.map((plan) => (
+            <div
+              key={plan.name}
+              className={`relative flex flex-col p-6 sm:p-8 rounded-2xl border ${
+                plan.featured ? "border-amber-400/50 bg-amber-400/[0.04]" : "border-white/10 bg-white/[0.02]"
+              }`}
+            >
+              <div className="flex min-h-7 items-center justify-between gap-3 mb-5">
+                <h2 className="text-sm uppercase tracking-widest font-bold text-white">{plan.name}</h2>
+                {plan.featured && (
+                  <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
+                    Save {formatRupees(YEARLY_SAVING)}
+                  </span>
+                )}
+              </div>
+              <p className="text-5xl font-extrabold text-white tracking-tight">
+                {formatRupees(plan.price)}
+                <span className="text-base font-light text-slate-400"> / {plan.per} + GST</span>
+              </p>
+              <p className="mt-2 text-sm text-slate-400 font-light">{plan.note}</p>
+              <p className="mt-4 text-sm text-slate-300">{plan.detail}</p>
               <Link
                 href="/signup"
-                className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
+                className={`mt-8 inline-flex items-center justify-center px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold transition-colors ${
+                  plan.featured
+                    ? "bg-amber-400 text-black hover:bg-amber-300"
+                    : "border border-white/20 text-white hover:bg-white/5"
+                }`}
               >
-                Get Started
-              </Link>
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold border border-white/20 text-white hover:bg-white/5 transition-colors"
-              >
-                Book a Demo
+                Get started
               </Link>
             </div>
-          </div>
+          ))}
+        </section>
+        <p className="mt-4 text-sm text-slate-400">
+          Not sure yet?{" "}
+          <Link href="/contact" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+            Book a demo
+          </Link>{" "}
+          and we&apos;ll walk you through it.
+        </p>
 
-          <div className="md:col-span-7">
-            <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold mb-4">
+        <section className="mt-16 py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          <div className="md:col-span-4">
+            <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold mb-3">
               WHAT&apos;S INCLUDED
             </h2>
-            <ul className="space-y-3 text-sm sm:text-base text-slate-300 font-light leading-relaxed list-disc pl-5">
-              {INCLUDED.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
+            <p className="text-sm text-slate-400 font-light leading-relaxed">
+              Both plans include everything, for every outlet.
+            </p>
             <Link
               href="/features"
-              className="inline-block mt-4 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
+              className="inline-block mt-3 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
             >
               See every feature
             </Link>
           </div>
+          <ul className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm sm:text-base text-slate-200 font-light leading-relaxed">
+            {INCLUDED.map((item) => (
+              <li key={item} className="flex gap-3">
+                <Check className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" aria-hidden="true" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold mb-4">
-              HOW BILLING WORKS
-            </h2>
-            <ul className="space-y-3 text-sm text-slate-300 font-light leading-relaxed list-disc pl-5">
-              {BILLING.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-              <li>
-                Refunds and cancellations follow our{" "}
-                <Link href="/legal/refund" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                  refund policy
-                </Link>
-                .
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold mb-4">
-              MULTI-OUTLET GROUPS
-            </h2>
-            <p className="text-sm text-slate-300 font-light leading-relaxed">
-              Running many outlets? Ask us about volume pricing at{" "}
-              <a href="mailto:info@alaynai.com" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                info@alaynai.com
-              </a>{" "}
-              or through the{" "}
-              <Link href="/contact" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                contact page
+        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8">
+          <h2 className="md:col-span-4 text-xs uppercase tracking-widest text-amber-400 font-bold">
+            HOW BILLING WORKS
+          </h2>
+          <ul className="md:col-span-8 space-y-3 text-sm text-slate-300 font-light leading-relaxed list-disc pl-5">
+            {BILLING.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+            <li>
+              Refunds and cancellations follow our{" "}
+              <Link href="/legal/refund" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                refund policy
               </Link>
               .
-            </p>
-          </div>
+            </li>
+          </ul>
+        </section>
+
+        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8">
+          <h2 className="md:col-span-4 text-xs uppercase tracking-widest text-amber-400 font-bold">
+            MULTI-OUTLET GROUPS
+          </h2>
+          <p className="md:col-span-8 text-sm text-slate-300 font-light leading-relaxed">
+            Running many outlets? Ask us about volume pricing at{" "}
+            <a href="mailto:info@alaynai.com" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              info@alaynai.com
+            </a>{" "}
+            or through the{" "}
+            <Link href="/contact" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              contact page
+            </Link>
+            .
+          </p>
         </section>
       </main>
 

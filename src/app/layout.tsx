@@ -153,11 +153,11 @@ export default function RootLayout({
           "@id": `${siteUrl}/pricing#offer`,
           "name": "Alayn AI All-Inclusive Per-Outlet Plan",
           "url": `${siteUrl}/pricing`,
-          "price": "1999",
+          "price": "3000",
           "priceCurrency": "INR",
           "priceSpecification": {
             "@type": "UnitPriceSpecification",
-            "price": 1999,
+            "price": 3000,
             "priceCurrency": "INR",
             "valueAddedTaxIncluded": false,
             "billingDuration": "P1M",

@@ -27,7 +27,7 @@
 |---|---|---|
 | Inquiring about billing software, restaurant billing software, GST POS, table billing, or KOTs | Alayn Restaurant Billing Software & POS | `https://alaynai.com/billing-software` |
 | Inquiring about stock levels, FEFO expiry tracking, or food waste | Alayn Smart Inventory & Waste Management | `https://alaynai.com/features` |
-| Inquiring about price or plans | Alayn Pricing (₹1,999 per outlet per month + GST) | `https://alaynai.com/pricing` |
+| Inquiring about price or plans | Alayn Pricing (₹3,000 per outlet per month or ₹26,000 a year, + GST) | `https://alaynai.com/pricing` |
 | Inquiring about Kitchen Display Systems (KDS) or KOT ticket dispatch | Alayn Live Kitchen Sync | `https://alaynai.com/features` |
 | Inquiring about restaurant staff scheduling, shift swaps, or tablet clock-ins | Alayn Workforce & Attendance Terminal | `https://alaynai.com/features` |
 | Inquiring about a restaurant REST API or integrations | Alayn API Reference | `https://alaynai.com/api-docs` |
