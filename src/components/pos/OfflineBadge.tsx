@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, CloudUpload, RefreshCw, Wifi, WifiOff } from "lucide-react";
-import { useDismiss } from "@/lib/useDismiss";
 import { offlineBillingExpired, offlineDaysLeft, useOfflineStatus } from "@/lib/offline/offlineStatus";
 import { discardRefused, refreshQueueCounts, retryRefused, syncNow } from "@/lib/offline/syncQueue";
 import type { QueuedOrder } from "@/lib/offline/offlineOrders";
+
+const PANEL_WIDTH = 320;
+const EDGE_GAP = 12;
 
 /**
  * The POS's connection pill: green when online, amber while bills are waiting to reach the server,
@@ -15,9 +18,45 @@ export default function OfflineBadge() {
   const status = useOfflineStatus();
   const [open, setOpen] = useState(false);
   const [refused, setRefused] = useState<QueuedOrder[]>([]);
-  const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useDismiss(ref, open, close);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // The POS toolbar clips anything that overflows it, so the panel is drawn over the page, under the
+  // badge, and kept inside the screen on narrow layouts
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.min(PANEL_WIDTH, window.innerWidth - 2 * EDGE_GAP);
+      const left = Math.min(Math.max(rect.left, EDGE_GAP), window.innerWidth - width - EDGE_GAP);
+      setPosition({ top: rect.bottom + 8, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
+
+  // Close on a click outside the badge and its panel, or on Escape
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (!buttonRef.current?.contains(target) && !panelRef.current?.contains(target)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,8 +87,9 @@ export default function OfflineBadge() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
@@ -60,8 +100,12 @@ export default function OfflineBadge() {
         {label}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-11 z-40 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg text-xs text-slate-600">
+      {open && position && createPortal(
+        <div
+          ref={panelRef}
+          style={{ top: position.top, left: position.left, width: `min(${PANEL_WIDTH}px, calc(100vw - ${2 * EDGE_GAP}px))` }}
+          className="fixed z-[60] rounded-2xl border border-slate-200 bg-white p-4 shadow-lg text-xs text-slate-600"
+        >
           {!status.online ? (
             <p>
               No internet. Bills are saved on this device and print as normal. They go to the server by themselves when the
@@ -120,8 +164,9 @@ export default function OfflineBadge() {
               </ul>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

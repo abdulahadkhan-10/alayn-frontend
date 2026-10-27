@@ -66,11 +66,23 @@ export function onSyncOutcome(listener: (o: SyncOutcome) => void): () => void {
  */
 export function syncNow(): Promise<SyncOutcome> {
   if (!running) {
-    running = doSync().finally(() => {
+    running = acrossTabs().finally(() => {
       running = null;
     });
   }
   return running;
+}
+
+/**
+ * Two POS tabs on the same device share one queue: only one of them syncs at a time, so the same bill
+ * is never sent twice at once. The other tab skips this round; its counts refresh on the next one.
+ */
+async function acrossTabs(): Promise<SyncOutcome> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (!locks) return doSync();
+  return await locks.request("alayn-offline-sync", { ifAvailable: true }, (lock) =>
+    lock ? doSync() : { synced: 0, rejected: 0, warnings: [] }
+  );
 }
 
 async function doSync(): Promise<SyncOutcome> {
