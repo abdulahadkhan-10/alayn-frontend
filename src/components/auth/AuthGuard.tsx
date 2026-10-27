@@ -3,12 +3,18 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
-import { SESSION_FRESH_MS, verifySession } from "@/redux/slices/authSlice";
+import { SESSION_FRESH_MS, offlineSessionResumed, verifySession } from "@/redux/slices/authSlice";
+import { loadOfflinePack } from "@/lib/offline/offlinePack";
 import { loginUrlFor } from "@/lib/authRedirect";
 import AuthLoader from "@/components/auth/AuthLoader";
 
 interface AuthGuardProps {
   children: React.ReactNode;
+  /**
+   * Billing pages only: if the server can't be reached, open as the person last signed in on this
+   * device (saved for offline billing, at most 7 days old) instead of waiting on the loader.
+   */
+  allowOffline?: boolean;
 }
 
 // If the server cannot be reached, keep trying with a growing pause instead of signing anyone out.
@@ -27,9 +33,11 @@ const RETRY_DELAYS_MS = [2000, 4000, 8000, 15000];
  *     never throws a signed-in person out.
  *
  * The saved/cached user is never used to decide anything, so a stale browser can't show protected
- * pages, and a valid session can't be bounced to /login by leftover local data.
+ * pages, and a valid session can't be bounced to /login by leftover local data. The one exception
+ * is `allowOffline` (the POS): with no server at all, it may resume from the offline-billing copy
+ * so a till reopened during an outage can keep billing, and the server's answer still wins later.
  */
-export default function AuthGuard({ children }: AuthGuardProps) {
+export default function AuthGuard({ children, allowOffline = false }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
@@ -69,6 +77,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     if (lastVerifiedAt !== null) retryCount.current = 0;
   }, [lastVerifiedAt]);
+
+  // 4. Offline-capable page and no server: resume from the saved offline copy, if this device has one
+  useEffect(() => {
+    if (!allowOffline || status !== "unknown" || !verifyFailed) return;
+    let cancelled = false;
+    void loadOfflinePack().then((pack) => {
+      if (!cancelled && pack?.user) dispatch(offlineSessionResumed(pack.user));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowOffline, status, verifyFailed, dispatch]);
 
   const retryNow = useCallback(() => {
     retryCount.current = 0;

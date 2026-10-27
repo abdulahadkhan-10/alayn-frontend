@@ -33,6 +33,7 @@ import { cn, formatRole } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
 import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
+import { useOfflineStatus } from "@/lib/offline/offlineStatus";
 import { useBranch } from "@/lib/BranchContext";
 import { baseApi } from "@/redux/store/baseApi";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
@@ -217,6 +218,8 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // Bills billed offline on this device and not yet on the server: signing out waits for them
+  const { pending: unsyncedBills } = useOfflineStatus();
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -498,6 +501,12 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
               <p className="text-sm text-gray-600 mb-6">
                 You will need to log back in to access the Alayn Operating System. Any unsaved changes on your current screen might be lost.
               </p>
+              {unsyncedBills > 0 && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-6">
+                  {unsyncedBills} {unsyncedBills === 1 ? "bill" : "bills"} made offline on this device {unsyncedBills === 1 ? "hasn't" : "haven't"} reached
+                  the server yet. Reconnect to the internet and wait for them to sync before signing out.
+                </p>
+              )}
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
@@ -509,7 +518,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                 </button>
                 <button
                   type="button"
-                  disabled={isLoggingOut}
+                  disabled={isLoggingOut || unsyncedBills > 0}
                   onClick={confirmLogout}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[#D3232A] hover:bg-[#b01e23] transition-colors shadow-sm disabled:opacity-75"
                 >

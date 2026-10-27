@@ -31,6 +31,9 @@ const contentSecurityPolicy = [
   "font-src 'self' data:",
   ["connect-src 'self'", ...apiOrigins, ...socketOrigins, "https://nominatim.openstreetmap.org", "https://*.cashfree.com"].join(" "),
   "frame-src https://*.cashfree.com",
+  // The POS service worker (public/sw.js), which lets the till open with no internet
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "frame-ancestors 'self'",
   "form-action 'self' https://*.cashfree.com",
   "object-src 'none'",
@@ -83,6 +86,14 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        // Never cache the service worker itself, so a deploy reaches every till on its next load
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
       {
         source: "/:path*",
         headers: [

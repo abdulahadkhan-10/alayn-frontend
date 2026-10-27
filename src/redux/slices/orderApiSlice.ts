@@ -52,6 +52,8 @@ export interface CreateOrderPayload {
   couponId?: string;
   taxAmount?: number;
   notes?: string;
+  /** One per attempt, so an order whose reply was lost is never saved twice (see the offline sync). */
+  clientOrderId?: string;
 }
 
 export interface Order {

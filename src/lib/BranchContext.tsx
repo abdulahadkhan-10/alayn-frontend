@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { baseApi } from "@/redux/store/baseApi";
+import { loadOfflinePack } from "@/lib/offline/offlinePack";
 
 export interface BranchSubscription {
   id: string;
@@ -76,10 +77,18 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     data: fetchedOutlets, 
     isLoading: isQueryLoading, 
     isUninitialized: isQueryUninitialized,
+    isError: isQueryError,
     refetch 
   } = useGetOutletsQuery(undefined, {
     skip: !isAuthenticated,
   });
+
+  // Outlets saved for offline billing: used only when the server can't be reached on this page load,
+  // so a POS reopened with no internet still knows its outlet (and isn't shown the paywall)
+  const [offlineOutlets, setOfflineOutlets] = useState<Branch[]>([]);
+  useEffect(() => {
+    void loadOfflinePack().then((pack) => pack && setOfflineOutlets(pack.outlets as Branch[]));
+  }, []);
 
   const [activeBranchState, setActiveBranchState] = useState<Branch | null>(null);
   const lastKnownOutletsRef = useRef<Branch[]>([]);
@@ -90,7 +99,9 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     lastKnownOutletsRef.current = fetchedOutlets as Branch[];
   }
 
-  const rawOutlets = (fetchedOutlets as Branch[]) ?? lastKnownOutletsRef.current;
+  const rawOutlets =
+    (fetchedOutlets as Branch[]) ??
+    (lastKnownOutletsRef.current.length > 0 || !isQueryError ? lastKnownOutletsRef.current : offlineOutlets);
   const isDemo = authStatus === "unauthenticated";
   const loading = isAuthenticated
     ? ((isQueryLoading || isQueryUninitialized) && rawOutlets.length === 0)

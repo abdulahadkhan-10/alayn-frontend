@@ -5,7 +5,7 @@ import PosTerminalComponent from "@/components/pos/PosTerminalComponent";
 
 export default function PosPage() {
   return (
-    <AuthGuard>
+    <AuthGuard allowOffline>
       <PosTerminalComponent />
     </AuthGuard>
   );

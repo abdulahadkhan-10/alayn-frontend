@@ -59,6 +59,24 @@ import { fetchTables, TableItem } from "@/lib/api";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { estimateBill, GstRegistrationType } from "@/lib/billing";
+import OfflineBadge from "./OfflineBadge";
+import { showToast } from "@/lib/toast";
+import {
+  offlineBillingExpired,
+  reportNetworkFailure,
+  startConnectivityMonitor,
+  useOfflineStatus,
+} from "@/lib/offline/offlineStatus";
+import { loadOfflinePack, saveOfflinePack, type OfflinePack } from "@/lib/offline/offlinePack";
+import { createOfflineOrder } from "@/lib/offline/offlineOrders";
+import { onSyncOutcome, startSyncWorker } from "@/lib/offline/syncQueue";
+import { registerPosServiceWorker } from "@/lib/offline/serviceWorker";
+
+/** No answer from the server at all (as opposed to the server saying no). */
+const isNetworkError = (err: unknown) => {
+  const status = (err as { status?: unknown } | null)?.status;
+  return status === "FETCH_ERROR" || status === "TIMEOUT_ERROR" || err instanceof TypeError;
+};
 
 export interface CartModifierItem {
   id?: string;
@@ -165,9 +183,31 @@ export default function PosTerminalComponent() {
   const isStaffRole = user?.role === "STAFF";
 
   const { activeBranch, setActiveBranch, branches } = useBranch();
+  const offlineStatus = useOfflineStatus();
+
+  // The menu, outlet and tables saved for offline billing. Only read back when the POS is reloaded with
+  // no internet: an open POS keeps what it loaded in memory.
+  const [offlinePack, setOfflinePack] = useState<OfflinePack | null>(null);
+  useEffect(() => {
+    startConnectivityMonitor();
+    startSyncWorker();
+    void registerPosServiceWorker();
+    void loadOfflinePack().then(setOfflinePack);
+    return onSyncOutcome((o) => {
+      if (o.synced > 0) {
+        showToast.success("Offline bills synced", `${o.synced} ${o.synced === 1 ? "bill" : "bills"} saved to the server.`);
+      }
+      if (o.rejected > 0) {
+        showToast.error("Some offline bills were refused", "Open the connection badge at the top of the POS to see them.");
+      }
+      o.warnings.forEach((w) => showToast.warning("Offline bill left open", w));
+    });
+  }, []);
+  const offlineOutletId = !offlineStatus.online && offlinePack ? offlinePack.outletId : null;
+
   const currentOutletId =
-    activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
-  const isAllOutletsSelected = !activeBranch || activeBranch.id === "all";
+    activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : offlineOutletId;
+  const isAllOutletsSelected = !currentOutletId;
 
   // List of specific outlets excluding "all"
   const specificOutlets = useMemo(() => {
@@ -190,6 +230,7 @@ export default function PosTerminalComponent() {
   }, [allEmployees, user?.id]);
 
   const [assignedTables, setAssignedTables] = useState<TableItem[]>([]);
+  const [outletTables, setOutletTables] = useState<TableItem[]>([]);
   const [selectedTableNo, setSelectedTableNo] = useState<string>("");
 
   useEffect(() => {
@@ -200,11 +241,19 @@ export default function PosTerminalComponent() {
         return;
       }
       const res = await fetchTables(currentOutletId);
-      if (res.ok && res.tables) {
+      // Offline: the outlet's tables as they were when the offline copy was saved
+      const tables =
+        res.ok && res.tables
+          ? res.tables
+          : offlinePack?.outletId === currentOutletId
+            ? (offlinePack.tables as TableItem[])
+            : null;
+      if (res.ok && res.tables) setOutletTables(res.tables);
+      if (tables) {
         if (isStaffRole) {
           const userId = user?.id;
           const empId = myEmployee?.id;
-          const assigned = res.tables.filter(
+          const assigned = tables.filter(
             (t) =>
               (t.assignedStaffId && (t.assignedStaffId === userId || t.assignedStaffId === empId)) ||
               ((t as any).staffId && ((t as any).staffId === userId || (t as any).staffId === empId))
@@ -217,12 +266,12 @@ export default function PosTerminalComponent() {
           }
         } else {
           // For Manager, Business Owner, Super Admin: allow selecting ANY table in the outlet
-          setAssignedTables(res.tables);
+          setAssignedTables(tables);
         }
       }
     }
     loadTables();
-  }, [currentOutletId, myEmployee?.id, user?.id, isStaffRole]);
+  }, [currentOutletId, myEmployee?.id, user?.id, isStaffRole, offlinePack]);
 
   // Filtering & Display States
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL");
@@ -251,6 +300,10 @@ export default function PosTerminalComponent() {
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
+    if (!offlineStatus.online) {
+      setCouponError("Coupons need an internet connection to be checked.");
+      return;
+    }
     setCouponError(null);
     try {
       const res = await validateCoupon({
@@ -308,12 +361,42 @@ export default function PosTerminalComponent() {
   }, [isAllOutletsSelected]);
 
   // Fetch API Queries
-  const { data: outletsData = [] } = useGetOutletsQuery();
-  const { data: categories = [] } = useGetCategoriesQuery();
-  const { data: menuItems = [], isLoading: isLoadingMenu } = useGetMenuItemsQuery({ isAvailable: true });
+  const { data: liveOutlets } = useGetOutletsQuery();
+  const { data: liveCategories } = useGetCategoriesQuery();
+  const { data: liveMenuItems, isLoading: isLoadingLiveMenu } = useGetMenuItemsQuery({ isAvailable: true });
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
 
+  // Reloaded with no internet: fall back to the saved offline copy until the server answers again
+  const savedPack = !liveMenuItems && !offlineStatus.online ? offlinePack : null;
+  const outletsData = useMemo(
+    () => (liveOutlets ?? savedPack?.outlets ?? []) as NonNullable<typeof liveOutlets>,
+    [liveOutlets, savedPack]
+  );
+  const categories = useMemo(
+    () => (liveCategories ?? savedPack?.categories ?? []) as NonNullable<typeof liveCategories>,
+    [liveCategories, savedPack]
+  );
+  const menuItems = useMemo(
+    () => (liveMenuItems ?? savedPack?.menuItems ?? []) as NonNullable<typeof liveMenuItems>,
+    [liveMenuItems, savedPack]
+  );
+  const isLoadingMenu = isLoadingLiveMenu && !savedPack;
+
   const currentOutlet = outletsData.find((o) => o.id === currentOutletId);
+
+  // Keep the offline copy fresh whenever the POS has everything from the server
+  useEffect(() => {
+    if (!liveMenuItems || !liveCategories || !liveOutlets || !currentOutletId || !user) return;
+    // Only written to storage: the screen keeps using the live data it already has
+    void saveOfflinePack({
+      user,
+      outletId: currentOutletId,
+      outlets: liveOutlets,
+      categories: liveCategories,
+      menuItems: liveMenuItems,
+      tables: outletTables,
+    });
+  }, [liveMenuItems, liveCategories, liveOutlets, currentOutletId, user, outletTables]);
 
   const kitchenCaps = useMemo(() => {
     const rawMode = (currentOutlet as any)?.kitchenMode || activeBranch?.kitchenMode;
@@ -523,6 +606,58 @@ export default function PosTerminalComponent() {
     return cart.reduce((acc, ci) => acc + ci.quantity, 0);
   }, [cart]);
 
+  // No internet: save the bill on this device, print as normal, and let the sync queue send it later
+  const placeOffline = async (flow: "KITCHEN" | "CHECKOUT", clientOrderId: string) => {
+    if (offlineBillingExpired(offlineStatus)) {
+      alert("This POS has been offline for 7 days. Connect to the internet to keep billing.");
+      return;
+    }
+    if (!currentOutlet) {
+      alert("This outlet's details aren't saved on this device yet. Open the POS once with internet to bill offline.");
+      return;
+    }
+    if (appliedCoupon) {
+      alert("Coupons need an internet connection. Remove the coupon to bill offline.");
+      return;
+    }
+    const finalOrderSource = selectedTableNo ? "TABLE" : "COUNTER";
+    try {
+      const { order, addedToOpenBill } = await createOfflineOrder({
+        clientOrderId,
+        outlet: currentOutlet as unknown as Parameters<typeof createOfflineOrder>[0]["outlet"],
+        cart,
+        source: finalOrderSource,
+        tableNo: finalOrderSource === "TABLE" ? selectedTableNo : undefined,
+        discount,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        placedByName: user?.name || "Staff",
+        payment: flow === "CHECKOUT" ? paymentMethod : undefined,
+      });
+      setCompletedOrder({ ...order, _flow: flow });
+      const printKot = flow === "KITCHEN" ? kitchenCaps.supportsKotPrint : kitchenCaps.supportsKotPrint && (autoPrintKOT || kitchenCaps.isKotOnly);
+      if (printKot) {
+        // Only this round goes on the kitchen ticket, even when it joins a table's open bill
+        dispatchHardwareAutoPrintKOT({ ...order, items: order.kotItems, orderItems: order.kotItems }, false, "80mm").catch((err: unknown) =>
+          console.warn("Offline KOT print:", err)
+        );
+      }
+      showToast.info(
+        "Saved offline",
+        addedToOpenBill
+          ? `Added to table ${selectedTableNo}'s bill. It will sync when the internet is back.`
+          : `Bill ${order.orderNumber} is saved on this device and will sync when the internet is back.`
+      );
+      setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      setIsCheckoutOpen(false);
+      setIsMobileCartOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not save the bill on this device.");
+    }
+  };
+
   // Send to Kitchen Handler — Directly dispatches order ticket to Kitchen (KDS)
   const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
@@ -559,7 +694,10 @@ export default function PosTerminalComponent() {
       discountAmount: discount,
       taxAmount: taxAmount,
       paymentMethod,
+      clientOrderId: crypto.randomUUID(),
     };
+
+    if (!offlineStatus.online) return placeOffline("KITCHEN", payload.clientOrderId!);
 
     try {
       const result = await createOrder(payload).unwrap();
@@ -578,6 +716,10 @@ export default function PosTerminalComponent() {
       setIsCheckoutOpen(false);
       setIsMobileCartOpen(false);
     } catch (err: any) {
+      if (isNetworkError(err)) {
+        reportNetworkFailure();
+        return placeOffline("KITCHEN", payload.clientOrderId!);
+      }
       console.error("Sending to kitchen failed:", err);
       alert(err?.data?.message || "Failed to send order to kitchen. Please try again.");
     }
@@ -635,7 +777,10 @@ export default function PosTerminalComponent() {
       couponCode: appliedCoupon?.code,
       couponId: appliedCoupon?.couponId,
       taxAmount: taxAmount,
+      clientOrderId: crypto.randomUUID(),
     };
+
+    if (!offlineStatus.online) return placeOffline("CHECKOUT", payload.clientOrderId!);
 
     try {
       const result = await createOrder(payload).unwrap();
@@ -651,6 +796,10 @@ export default function PosTerminalComponent() {
       setIsCheckoutOpen(false);
       setIsMobileCartOpen(false);
     } catch (err: any) {
+      if (isNetworkError(err)) {
+        reportNetworkFailure();
+        return placeOffline("CHECKOUT", payload.clientOrderId!);
+      }
       console.error("Order creation failed:", err);
       alert(err?.data?.message || "Failed to create order. Please try again.");
     }
@@ -966,6 +1115,7 @@ export default function PosTerminalComponent() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <OfflineBadge />
                 {!isAllOutletsSelected &&
                   (isStaffRole && assignedTables.length === 0 ? (
                     <div className="h-9 flex items-center gap-1.5 px-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-xs font-medium">

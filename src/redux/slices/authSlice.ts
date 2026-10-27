@@ -121,6 +121,20 @@ const authSlice = createSlice({
             state.verifyFailed = true;
         },
 
+        /**
+         * The POS was reopened with no internet: carry on as the person last signed in on this device
+         * (from the offline copy, at most 7 days old) so billing can continue. lastVerifiedAt stays null,
+         * so the guard keeps asking the server, and the real answer replaces this as soon as it arrives:
+         * a definite "no" signs them out as usual.
+         */
+        offlineSessionResumed: (state, action: PayloadAction<AuthUser>) => {
+            if (state.status !== "unknown") return;
+            state.status = "authenticated";
+            state.user = action.payload;
+            state.isAuthenticated = true;
+            state.endedReason = null;
+        },
+
         /** This tab ends the session (sign-out or confirmed expiry). Also announced to other tabs. */
         logout: {
             reducer: (state, action: PayloadAction<SessionEndReason>) => {
@@ -159,6 +173,6 @@ const authSlice = createSlice({
     },
 });
 
-export const { sessionVerified, setCredentials, sessionCheckFailed, logout, sessionEnded, sessionStale } = authSlice.actions;
+export const { sessionVerified, setCredentials, sessionCheckFailed, offlineSessionResumed, logout, sessionEnded, sessionStale } = authSlice.actions;
 
 export default authSlice.reducer;
