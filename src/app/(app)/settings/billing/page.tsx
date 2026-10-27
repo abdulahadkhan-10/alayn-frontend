@@ -24,6 +24,7 @@ import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import SubscriptionRenewModal from "@/components/subscription/SubscriptionRenewModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { formatRupees, MONTHLY_FEE, withGst } from "@/lib/pricing";
 
 export default function BillingPage() {
   const { data: billingData, isLoading: isBillingLoading, refetch: refetchBilling } = useGetBillingHistoryQuery();
@@ -35,7 +36,7 @@ export default function BillingPage() {
   const outlets = Array.isArray(outletsData) ? outletsData : (outletsData as any)?.data || [];
 
   const isPromoPlan = (planCode?: string) => planCode?.startsWith("COUPON_");
-  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * 2358.82;
+  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * withGst(MONTHLY_FEE);
   const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && isPromoPlan(o.subscription?.planCode)).length;
 
   return (
@@ -99,7 +100,7 @@ export default function BillingPage() {
               <p className="mt-2 text-2xl font-extrabold text-zinc-900 font-mono">
                 ₹{totalMonthlySpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400 font-medium">₹1,999 + 18% GST per branch / mo</p>
+              <p className="mt-1 text-[11px] text-zinc-400 font-medium">₹3,000 + 18% GST per branch / mo (₹26,000 + GST yearly)</p>
             </div>
 
             <div className="rounded-3xl bg-white p-6 border border-gray-100 shadow-xs">
@@ -196,7 +197,7 @@ export default function BillingPage() {
                               {sub?.planName || "Free VIP License"}
                             </span>
                           ) : (
-                            "₹2,358.82 / mo"
+                            `${formatRupees(withGst(MONTHLY_FEE))} / mo`
                           )}
                         </span>
                         <button

@@ -94,7 +94,7 @@ export default function CreateOutletPage() {
   const [paymentError, setPaymentError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
   const projectedEnd = calculateProjectedEndDate(months);
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
   const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {

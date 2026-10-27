@@ -173,7 +173,7 @@ export default function OutletsLedgerPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white px-4 py-2.5 text-xs font-bold transition-all shadow-sm shrink-0 cursor-pointer hover:-translate-y-[0.5px]"
                 >
                   <CreditCard className="h-3.5 w-3.5" />
-                  Pay ₹2,358.82 & Unlock Branch
+                  Pay & Unlock Branch
                 </button>
               </div>
             );
@@ -260,7 +260,7 @@ export default function OutletsLedgerPage() {
                               </div>
                               <div>
                                 <p className="font-bold text-gray-900 text-xs sm:text-sm">{outlet.name}</p>
-                                <span className="text-[10px] text-gray-400 font-medium">₹1,999/mo Pro Tier</span>
+                                <span className="text-[10px] text-gray-400 font-medium">₹3,000/mo or ₹26,000/yr</span>
                               </div>
                             </div>
                           </td>

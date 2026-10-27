@@ -2,12 +2,11 @@
 
 import React from "react";
 import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck, Tag } from "lucide-react";
+import { basePriceFor, GST_PERCENT, MAX_MONTHS, MONTHLY_FEE, YEARLY_FEE, YEARLY_SAVING } from "@/lib/pricing";
 
 interface SubscriptionMonthSelectorProps {
   months: number;
   onChange: (months: number) => void;
-  baseMonthlyFee?: number; // default 1999
-  gstRatePercent?: number; // default 18
   currentPeriodEnd?: string | null;
   disabled?: boolean;
   coupon?: {
@@ -18,20 +17,20 @@ interface SubscriptionMonthSelectorProps {
 }
 
 export const PRESET_OPTIONS = [
-  { months: 1, label: "1 Month", subtitle: "Monthly Billing" },
-  { months: 3, label: "3 Months", subtitle: "Quarterly", badge: "Popular" },
-  { months: 6, label: "6 Months", subtitle: "Half-Yearly" },
-  { months: 12, label: "12 Months", subtitle: "Annual", badge: "Best Value" },
+  { months: 1, label: "1 Month", subtitle: `₹${MONTHLY_FEE.toLocaleString("en-IN")} + GST` },
+  { months: 3, label: "3 Months", subtitle: `₹${(MONTHLY_FEE * 3).toLocaleString("en-IN")} + GST` },
+  { months: 6, label: "6 Months", subtitle: `₹${(MONTHLY_FEE * 6).toLocaleString("en-IN")} + GST` },
+  { months: 12, label: "1 Year", subtitle: `₹${YEARLY_FEE.toLocaleString("en-IN")} + GST`, badge: `Save ₹${YEARLY_SAVING.toLocaleString("en-IN")}` },
 ];
 
+/** Mirrors what the server charges (it decides; this is for showing the price) */
 export function calculateSubscriptionPricing(
   months: number,
-  baseMonthlyFee: number = 1999,
-  gstRatePercent: number = 18,
   coupon?: { discountType: string; discountValue: number } | null
 ) {
-  const safeMonths = Math.max(1, Math.min(36, months || 1));
-  const rawBaseTotal = safeMonths * baseMonthlyFee;
+  const gstRatePercent = GST_PERCENT;
+  const safeMonths = Math.max(1, Math.min(MAX_MONTHS, months || 1));
+  const rawBaseTotal = basePriceFor(safeMonths);
   let discountRupees = 0;
   if (coupon) {
     if (coupon.discountType === "PERCENTAGE") {
@@ -57,6 +56,17 @@ export function calculateSubscriptionPricing(
   };
 }
 
+/** "1 month", "1 year", "1 year + 2 months" */
+function durationLabel(months: number) {
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  const parts = [
+    years ? `${years} ${years === 1 ? "year" : "years"}` : "",
+    rest ? `${rest} ${rest === 1 ? "month" : "months"}` : "",
+  ].filter(Boolean);
+  return parts.join(" + ");
+}
+
 export function addCalendarMonths(startDate: Date, months: number): Date {
   const result = new Date(startDate.getTime());
   const originalDate = result.getDate();
@@ -80,13 +90,11 @@ export function calculateProjectedEndDate(months: number, currentPeriodEnd?: str
 export default function SubscriptionMonthSelector({
   months,
   onChange,
-  baseMonthlyFee = 1999,
-  gstRatePercent = 18,
   currentPeriodEnd,
   disabled = false,
   coupon = null,
 }: SubscriptionMonthSelectorProps) {
-  const pricing = calculateSubscriptionPricing(months, baseMonthlyFee, gstRatePercent, coupon);
+  const pricing = calculateSubscriptionPricing(months, coupon);
   const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd);
 
   const handlePresetSelect = (m: number) => {
@@ -95,7 +103,7 @@ export default function SubscriptionMonthSelector({
   };
 
   const handleIncrement = () => {
-    if (disabled || months >= 36) return;
+    if (disabled || months >= MAX_MONTHS) return;
     onChange(months + 1);
   };
 
@@ -125,7 +133,7 @@ export default function SubscriptionMonthSelector({
           Choose Subscription Duration
         </label>
         <span className="text-[11px] font-semibold text-zinc-500">
-          ₹{baseMonthlyFee.toLocaleString("en-IN")}/mo + GST
+          ₹{MONTHLY_FEE.toLocaleString("en-IN")}/mo or ₹{YEARLY_FEE.toLocaleString("en-IN")}/yr + GST
         </span>
       </div>
 
@@ -190,7 +198,7 @@ export default function SubscriptionMonthSelector({
           </span>
           <button
             type="button"
-            disabled={disabled || months >= 36}
+            disabled={disabled || months >= MAX_MONTHS}
             onClick={handleIncrement}
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-zinc-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
             aria-label="Increase months"
@@ -218,7 +226,7 @@ export default function SubscriptionMonthSelector({
       <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-red-50/20 p-4 border border-slate-200/80 space-y-2">
         <div className="flex justify-between text-xs text-zinc-600 font-medium">
           <span>
-            Branch Operational Fee ({months} {months === 1 ? "month" : "months"})
+            Branch Operational Fee ({durationLabel(months)})
           </span>
           <span>₹{pricing.rawBaseTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
@@ -232,7 +240,7 @@ export default function SubscriptionMonthSelector({
           </div>
         )}
         <div className="flex justify-between text-xs text-zinc-600 font-medium">
-          <span>GST (18%)</span>
+          <span>GST ({GST_PERCENT}%)</span>
           <span>₹{pricing.gstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
         <div className="border-t border-slate-200/80 pt-2.5 flex justify-between items-baseline">
@@ -247,6 +255,11 @@ export default function SubscriptionMonthSelector({
             <span className="text-[10px] text-zinc-500 block font-medium">INR</span>
           </div>
         </div>
+        {months >= 12 && (
+          <p className="pt-1 text-[11px] text-zinc-500">
+            Years are charged at ₹{YEARLY_FEE.toLocaleString("en-IN")} + GST each and are non-refundable.
+          </p>
+        )}
       </div>
     </div>
   );

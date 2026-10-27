@@ -54,7 +54,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
   const branchToPay = targetBranch || (activeBranch?.id !== "all" ? activeBranch : null) || branches.find(b => b.id !== "all") || null;
 
   const hasOutlets = branches.filter(b => b.id !== "all").length > 0;
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
 
   const handlePayNow = async () => {
     if (!branchToPay) return;
