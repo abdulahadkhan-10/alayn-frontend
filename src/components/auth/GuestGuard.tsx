@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/store/hooks";
 import { verifySession } from "@/redux/slices/authSlice";
-import { readNextFromLocation, roleHome } from "@/lib/authRedirect";
+import { readNextFromLocation, roleAllowedNext } from "@/lib/authRedirect";
 import AuthLoader from "@/components/auth/AuthLoader";
 
 interface GuestGuardProps {
@@ -33,7 +33,7 @@ export default function GuestGuard({ children }: GuestGuardProps) {
   // Already signed in (found just now, or signed in here, or in another tab): move on
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(readNextFromLocation() ?? roleHome(role));
+      router.replace(roleAllowedNext(role, readNextFromLocation()));
     }
   }, [status, role, router]);
 

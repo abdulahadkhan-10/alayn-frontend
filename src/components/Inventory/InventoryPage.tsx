@@ -35,6 +35,7 @@ import InventoryItemTable from "./InventoryItemTable";
 import AddItemModal       from "./AddItemModal";
 import AdjustStockModal   from "./AdjustStockModal";
 import SmartPOModal       from "./SmartPOModal";
+import CompareSuppliersModal from "./CompareSuppliersModal";
 import { TModal }         from "@/components/ui/TModal";
 
 export default function InventoryPage() {
@@ -54,6 +55,7 @@ export default function InventoryPage() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<any | null>(null);
+  const [compareTarget, setCompareTarget] = useState<InventoryItemApi | null>(null);
   const [showSmartPO, setShowSmartPO] = useState(false);
 
   const items: InventoryItemApi[] = useMemo(() => {
@@ -217,6 +219,7 @@ export default function InventoryPage() {
             <InventoryItemTable
               items={filteredItems as any}
               onAdjust={setAdjustTarget}
+              onCompareSuppliers={(item) => setCompareTarget(item as any)}
               canManage={true}
               isAllOutlets={activeBranch?.id === "all"}
               onClearFilters={() => {
@@ -228,6 +231,17 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      {/* Compare Suppliers Modal */}
+      <CompareSuppliersModal
+        isOpen={!!compareTarget}
+        onClose={() => setCompareTarget(null)}
+        item={compareTarget}
+        onSelectSupplierForPO={() => {
+          setCompareTarget(null);
+          setShowSmartPO(true);
+        }}
+      />
 
       {/* Add Inventory Item Modal */}
       <TModal open={showAdd && !!activeBranch} onClose={() => setShowAdd(false)} className={OVERLAY_CLASS}>

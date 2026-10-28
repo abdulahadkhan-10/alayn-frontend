@@ -67,12 +67,15 @@ const DEMO_BRANCHES: Branch[] = [
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const authStatus = useAppSelector((state) => state.auth.status);
+  const user = useAppSelector((state) => state.auth.user);
   const isAuthenticated = authStatus === "authenticated";
+  const isSupplier = user?.role === "SUPPLIER";
   // Placeholder branches are for visitors who are known to be signed out. While the server is still
   // confirming the session ("unknown") there are simply no branches yet, never demo ones.
   const isSessionPending = authStatus === "unknown";
 
   // Enterprise Redux RTK Query Store Cache Hook
+  // Suppliers have their own standalone portal and do not own restaurant outlets
   const { 
     data: fetchedOutlets, 
     isLoading: isQueryLoading, 
@@ -80,7 +83,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     isError: isQueryError,
     refetch 
   } = useGetOutletsQuery(undefined, {
-    skip: !isAuthenticated,
+    skip: !isAuthenticated || isSupplier,
   });
 
   // Outlets saved for offline billing: used only when the server can't be reached on this page load,
@@ -93,34 +96,42 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const [activeBranchState, setActiveBranchState] = useState<Branch | null>(null);
   const lastKnownOutletsRef = useRef<Branch[]>([]);
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isSupplier) {
     lastKnownOutletsRef.current = [];
   } else if (fetchedOutlets !== undefined) {
     lastKnownOutletsRef.current = fetchedOutlets as Branch[];
   }
 
-  const rawOutlets =
-    (fetchedOutlets as Branch[]) ??
-    (lastKnownOutletsRef.current.length > 0 || !isQueryError ? lastKnownOutletsRef.current : offlineOutlets);
+  const rawOutlets = isSupplier
+    ? []
+    : (fetchedOutlets as Branch[]) ??
+      (lastKnownOutletsRef.current.length > 0 || !isQueryError ? lastKnownOutletsRef.current : offlineOutlets);
   const isDemo = authStatus === "unauthenticated";
-  const loading = isAuthenticated
+  const loading = isSupplier
+    ? false
+    : isAuthenticated
     ? ((isQueryLoading || isQueryUninitialized) && rawOutlets.length === 0)
     : isSessionPending;
 
-  const branches: Branch[] = isDemo
+  const branches: Branch[] = isSupplier
+    ? []
+    : isDemo
     ? DEMO_BRANCHES
     : rawOutlets.length > 1
     ? [ALL_OUTLETS_BRANCH, ...rawOutlets]
     : rawOutlets;
 
-  const activeBranches: Branch[] = isDemo
+  const activeBranches: Branch[] = isSupplier
+    ? []
+    : isDemo
     ? DEMO_BRANCHES
     : rawOutlets.filter(isBranchSubscribed);
 
-  const hasAnyActiveBranch: boolean = isDemo ? true : activeBranches.length > 0;
+  const hasAnyActiveBranch: boolean = isSupplier ? true : isDemo ? true : activeBranches.length > 0;
 
   // Derive activeBranch synchronously so there is never a 1-frame null gap after outlets load
   const activeBranch: Branch | null = useMemo(() => {
+    if (isSupplier) return null;
     if (isDemo) return activeBranchState || DEMO_BRANCHES[0];
     if (branches.length === 0) return loading ? activeBranchState : null;
     if (activeBranchState && branches.some((b) => b.id === activeBranchState.id)) {
@@ -133,9 +144,11 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
       return matched;
     }
     return activeBranches[0] || matched || branches[0] || null;
-  }, [isDemo, activeBranchState, branches, activeBranches, hasAnyActiveBranch, loading]);
+  }, [isSupplier, isDemo, activeBranchState, branches, activeBranches, hasAnyActiveBranch, loading]);
 
-  const hasActiveSubscription: boolean = isDemo
+  const hasActiveSubscription: boolean = isSupplier
+    ? true
+    : isDemo
     ? true
     : loading
     ? true
@@ -146,6 +159,11 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isDemo) {
       setActiveBranchState(DEMO_BRANCHES[0]);
+    } else if (isSupplier) {
+      setActiveBranchState(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("alayn_active_branch_id");
+      }
     } else if (activeBranch) {
       setActiveBranchState(activeBranch);
       if (typeof window !== "undefined") {
@@ -154,7 +172,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     } else if (!loading) {
       setActiveBranchState(null);
     }
-  }, [activeBranch, isDemo, loading]);
+  }, [activeBranch, isDemo, isSupplier, loading]);
 
   const dispatch = useAppDispatch();
 

@@ -41,3 +41,36 @@ export function readNextFromLocation(): string | null {
     return null;
   }
 }
+
+/**
+ * Ensures the target destination matches the authenticated user's role permissions.
+ * Solves issue where leftover ?next=/supplier sends restaurant owners to the supplier portal,
+ * or where suppliers are accidentally routed to the restaurant dashboard.
+ */
+export function roleAllowedNext(role?: string | null, rawNext?: string | null): string {
+  const home = roleHome(role);
+  const next = safeNextPath(rawNext);
+  if (!next) return home;
+
+  const path = next.split(/[?#]/)[0];
+
+  // Dedicated supplier portal enforcement
+  if (role === "SUPPLIER") {
+    return path === "/supplier" || path.startsWith("/supplier/") ? next : "/supplier";
+  }
+
+  // Non-suppliers must not access the supplier portal
+  if (path === "/supplier" || path.startsWith("/supplier/")) {
+    return home;
+  }
+
+  // Dedicated POS and Kitchen staff role boundaries
+  if (role === "STAFF" && !path.startsWith("/pos")) {
+    return "/pos";
+  }
+  if (role === "KITCHEN" && !path.startsWith("/kitchen")) {
+    return "/kitchen";
+  }
+
+  return next;
+}
