@@ -46,19 +46,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const isSupplier = user?.role === "SUPPLIER";
 
-  // Suppliers can only access the supplier portal; redirect them if they try to access other dashboard pages
+  // Suppliers have their own standalone app (suppliers.alaynai.com); redirect immediately if they land in the restaurant app
   useEffect(() => {
-    if (
-      mounted &&
-      isSupplier &&
-      pathname !== "/supplier" &&
-      !pathname?.startsWith("/supplier/") &&
-      pathname !== "/profile" &&
-      !pathname?.startsWith("/profile/")
-    ) {
-      router.replace("/supplier");
+    if (mounted && isSupplier) {
+      const supplierUrl = process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL
+        ? `${process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL}/orders`
+        : "https://suppliers.alaynai.com/orders";
+      window.location.href = supplierUrl;
     }
-  }, [mounted, isSupplier, pathname, router]);
+  }, [mounted, isSupplier]);
 
   const handleToggleCollapse = useCallback(() => {
     setIsAnimating(true);

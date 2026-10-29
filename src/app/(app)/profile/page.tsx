@@ -81,6 +81,15 @@ export default function ProfilePage() {
   const [pwErrorMsg, setPwErrorMsg] = useState<string | null>(null);
 
   const isSupplier = user?.role === "SUPPLIER";
+
+  useEffect(() => {
+    if (isSupplier) {
+      const supplierUrl = process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL
+        ? `${process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL}/profile`
+        : "https://suppliers.alaynai.com/profile";
+      window.location.href = supplierUrl;
+    }
+  }, [isSupplier]);
   const { data: supplierProfile, isLoading: isSupplierLoading } = useGetMyProfileQuery(undefined, {
     skip: !isSupplier,
   });

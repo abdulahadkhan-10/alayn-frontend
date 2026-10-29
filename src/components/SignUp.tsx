@@ -1,7 +1,7 @@
 "use client";
 
 import { useShake } from "@/lib/useShake";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -124,6 +124,13 @@ export default function SignupComponent() {
     const [submitError, setSubmitError] = useState("");
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
+    useEffect(() => {
+        if (roleParam === "supplier") {
+            const supplierUrl = process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL || "https://suppliers.alaynai.com";
+            window.location.href = `${supplierUrl}/signup`;
+        }
+    }, [roleParam]);
+
     const [register, { isLoading: isRegisteringOwner }] = useRegisterMutation();
     const [registerSupplier, { isLoading: isRegisteringSupplier }] = useRegisterSupplierMutation();
     const isLoading = isRegisteringOwner || isRegisteringSupplier;
@@ -239,7 +246,7 @@ export default function SignupComponent() {
 
                 setSubmitSuccess(true);
                 setTimeout(() => {
-                    window.location.href = "/supplier";
+                    window.location.href = process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL || "/supplier";
                 }, 1200);
             } else {
                 await register({
@@ -335,7 +342,8 @@ export default function SignupComponent() {
                         <button
                             type="button"
                             onClick={() => {
-                                setAccountType("SUPPLIER");
+                                window.location.href = `${process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL || "https://suppliers.alaynai.com"}/signup`;
+                                return;
                                 setFieldErrors({});
                                 setSubmitError("");
                             }}
@@ -344,7 +352,7 @@ export default function SignupComponent() {
                             }`}
                         >
                             <Truck className="h-3.5 w-3.5" />
-                            Supplier Partner
+                            Supplier Partner ↗
                         </button>
                     </div>
 
