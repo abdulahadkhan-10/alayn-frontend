@@ -56,7 +56,12 @@ export function roleAllowedNext(role?: string | null, rawNext?: string | null): 
 
   // Dedicated supplier portal enforcement
   if (role === "SUPPLIER") {
-    return path === "/supplier" || path.startsWith("/supplier/") ? next : "/supplier";
+    return path === "/supplier" ||
+      path.startsWith("/supplier/") ||
+      path === "/profile" ||
+      path.startsWith("/profile/")
+      ? next
+      : "/supplier";
   }
 
   // Non-suppliers must not access the supplier portal

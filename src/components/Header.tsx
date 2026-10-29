@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home, LogOut } from "lucide-react";
+import { Bell, Menu, MapPin, Plus, User, Settings, ChevronDown, Home, LogOut, Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAppSelector, useAppDispatch } from "@/redux/store/hooks";
@@ -83,21 +83,38 @@ export default function Header({ onMenuClick }: HeaderProps) {
         {/* Left: Logo + Outlet Selector */}
         <div className="flex flex-1 items-center gap-x-4 md:gap-x-6">
           <div className={`flex items-center justify-start shrink-0 ${user?.role === "SUPPLIER" ? "" : "lg:hidden"}`}>
-            <Image
-              src="/image1.png"
-              alt="ALAYN Logo"
-              width={120}
-              height={40}
-              style={{ width: "auto", height: "auto" }}
-              className="max-h-8 sm:max-h-10 w-auto object-contain"
-              priority
-            />
+            {user?.role === "SUPPLIER" ? (
+              <Link href="/supplier" className="inline-flex items-center">
+                <Image
+                  src="/image1.png"
+                  alt="ALAYN Logo"
+                  width={120}
+                  height={40}
+                  style={{ width: "auto", height: "auto" }}
+                  className="max-h-8 sm:max-h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+                  priority
+                />
+              </Link>
+            ) : (
+              <Image
+                src="/image1.png"
+                alt="ALAYN Logo"
+                width={120}
+                height={40}
+                style={{ width: "auto", height: "auto" }}
+                className="max-h-8 sm:max-h-10 w-auto object-contain"
+                priority
+              />
+            )}
           </div>
 
           {user?.role === "SUPPLIER" && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+            <Link
+              href="/supplier"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+            >
               Supplier Portal
-            </span>
+            </Link>
           )}
 
           {user?.role !== "SUPPLIER" && (
@@ -172,14 +189,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   </span>
                 </div>
 
-                <Link
-                  href="/"
-                  onClick={() => setProfileDropdownOpen(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                >
-                  <Home className="h-4 w-4 text-gray-400" />
-                  Homepage
-                </Link>
+                {user?.role === "SUPPLIER" ? (
+                  <Link
+                    href="/supplier"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                  >
+                    <Package className="h-4 w-4 text-gray-400" />
+                    Supplier Portal
+                  </Link>
+                ) : (
+                  <Link
+                    href="/"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                  >
+                    <Home className="h-4 w-4 text-gray-400" />
+                    Homepage
+                  </Link>
+                )}
 
                 <Link
                   href="/profile"
@@ -190,14 +218,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   Profile
                 </Link>
 
-                <Link
-                  href="/settings"
-                  onClick={() => setProfileDropdownOpen(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                >
-                  <Settings className="h-4 w-4 text-gray-400" />
-                  Settings
-                </Link>
+                {user?.role !== "SUPPLIER" && (
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-gray-400" />
+                    Settings
+                  </Link>
+                )}
 
                 <div className="my-1 border-t border-gray-100" />
 

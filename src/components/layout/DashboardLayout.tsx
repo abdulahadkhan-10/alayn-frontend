@@ -48,7 +48,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Suppliers can only access the supplier portal; redirect them if they try to access other dashboard pages
   useEffect(() => {
-    if (mounted && isSupplier && pathname !== "/supplier") {
+    if (
+      mounted &&
+      isSupplier &&
+      pathname !== "/supplier" &&
+      !pathname?.startsWith("/supplier/") &&
+      pathname !== "/profile" &&
+      !pathname?.startsWith("/profile/")
+    ) {
       router.replace("/supplier");
     }
   }, [mounted, isSupplier, pathname, router]);
@@ -78,6 +85,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const isUnrestrictedRoute = 
     isSupplier ||
     pathname === "/supplier" ||
+    pathname?.startsWith("/supplier/") ||
+    pathname === "/profile" ||
+    pathname?.startsWith("/profile/") ||
     pathname === "/outlets" || 
     pathname?.startsWith("/outlets/create") || 
     pathname === "/settings/billing" || 
