@@ -13,7 +13,7 @@ interface Props {
   onClearFilters?: () => void;
 }
 
-export default function InventoryItemTable({ items, onAdjust, canManage, isAllOutlets, onClearFilters }: Props) {
+export default function InventoryItemTable({ items, onAdjust, onCompareSuppliers, canManage, isAllOutlets, onClearFilters }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 

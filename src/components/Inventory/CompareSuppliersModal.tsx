@@ -81,10 +81,9 @@ export default function CompareSuppliersModal({
     <TModal
       open={isOpen}
       onClose={onClose}
-      title=""
-      size="2xl"
+      className="bg-black/40 backdrop-blur-xs p-4 overflow-y-auto"
     >
-      <div className="flex flex-col gap-5 p-2 sm:p-4 text-zinc-900">
+      <div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl border border-zinc-200 flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 text-zinc-900">
         
         {/* Header with Item Context */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-200 pb-4">

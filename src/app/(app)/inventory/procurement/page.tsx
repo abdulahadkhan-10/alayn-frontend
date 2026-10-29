@@ -47,6 +47,7 @@ import {
   LayoutGrid,
   List,
   ShoppingCart,
+  Sparkles,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
@@ -1013,8 +1014,8 @@ export default function ProcurementPage() {
           <SupplierMarketplaceSection
             inventoryItems={items as any}
             onOrderPO={(supplierId) => {
-              setSelectedSupplierId(supplierId);
-              setShowCreatePOModal(true);
+              setPrefilledSupplierId(supplierId);
+              setShowCreateCustomPOModal(true);
             }}
           />
         )}
