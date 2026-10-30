@@ -1,10 +1,36 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
 import { signupHref, type Cycle } from "@/lib/planIntent";
+
+// The billing period is shared with the closing buttons further down the page, so they sign up
+// for the same period the visitor picked here
+let sharedCycle: Cycle = "yearly";
+const cycleListeners = new Set<() => void>();
+const setSharedCycle = (next: Cycle) => {
+  sharedCycle = next;
+  cycleListeners.forEach((listener) => listener());
+};
+const subscribeCycle = (listener: () => void) => {
+  cycleListeners.add(listener);
+  return () => {
+    cycleListeners.delete(listener);
+  };
+};
+const useCycle = () => useSyncExternalStore(subscribeCycle, () => sharedCycle, () => "yearly" as Cycle);
+
+/** A signup link for a plan that carries whichever billing period is selected on the page */
+export function PlanSignupLink({ plan, className, children }: { plan: PlanCode; className?: string; children: React.ReactNode }) {
+  const cycle = useCycle();
+  return (
+    <Link href={signupHref(plan, cycle)} className={className}>
+      {children}
+    </Link>
+  );
+}
 const CYCLES: Cycle[] = ["monthly", "yearly"];
 
 // Basic: what runs service. Plain lines.
@@ -28,7 +54,7 @@ const PRO_POINTS: { lead: string; text: string; soon?: boolean }[] = [
 
 function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode; cycle: Cycle; dark?: boolean; animated?: boolean }) {
   const amount = cycle === "monthly" ? PLANS[plan].monthly : PLANS[plan].yearly;
-  const subtextTone = dark ? "text-[#C9D3E5]" : "text-[var(--muted)]";
+  const subtextTone = dark ? "text-[var(--muted-on-dark)]" : "text-[var(--muted)]";
   return (
     // The key replays the entrance whenever the user switches the billing period
     <div key={`${plan}-${cycle}`} className={animated ? "pricing-figure" : undefined}>
@@ -54,7 +80,7 @@ function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode
 }
 
 export default function PricingPlans() {
-  const [cycle, setCycle] = useState<Cycle>("yearly");
+  const cycle = useCycle();
   const [hasToggled, setHasToggled] = useState(false);
   const radioRefs = useRef<Record<Cycle, HTMLButtonElement | null>>({
     monthly: null,
@@ -65,7 +91,7 @@ export default function PricingPlans() {
   const selectCycle = (next: Cycle, focusTarget = false) => {
     if (next !== cycle) {
       setHasToggled(true);
-      setCycle(next);
+      setSharedCycle(next);
     }
     if (focusTarget) {
       radioRefs.current[next]?.focus();
@@ -129,15 +155,57 @@ export default function PricingPlans() {
           );
         })}
       </div>
-      {/* Phones see Pro first; this gets the budget-minded owner to Basic in one tap */}
+      <p className="sr-only" aria-live="polite">
+        {hasToggled
+          ? `${cycle === "monthly" ? "Monthly" : "Yearly"} prices: Alayn Pro ${formatRupees(cycle === "monthly" ? PLANS.ALAYN_PRO.monthly : PLANS.ALAYN_PRO.yearly)}, Alayn Basic ${formatRupees(cycle === "monthly" ? PLANS.ALAYN_BASIC.monthly : PLANS.ALAYN_BASIC.yearly)}, plus GST.`
+          : ""}
+      </p>
+      {/* Pro comes first; this gets the budget-minded owner on a phone to Basic in one tap */}
       <p className="mt-4 text-sm text-[var(--muted)] lg:hidden">
         Just billing, kitchen and stock?{" "}
-        <a href="#plan-basic" className="font-semibold text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4">
+        <a href="#plan-basic" className="inline-block py-2 font-semibold text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]">
           See Alayn Basic
         </a>
       </p>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.12fr] lg:items-stretch">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1.12fr_1fr] lg:items-stretch">
+        {/* Pro: the navy of the logo and the hero's serif voice. First everywhere, so nobody reads all of Basic before seeing it
+            and keyboard order matches what's on screen. */}
+        <article className="flex flex-col rounded-2xl bg-[var(--espresso)] p-7 text-white shadow-[0_4px_12px_rgba(27,42,74,0.16),0_28px_56px_-24px_rgba(27,42,74,0.65)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:p-9">
+          <div className="lg:min-h-[6.25rem]">
+            <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_PRO.name}</h3>
+            <p className="mt-2.5 max-w-md font-[family-name:var(--font-playfair)] text-[1.65rem] font-bold leading-[1.15] tracking-[-0.015em] text-balance sm:text-[1.9rem]">
+              For outlets that run a team, not just a counter.
+            </p>
+          </div>
+          <div className="mt-7">
+            <Price plan="ALAYN_PRO" cycle={cycle} dark animated={hasToggled} />
+          </div>
+          <Link
+            href={signupHref("ALAYN_PRO", cycle)}
+            className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_-10px_rgba(8,14,28,0.8)] transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            Start with Pro
+          </Link>
+          <ul className="mt-7 space-y-4 border-t border-white/15 pt-7 text-[15px] leading-relaxed">
+            {PRO_POINTS.map((p) => (
+              <li key={p.lead} className="flex gap-3">
+                <Check className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--amber-on-dark)]" aria-hidden="true" />
+                <span className="text-[var(--muted-on-dark)]">
+                  <strong className="font-semibold text-white">{p.lead}:</strong> {p.text}
+                  {p.soon && <SoonTag dark />}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-auto border-t border-white/15 pt-5 text-sm leading-relaxed text-[var(--muted-on-dark)]">
+            Want both Swiggy and Zomato? Add the second one for{" "}
+            <strong className="whitespace-nowrap font-semibold text-white tabular-nums">
+              {formatRupees(addOn)} / {cycle === "monthly" ? "month" : "year"} + GST
+            </strong>
+            .
+          </p>
+        </article>
         {/* Basic: plain paper, deliberately quiet — border elevation only, no ghost-card shadow */}
         <article id="plan-basic" className="flex scroll-mt-28 flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-7 text-[var(--espresso)] sm:p-9">
           <div className="lg:min-h-[6.25rem]">
@@ -171,42 +239,6 @@ export default function PricingPlans() {
           </p>
         </article>
 
-        {/* Pro: the navy of the logo and the hero's serif voice. First on phones, so nobody reads all of Basic before seeing it. */}
-        <article className="order-first flex flex-col rounded-2xl bg-[var(--espresso)] p-7 text-white shadow-[0_4px_12px_rgba(27,42,74,0.16),0_28px_56px_-24px_rgba(27,42,74,0.65)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:p-9 lg:order-none">
-          <div className="lg:min-h-[6.25rem]">
-            <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_PRO.name}</h3>
-            <p className="mt-2.5 max-w-md font-[family-name:var(--font-playfair)] text-[1.65rem] font-bold leading-[1.15] tracking-[-0.015em] text-balance sm:text-[1.9rem]">
-              For outlets that run a team, not just a counter.
-            </p>
-          </div>
-          <div className="mt-7">
-            <Price plan="ALAYN_PRO" cycle={cycle} dark animated={hasToggled} />
-          </div>
-          <Link
-            href={signupHref("ALAYN_PRO", cycle)}
-            className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_-10px_rgba(8,14,28,0.8)] transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            Start with Pro
-          </Link>
-          <ul className="mt-7 space-y-4 border-t border-white/15 pt-7 text-[15px] leading-relaxed">
-            {PRO_POINTS.map((p) => (
-              <li key={p.lead} className="flex gap-3">
-                <Check className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--amber-on-dark)]" aria-hidden="true" />
-                <span className="text-[#C9D3E5]">
-                  <strong className="font-semibold text-white">{p.lead}:</strong> {p.text}
-                  {p.soon && <SoonTag dark />}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-auto border-t border-white/15 pt-5 text-sm leading-relaxed text-[#C9D3E5]">
-            Want both Swiggy and Zomato? Add the second one for{" "}
-            <strong className="whitespace-nowrap font-semibold text-white tabular-nums">
-              {formatRupees(addOn)} / {cycle === "monthly" ? "month" : "year"} + GST
-            </strong>
-            .
-          </p>
-        </article>
       </div>
     </section>
   );
@@ -216,7 +248,7 @@ export function SoonTag({ dark = false }: { dark?: boolean }) {
   return (
     <span
       className={`ml-2 inline-block whitespace-nowrap rounded-full px-2 py-0.5 align-[1px] text-[11px] font-semibold ${
-        dark ? "bg-white/10 text-[#E2E8F3] ring-1 ring-white/15" : "bg-[var(--cream-light)] text-[var(--muted)] ring-1 ring-[var(--border-warm)]"
+        dark ? "bg-white/10 text-[var(--chip-on-dark)] ring-1 ring-white/15" : "bg-[var(--cream-light)] text-[var(--muted)] ring-1 ring-[var(--border-warm)]"
       }`}
     >
       Coming soon

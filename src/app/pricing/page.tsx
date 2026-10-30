@@ -4,8 +4,7 @@ import Link from "next/link";
 import { Check, Minus } from "lucide-react";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
-import PricingPlans, { SoonTag } from "@/components/pricing/PricingPlans";
-import { signupHref } from "@/lib/planIntent";
+import PricingPlans, { PlanSignupLink, SoonTag } from "@/components/pricing/PricingPlans";
 import { BASIC_AI_QUESTIONS, PRO_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 const siteUrl = "https://alaynai.com";
@@ -163,9 +162,15 @@ export default function PricingPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         <div className="max-w-3xl">
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             Run service. Or run the team too.
@@ -295,24 +300,24 @@ export default function PricingPage() {
           <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
             <span className="font-[family-name:var(--font-playfair)] font-bold">Start on the plan your outlet needs today.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[#C9D3E5]">
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
             Move from Basic to Pro any time. Pro starts straight away and the days left on Basic are taken off the price.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={signupHref("ALAYN_PRO", "yearly")}
+            <PlanSignupLink
+              plan="ALAYN_PRO"
               className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Start with Pro
-            </Link>
-            <Link
-              href={signupHref("ALAYN_BASIC", "yearly")}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
+            </PlanSignupLink>
+            <PlanSignupLink
+              plan="ALAYN_BASIC"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Start with Basic
-            </Link>
+            </PlanSignupLink>
           </div>
-          <p className="mt-8 text-sm text-[#C9D3E5]">
+          <p className="mt-8 text-sm text-[var(--muted-on-dark)]">
             Running many outlets?{" "}
             <a href="mailto:info@alaynai.com" className="font-medium text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white">
               Ask about volume pricing
