@@ -26,9 +26,14 @@ import {
 } from "@/redux/slices/supplierApiSlice";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
 
+export interface MarketplaceSupplier {
+  id: string;
+  name: string;
+}
+
 interface Props {
   inventoryItems?: InventoryItemApi[];
-  onOrderPO?: (supplierId: string, item: SupplierItemApi) => void;
+  onOrderPO?: (supplier: MarketplaceSupplier, items: SupplierItemApi[]) => void;
 }
 
 export default function SupplierMarketplaceSection({
@@ -39,6 +44,8 @@ export default function SupplierMarketplaceSection({
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<"CHEAPEST" | "QUALITY" | "FASTEST">("CHEAPEST");
+  // Catalog item ids ticked on each supplier's card, keyed by supplier id
+  const [selected, setSelected] = useState<Record<string, string[]>>({});
 
   const { data: marketItems = [], isLoading, isError, refetch } = useGetMarketCatalogQuery({
     search: search.trim() || undefined,
@@ -102,17 +109,51 @@ export default function SupplierMarketplaceSection({
     });
   }, [marketItems, inventoryItems]);
 
-  const sortedItems = useMemo(() => {
-    const list = [...processedItems];
-    if (sortBy === "CHEAPEST") {
-      list.sort((a, b) => a.pricePaise - b.pricePaise);
-    } else if (sortBy === "QUALITY") {
-      list.sort((a, b) => b.qualityScore - a.qualityScore);
-    } else if (sortBy === "FASTEST") {
-      list.sort((a, b) => a.leadTimeHours - b.leadTimeHours);
+  // One card per supplier, listing everything they sell. Items inside a card and the cards
+  // themselves follow the chosen sort (a supplier ranks by its best item).
+  const supplierGroups = useMemo(() => {
+    type Row = (typeof processedItems)[number];
+    const itemOrder = (a: Row, b: Row) =>
+      sortBy === "CHEAPEST"
+        ? a.pricePaise - b.pricePaise
+        : sortBy === "QUALITY"
+          ? b.qualityScore - a.qualityScore
+          : a.leadTimeHours - b.leadTimeHours;
+
+    const groups = new Map<
+      string,
+      { supplier: MarketplaceSupplier & { rating?: number; deliveryTerms?: string }; items: Row[] }
+    >();
+    for (const item of processedItems) {
+      const group = groups.get(item.supplierId);
+      if (group) {
+        group.items.push(item);
+      } else {
+        groups.set(item.supplierId, {
+          supplier: {
+            id: item.supplierId,
+            name: item.supplier?.name || "Independent Supplier",
+            rating: item.supplier?.rating,
+            deliveryTerms: item.supplier?.deliveryTerms,
+          },
+          items: [item],
+        });
+      }
     }
+
+    const list = Array.from(groups.values());
+    list.forEach((g) => g.items.sort(itemOrder));
+    list.sort((a, b) => itemOrder(a.items[0], b.items[0]));
     return list;
   }, [processedItems, sortBy]);
+
+  const toggleItem = (supplierId: string, itemId: string) => {
+    setSelected((prev) => {
+      const current = prev[supplierId] || [];
+      const next = current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId];
+      return { ...prev, [supplierId]: next };
+    });
+  };
 
   return (
     <div className="flex flex-col gap-5 w-full">
@@ -238,7 +279,7 @@ export default function SupplierMarketplaceSection({
             </div>
           ))}
         </div>
-      ) : sortedItems.length === 0 ? (
+      ) : supplierGroups.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 rounded-2xl bg-white">
           <Store className="h-10 w-10 text-zinc-300 mb-2" />
           <h3 className="text-sm font-bold text-zinc-800">No items found in marketplace</h3>
@@ -247,97 +288,114 @@ export default function SupplierMarketplaceSection({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedItems.map((item) => {
-            const hasSavings = item.savingsPercent && item.savingsPercent > 0;
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {supplierGroups.map(({ supplier, items: supplierItems }) => {
+            const selectedIds = selected[supplier.id] || [];
+            const selectedItems = supplierItems.filter((i) => selectedIds.includes(i.id));
 
             return (
               <div
-                key={item.id}
-                className="flex flex-col justify-between p-4 rounded-2xl border border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-xs transition-all group"
+                key={supplier.id}
+                className="flex flex-col rounded-2xl border border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-xs transition-all"
               >
-                <div>
-                  {/* Top Meta: Supplier & Rating */}
-                  <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2.5 mb-3">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <Store className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                      <span className="font-bold text-xs text-zinc-800 truncate">
-                        {item.supplier?.name || "Independent Supplier"}
-                      </span>
+                {/* Supplier header */}
+                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-zinc-100">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Store className="h-4 w-4 text-zinc-400 shrink-0" />
+                      <span className="font-bold text-sm text-zinc-900 truncate">{supplier.name}</span>
                     </div>
-
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md shrink-0">
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      {item.supplier?.rating || 5.0}
-                    </div>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+                      {supplierItems.length} {supplierItems.length === 1 ? "item" : "items"}
+                      {supplier.deliveryTerms ? ` · ${supplier.deliveryTerms}` : ""}
+                    </p>
                   </div>
-
-                  {/* Product Title & Badges */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-sm text-zinc-900 leading-snug group-hover:text-[#D3232A] transition-colors">
-                        {item.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-semibold text-zinc-500">
-                          {item.category}
-                        </span>
-                        <span>•</span>
-                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-black uppercase">
-                          {item.qualityGrade || "Standard"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {item.inStock ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                        In Stock
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full shrink-0">
-                        Pre-order
-                      </span>
-                    )}
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md shrink-0">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    {supplier.rating || 5.0}
                   </div>
-
-                  {/* Delivery & MOQ Specs */}
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium mt-3">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                      {item.leadTimeHours}h delivery
-                    </span>
-                    <span>•</span>
-                    <span>Min: {item.minOrderQty} {item.unit}</span>
-                  </div>
-
-                  {/* Savings Indicator */}
-                  {hasSavings && (
-                    <div className="mt-2.5 p-2 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
-                      <span className="text-emerald-800 font-bold flex items-center gap-1">
-                        <TrendingDown className="h-3.5 w-3.5" /> Save {item.savingsPercent}% vs store
-                      </span>
-                      <span className="text-[11px] font-semibold text-emerald-700">
-                        -₹{item.savingsRupees?.toFixed(2)} / {item.unit}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
-                {/* Bottom Price & Purchase Button */}
-                <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 mt-4">
-                  <div>
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Wholesale Price
-                    </span>
-                    <span className="text-base font-black text-zinc-900 tabular-nums">
-                      ₹{item.priceRupees.toFixed(2)}
-                      <span className="text-xs font-normal text-zinc-500"> / {item.unit}</span>
-                    </span>
-                  </div>
+                {/* Items this supplier sells */}
+                <ul className="divide-y divide-zinc-100 flex-1">
+                  {supplierItems.map((item) => {
+                    const isSelected = selectedIds.includes(item.id);
+                    const hasSavings = item.savingsPercent && item.savingsPercent > 0;
+                    return (
+                      <li key={item.id}>
+                        <label
+                          className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                            isSelected ? "bg-red-50/40" : "hover:bg-zinc-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleItem(supplier.id, item.id)}
+                            className="mt-0.5 rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A]"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-zinc-900">{item.name}</span>
+                              <span className="px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-black uppercase">
+                                {item.qualityGrade || "Standard"}
+                              </span>
+                              {item.inStock ? (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                                  In Stock
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded-full">
+                                  Pre-order
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-medium mt-1 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-zinc-400" />
+                                {item.leadTimeHours}h delivery
+                              </span>
+                              <span>•</span>
+                              <span>
+                                Min: {item.minOrderQty} {item.unit}
+                              </span>
+                              <span>•</span>
+                              <span>{item.category}</span>
+                            </div>
+                            {hasSavings && (
+                              <p className="mt-1 text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                                <TrendingDown className="h-3 w-3" /> Save {item.savingsPercent}% vs your cost (-₹
+                                {item.savingsRupees?.toFixed(2)} / {item.unit})
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-black text-zinc-900 tabular-nums">
+                              ₹{item.priceRupees.toFixed(2)}
+                            </span>
+                            <span className="block text-[11px] text-zinc-500">/ {item.unit}</span>
+                          </div>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
 
+                {/* Order from this supplier */}
+                <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-4 py-3">
+                  <span className="text-xs font-semibold text-zinc-500">
+                    {selectedItems.length === 0
+                      ? "Tick the items you need"
+                      : `${selectedItems.length} ${selectedItems.length === 1 ? "item" : "items"} selected`}
+                  </span>
                   <button
-                    onClick={() => onOrderPO?.(item.supplierId, item)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-[#D3232A] text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs"
+                    type="button"
+                    disabled={selectedItems.length === 0}
+                    onClick={() => {
+                      onOrderPO?.({ id: supplier.id, name: supplier.name }, selectedItems);
+                      setSelected((prev) => ({ ...prev, [supplier.id]: [] }));
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-[#D3232A] text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs disabled:opacity-40 disabled:hover:bg-zinc-900"
                   >
                     <ShoppingCart className="h-3.5 w-3.5" />
                     Create PO

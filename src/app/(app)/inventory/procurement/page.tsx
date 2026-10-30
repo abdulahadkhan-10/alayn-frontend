@@ -53,7 +53,9 @@ import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
 import { TModal } from "@/components/ui/TModal";
 import CreatePurchaseOrderModal from "@/components/Inventory/CreatePurchaseOrderModal";
-import SupplierMarketplaceSection from "@/components/Inventory/SupplierMarketplaceSection";
+import SupplierMarketplaceSection, { type MarketplaceSupplier } from "@/components/Inventory/SupplierMarketplaceSection";
+import MarketplacePOModal from "@/components/Inventory/MarketplacePOModal";
+import type { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
 function generateTimestampBatchNo(category?: string): string {
@@ -116,6 +118,11 @@ export default function ProcurementPage() {
   const [showSmartPOModal, setShowSmartPOModal] = useState(false);
   const [showCreateCustomPOModal, setShowCreateCustomPOModal] = useState(false);
   const [prefilledSupplierId, setPrefilledSupplierId] = useState<string | null>(null);
+  // Marketplace suppliers are ordered from here only, never through the normal vendor dropdown
+  const [marketplaceOrder, setMarketplaceOrder] = useState<{
+    supplier: MarketplaceSupplier;
+    items: SupplierItemApi[];
+  } | null>(null);
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderApi | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
   const [viewingSupplier, setViewingSupplier] = useState<SupplierApi | null>(null);
@@ -1013,10 +1020,7 @@ export default function ProcurementPage() {
         {activeTab === "MARKETPLACE" && (
           <SupplierMarketplaceSection
             inventoryItems={items as any}
-            onOrderPO={(supplierId) => {
-              setPrefilledSupplierId(supplierId);
-              setShowCreateCustomPOModal(true);
-            }}
+            onOrderPO={(supplier, catalogItems) => setMarketplaceOrder({ supplier, items: catalogItems })}
           />
         )}
 
@@ -1537,6 +1541,23 @@ export default function ProcurementPage() {
               onSuccess={() => {
                 setShowSmartPOModal(false);
                 setPrefilledSupplierId(null);
+                refetchPOs();
+              }}
+            />
+          )}
+        </TModal>
+
+        {/* MODAL 4C: ORDER FROM A MARKETPLACE SUPPLIER */}
+        <TModal open={Boolean(marketplaceOrder && activeBranch)} className="bg-black/40 backdrop-blur-xs p-4">
+          {marketplaceOrder && activeBranch && (
+            <MarketplacePOModal
+              outletId={activeBranch.id}
+              supplier={marketplaceOrder.supplier}
+              catalogItems={marketplaceOrder.items}
+              inventoryItems={items}
+              onClose={() => setMarketplaceOrder(null)}
+              onSuccess={() => {
+                setMarketplaceOrder(null);
                 refetchPOs();
               }}
             />
