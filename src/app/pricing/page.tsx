@@ -48,7 +48,7 @@ const IN_BOTH: { text: string; soon?: boolean }[] = [
   { text: "Waste logging and alerts" },
   { text: "Sales reports and analytics" },
   { text: "Staff directory, logins and roles" },
-  { text: "Quickii, Alayn's own delivery portal", soon: true },
+  { text: "Quickii: your own delivery link and QR code, with no commission", soon: true },
 ];
 
 const FAQ: { q: string; a: React.ReactNode }[] = [
@@ -74,7 +74,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "What does “coming soon” mean?",
-    a: "Quickii, our own delivery portal, and the Swiggy and Zomato integrations are being built now. They switch on for your outlet when they launch, at no extra cost on the plan that includes them.",
+    a: "Quickii, your own delivery link and QR code for taking delivery orders without paying commission, and the Swiggy and Zomato integrations are being built now. They switch on for your outlet when they launch, at no extra cost on the plan that includes them.",
   },
   {
     q: "How do I pay?",

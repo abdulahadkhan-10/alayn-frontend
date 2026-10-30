@@ -11,7 +11,7 @@ const FEATURES: Record<PlanCode, string[]> = {
     "Inventory, purchase orders and waste tracking",
     "Sales reports and staff logins",
     "Ask Alayn AI: daily questions on sales and menu",
-    "Quickii delivery portal (coming soon)",
+    "Quickii: own delivery link and QR, no commission (coming soon)",
   ],
   ALAYN_PRO: [
     "Everything in Basic",

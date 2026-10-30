@@ -74,9 +74,9 @@ export default function LandingFooter() {
             <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Features
             </Link>
-            {/* <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
+            <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Pricing
-            </Link> */}
+            </Link>
             <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               About Us
             </Link>

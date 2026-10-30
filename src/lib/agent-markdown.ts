@@ -123,7 +123,7 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
 - Sales reports and analytics
 - Staff directory, logins and roles
 - Ask Alayn AI: daily questions on sales and menu
-- Quickii, Alayn's own delivery portal (coming soon)
+- Quickii: your own delivery link and QR code, so customers order delivery directly with no commission (coming soon)
 
 ## Alayn Pro
 Everything in Basic, plus:

@@ -40,7 +40,7 @@ const BASIC_POINTS: { text: string; soon?: boolean }[] = [
   { text: "Inventory with batch expiry, purchase orders and waste" },
   { text: "Sales reports, staff directory and logins" },
   { text: "Ask Alayn AI: daily questions on sales and menu" },
-  { text: "Quickii, Alayn's own delivery portal", soon: true },
+  { text: "Quickii: your own delivery link and QR code, with no commission", soon: true },
 ];
 
 // Pro: what changes for the owner, led by what works today. Each line names the outcome first.
