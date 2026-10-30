@@ -53,6 +53,10 @@ export default function LoginComponent() {
       dispatch(setCredentials(payload));
 
       // Route safely based on authenticated user's role
+      if (role === "SUPPLIER" && process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL) {
+        window.location.href = process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL;
+        return;
+      }
       router.replace(roleAllowedNext(role, readNextFromLocation()));
     } catch (err: any) {
       setError(
@@ -216,10 +220,10 @@ export default function LoginComponent() {
                 </Link>
               </p>
               <Link
-                href="/signup?role=supplier"
+                href={`${process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL || "https://suppliers.alaynai.com"}/login`}
                 className="text-xs font-bold text-zinc-800 hover:text-[#C41E2A] transition-colors flex items-center gap-1"
               >
-                🚚 Join as Supplier Partner →
+                🚚 Supplier Portal (Sign In / Register) →
               </Link>
             </div>
           </form>
