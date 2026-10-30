@@ -26,36 +26,29 @@ export const metadata: Metadata = {
 
 type Cell = boolean | string | { text: string; soon: true };
 
-// The differences come first, so the table makes the case for Pro before listing what both plans share
-const COMPARE: { group: string; rows: [string, Cell, Cell][] }[] = [
-  {
-    group: "What Pro adds",
-    rows: [
-      ["Swiggy or Zomato integration", false, { text: "One included", soon: true }],
-      ["Shift scheduling, rosters and swaps", false, true],
-      ["Attendance, leave and clock-in terminal", false, true],
-      ["Ask Alayn AI", "Sales and menu questions only", "Sales, stock, waste, staff and forecasts"],
-      [
-        "Both Swiggy and Zomato",
-        false,
-        `+${formatRupees(SECOND_AGGREGATOR.monthly)}/mo or +${formatRupees(SECOND_AGGREGATOR.yearly)}/yr`,
-      ],
-    ],
-  },
-  {
-    group: "Included in both plans",
-    rows: [
-      ["POS billing on unlimited counters", true, true],
-      ["Table QR menus", true, true],
-      ["Kitchen display and KOT printing", true, true],
-      ["Inventory with batch expiry tracking", true, true],
-      ["Suppliers and purchase orders", true, true],
-      ["Waste logging and alerts", true, true],
-      ["Sales reports and analytics", true, true],
-      ["Staff directory, logins and roles", true, true],
-      ["Quickii, Alayn's own delivery portal", { text: "Included", soon: true }, { text: "Included", soon: true }],
-    ],
-  },
+// Only where the plans differ, led by what works today. Features both plans share are listed under the table.
+const DIFFERENCES: [string, Cell, Cell][] = [
+  ["Shift scheduling, rosters and swaps", false, true],
+  ["Attendance, leave and clock-in terminal", false, true],
+  ["Ask Alayn AI", "Daily questions on sales and menu", "More daily questions, on stock, waste, staff and forecasts too"],
+  ["Swiggy or Zomato integration", false, { text: "One included", soon: true }],
+  [
+    "Second delivery app (add-on)",
+    false,
+    `+${formatRupees(SECOND_AGGREGATOR.monthly)}/mo or +${formatRupees(SECOND_AGGREGATOR.yearly)}/yr`,
+  ],
+];
+
+const IN_BOTH: { text: string; soon?: boolean }[] = [
+  { text: "POS billing on unlimited counters" },
+  { text: "Table QR menus" },
+  { text: "Kitchen display and KOT printing" },
+  { text: "Inventory with batch expiry tracking" },
+  { text: "Suppliers and purchase orders" },
+  { text: "Waste logging and alerts" },
+  { text: "Sales reports and analytics" },
+  { text: "Staff directory, logins and roles" },
+  { text: "Quickii, Alayn's own delivery portal", soon: true },
 ];
 
 const FAQ: { q: string; a: React.ReactNode }[] = [
@@ -114,7 +107,7 @@ function CompareCell({ value, pro = false }: { value: Cell; pro?: boolean }) {
       </>
     );
   }
-  if (typeof value === "string") return <span className="text-[13px] leading-snug tabular-nums">{value}</span>;
+  if (typeof value === "string") return <span className="text-[13px] leading-snug tabular-nums [overflow-wrap:normal]">{value}</span>;
   return (
     <span className="text-[13px] leading-snug">
       {value.text}
@@ -181,8 +174,8 @@ export default function PricingPage() {
             <Link href="/billing-software" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
               billing
             </Link>
-            , kitchen and stock. Alayn Pro adds your staff rota, the full Ask Alayn AI and Swiggy or Zomato. Pay monthly, or pay
-            for the year and save.
+            , kitchen and stock. Alayn Pro adds your staff rota and the full Ask Alayn AI, with Swiggy or Zomato included when it
+            launches. Pay monthly, or pay for the year and save.
           </p>
         </div>
 
@@ -199,9 +192,30 @@ export default function PricingPage() {
 
         <section aria-labelledby="compare-heading" className="mt-24">
           <h2 id="compare-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
-            Basic and Pro, side by side
+            What Pro adds
           </h2>
-          <div className="mt-8 overflow-x-auto rounded-[24px] border border-[var(--border-warm)] bg-white">
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--muted)]">
+            Everything else is the same on both plans, listed below the table.
+          </p>
+          {/* Phones: one block per difference, so feature names don't wrap into narrow columns */}
+          <ul className="mt-8 space-y-3 sm:hidden">
+            {DIFFERENCES.map(([feature, basic, pro]) => (
+              <li key={feature} className="overflow-hidden rounded-2xl border border-[var(--border-warm)] bg-white">
+                <p className="px-4 pb-3 pt-4 text-[15px] font-semibold">{feature}</p>
+                <dl className="grid grid-cols-2 border-t border-[var(--border-warm)] text-center">
+                  <div className="px-3 py-3">
+                    <dt className="text-xs font-medium text-[var(--muted)]">Basic</dt>
+                    <dd className="mt-1.5"><CompareCell value={basic} /></dd>
+                  </div>
+                  <div className="bg-[var(--espresso)]/[0.04] px-3 py-3">
+                    <dt className="text-xs font-semibold text-[var(--espresso)]">Pro</dt>
+                    <dd className="mt-1.5"><CompareCell value={pro} pro /></dd>
+                  </div>
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 hidden overflow-x-auto rounded-[24px] border border-[var(--border-warm)] bg-white sm:block">
             <table className="w-full border-collapse text-left text-sm sm:text-[15px]">
               <caption className="sr-only">Features in Alayn Basic and Alayn Pro</caption>
               <thead>
@@ -209,37 +223,49 @@ export default function PricingPage() {
                   <th scope="col" className="px-4 py-4 font-medium text-[var(--muted)] sm:px-7">Feature</th>
                   <th scope="col" className="w-[23%] sm:w-[27%] px-2 py-4 text-center font-heading font-bold sm:px-4">
                     Basic
-                    <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">{formatRupees(PLANS.ALAYN_BASIC.monthly)}/mo</span>
+                    <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">
+                      {formatRupees(PLANS.ALAYN_BASIC.monthly)}/mo <span className="whitespace-nowrap">· {formatRupees(PLANS.ALAYN_BASIC.yearly)}/yr</span>
+                    </span>
                   </th>
                   <th scope="col" className="w-[23%] sm:w-[27%] bg-[var(--espresso)]/[0.03] px-2 py-4 text-center font-heading font-bold sm:px-4">
                     Pro
-                    <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">{formatRupees(PLANS.ALAYN_PRO.monthly)}/mo</span>
+                    <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">
+                      {formatRupees(PLANS.ALAYN_PRO.monthly)}/mo <span className="whitespace-nowrap">· {formatRupees(PLANS.ALAYN_PRO.yearly)}/yr</span>
+                    </span>
                   </th>
                 </tr>
               </thead>
-              {COMPARE.map((section) => (
-                <tbody key={section.group}>
-                  <tr>
-                    <th colSpan={3} scope="colgroup" className="px-4 pb-2 pt-6 text-[13px] font-semibold text-[var(--amber)] sm:px-7">
-                      {section.group}
-                    </th>
+              <tbody>
+                {DIFFERENCES.map(([feature, basic, pro]) => (
+                  <tr key={feature} className="border-t border-[var(--border-warm)] first:border-t-0">
+                    <th scope="row" className="px-4 py-4 font-normal sm:px-7">{feature}</th>
+                    <td className="px-2 py-4 text-center sm:px-4"><CompareCell value={basic} /></td>
+                    <td className="bg-[var(--espresso)]/[0.03] px-2 py-4 text-center sm:px-4"><CompareCell value={pro} pro /></td>
                   </tr>
-                  {section.rows.map(([feature, basic, pro]) => (
-                    <tr key={feature} className="border-t border-[var(--border-warm)]">
-                      <th scope="row" className="px-4 py-3.5 font-normal sm:px-7">{feature}</th>
-                      <td className="px-2 py-3.5 text-center sm:px-4"><CompareCell value={basic} /></td>
-                      <td className="bg-[var(--espresso)]/[0.03] px-2 py-3.5 text-center sm:px-4"><CompareCell value={pro} pro /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              ))}
+                ))}
+              </tbody>
             </table>
+          </div>
+
+          <div className="mt-10">
+            <h3 className="font-heading text-xl font-bold">Included in both plans</h3>
+            <ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-[15px] sm:grid-cols-2 lg:grid-cols-3">
+              {IN_BOTH.map((f) => (
+                <li key={f.text} className="flex gap-3">
+                  <Check className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--amber)]" aria-hidden="true" />
+                  <span>
+                    {f.text}
+                    {f.soon && <SoonTag />}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
         <section aria-labelledby="faq-heading" className="mt-24 grid grid-cols-1 gap-10 md:grid-cols-12">
           <h2 id="faq-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl md:col-span-4">
-            Questions about billing
+            Common questions
           </h2>
           <div className="divide-y divide-[var(--border-warm)] border-y border-[var(--border-warm)] md:col-span-8">
             {FAQ.map((item) => (
@@ -257,19 +283,35 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="mt-24 flex flex-col items-start justify-between gap-6 rounded-[28px] bg-white p-8 ring-1 ring-[var(--border-warm)] sm:flex-row sm:items-center sm:p-10">
-          <div>
-            <h2 className="font-heading text-2xl font-bold">Running many outlets?</h2>
-            <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-[var(--muted)]">
-              Ask us about volume pricing for groups and chains.
-            </p>
+        <section aria-labelledby="close-heading" className="mt-24 rounded-[28px] bg-[var(--espresso)] px-7 py-12 text-center text-white sm:px-12 sm:py-16">
+          {/* The site-wide h2 font rule outranks utility classes, so the serif is set on the inner span */}
+          <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
+            <span className="font-[family-name:var(--font-playfair)] font-bold">Start on the plan your outlet needs today.</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-white/75">
+            Move from Basic to Pro any time. Pro starts straight away and the days left on Basic are taken off the price.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/signup"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
+            >
+              Start with Pro
+            </Link>
+            <Link
+              href="/signup"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
+            >
+              Start with Basic
+            </Link>
           </div>
-          <a
-            href="mailto:info@alaynai.com"
-            className="inline-flex shrink-0 items-center rounded-full bg-[var(--espresso)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--espresso-mid)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
-          >
-            Email info@alaynai.com
-          </a>
+          <p className="mt-8 text-sm text-white/75">
+            Running many outlets?{" "}
+            <a href="mailto:info@alaynai.com" className="font-medium text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
+              Ask about volume pricing
+            </a>
+            .
+          </p>
         </section>
       </main>
 

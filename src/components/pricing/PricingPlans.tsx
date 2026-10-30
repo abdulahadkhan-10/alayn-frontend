@@ -2,46 +2,40 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, Minus } from "lucide-react";
+import { Check } from "lucide-react";
 import { formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
 
 type Cycle = "monthly" | "yearly";
 
-const POINTS: Record<PlanCode, { text: string; included: boolean; soon?: boolean }[]> = {
-  ALAYN_BASIC: [
-    { text: "POS billing on unlimited counters, with table QR menus", included: true },
-    { text: "Kitchen display and KOT printing", included: true },
-    { text: "Inventory with batch expiry, purchase orders and waste", included: true },
-    { text: "Sales reports, staff directory and logins", included: true },
-    { text: "Ask Alayn AI: daily questions on sales and menu", included: true },
-    { text: "Quickii, Alayn's own delivery portal", included: true, soon: true },
-    { text: "Shift scheduling, attendance and leave", included: false },
-    { text: "Swiggy or Zomato integration", included: false },
-  ],
-  ALAYN_PRO: [
-    { text: "Everything in Basic", included: true },
-    { text: "Shift scheduling, swaps, attendance and leave", included: true },
-    { text: "Clock-in terminal with geofencing", included: true },
-    { text: "Full Ask Alayn AI: stock, waste, staff and forecasts", included: true },
-    { text: "Swiggy or Zomato, your choice, included", included: true, soon: true },
-  ],
-};
+// Basic: what runs service. Plain lines.
+const BASIC_POINTS: { text: string; soon?: boolean }[] = [
+  { text: "POS billing on unlimited counters, with table QR menus" },
+  { text: "Kitchen display and KOT printing" },
+  { text: "Inventory with batch expiry, purchase orders and waste" },
+  { text: "Sales reports, staff directory and logins" },
+  { text: "Ask Alayn AI: daily questions on sales and menu" },
+  { text: "Quickii, Alayn's own delivery portal", soon: true },
+];
 
-const PITCH: Record<PlanCode, string> = {
-  ALAYN_BASIC: "Billing, kitchen and stock for one outlet. Everything a restaurant needs to run service.",
-  ALAYN_PRO: "Basic, plus your staff rota, the full Ask Alayn AI, and Swiggy or Zomato orders straight to the kitchen once it launches.",
-};
+// Pro: what changes for the owner, led by what works today. Each line names the outcome first.
+const PRO_POINTS: { lead: string; text: string; soon?: boolean }[] = [
+  { lead: "Everything in Basic", text: "for the same outlet." },
+  { lead: "Your staff rota", text: "weekly shifts, swaps and leave approvals in one place." },
+  { lead: "Attendance you can trust", text: "staff clock in only at the outlet, with late marks." },
+  { lead: "The full Ask Alayn AI", text: "more questions a day, about stock, waste, staff and forecasts too." },
+  { lead: "Swiggy or Zomato", text: "orders straight to your kitchen, included when it launches.", soon: true },
+];
 
 function Price({ plan, cycle }: { plan: PlanCode; cycle: Cycle }) {
   const amount = cycle === "monthly" ? PLANS[plan].monthly : PLANS[plan].yearly;
   return (
     // The key replays the entrance whenever the amount changes
     <div key={`${plan}-${cycle}`} className="pricing-figure">
-      <p className="flex items-baseline gap-2">
+      <p className="flex flex-wrap items-baseline gap-x-2">
         <span className="font-heading text-5xl font-extrabold tracking-[-0.03em] tabular-nums sm:text-[3.5rem]">
           {formatRupees(amount)}
         </span>
-        <span className="text-sm font-medium opacity-80">/ {cycle === "monthly" ? "month" : "year"} + GST</span>
+        <span className="whitespace-nowrap text-sm font-medium opacity-80">/ {cycle === "monthly" ? "month" : "year"} + GST</span>
       </p>
       <p className="mt-1.5 text-[13px] tabular-nums opacity-75">
         {formatRupees(withGst(amount))} with 18% GST
@@ -81,40 +75,38 @@ export default function PricingPlans() {
             role="radio"
             aria-checked={cycle === c}
             onClick={() => setCycle(c)}
-            className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] ${
+            className={`min-h-11 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] ${
               cycle === c ? "bg-[var(--espresso)] text-white" : "text-[var(--muted)] hover:text-[var(--espresso)]"
             }`}
           >
             {c === "monthly" ? "Monthly" : "Yearly"}
-            {c === "yearly" && <span className={cycle === c ? "text-[var(--amber-on-dark)]" : "text-[var(--amber)]"}> · save 16%</span>}
+            {c === "yearly" && <span className={cycle === c ? "text-[var(--amber-on-dark)]" : "font-bold text-[var(--espresso)]"}> · save 16%</span>}
           </button>
         ))}
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_1.12fr] lg:items-stretch">
-        {/* Basic: plain paper */}
+        {/* Basic: plain paper, deliberately quiet */}
         <article className="flex flex-col rounded-[28px] border border-[var(--border-warm)] bg-white p-7 text-[var(--espresso)] shadow-[0_2px_6px_rgba(27,42,74,0.04),0_18px_40px_-24px_rgba(27,42,74,0.25)] sm:p-9">
           <h3 className="font-heading text-2xl font-bold">{PLANS.ALAYN_BASIC.name}</h3>
-          <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">{PITCH.ALAYN_BASIC}</p>
+          <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">
+            Billing, kitchen and stock for one outlet. Everything you need to run service.
+          </p>
           <div className="mt-7">
             <Price plan="ALAYN_BASIC" cycle={cycle} />
           </div>
           <Link
             href="/signup"
-            className="mt-7 inline-flex items-center justify-center rounded-full border border-[var(--espresso)] px-6 py-3 text-sm font-semibold text-[var(--espresso)] transition-colors hover:bg-[var(--espresso)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+            className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--espresso)] px-6 py-3 text-sm font-semibold text-[var(--espresso)] transition-colors hover:bg-[var(--espresso)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
           >
             Start with Basic
           </Link>
-          <ul className="mt-8 space-y-3 border-t border-[var(--border-warm)] pt-7 text-[15px]">
-            {POINTS.ALAYN_BASIC.map((p) => (
-              <li key={p.text} className={`flex gap-3 ${p.included ? "" : "text-[var(--muted)]"}`}>
-                {p.included ? (
-                  <Check className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--amber)]" aria-hidden="true" />
-                ) : (
-                  <Minus className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--muted)]/60" aria-hidden="true" />
-                )}
+          <p className="mt-3 text-center text-[13px] text-[var(--muted)]">Move to Pro any time. Days left on Basic are credited.</p>
+          <ul className="mt-7 space-y-3 border-t border-[var(--border-warm)] pt-7 text-[15px]">
+            {BASIC_POINTS.map((p) => (
+              <li key={p.text} className="flex gap-3">
+                <Check className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--amber)]" aria-hidden="true" />
                 <span>
-                  {!p.included && <span className="sr-only">Not included: </span>}
                   {p.text}
                   {p.soon && <SoonTag />}
                 </span>
@@ -123,42 +115,38 @@ export default function PricingPlans() {
           </ul>
         </article>
 
-        {/* Pro: the navy of the logo */}
-        <article className="relative flex flex-col overflow-hidden rounded-[28px] bg-[var(--espresso)] p-7 text-white shadow-[0_4px_10px_rgba(27,42,74,0.18),0_30px_60px_-28px_rgba(27,42,74,0.7)] sm:p-9">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--amber)] opacity-25 blur-3xl" />
-          <div className="relative flex items-center justify-between gap-3">
-            <h3 className="font-heading text-2xl font-bold">{PLANS.ALAYN_PRO.name}</h3>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[var(--amber-on-dark)] ring-1 ring-white/15">
-              Every feature
-            </span>
-          </div>
-          <p className="relative mt-2 max-w-md text-[15px] leading-relaxed text-white/75">{PITCH.ALAYN_PRO}</p>
-          <div className="relative mt-7">
+        {/* Pro: the navy of the logo and the hero's serif voice. First on phones, so nobody reads all of Basic before seeing it. */}
+        <article className="order-first flex flex-col rounded-[28px] bg-[var(--espresso)] p-7 text-white shadow-[0_4px_10px_rgba(27,42,74,0.18),0_30px_60px_-28px_rgba(27,42,74,0.7)] sm:p-9 lg:order-none">
+          <h3 className="font-heading text-2xl font-bold">{PLANS.ALAYN_PRO.name}</h3>
+          <p className="mt-3 max-w-md font-[family-name:var(--font-playfair)] text-[1.7rem] font-bold leading-[1.15] tracking-[-0.01em] text-balance sm:text-[2rem]">
+            For outlets that run a team, not just a counter.
+          </p>
+          <div className="mt-7">
             <Price plan="ALAYN_PRO" cycle={cycle} />
           </div>
           <Link
             href="/signup"
-            className="relative mt-7 inline-flex items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white shadow-[0_6px_16px_-6px_rgba(196,30,42,0.7)] transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_-10px_rgba(8,14,28,0.8)] transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Start with Pro
           </Link>
-          <ul className="relative mt-8 space-y-3 border-t border-white/15 pt-7 text-[15px]">
-            {POINTS.ALAYN_PRO.map((p) => (
-              <li key={p.text} className="flex gap-3">
-                <Check className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[var(--amber-on-dark)]" aria-hidden="true" />
-                <span>
-                  {p.text}
+          <ul className="mt-7 space-y-4 border-t border-white/15 pt-7 text-[15px] leading-relaxed">
+            {PRO_POINTS.map((p) => (
+              <li key={p.lead} className="flex gap-3">
+                <Check className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--amber-on-dark)]" aria-hidden="true" />
+                <span className="text-white/75">
+                  <strong className="font-semibold text-white">{p.lead}:</strong> {p.text}
                   {p.soon && <SoonTag dark />}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="relative mt-auto pt-8 text-sm leading-relaxed text-white/75">
+          <p className="mt-6 rounded-2xl bg-white/[0.06] px-4 py-3 text-sm leading-relaxed text-white/75 ring-1 ring-white/10">
             Want both Swiggy and Zomato? Add the second one for{" "}
-            <strong className="font-semibold text-white tabular-nums">
-              {formatRupees(addOn)} / {cycle === "monthly" ? "month" : "year"}
-            </strong>{" "}
-            + GST.
+            <strong className="whitespace-nowrap font-semibold text-white tabular-nums">
+              {formatRupees(addOn)} / {cycle === "monthly" ? "month" : "year"} + GST
+            </strong>
+            .
           </p>
         </article>
       </div>
