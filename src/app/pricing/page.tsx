@@ -102,14 +102,14 @@ function CompareCell({ value, pro = false }: { value: Cell; pro?: boolean }) {
   if (value === false) {
     return (
       <>
-        <Minus className="mx-auto h-5 w-5 text-[var(--muted)]/50" aria-hidden="true" />
+        <Minus className="mx-auto h-5 w-5 text-[var(--muted)]/75" aria-hidden="true" />
         <span className="sr-only">Not included</span>
       </>
     );
   }
   if (typeof value === "string") return <span className="text-[13px] leading-snug tabular-nums [overflow-wrap:normal]">{value}</span>;
   return (
-    <span className="text-[13px] leading-snug">
+    <span className="text-[13px] leading-snug tabular-nums">
       {value.text}
       <SoonTag />
     </span>
@@ -200,7 +200,7 @@ export default function PricingPage() {
           {/* Phones: one block per difference, so feature names don't wrap into narrow columns */}
           <ul className="mt-8 space-y-3 sm:hidden">
             {DIFFERENCES.map(([feature, basic, pro]) => (
-              <li key={feature} className="overflow-hidden rounded-2xl border border-[var(--border-warm)] bg-white">
+              <li key={feature} className="overflow-hidden rounded-xl border border-[var(--border-warm)] bg-white">
                 <p className="px-4 pb-3 pt-4 text-[15px] font-semibold">{feature}</p>
                 <dl className="grid grid-cols-2 border-t border-[var(--border-warm)] text-center">
                   <div className="px-3 py-3">
@@ -215,7 +215,7 @@ export default function PricingPage() {
               </li>
             ))}
           </ul>
-          <div className="mt-8 hidden overflow-x-auto rounded-[24px] border border-[var(--border-warm)] bg-white sm:block">
+          <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-[var(--border-warm)] bg-white sm:block">
             <table className="w-full border-collapse text-left text-sm sm:text-[15px]">
               <caption className="sr-only">Features in Alayn Basic and Alayn Pro</caption>
               <thead>
@@ -237,8 +237,11 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {DIFFERENCES.map(([feature, basic, pro]) => (
-                  <tr key={feature} className="border-t border-[var(--border-warm)] first:border-t-0">
-                    <th scope="row" className="px-4 py-4 font-normal sm:px-7">{feature}</th>
+                  <tr
+                    key={feature}
+                    className="border-t border-[var(--border-warm)] transition-colors first:border-t-0 hover:bg-[var(--espresso)]/[0.015]"
+                  >
+                    <th scope="row" className="px-4 py-4 font-medium text-[var(--espresso)] sm:px-7">{feature}</th>
                     <td className="px-2 py-4 text-center sm:px-4"><CompareCell value={basic} /></td>
                     <td className="bg-[var(--espresso)]/[0.03] px-2 py-4 text-center sm:px-4"><CompareCell value={pro} pro /></td>
                   </tr>
@@ -248,7 +251,7 @@ export default function PricingPage() {
           </div>
 
           <div className="mt-10">
-            <h3 className="font-heading text-xl font-bold">Included in both plans</h3>
+            <h3 className="font-heading text-xl font-bold tracking-[-0.015em]">Included in both plans</h3>
             <ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 text-[15px] sm:grid-cols-2 lg:grid-cols-3">
               {IN_BOTH.map((f) => (
                 <li key={f.text} className="flex gap-3">
@@ -269,26 +272,29 @@ export default function PricingPage() {
           </h2>
           <div className="divide-y divide-[var(--border-warm)] border-y border-[var(--border-warm)] md:col-span-8">
             {FAQ.map((item) => (
-              <details key={item.q} className="group py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-semibold marker:content-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--amber)]">
-                  {item.q}
+              <details key={item.q} className="group py-4">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-1 text-[17px] font-semibold transition-colors marker:content-none hover:text-[var(--amber)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--amber)]">
+                  <span>{item.q}</span>
                   <span aria-hidden="true" className="relative h-4 w-4 shrink-0">
                     <span className="absolute left-0 top-1/2 h-0.5 w-4 -translate-y-1/2 rounded bg-[var(--amber)]" />
                     <span className="absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 rounded bg-[var(--amber)] transition-transform duration-300 group-open:scale-y-0" />
                   </span>
                 </summary>
-                <p className="mt-3 max-w-[65ch] text-[15px] leading-relaxed text-[var(--muted)]">{item.a}</p>
+                <p className="mt-2.5 max-w-[65ch] pb-1 text-[15px] leading-relaxed text-[var(--muted)] tabular-nums">{item.a}</p>
               </details>
             ))}
           </div>
         </section>
 
-        <section aria-labelledby="close-heading" className="mt-24 rounded-[28px] bg-[var(--espresso)] px-7 py-12 text-center text-white sm:px-12 sm:py-16">
+        <section
+          aria-labelledby="close-heading"
+          className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-center text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
+        >
           {/* The site-wide h2 font rule outranks utility classes, so the serif is set on the inner span */}
           <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
             <span className="font-[family-name:var(--font-playfair)] font-bold">Start on the plan your outlet needs today.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-white/75">
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[#C9D3E5]">
             Move from Basic to Pro any time. Pro starts straight away and the days left on Basic are taken off the price.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -305,9 +311,9 @@ export default function PricingPage() {
               Start with Basic
             </Link>
           </div>
-          <p className="mt-8 text-sm text-white/75">
+          <p className="mt-8 text-sm text-[#C9D3E5]">
             Running many outlets?{" "}
-            <a href="mailto:info@alaynai.com" className="font-medium text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
+            <a href="mailto:info@alaynai.com" className="font-medium text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white">
               Ask about volume pricing
             </a>
             .
