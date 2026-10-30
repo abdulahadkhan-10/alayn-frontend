@@ -44,6 +44,7 @@ import SubscriptionMonthSelector, {
   type PlanChoice
 } from "@/components/subscription/SubscriptionMonthSelector";
 import PlanPicker from "@/components/subscription/PlanPicker";
+import { clearPlanIntent, readPlanIntent } from "@/lib/planIntent";
 
 export default function CreateOutletPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -70,7 +71,9 @@ export default function CreateOutletPage() {
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [createdOutlet, setCreatedOutlet] = useState<any>(null);
-  const [months, setMonths] = useState<number>(1);
+  // Plan and period picked on the pricing page, if any (read once; step 1 doesn't render them)
+  const [intent] = useState(() => readPlanIntent());
+  const [months, setMonths] = useState<number>(intent?.cycle === "yearly" ? 12 : 1);
   const [couponInput, setCouponInput] = useState<string>("");
   const [couponError, setCouponError] = useState<string>("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState<boolean>(false);
@@ -97,7 +100,9 @@ export default function CreateOutletPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // A new outlet has no plan yet, so this is always a fresh start, never an upgrade
-  const [plan, setPlan] = useState<PlanChoice>({ planCode: "ALAYN_PRO", aggregators: ["SWIGGY"] });
+  const [plan, setPlan] = useState<PlanChoice>(
+    intent?.plan === "ALAYN_BASIC" ? { planCode: "ALAYN_BASIC", aggregators: [] } : { planCode: "ALAYN_PRO", aggregators: ["SWIGGY"] }
+  );
   const pricing = calculateSubscriptionPricing(months, appliedCoupon, plan);
   const projectedEnd = calculateProjectedEndDate(months);
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
@@ -307,6 +312,7 @@ export default function CreateOutletPage() {
           try {
             // 3. Fast-track server-side verification
             await verifyPayment({ orderId }).unwrap();
+            clearPlanIntent();
             await refreshBranches();
             setActiveBranch(createdOutlet);
             setCurrentStep(3); // Advance to Confirmation

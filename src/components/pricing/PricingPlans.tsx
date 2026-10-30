@@ -4,8 +4,7 @@ import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
-
-type Cycle = "monthly" | "yearly";
+import { signupHref, type Cycle } from "@/lib/planIntent";
 const CYCLES: Cycle[] = ["monthly", "yearly"];
 
 // Basic: what runs service. Plain lines.
@@ -42,8 +41,13 @@ function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode
         </span>
       </p>
       <p className={`mt-1.5 text-[13px] tabular-nums ${subtextTone}`}>
-        {formatRupees(withGst(amount))} with 18% GST
-        {cycle === "yearly" && <> · saves {formatRupees(yearlySaving(plan))} on paying monthly</>}
+        {formatRupees(Math.round(withGst(amount)))} with 18% GST
+        {cycle === "yearly" && (
+          <>
+            {" "}· <span className={dark ? "font-semibold text-white" : "font-semibold text-[var(--espresso)]"}>save {formatRupees(yearlySaving(plan))}</span> on
+            paying monthly · non-refundable
+          </>
+        )}
       </p>
     </div>
   );
@@ -125,10 +129,17 @@ export default function PricingPlans() {
           );
         })}
       </div>
+      {/* Phones see Pro first; this gets the budget-minded owner to Basic in one tap */}
+      <p className="mt-4 text-sm text-[var(--muted)] lg:hidden">
+        Just billing, kitchen and stock?{" "}
+        <a href="#plan-basic" className="font-semibold text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4">
+          See Alayn Basic
+        </a>
+      </p>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.12fr] lg:items-stretch">
         {/* Basic: plain paper, deliberately quiet — border elevation only, no ghost-card shadow */}
-        <article className="flex flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-7 text-[var(--espresso)] sm:p-9">
+        <article id="plan-basic" className="flex scroll-mt-28 flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-7 text-[var(--espresso)] sm:p-9">
           <div className="lg:min-h-[6.25rem]">
             <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_BASIC.name}</h3>
             <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">
@@ -139,7 +150,7 @@ export default function PricingPlans() {
             <Price plan="ALAYN_BASIC" cycle={cycle} animated={hasToggled} />
           </div>
           <Link
-            href="/signup"
+            href={signupHref("ALAYN_BASIC", cycle)}
             className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--espresso)] px-6 py-3 text-sm font-semibold text-[var(--espresso)] transition-colors hover:bg-[var(--espresso)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
           >
             Start with Basic
@@ -172,7 +183,7 @@ export default function PricingPlans() {
             <Price plan="ALAYN_PRO" cycle={cycle} dark animated={hasToggled} />
           </div>
           <Link
-            href="/signup"
+            href={signupHref("ALAYN_PRO", cycle)}
             className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_-10px_rgba(8,14,28,0.8)] transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Start with Pro

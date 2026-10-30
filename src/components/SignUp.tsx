@@ -20,6 +20,7 @@ import {
     Tag,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { parsePlanIntent, planIntentLabel, savePlanIntent } from "@/lib/planIntent";
 import { useRegisterMutation, useRegisterSupplierMutation } from "@/redux/slices/authApiSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
 
@@ -111,6 +112,11 @@ function Field({
 export default function SignupComponent() {
     const searchParams = useSearchParams();
     const roleParam = searchParams?.get("role") || searchParams?.get("type");
+    // The plan picked on the pricing page; checkout for the first outlet starts on it
+    const planIntent = parsePlanIntent(searchParams?.get("plan"), searchParams?.get("cycle"));
+    useEffect(() => {
+        if (planIntent) savePlanIntent(planIntent);
+    }, [planIntent?.plan, planIntent?.cycle]); // eslint-disable-line react-hooks/exhaustive-deps
     const [accountType, setAccountType] = useState<"RESTAURANT" | "SUPPLIER">(
         roleParam === "supplier" ? "SUPPLIER" : "RESTAURANT"
     );
@@ -360,6 +366,14 @@ export default function SignupComponent() {
                         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#1B2A4A] font-serif">
                             {accountType === "SUPPLIER" ? "Join as Supplier Partner" : "Create your restaurant"}
                         </h2>
+                        {accountType === "RESTAURANT" && planIntent && (
+                            <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 rounded-full bg-[#F4F5F8] px-3 py-1 text-xs font-semibold text-[#1B2A4A] ring-1 ring-[#1B2A4A]/10">
+                                You chose {planIntentLabel(planIntent)}
+                                <Link href="/pricing" className="font-medium text-[#C41E2A] underline underline-offset-2">
+                                    Change
+                                </Link>
+                            </p>
+                        )}
                         <p className="mt-1 text-xs text-[#6B7A90] font-medium leading-normal">
                             {accountType === "SUPPLIER"
                                 ? step === 1

@@ -5,6 +5,7 @@ import { Check, Minus } from "lucide-react";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import PricingPlans, { SoonTag } from "@/components/pricing/PricingPlans";
+import { signupHref } from "@/lib/planIntent";
 import { BASIC_AI_QUESTIONS, PRO_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 const siteUrl = "https://alaynai.com";
@@ -35,7 +36,7 @@ const DIFFERENCES: [string, Cell, Cell][] = [
   [
     "Second delivery app (add-on)",
     false,
-    `+${formatRupees(SECOND_AGGREGATOR.monthly)}/mo or +${formatRupees(SECOND_AGGREGATOR.yearly)}/yr`,
+    `+${formatRupees(SECOND_AGGREGATOR.monthly)}/mo or +${formatRupees(SECOND_AGGREGATOR.yearly)}/yr`,
   ],
 ];
 
@@ -204,11 +205,11 @@ export default function PricingPage() {
                 <p className="px-4 pb-3 pt-4 text-[15px] font-semibold">{feature}</p>
                 <dl className="grid grid-cols-2 border-t border-[var(--border-warm)] text-center">
                   <div className="px-3 py-3">
-                    <dt className="text-xs font-medium text-[var(--muted)]">Basic</dt>
+                    <dt className="text-xs font-medium text-[var(--muted)]">Basic · {formatRupees(PLANS.ALAYN_BASIC.monthly)}/mo</dt>
                     <dd className="mt-1.5"><CompareCell value={basic} /></dd>
                   </div>
                   <div className="bg-[var(--espresso)]/[0.04] px-3 py-3">
-                    <dt className="text-xs font-semibold text-[var(--espresso)]">Pro</dt>
+                    <dt className="text-xs font-semibold text-[var(--espresso)]">Pro · {formatRupees(PLANS.ALAYN_PRO.monthly)}/mo</dt>
                     <dd className="mt-1.5"><CompareCell value={pro} pro /></dd>
                   </div>
                 </dl>
@@ -299,13 +300,13 @@ export default function PricingPage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/signup"
+              href={signupHref("ALAYN_PRO", "yearly")}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Start with Pro
             </Link>
             <Link
-              href="/signup"
+              href={signupHref("ALAYN_BASIC", "yearly")}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Start with Basic
