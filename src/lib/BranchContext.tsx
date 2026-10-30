@@ -11,6 +11,8 @@ export interface BranchSubscription {
   status: "ACTIVE" | "PENDING_PAYMENT" | "EXPIRED" | "CANCELED";
   planCode?: string;
   planName?: string;
+  /** Pro only: SWIGGY and/or ZOMATO */
+  aggregators?: string[];
   monthlyFeePaise?: number;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;

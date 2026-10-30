@@ -28,6 +28,9 @@ import { useBranch } from "@/lib/BranchContext";
 import SubscriptionRenewModal from "@/components/subscription/SubscriptionRenewModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { effectivePlan, PLANS } from "@/lib/pricing";
+
+const planLabel = (planCode: string) => PLANS[effectivePlan(planCode)].name;
 
 export default function OutletsLedgerPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -260,7 +263,7 @@ export default function OutletsLedgerPage() {
                               </div>
                               <div>
                                 <p className="font-bold text-gray-900 text-xs sm:text-sm">{outlet.name}</p>
-                                <span className="text-[10px] text-gray-400 font-medium">₹3,000/mo or ₹26,000/yr</span>
+                                <span className="text-[10px] text-gray-400 font-medium">{outlet.subscription?.planCode ? planLabel(outlet.subscription.planCode) : "No plan yet"}</span>
                               </div>
                             </div>
                           </td>

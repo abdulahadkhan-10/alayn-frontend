@@ -38,10 +38,13 @@ import {
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import { useAppSelector } from "@/redux/store/hooks";
 import Link from "next/link";
-import SubscriptionMonthSelector, { 
-  calculateSubscriptionPricing, 
-  calculateProjectedEndDate 
+import SubscriptionMonthSelector, {
+  calculateSubscriptionPricing,
+  calculateProjectedEndDate,
+  type PlanChoice
 } from "@/components/subscription/SubscriptionMonthSelector";
+import PlanPicker from "@/components/subscription/PlanPicker";
+import { clearPlanIntent, readPlanIntent } from "@/lib/planIntent";
 
 export default function CreateOutletPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -68,7 +71,9 @@ export default function CreateOutletPage() {
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [createdOutlet, setCreatedOutlet] = useState<any>(null);
-  const [months, setMonths] = useState<number>(1);
+  // Plan and period picked on the pricing page, if any (read once; step 1 doesn't render them)
+  const [intent] = useState(() => readPlanIntent());
+  const [months, setMonths] = useState<number>(intent?.cycle === "yearly" ? 12 : 1);
   const [couponInput, setCouponInput] = useState<string>("");
   const [couponError, setCouponError] = useState<string>("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState<boolean>(false);
@@ -94,7 +99,11 @@ export default function CreateOutletPage() {
   const [paymentError, setPaymentError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
+  // A new outlet has no plan yet, so this is always a fresh start, never an upgrade
+  const [plan, setPlan] = useState<PlanChoice>(
+    intent?.plan === "ALAYN_BASIC" ? { planCode: "ALAYN_BASIC", aggregators: [] } : { planCode: "ALAYN_PRO", aggregators: ["SWIGGY"] }
+  );
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon, plan);
   const projectedEnd = calculateProjectedEndDate(months);
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
   const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
@@ -282,7 +291,8 @@ export default function CreateOutletPage() {
       // 1. Initiate subscription checkout session with Cashfree PG and dynamic coupon
       const res = await initiateSubscription({
         outletId: createdOutlet.id,
-        planCode: "MONTHLY_STANDARD",
+        planCode: plan.planCode,
+        aggregators: plan.aggregators,
         months,
         couponCode: appliedCoupon?.code,
       }).unwrap();
@@ -302,6 +312,7 @@ export default function CreateOutletPage() {
           try {
             // 3. Fast-track server-side verification
             await verifyPayment({ orderId }).unwrap();
+            clearPlanIntent();
             await refreshBranches();
             setActiveBranch(createdOutlet);
             setCurrentStep(3); // Advance to Confirmation
@@ -759,7 +770,7 @@ export default function CreateOutletPage() {
                 <div>
                   <p className="font-bold text-amber-900">Subscription Required to Unlock Branch</p>
                   <p className="text-amber-700 text-[11px] font-normal mt-0.5">
-                    Your outlet details are saved. To activate POS billing terminals, live Kitchen Display (KDS), and inventory telemetry, complete the monthly subscription payment below.
+                    Your outlet details are saved. To activate POS billing terminals, live Kitchen Display (KDS), and inventory telemetry, choose Alayn Basic or Alayn Pro below and complete the payment.
                   </p>
                 </div>
               </div>
@@ -780,42 +791,17 @@ export default function CreateOutletPage() {
                 </span>
               </div>
 
-              {/* Included Features */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Included in Alayn Smart Branch Pro:
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-medium text-zinc-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Unlimited POS Billing Terminals</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Live Kitchen Display System (KDS)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Real-time Multi-batch Stock Tracking</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>AI Menu Costing & Wastage Telemetry</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Staff Rostering & Geofenced Attendance</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>24/7 Priority Support & Backups</span>
-                  </div>
-                </div>
-              </div>
+              {/* Plan choice */}
+              <PlanPicker
+                value={plan}
+                onChange={setPlan}
+                disabled={isProcessingPayment || isInitiating || isVerifying || isApplyingCoupon}
+              />
 
               {/* Duration Selector & Dynamic Pricing */}
               <SubscriptionMonthSelector
                 months={months}
+                plan={plan}
                 onChange={setMonths}
                 disabled={isProcessingPayment || isInitiating || isVerifying || isApplyingCoupon}
                 coupon={appliedCoupon}

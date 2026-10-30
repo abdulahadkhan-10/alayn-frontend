@@ -19,7 +19,7 @@
 - **Operator**: BRAHM Global Holdings (sole proprietorship, Mumbai, India)
 - **Canonical Website**: https://alaynai.com/
 - **Primary Contact**: info@alaynai.com
-- **Pricing**: ₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST, every feature included. See https://alaynai.com/pricing
+- **Pricing**: two plans per outlet, + 18% GST: Alayn Basic ₹599 a month or ₹5,999 a year; Alayn Pro ₹1,999 a month or ₹19,999 a year. See https://alaynai.com/pricing
 - **Content Format**: Send an `Accept: text/markdown` header, or add `.md` to the path (`/index.md` for the homepage), to get Markdown versions of the home, billing-software, features, pricing, about, contact, API and privacy pages. Unknown paths return a Markdown 404.
 
 ## Developer Resources & API Integration
@@ -34,7 +34,7 @@
 - [Home](https://alaynai.com/): Product overview and interactive demonstration booking.
 - [Restaurant Billing Software & POS](https://alaynai.com/billing-software): GST counter & table billing, KOT printing, UPI/card/cash, and live sync with KDS, inventory, and workforce.
 - [Features](https://alaynai.com/features): Every module: POS billing, KDS, inventory, waste, workforce, multi-outlet, analytics and API.
-- [Pricing](https://alaynai.com/pricing): ₹3,000 per outlet per month or ₹26,000 a year, + GST, what's included and how billing works.
+- [Pricing](https://alaynai.com/pricing): Alayn Basic from ₹599 and Alayn Pro from ₹1,999 per outlet per month, + GST, what's included and how billing works.
 - [About Alayn AI](https://alaynai.com/about): Mission, domain-first operator mental model, hospitality pillars, and BRAHM Global Holdings backing.
 - [Contact & Sales](https://alaynai.com/contact): Direct departmental routing for product demos, enterprise sales, and operator support.
 - [API Reference](https://alaynai.com/api-docs): REST API authentication, outlet scoping and rate limits.

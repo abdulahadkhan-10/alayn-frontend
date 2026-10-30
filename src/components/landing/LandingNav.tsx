@@ -121,7 +121,7 @@ export default function LandingNav() {
                 onClick={() => setDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-2.5 rounded-full bg-white/90 border border-zinc-200/80 px-3 py-1.5 shadow-sm hover:bg-zinc-50 transition-all duration-200 min-h-[44px]"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D3232A] text-xs font-bold text-white shadow-sm" suppressHydrationWarning>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--amber)] text-xs font-bold text-white shadow-sm" suppressHydrationWarning>
                   {initial}
                 </div>
                 <span className="text-xs font-semibold text-zinc-800" suppressHydrationWarning>
@@ -135,7 +135,7 @@ export default function LandingNav() {
                   <div className="px-3 py-2 border-b border-zinc-100 mb-1">
                     <p className="text-xs font-bold text-zinc-900 truncate" suppressHydrationWarning>{user.name}</p>
                     <p className="text-[11px] text-zinc-400 font-medium truncate" suppressHydrationWarning>{user.email}</p>
-                    <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[#D3232A]">
+                    <span className="inline-block mt-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-[var(--amber)]">
                       {formatRole(user.role)}
                     </span>
                   </div>
@@ -145,7 +145,7 @@ export default function LandingNav() {
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
                   >
-                    <LayoutGrid className="h-4 w-4 text-[#D3232A]" />
+                    <LayoutGrid className="h-4 w-4 text-[var(--amber)]" />
                     Go to Dashboard
                   </Link>
 
@@ -178,7 +178,7 @@ export default function LandingNav() {
                 style={{
                   fontSize: "13px",
                   fontWeight: 600,
-                  color: "#1A1D24",
+                  color: "var(--espresso)",
                   textDecoration: "none",
                   padding: "10px 18px",
                   borderRadius: "20px",
@@ -201,7 +201,7 @@ export default function LandingNav() {
                     fontSize: "13px",
                     fontWeight: 600,
                     color: "#FFFFFF",
-                    backgroundColor: "#1A1D24",
+                    backgroundColor: "var(--espresso)",
                     textDecoration: "none",
                     padding: "8px 16px",
                     borderRadius: "20px",
@@ -222,7 +222,9 @@ export default function LandingNav() {
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle Navigation Menu"
-            className="p-2.5 rounded-xl bg-white/90 border border-zinc-200/80 text-zinc-800 shadow-sm focus:outline-none min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-menu"
+            className="p-2.5 rounded-xl bg-white/90 border border-zinc-200/80 text-zinc-800 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)] min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -234,6 +236,7 @@ export default function LandingNav() {
           <>
 
             <motion.div
+              id="mobile-nav-menu"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
@@ -243,7 +246,7 @@ export default function LandingNav() {
             {isAuthenticated && user ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-50 border border-zinc-200/80">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D3232A] text-sm font-bold text-white shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--amber)] text-sm font-bold text-white shadow-sm">
                     {initial}
                   </div>
                   <div className="overflow-hidden">
@@ -255,7 +258,7 @@ export default function LandingNav() {
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-[#D3232A] px-4 py-3 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 min-h-[44px]"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-[var(--amber)] px-4 py-3 text-xs font-bold text-white shadow-sm transition-transform active:scale-95 min-h-[44px]"
                 >
                   <LayoutGrid className="h-4 w-4" />
                   Go to Dashboard
@@ -275,19 +278,19 @@ export default function LandingNav() {
                 <Link
                   href="/contact"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center rounded-xl bg-[#C41E2A] px-4 py-3 text-[13px] font-bold text-white shadow-md transition-transform active:scale-95 min-h-[48px] mb-2"
+                  className="flex items-center justify-center rounded-xl bg-[var(--amber)] px-4 py-3 text-[13px] font-bold text-white shadow-md transition-transform active:scale-95 min-h-[48px] mb-2"
                 >
                   Book a demo
                 </Link>
                 
                 <div className="flex flex-col gap-1 py-2 border-y border-zinc-100 mb-2">
-                  <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                  <Link href="/#how-it-works" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Platform
                   </Link>
-                  <Link href="#scene-convergence" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                  <Link href="/#scene-convergence" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Modules
                   </Link>
-                  <Link href="#scene-verticals" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                  <Link href="/#scene-verticals" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Who it&apos;s for
                   </Link>
                 </div>

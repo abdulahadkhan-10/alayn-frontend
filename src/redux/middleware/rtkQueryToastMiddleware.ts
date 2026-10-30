@@ -102,6 +102,11 @@ export const rtkQueryToastMiddleware: Middleware = () => (next) => (action: any)
       if (action.payload?.data?.error?.code === CLOCK_IN_CONFIRMATION_REQUIRED) {
         return next(action);
       }
+      // A Basic outlet tried something that is part of Alayn Pro: say so, not "failed"
+      if (action.payload?.data?.error?.code === "PLAN_UPGRADE_REQUIRED") {
+        showToast.error("Part of Alayn Pro", extractErrorMessage(action));
+        return next(action);
+      }
       const title = `${formatEndpointTitle(endpointName)} Failed`;
       const errorMsg = extractErrorMessage(action);
       showToast.error(title, errorMsg);

@@ -23,9 +23,12 @@ export interface InitiateSubscriptionResponse {
   baseAmountRupees: number;
   gstAmountRupees: number;
   currency: string;
+  /** Value of the days left on the old plan, taken off when changing plan */
+  creditRupees?: number;
   plan: {
     code: string;
     name: string;
+    aggregators: string[];
     features: string[];
   };
 }
@@ -37,7 +40,10 @@ export interface OutletSubscriptionStatusResponse {
   isActive: boolean;
   daysRemaining: number;
   planCode?: string;
+  /** ALAYN_BASIC or ALAYN_PRO (old and free-coupon plans count as Pro) */
+  effectivePlan?: "ALAYN_BASIC" | "ALAYN_PRO";
   planName?: string;
+  aggregators?: string[];
   monthlyFeeRupees?: number;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
@@ -72,7 +78,7 @@ export const subscriptionApi = baseApi.injectEndpoints({
 
     initiateOutletSubscription: builder.mutation<
       InitiateSubscriptionResponse,
-      { outletId: string; planCode?: string; months?: number; couponCode?: string }
+      { outletId: string; planCode: "ALAYN_BASIC" | "ALAYN_PRO"; aggregators?: string[]; months?: number; couponCode?: string }
     >({
       query: (body) => ({
         url: "/subscriptions/outlets/initiate",

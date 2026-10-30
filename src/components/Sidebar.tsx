@@ -35,6 +35,7 @@ import { logout } from "@/redux/slices/authSlice";
 import { useLogoutMutation } from "@/redux/slices/authApiSlice";
 import { useOfflineStatus } from "@/lib/offline/offlineStatus";
 import { useBranch } from "@/lib/BranchContext";
+import { isProOnlyRoute, useIsPro } from "@/lib/plan";
 import { baseApi } from "@/redux/store/baseApi";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 
@@ -121,16 +122,19 @@ const NavLinkItem = memo(function NavLinkItem({
   isActive,
   isCollapsed,
   isLocked,
+  proLocked,
 }: {
   item: NavItem;
   isActive: boolean;
   isCollapsed: boolean;
   isLocked?: boolean;
+  /** Part of Alayn Pro and this outlet is on Basic */
+  proLocked?: boolean;
 }) {
   return (
     <Link
       href={item.href}
-      title={isCollapsed ? (isLocked ? `${item.name} (Subscription Required)` : item.name) : undefined}
+      title={isCollapsed ? (isLocked ? `${item.name} (Subscription Required)` : proLocked ? `${item.name} (Alayn Pro)` : item.name) : undefined}
       className={cn(
         "group relative flex items-center rounded-lg text-[13px] transition-colors duration-150 ease-out min-w-0",
         isCollapsed ? "h-9 w-9 justify-center px-0 mx-auto" : "h-9 px-2.5 w-full",
@@ -184,9 +188,16 @@ const NavLinkItem = memo(function NavLinkItem({
       </span>
 
       {/* Right Affix: Lock / Badge */}
-      {!isCollapsed && (isLocked || item.badge) && (
+      {!isCollapsed && (isLocked || proLocked || item.badge) && (
         <div className="ml-auto pl-1.5 flex items-center shrink-0">
-          {isLocked ? (
+          {proLocked && !isLocked ? (
+            <span
+              title="Part of Alayn Pro"
+              className="flex items-center gap-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300 leading-none"
+            >
+              <Lock className="h-2.5 w-2.5" /> Pro
+            </span>
+          ) : isLocked ? (
             <span title="Subscription Required">
               <Lock className="h-3.5 w-3.5 text-slate-600 group-hover:text-amber-400/80 transition-colors" />
             </span>
@@ -206,6 +217,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const { hasActiveSubscription, isDemo, activeBranch } = useBranch();
+  const isPro = useIsPro();
   const role: Role = useMemo(() => (user?.role as Role) || "BUSINESS_OWNER", [user?.role]);
   const [mounted, setMounted] = useState(false);
 
@@ -396,6 +408,7 @@ function SidebarComponent({ isCollapsed = false, onToggleCollapse }: SidebarProp
                     isActive={isActive}
                     isCollapsed={isCollapsed}
                     isLocked={isLocked}
+                    proLocked={!isPro && isProOnlyRoute(item.href, role)}
                   />
                 );
               })}

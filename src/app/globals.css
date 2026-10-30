@@ -10,6 +10,10 @@
   --cream: #FFFFFF;
   --cream-light: #F4F5F8;       /* Very subtle navy-tinted off-white */
 
+  /* Secondary text and chips on navy (--espresso): 9.4:1 and 11:1 */
+  --muted-on-dark: #C9D3E5;
+  --chip-on-dark: #E2E8F3;
+
   /* Deep navy — logo's dominant color (wordmark + right stroke) */
   --espresso: #1B2A4A;
   --espresso-mid: #243556;
@@ -132,6 +136,12 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ---- Reveal Animations ---- */

@@ -67,69 +67,69 @@ export default function LandingFooter() {
 
           {/* Navigation Links (Platform) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-1">Platform</h3>
-            <Link href="/billing-software" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Platform</h3>
+            <Link href="/billing-software" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Billing Software
             </Link>
-            <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/features" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Features
             </Link>
-            {/* <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Pricing
-            </Link> */}
-            <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            </Link>
+            <Link href="/about" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               About Us
             </Link>
-            <Link href="/contact#demo" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/contact#demo" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Book a Demo
             </Link>
-            <Link href="/api-docs" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/api-docs" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               API Reference
             </Link>
-            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Log in
             </Link>
-            <Link href="/signup" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/signup" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Sign up
             </Link>
           </div>
 
           {/* Navigation Links (Connect) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-1">Connect</h3>
-            <Link href="/contact" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Connect</h3>
+            <Link href="/contact" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Contact Sales
             </Link>
-            <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               info@alaynai.com
             </a>
           </div>
 
           {/* Navigation Links (Legal & Trust) */}
           <div className="md:col-span-4 lg:col-span-3 flex flex-col gap-3">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/30 mb-1">Legal &amp; Trust</h3>
-            <Link href="/legal/privacy" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Legal &amp; Trust</h3>
+            <Link href="/legal/privacy" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Privacy Policy
             </Link>
-            <Link href="/legal/terms" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/terms" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Terms of Service
             </Link>
-            <Link href="/legal/cookie" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/cookie" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Cookie Policy
             </Link>
-            <Link href="/legal/security" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/security" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Security &amp; Data Protection
             </Link>
-            <Link href="/legal/responsible-ai" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/responsible-ai" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Responsible AI
             </Link>
-            <Link href="/legal/corporate" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/corporate" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Corporate Information
             </Link>
-            <Link href="/legal/refund" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/refund" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Refund Policy
             </Link>
-            <Link href="/legal/support" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit">
+            <Link href="/legal/support" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Support & Grievances
             </Link>
           </div>
@@ -137,15 +137,15 @@ export default function LandingFooter() {
 
         {/* Bottom Strip */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-white/[0.04]">
-          <p className="text-xs text-white/40 tracking-wide text-center md:text-left">
+          <p className="text-xs text-white/60 tracking-wide text-center md:text-left">
             &copy; {new Date().getFullYear()} Alayn AI (BRAHM Global Holdings). All Rights Reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-white/40">
-            <Link href="/billing-software" className="hover:text-white transition-colors">Billing Software</Link>
-            <Link href="/about" className="hover:text-white transition-colors">About</Link>
-            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
-            <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/legal/terms" className="hover:text-white transition-colors">Terms</Link>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 text-xs text-white/60">
+            <Link href="/billing-software" className="inline-block py-3 hover:text-white transition-colors">Billing Software</Link>
+            <Link href="/about" className="inline-block py-3 hover:text-white transition-colors">About</Link>
+            <Link href="/contact" className="inline-block py-3 hover:text-white transition-colors">Contact</Link>
+            <Link href="/legal/privacy" className="inline-block py-3 hover:text-white transition-colors">Privacy</Link>
+            <Link href="/legal/terms" className="inline-block py-3 hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </div>

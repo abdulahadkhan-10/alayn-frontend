@@ -136,9 +136,9 @@ export default function FeaturesPage() {
             <Link href="/billing-software" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
               restaurant billing software
             </Link>{" "}
-            and operating system for restaurants, cafés, cloud kitchens and multi-outlet groups. Billing, the kitchen, stock, waste and staff all work from the same live data, and every feature is included in one{" "}
+            and operating system for restaurants, cafés, cloud kitchens and multi-outlet groups. Billing, the kitchen, stock, waste and staff all work from the same live data, and everything comes in two simple{" "}
             <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-              per-outlet plan
+              per-outlet plans
             </Link>
             .
           </p>

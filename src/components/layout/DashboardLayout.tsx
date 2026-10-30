@@ -6,6 +6,8 @@ import AuthGuard from "../auth/AuthGuard";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import SubscriptionPaywall from "../subscription/SubscriptionPaywall";
+import { ProLockedPanel } from "../subscription/ProUpgrade";
+import { isProOnlyRoute, useIsPro } from "@/lib/plan";
 
 const EXPANDED = 244;
 const COLLAPSED = 72;
@@ -93,6 +95,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   // Show paywall if not demo, not loading, route is restricted, not a supplier, and active branch is not subscribed
   const showPaywall = mounted && !isSupplier && !isDemo && !branchesLoading && !isUnrestrictedRoute && !hasActiveSubscription;
 
+  // Shifts, attendance and leave are part of Alayn Pro; Basic outlets see an upgrade prompt instead
+  const isPro = useIsPro();
+  const showProLock = mounted && !showPaywall && !isSupplier && !branchesLoading && !isPro && isProOnlyRoute(pathname, user?.role);
+
   const sidebarW = isCollapsed ? COLLAPSED : EXPANDED;
 
   return (
@@ -141,6 +147,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {showPaywall ? (
             <SubscriptionPaywall targetBranch={activeBranch} />
+          ) : showProLock ? (
+            <ProLockedPanel
+              title="Shifts, attendance and leave"
+              description="Plan shifts and rosters, approve swaps and leave, and track clock-ins with Alayn Pro. Your staff directory and logins stay available on Basic."
+            />
           ) : (
             children
           )}

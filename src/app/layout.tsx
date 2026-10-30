@@ -148,21 +148,16 @@ export default function RootLayout({
           "Multi-Outlet Restaurant Management",
           "Ask Alayn AI Natural Language Analytics"
         ],
+        // Alayn Basic and Alayn Pro, per outlet per month before GST (src/lib/pricing.ts)
         "offers": {
-          "@type": "Offer",
+          "@type": "AggregateOffer",
           "@id": `${siteUrl}/pricing#offer`,
-          "name": "Alayn AI All-Inclusive Per-Outlet Plan",
+          "name": "Alayn Basic and Alayn Pro, per outlet",
           "url": `${siteUrl}/pricing`,
-          "price": "3000",
+          "lowPrice": 599,
+          "highPrice": 1999,
           "priceCurrency": "INR",
-          "priceSpecification": {
-            "@type": "UnitPriceSpecification",
-            "price": 3000,
-            "priceCurrency": "INR",
-            "valueAddedTaxIncluded": false,
-            "billingDuration": "P1M",
-            "unitText": "per outlet per month"
-          }
+          "offerCount": 2
         },
         "url": siteUrl,
         "creator": {
