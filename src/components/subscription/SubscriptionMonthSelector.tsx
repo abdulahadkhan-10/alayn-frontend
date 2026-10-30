@@ -2,10 +2,21 @@
 
 import React from "react";
 import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck, Tag } from "lucide-react";
-import { basePriceFor, GST_PERCENT, MAX_MONTHS, MONTHLY_FEE, YEARLY_FEE, YEARLY_SAVING } from "@/lib/pricing";
+import { Aggregator, basePriceFor, formatRupees, GST_PERCENT, MAX_MONTHS, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
+
+/** The plan being bought: Basic, or Pro with Swiggy and/or Zomato */
+export interface PlanChoice {
+  planCode: PlanCode;
+  aggregators: Aggregator[];
+}
 
 interface SubscriptionMonthSelectorProps {
   months: number;
+  plan: PlanChoice;
+  /** Value of the days left on the current plan, when changing plan */
+  creditRupees?: number;
+  /** A plan change starts now instead of after the current end */
+  startsNow?: boolean;
   onChange: (months: number) => void;
   currentPeriodEnd?: string | null;
   disabled?: boolean;
@@ -16,21 +27,38 @@ interface SubscriptionMonthSelectorProps {
   } | null;
 }
 
-export const PRESET_OPTIONS = [
-  { months: 1, label: "1 Month", subtitle: `₹${MONTHLY_FEE.toLocaleString("en-IN")} + GST` },
-  { months: 3, label: "3 Months", subtitle: `₹${(MONTHLY_FEE * 3).toLocaleString("en-IN")} + GST` },
-  { months: 6, label: "6 Months", subtitle: `₹${(MONTHLY_FEE * 6).toLocaleString("en-IN")} + GST` },
-  { months: 12, label: "1 Year", subtitle: `₹${YEARLY_FEE.toLocaleString("en-IN")} + GST`, badge: `Save ₹${YEARLY_SAVING.toLocaleString("en-IN")}` },
-];
+/** Monthly and yearly price of a plan choice, before GST */
+export function planPrices(plan: PlanChoice) {
+  const both = plan.planCode === "ALAYN_PRO" && plan.aggregators.length >= 2;
+  return {
+    monthly: PLANS[plan.planCode].monthly + (both ? SECOND_AGGREGATOR.monthly : 0),
+    yearly: PLANS[plan.planCode].yearly + (both ? SECOND_AGGREGATOR.yearly : 0),
+  };
+}
+
+export function presetOptions(plan: PlanChoice) {
+  const { monthly, yearly } = planPrices(plan);
+  const saving = monthly * 12 - yearly;
+  return [
+    { months: 1, label: "1 Month", subtitle: `${formatRupees(monthly)} + GST` },
+    { months: 3, label: "3 Months", subtitle: `${formatRupees(monthly * 3)} + GST` },
+    { months: 6, label: "6 Months", subtitle: `${formatRupees(monthly * 6)} + GST` },
+    { months: 12, label: "1 Year", subtitle: `${formatRupees(yearly)} + GST`, badge: saving > 0 ? `Save ${formatRupees(saving)}` : undefined },
+  ];
+}
 
 /** Mirrors what the server charges (it decides; this is for showing the price) */
 export function calculateSubscriptionPricing(
   months: number,
-  coupon?: { discountType: string; discountValue: number } | null
+  coupon: { discountType: string; discountValue: number } | null | undefined,
+  plan: PlanChoice,
+  creditRupees = 0
 ) {
   const gstRatePercent = GST_PERCENT;
   const safeMonths = Math.max(1, Math.min(MAX_MONTHS, months || 1));
-  const rawBaseTotal = basePriceFor(safeMonths);
+  const planTotal = basePriceFor(plan.planCode, safeMonths, plan.aggregators.length);
+  const credit = Math.min(planTotal, Math.max(0, creditRupees));
+  const rawBaseTotal = Math.round((planTotal - credit) * 100) / 100;
   let discountRupees = 0;
   if (coupon) {
     if (coupon.discountType === "PERCENTAGE") {
@@ -45,6 +73,8 @@ export function calculateSubscriptionPricing(
 
   return {
     months: safeMonths,
+    planTotal,
+    credit,
     rawBaseTotal,
     discountRupees,
     baseTotal,
@@ -78,10 +108,10 @@ export function addCalendarMonths(startDate: Date, months: number): Date {
   return result;
 }
 
-export function calculateProjectedEndDate(months: number, currentPeriodEnd?: string | null): Date {
+export function calculateProjectedEndDate(months: number, currentPeriodEnd?: string | null, startsNow = false): Date {
   const safeMonths = Math.max(1, Math.min(36, months || 1));
   const now = new Date();
-  const existingEnd = currentPeriodEnd ? new Date(currentPeriodEnd) : null;
+  const existingEnd = currentPeriodEnd && !startsNow ? new Date(currentPeriodEnd) : null;
   const startDate = existingEnd && existingEnd > now ? existingEnd : now;
 
   return addCalendarMonths(startDate, safeMonths);
@@ -89,13 +119,18 @@ export function calculateProjectedEndDate(months: number, currentPeriodEnd?: str
 
 export default function SubscriptionMonthSelector({
   months,
+  plan,
+  creditRupees = 0,
+  startsNow = false,
   onChange,
   currentPeriodEnd,
   disabled = false,
   coupon = null,
 }: SubscriptionMonthSelectorProps) {
-  const pricing = calculateSubscriptionPricing(months, coupon);
-  const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd);
+  const pricing = calculateSubscriptionPricing(months, coupon, plan, creditRupees);
+  const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd, startsNow);
+  const prices = planPrices(plan);
+  const presets = presetOptions(plan);
 
   const handlePresetSelect = (m: number) => {
     if (disabled) return;
@@ -113,7 +148,7 @@ export default function SubscriptionMonthSelector({
   };
 
   const now = new Date();
-  const existingEnd = currentPeriodEnd ? new Date(currentPeriodEnd) : null;
+  const existingEnd = currentPeriodEnd && !startsNow ? new Date(currentPeriodEnd) : null;
   const effectiveStartDate = existingEnd && existingEnd > now ? existingEnd : now;
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)));
 
@@ -123,7 +158,7 @@ export default function SubscriptionMonthSelector({
     year: "numeric",
   });
 
-  const isExtending = currentPeriodEnd && new Date(currentPeriodEnd) > new Date();
+  const isExtending = !startsNow && currentPeriodEnd && new Date(currentPeriodEnd) > new Date();
 
   return (
     <div className="space-y-4">
@@ -133,13 +168,13 @@ export default function SubscriptionMonthSelector({
           Choose Subscription Duration
         </label>
         <span className="text-[11px] font-semibold text-zinc-500">
-          ₹{MONTHLY_FEE.toLocaleString("en-IN")}/mo or ₹{YEARLY_FEE.toLocaleString("en-IN")}/yr + GST
+          {formatRupees(prices.monthly)}/mo or {formatRupees(prices.yearly)}/yr + GST
         </span>
       </div>
 
       {/* Preset Pills */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {PRESET_OPTIONS.map((preset) => {
+        {presets.map((preset) => {
           const isSelected = months === preset.months;
           return (
             <button
@@ -226,10 +261,17 @@ export default function SubscriptionMonthSelector({
       <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-red-50/20 p-4 border border-slate-200/80 space-y-2">
         <div className="flex justify-between text-xs text-zinc-600 font-medium">
           <span>
-            Branch Operational Fee ({durationLabel(months)})
+            {PLANS[plan.planCode].name}
+            {plan.aggregators.length >= 2 ? " + second delivery app" : ""} ({durationLabel(months)})
           </span>
-          <span>₹{pricing.rawBaseTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+          <span>₹{pricing.planTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
+        {pricing.credit > 0 && (
+          <div className="flex justify-between text-xs text-emerald-700 font-semibold">
+            <span>Credit for days left on your current plan</span>
+            <span>-₹{pricing.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+          </div>
+        )}
         {pricing.discountRupees > 0 && coupon && (
           <div className="flex justify-between items-center text-xs text-emerald-700 font-bold bg-emerald-50/90 px-2.5 py-1.5 rounded-xl border border-emerald-200">
             <span className="flex items-center gap-1.5">
@@ -257,7 +299,7 @@ export default function SubscriptionMonthSelector({
         </div>
         {months >= 12 && (
           <p className="pt-1 text-[11px] text-zinc-500">
-            Years are charged at ₹{YEARLY_FEE.toLocaleString("en-IN")} + GST each and are non-refundable.
+            Years are charged at {formatRupees(prices.yearly)} + GST each and are non-refundable.
           </p>
         )}
       </div>

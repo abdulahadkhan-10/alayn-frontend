@@ -19,7 +19,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
 ## Pricing
-₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST, with every feature included. Details: https://alaynai.com/pricing
+Two plans per outlet, + 18% GST: Alayn Basic ₹599 a month or ₹5,999 a year; Alayn Pro ₹1,999 a month or ₹19,999 a year. Details: https://alaynai.com/pricing
 
 - Restaurant Billing Software: https://alaynai.com/billing-software
 - Full feature list: https://alaynai.com/features
@@ -53,7 +53,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 6. **Multi-Outlet Billing & Ask Alayn AI**: Manage every location from one login and ask plain-language questions about daily billing, top sellers, and margins.
 
 ## Pricing
-₹3,000 per outlet per month + 18% GST (₹3,540 total per month), or ₹26,000 a year + 18% GST (₹30,680 total). Every module included.
+Alayn Basic: ₹599 per outlet per month or ₹5,999 a year. Alayn Pro: ₹1,999 per outlet per month or ₹19,999 a year. All prices + 18% GST.
 
 - Pricing details: https://alaynai.com/pricing
 - Features: https://alaynai.com/features
@@ -65,7 +65,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 
 > Everything a restaurant, café or cloud kitchen runs on during service, in one platform.
 
-Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. Every feature below is included in one per-outlet subscription (see https://alaynai.com/pricing).
+Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. The features below come in two per-outlet plans, Alayn Basic and Alayn Pro (see https://alaynai.com/pricing).
 
 ## Point of Sale & GST Billing Software
 - Counter and table GST billing with UPI, card and cash.
@@ -114,23 +114,29 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
   // Keep in step with src/app/pricing/page.tsx and the prices in src/lib/pricing.ts.
   "/pricing": `# Alayn AI Pricing
 
-> One plan, priced per outlet: ₹3,000 a month + 18% GST (₹3,540 in total), or ₹26,000 a year + 18% GST (₹30,680 in total, saving ₹10,000). The yearly payment is non-refundable.
+> Two plans, priced per outlet, + 18% GST. Alayn Basic: ₹599 a month (₹706.82 with GST) or ₹5,999 a year (₹7,078.82 with GST). Alayn Pro: ₹1,999 a month (₹2,358.82 with GST) or ₹19,999 a year (₹23,598.82 with GST). Yearly payments are non-refundable.
 
-## What's Included
-Every feature, for every outlet on the plan:
-- Unlimited POS billing terminals and table QR menus
-- Live kitchen display system (KDS)
-- Batch inventory with expiry tracking and purchase orders
-- Waste tracking with AI menu and wastage insights
-- Staff rosters, shift swaps, leave and geofenced attendance
-- Sales and P&L analytics
-- Ask Alayn AI, with a daily question allowance for each outlet
-- REST API access
+## Alayn Basic
+- POS billing on unlimited counters, with table QR menus
+- Kitchen display and KOT printing
+- Inventory with batch expiry, suppliers, purchase orders and waste logging
+- Sales reports and analytics
+- Staff directory, logins and roles
+- Ask Alayn AI: 3 sales and menu questions a day
+- Quickii, Alayn's own delivery portal (coming soon)
+
+## Alayn Pro
+Everything in Basic, plus:
+- Shift scheduling, rosters, swaps, attendance, leave and the clock-in terminal
+- Full Ask Alayn AI: sales, stock, waste, staff and forecasts
+- Swiggy or Zomato integration, one included (coming soon)
+- Both Swiggy and Zomato: the second is ₹499 a month or ₹4,999 a year + GST
 
 ## How Billing Works
 - Each outlet has its own subscription.
 - Prices are before 18% GST, which is added at checkout.
 - Pay for 1 to 36 months at a time. Each full year is charged at the yearly price.
+- Move from Basic to Pro at any time; the days left on Basic are taken off the price. Moving from Pro to Basic happens when the Pro period ends.
 - Yearly payments are non-refundable.
 - Payments are processed by Cashfree.
 - Refunds and cancellations: https://alaynai.com/legal/refund

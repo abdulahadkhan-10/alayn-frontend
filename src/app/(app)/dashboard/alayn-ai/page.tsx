@@ -21,6 +21,8 @@ import Composer, { ComposerHandle } from "@/components/alayn-ai/Composer";
 import ConversationRail from "@/components/alayn-ai/ConversationRail";
 import MessageList, { ChatTurn } from "@/components/alayn-ai/MessageList";
 import { followUpsFor } from "@/components/alayn-ai/topics";
+import { UpgradeToProButton } from "@/components/subscription/ProUpgrade";
+import { useIsPro } from "@/lib/plan";
 
 /**
  * One conversation, saved on the server (private to this person, kept for 30 days). `turns` is null
@@ -50,6 +52,14 @@ const SUGGESTIONS = [
     label: "Which dishes sell best and worst?",
     prompt: "Which menu items are selling best this month, and which are selling least or not at all?",
   },
+];
+
+// Alayn Basic answers sales and menu questions only
+const BASIC_SUGGESTIONS = [
+  { label: "How were sales yesterday?", prompt: "What were my sales yesterday, and how do they compare with the same day last week?" },
+  { label: "Which hours are busiest?", prompt: "Which hours of the day are busiest, by sales?" },
+  { label: "This month vs last month", prompt: "Compare this month's sales so far with last month." },
+  SUGGESTIONS[3],
 ];
 
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -96,6 +106,7 @@ export default function AlaynAIPage() {
 
 function AlaynAIWorkspace() {
   const { activeBranch } = useBranch();
+  const isPro = useIsPro();
   const user = useAppSelector((state) => state.auth.user);
   const reduceMotion = !!useReducedMotion();
   const outletKey = activeBranch?.id ?? "";
@@ -307,6 +318,8 @@ function AlaynAIWorkspace() {
     else copy(turn);
   }
 
+  // Basic outlets: a few sales and menu questions a day (the server decides; this only shapes the page)
+  const isBasic = allowance ? !allowance.fullAccess : !isPro;
   const last = turns[turns.length - 1];
   const followUps = last && last.status === "done" ? followUpsFor(last.topics, turns.map((t) => t.question)) : [];
   const outletName = activeBranch?.name ?? "All outlets";
@@ -316,12 +329,20 @@ function AlaynAIWorkspace() {
 
   // Quiet until it matters: a count while plenty is left, amber near the end, a full line when used up
   const allowanceLine = !allowance ? null : usedUp ? (
-    <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-2.5 text-center text-sm text-amber-200" role="status">
-      This outlet has used all {allowance.limit} Alayn AI questions for today. More questions at midnight.
-    </p>
+    <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-2.5 text-center text-sm text-amber-200" role="status">
+      {isBasic ? (
+        <>
+          <p>Alayn Basic includes {allowance.limit} Alayn AI questions a day, and this outlet has used them. More at midnight, or upgrade to Pro for more questions about stock, staff and forecasts too.</p>
+          <div className="mt-2 flex justify-center"><UpgradeToProButton /></div>
+        </>
+      ) : (
+        <>This outlet has used all {allowance.limit} Alayn AI questions for today. More questions at midnight.</>
+      )}
+    </div>
   ) : (
-    <span className={allowance.remaining <= 3 ? "text-amber-300" : undefined}>
+    <span className={allowance.remaining <= 3 && !isBasic ? "text-amber-300" : undefined}>
       {allowance.remaining} of {allowance.limit} questions left today
+      {isBasic && " on Basic · sales and menu only; Pro adds stock, staff and forecasts"}
     </span>
   );
 
@@ -429,7 +450,7 @@ function AlaynAIWorkspace() {
               {composer}
               {usedUp ? allowanceLine : allowanceLine && <p className="mt-2 text-center text-[11px] text-slate-400">{allowanceLine}</p>}
               <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {SUGGESTIONS.map((s) => (
+                {(isBasic ? BASIC_SUGGESTIONS : SUGGESTIONS).map((s) => (
                   <button
                     key={s.label}
                     type="button"

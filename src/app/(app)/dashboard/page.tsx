@@ -18,6 +18,8 @@ import WeekStaffingCard from "@/components/dashboard/WeekStaffingCard";
 import TopSellersCard from "@/components/dashboard/TopSellersCard";
 import SlowMoversCard from "@/components/dashboard/SlowMoversCard";
 import { useBranch } from "@/lib/BranchContext";
+import { useIsPro } from "@/lib/plan";
+import { BASIC_AI_QUESTIONS } from "@/lib/pricing";
 import { useGetKpisQuery, useGetTopSellingItemsQuery } from "@/redux/slices/dashboardApiSlice";
 import { Order, useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
@@ -88,6 +90,7 @@ export default function MasterDashboardPage(props?: PageProps) {
   }, [user?.role, router]);
 
   const { activeBranch, branches, loading, isDemo } = useBranch();
+  const isPro = useIsPro();
   const outletId = activeBranch?.id || undefined;
 
   // Owners judge the business by the month; "Today" is one click away
@@ -328,7 +331,9 @@ export default function MasterDashboardPage(props?: PageProps) {
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold text-slate-100">Ask Alayn AI</h2>
                   <p className="text-sm text-slate-400">
-                    Sales, next week&apos;s forecast, stock, staff or your menu, answered from your own numbers.
+                    {isPro
+                      ? "Sales, next week\u2019s forecast, stock, staff or your menu, answered from your own numbers."
+                      : `Sales and menu questions, ${BASIC_AI_QUESTIONS} a day on Alayn Basic. Upgrade to Pro for stock, staff and forecasts.`}
                   </p>
                 </div>
               </div>

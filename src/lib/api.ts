@@ -502,6 +502,8 @@ export interface AlaynAIAllowance {
   limit: number;
   remaining: number;
   resetsAt: string;
+  /** Alayn Pro: every topic and the full allowance. Alayn Basic: a few sales and menu questions. */
+  fullAccess: boolean;
 }
 
 export async function getAlaynAIAllowance(outletId?: string) {

@@ -5,9 +5,8 @@ import {
   Store, 
   CreditCard, 
   Lock, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Sparkles, 
+  ShieldCheck,
+  Sparkles,
   Loader2, 
   ArrowRight, 
   AlertTriangle,
@@ -25,6 +24,8 @@ import {
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import Link from "next/link";
 import SubscriptionMonthSelector, { calculateSubscriptionPricing } from "./SubscriptionMonthSelector";
+import PlanPicker from "./PlanPicker";
+import { usePlanCheckout } from "./usePlanCheckout";
 
 interface SubscriptionPaywallProps {
   targetBranch?: Branch | null;
@@ -54,7 +55,8 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
   const branchToPay = targetBranch || (activeBranch?.id !== "all" ? activeBranch : null) || branches.find(b => b.id !== "all") || null;
 
   const hasOutlets = branches.filter(b => b.id !== "all").length > 0;
-  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
+  const { plan, setPlan, currentPlan, changing, creditRupees } = usePlanCheckout(branchToPay?.subscription, branchToPay?.id);
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon, plan, creditRupees);
 
   const handlePayNow = async () => {
     if (!branchToPay) return;
@@ -64,7 +66,8 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
     try {
       const res = await initiateSubscription({
         outletId: branchToPay.id,
-        planCode: "MONTHLY_STANDARD",
+        planCode: plan.planCode,
+        aggregators: plan.aggregators,
         months,
         couponCode: appliedCoupon?.code,
       }).unwrap();
@@ -209,7 +212,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
             {isExpired ? "Renew Your Branch Subscription" : "Activate Branch Subscription"}
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
-            This outlet requires an active monthly subscription before POS billing counters, live kitchen displays, and inventory telemetry can be unlocked.
+            Choose Alayn Basic or Alayn Pro for this outlet to unlock POS billing, the kitchen display, inventory and reports.
           </p>
         </div>
 
@@ -242,42 +245,20 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
             </div>
           )}
 
-          {/* What unlocks */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Features unlocked with monthly subscription:
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-medium text-zinc-700">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Unlimited POS Terminals & Table QR</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Live Kitchen Display System (KDS)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Multi-batch Inventory & Expiry Tracking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>AI Menu & Wastage Insights</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Staff Geofenced Attendance & Rostering</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Sales Velocity & P&L Analytics</span>
-              </div>
-            </div>
-          </div>
+          {/* Plan choice */}
+          <PlanPicker
+            value={plan}
+            onChange={setPlan}
+            currentPlan={currentPlan}
+            disabled={isProcessing || isInitiating || isVerifying || isApplyingCoupon}
+          />
 
           {/* Duration & Pricing Breakdown */}
           <SubscriptionMonthSelector
             months={months}
+            plan={plan}
+            creditRupees={creditRupees}
+            startsNow={changing}
             onChange={setMonths}
             currentPeriodEnd={branchToPay?.subscription?.currentPeriodEnd}
             disabled={isProcessing || isInitiating || isVerifying || isApplyingCoupon}

@@ -24,10 +24,12 @@ import {
   useApplyCouponMutation
 } from "@/redux/slices/subscriptionApiSlice";
 import { openCashfreeCheckout } from "@/lib/cashfree";
-import SubscriptionMonthSelector, { 
-  calculateSubscriptionPricing, 
-  calculateProjectedEndDate 
+import SubscriptionMonthSelector, {
+  calculateSubscriptionPricing,
+  calculateProjectedEndDate
 } from "./SubscriptionMonthSelector";
+import PlanPicker from "./PlanPicker";
+import { usePlanCheckout } from "./usePlanCheckout";
 
 interface SubscriptionRenewModalProps {
   isOpen: boolean;
@@ -39,11 +41,15 @@ interface SubscriptionRenewModalProps {
     city?: string;
     subscription?: {
       status?: string;
+      planCode?: string;
+      aggregators?: string[];
       currentPeriodEnd?: string;
       monthlyFeePaise?: number;
-    };
+    } | null;
   } | null;
   onSuccess?: () => void;
+  /** Start on this plan instead of the outlet’s current one (e.g. Pro from an upgrade prompt) */
+  preferPlan?: "ALAYN_BASIC" | "ALAYN_PRO";
 }
 
 export default function SubscriptionRenewModal({
@@ -51,6 +57,7 @@ export default function SubscriptionRenewModal({
   onClose,
   outlet,
   onSuccess,
+  preferPlan,
 }: SubscriptionRenewModalProps) {
   const [initiateSubscription, { isLoading: isInitiating }] = useInitiateOutletSubscriptionMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyOutletPaymentMutation();
@@ -71,13 +78,14 @@ export default function SubscriptionRenewModal({
   const [paymentStep, setPaymentStep] = useState<"review" | "processing" | "success">("review");
 
   const { mounted, stateClass } = useModalTransition(isOpen);
+  const { plan, setPlan, currentPlan, changing, creditRupees } = usePlanCheckout(outlet?.subscription, outlet?.id, preferPlan);
 
   if (!mounted || !outlet) return null;
 
-  const pricing = calculateSubscriptionPricing(months, appliedCoupon);
-  const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd);
+  const pricing = calculateSubscriptionPricing(months, appliedCoupon, plan, creditRupees);
+  const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd, changing);
   const now = new Date();
-  const existingEnd = outlet.subscription?.currentPeriodEnd ? new Date(outlet.subscription.currentPeriodEnd) : null;
+  const existingEnd = outlet.subscription?.currentPeriodEnd && !changing ? new Date(outlet.subscription.currentPeriodEnd) : null;
   const effectiveStartDate = existingEnd && existingEnd > now ? existingEnd : now;
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)));
   const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
@@ -94,7 +102,8 @@ export default function SubscriptionRenewModal({
       // 1. Initiate order on backend with selected duration in months and dynamic coupon
       const res = await initiateSubscription({
         outletId: outlet.id,
-        planCode: "MONTHLY_STANDARD",
+        planCode: plan.planCode,
+        aggregators: plan.aggregators,
         months,
         couponCode: appliedCoupon?.code,
       }).unwrap();
@@ -292,42 +301,20 @@ export default function SubscriptionRenewModal({
                 </div>
               )}
 
-              {/* Plan Perks */}
-              <div className="space-y-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-                  Included In Your Monthly Plan
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-zinc-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Unlimited POS Counters</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Live Kitchen Display (KDS)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Multi-batch Inventory</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>AI Menu Costing Assistant</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Staff Geofence Attendance</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>24/7 Priority Support</span>
-                  </div>
-                </div>
-              </div>
+              {/* Plan choice */}
+              <PlanPicker
+                value={plan}
+                onChange={setPlan}
+                currentPlan={currentPlan}
+                disabled={paymentStep === "processing" || isInitiating || isVerifying || isApplyingCoupon}
+              />
 
               {/* Duration & Price Selector */}
               <SubscriptionMonthSelector
                 months={months}
+                plan={plan}
+                creditRupees={creditRupees}
+                startsNow={changing}
                 onChange={setMonths}
                 currentPeriodEnd={outlet.subscription?.currentPeriodEnd}
                 disabled={paymentStep === "processing" || isInitiating || isVerifying || isApplyingCoupon}

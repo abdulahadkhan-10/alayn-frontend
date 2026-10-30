@@ -92,13 +92,16 @@ const DEMO_EMPLOYEES = [
 ];
 
 import { useGetShiftsQuery } from "@/redux/slices/shiftApiSlice";
+import { useIsPro } from "@/lib/plan";
 
 export default function WorkforcePage() {
   const { activeBranch } = useBranch();
   const outletId = activeBranch?.id === "all" ? undefined : activeBranch?.id;
   const { data: apiData, isLoading } = useGetEmployeesQuery(outletId ? { outletId } : undefined);
   const { data: outletsData } = useGetOutletsQuery();
-  const { data: shiftsData } = useGetShiftsQuery(outletId ? { outletId } : undefined);
+  // Shifts are part of Alayn Pro; Basic outlets still manage their staff here
+  const isPro = useIsPro();
+  const { data: shiftsData } = useGetShiftsQuery(outletId ? { outletId } : undefined, { skip: !isPro });
   const [createEmployee, { isLoading: isCreating }] = useCreateEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
   const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();

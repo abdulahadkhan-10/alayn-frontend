@@ -7,7 +7,7 @@ import LandingFooter from "@/components/landing/LandingFooter";
 const siteUrl = "https://alaynai.com";
 const title = "Restaurant Billing Software & GST POS System in India | Alayn AI";
 const description =
-  "Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India. Counter & table billing, instant KOT, UPI/card/cash, live KDS, FEFO inventory & workforce from ₹3,000/month.";
+  "Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India. Counter & table billing, instant KOT, UPI/card/cash, live KDS, FEFO inventory & workforce from ₹599/month.";
 
 export const metadata: Metadata = {
   title: "Restaurant Billing Software & GST POS System",
@@ -103,7 +103,7 @@ const FAQS = [
   {
     question: "What makes Alayn AI a complete billing software for restaurants and cafés?",
     answer:
-      "Alayn AI is a unified restaurant billing software and operating system built for Indian restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines GST POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling in one plan at ₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST.",
+      "Alayn AI is a unified restaurant billing software and operating system built for Indian restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines GST POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling, from ₹599 per outlet per month (Alayn Basic) + 18% GST.",
   },
   {
     question: "Does Alayn AI billing software support GST invoicing and thermal KOT printing?",
@@ -123,7 +123,7 @@ const FAQS = [
   {
     question: "How much does Alayn AI billing software cost?",
     answer:
-      "Alayn AI costs ₹3,000 per outlet per month + 18% GST (₹3,540 total per month), or ₹26,000 a year + 18% GST (₹30,680 total). Every module—POS billing, KDS, FEFO inventory, waste tracking, workforce management, Ask Alayn AI, and REST API access—is included.",
+      "Alayn AI has two plans per outlet, + 18% GST. Alayn Basic is ₹599 a month or ₹5,999 a year, with POS billing, KDS, FEFO inventory, waste tracking, staff logins and 3 Ask Alayn AI questions a day. Alayn Pro is ₹1,999 a month or ₹19,999 a year and adds shift scheduling, attendance and leave, the full Ask Alayn AI, and Swiggy or Zomato integration (coming soon).",
   },
 ];
 
@@ -174,7 +174,7 @@ export default function BillingSoftwarePage() {
           <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed mb-8">
             <strong className="font-semibold text-white">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs, and cloud kitchens—connecting fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters for{" "}
             <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-              ₹3,000 per outlet per month
+              ₹599 per outlet per month
             </Link>
             .
           </p>
@@ -310,7 +310,7 @@ export default function BillingSoftwarePage() {
               Upgrade your restaurant billing software today
             </h2>
             <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              ₹3,000 per outlet per month, or ₹26,000 a year, + 18% GST. Every POS, KDS, inventory, waste, and workforce feature included from day one.
+              Alayn Basic from ₹599 per outlet per month, or Alayn Pro from ₹1,999, + 18% GST. POS, KDS, inventory and waste on both plans from day one.
             </p>
           </div>
           <div className="md:col-span-4 flex flex-wrap justify-start md:justify-end gap-3">

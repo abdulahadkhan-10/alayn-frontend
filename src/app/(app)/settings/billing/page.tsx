@@ -24,7 +24,20 @@ import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import SubscriptionRenewModal from "@/components/subscription/SubscriptionRenewModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { formatRupees, MONTHLY_FEE, withGst } from "@/lib/pricing";
+import { AGGREGATOR_NAMES, effectivePlan, formatRupees, PLANS, SECOND_AGGREGATOR, withGst, type Aggregator } from "@/lib/pricing";
+
+/** An outlet's plan price per month before GST, at the monthly rate */
+const monthlyPriceOf = (sub?: { planCode?: string; aggregators?: string[] }) => {
+  const plan = effectivePlan(sub?.planCode);
+  return PLANS[plan].monthly + (plan === "ALAYN_PRO" && (sub?.aggregators?.length ?? 0) >= 2 ? SECOND_AGGREGATOR.monthly : 0);
+};
+
+const planLabelOf = (sub?: { planCode?: string; planName?: string; aggregators?: string[] }) => {
+  if (sub?.planCode?.startsWith("COUPON_")) return sub?.planName || "VIP Access";
+  const plan = effectivePlan(sub?.planCode);
+  const apps = (sub?.aggregators ?? []).map((a) => AGGREGATOR_NAMES[a as Aggregator] ?? a).join(" + ");
+  return apps ? `${PLANS[plan].name} · ${apps}` : PLANS[plan].name;
+};
 
 export default function BillingPage() {
   const { data: billingData, isLoading: isBillingLoading, refetch: refetchBilling } = useGetBillingHistoryQuery();
@@ -36,7 +49,9 @@ export default function BillingPage() {
   const outlets = Array.isArray(outletsData) ? outletsData : (outletsData as any)?.data || [];
 
   const isPromoPlan = (planCode?: string) => planCode?.startsWith("COUPON_");
-  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * withGst(MONTHLY_FEE);
+  const totalMonthlySpend = outlets
+    .filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode))
+    .reduce((sum: number, o: any) => sum + withGst(monthlyPriceOf(o.subscription)), 0);
   const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && isPromoPlan(o.subscription?.planCode)).length;
 
   return (
@@ -100,7 +115,7 @@ export default function BillingPage() {
               <p className="mt-2 text-2xl font-extrabold text-zinc-900 font-mono">
                 ₹{totalMonthlySpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400 font-medium">₹3,000 + 18% GST per branch / mo (₹26,000 + GST yearly)</p>
+              <p className="mt-1 text-[11px] text-zinc-400 font-medium">Basic {formatRupees(PLANS.ALAYN_BASIC.monthly)} · Pro {formatRupees(PLANS.ALAYN_PRO.monthly)} per outlet / mo + 18% GST</p>
             </div>
 
             <div className="rounded-3xl bg-white p-6 border border-gray-100 shadow-xs">
@@ -177,7 +192,7 @@ export default function BillingPage() {
                           <div>
                             <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-semibold">Tier</span>
                             <span className="font-bold text-zinc-800">
-                              {sub?.planCode?.startsWith("COUPON_") ? (sub?.planName || "VIP Access") : "Smart Branch Pro"}
+                              {planLabelOf(sub)}
                             </span>
                           </div>
                           <div className="text-right">
@@ -197,14 +212,14 @@ export default function BillingPage() {
                               {sub?.planName || "Free VIP License"}
                             </span>
                           ) : (
-                            `${formatRupees(withGst(MONTHLY_FEE))} / mo`
+                            `${formatRupees(withGst(monthlyPriceOf(sub)))} / mo`
                           )}
                         </span>
                         <button
                           onClick={() => setSelectedOutletForRenew(outlet)}
                           className="rounded-xl bg-[#D3232A] hover:bg-[#b01e23] px-3.5 py-1.5 text-[11px] font-bold text-white transition-all shadow-xs cursor-pointer"
                         >
-                          {isActive ? "Extend / Renew" : "Pay via Cashfree"}
+                          {!isActive ? "Choose plan & pay" : effectivePlan(sub?.planCode) === "ALAYN_BASIC" ? "Upgrade / Renew" : "Extend / Renew"}
                         </button>
                       </div>
                     </div>
