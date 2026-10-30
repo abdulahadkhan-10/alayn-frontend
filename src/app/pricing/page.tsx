@@ -26,48 +26,34 @@ export const metadata: Metadata = {
 
 type Cell = boolean | string | { text: string; soon: true };
 
+// The differences come first, so the table makes the case for Pro before listing what both plans share
 const COMPARE: { group: string; rows: [string, Cell, Cell][] }[] = [
   {
-    group: "Service",
+    group: "What Pro adds",
     rows: [
-      ["POS billing on unlimited counters", true, true],
-      ["Table QR menus", true, true],
-      ["Kitchen display and KOT printing", true, true],
-    ],
-  },
-  {
-    group: "Kitchen and stock",
-    rows: [
-      ["Inventory with batch expiry tracking", true, true],
-      ["Suppliers and purchase orders", true, true],
-      ["Waste logging and alerts", true, true],
-    ],
-  },
-  {
-    group: "Team",
-    rows: [
-      ["Staff directory, logins and roles", true, true],
+      ["Swiggy or Zomato integration", false, { text: "One included", soon: true }],
       ["Shift scheduling, rosters and swaps", false, true],
       ["Attendance, leave and clock-in terminal", false, true],
-    ],
-  },
-  {
-    group: "Insight",
-    rows: [
-      ["Sales reports and analytics", true, true],
-      ["Ask Alayn AI", "Daily questions on sales and menu", "Sales, stock, waste, staff and forecasts"],
-    ],
-  },
-  {
-    group: "Delivery",
-    rows: [
-      ["Quickii, Alayn's own delivery portal", { text: "Included", soon: true }, { text: "Included", soon: true }],
-      ["Swiggy or Zomato integration", false, { text: "One included", soon: true }],
+      ["Ask Alayn AI", "Sales and menu questions only", "Sales, stock, waste, staff and forecasts"],
       [
         "Both Swiggy and Zomato",
         false,
         `+${formatRupees(SECOND_AGGREGATOR.monthly)}/mo or +${formatRupees(SECOND_AGGREGATOR.yearly)}/yr`,
       ],
+    ],
+  },
+  {
+    group: "Included in both plans",
+    rows: [
+      ["POS billing on unlimited counters", true, true],
+      ["Table QR menus", true, true],
+      ["Kitchen display and KOT printing", true, true],
+      ["Inventory with batch expiry tracking", true, true],
+      ["Suppliers and purchase orders", true, true],
+      ["Waste logging and alerts", true, true],
+      ["Sales reports and analytics", true, true],
+      ["Staff directory, logins and roles", true, true],
+      ["Quickii, Alayn's own delivery portal", { text: "Included", soon: true }, { text: "Included", soon: true }],
     ],
   },
 ];
