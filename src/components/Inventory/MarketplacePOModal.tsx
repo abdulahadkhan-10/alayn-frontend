@@ -6,6 +6,7 @@ import { InventoryItemApi, useCreateItemMutation } from "@/redux/slices/inventor
 import { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { useCreatePurchaseOrderMutation } from "@/redux/slices/procurementApiSlice";
 import type { MarketplaceSupplier } from "./SupplierMarketplaceSection";
+import { apiErrorMessage } from "@/lib/apiError";
 
 interface Line {
   catalogItem: SupplierItemApi;
@@ -28,12 +29,6 @@ const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 /** A SKU for an inventory item created from a catalog item, e.g. "BUF-4821" (unique per outlet). */
 const skuFor = (name: string) =>
   `${name.replace(/[^a-z0-9]/gi, "").slice(0, 3).toUpperCase() || "ITM"}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-/** The backend answers `{ error: { message } }`; fall back when there's nothing to show. */
-const errorMessage = (err: unknown, fallback: string): string => {
-  const data = (err as { data?: { error?: { message?: string }; message?: string } } | null)?.data;
-  return data?.error?.message || data?.message || fallback;
-};
 
 /**
  * Orders from a marketplace supplier. Prices and minimums come from the supplier's catalog; for each
@@ -90,7 +85,7 @@ export default function MarketplacePOModal({
       }).unwrap();
       updateLine(catalogItem.id, { inventoryItemId: res.id });
     } catch (err) {
-      setError(errorMessage(err, `Couldn't add ${catalogItem.name} to your inventory.`));
+      setError(apiErrorMessage(err, `Couldn't add ${catalogItem.name} to your inventory.`));
     } finally {
       setCreatingFor(null);
     }
@@ -132,7 +127,7 @@ export default function MarketplacePOModal({
       }).unwrap();
       onSuccess();
     } catch (err) {
-      setError(errorMessage(err, "Failed to create order."));
+      setError(apiErrorMessage(err, "Failed to create order."));
     }
   };
 

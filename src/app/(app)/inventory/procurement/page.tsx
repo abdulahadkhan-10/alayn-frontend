@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
@@ -12,7 +12,6 @@ import {
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
   useGetPurchaseOrdersQuery,
-  useCreatePurchaseOrderMutation,
   useReceivePOItemMutation,
   useCancelPurchaseOrderMutation,
   useClosePurchaseOrderMutation,
@@ -24,29 +23,17 @@ import {
   Truck,
   Plus,
   Building2,
-  PackageCheck,
   Loader2,
-  CheckCircle2,
-  Clock,
   AlertCircle,
   X,
-  Zap,
   Trash2,
   Search,
   ChevronLeft,
   ChevronRight,
-  Filter,
   IndianRupee,
-  Phone,
-  Mail,
   RotateCcw,
   Eye,
-  User,
-  MapPin,
   Pencil,
-  LayoutGrid,
-  List,
-  ShoppingCart,
   Sparkles,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
@@ -56,6 +43,7 @@ import CreatePurchaseOrderModal from "@/components/Inventory/CreatePurchaseOrder
 import SupplierMarketplaceSection, { type MarketplaceSupplier } from "@/components/Inventory/SupplierMarketplaceSection";
 import MarketplacePOModal from "@/components/Inventory/MarketplacePOModal";
 import type { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
+import { apiErrorMessage } from "@/lib/apiError";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
 function generateTimestampBatchNo(category?: string): string {
@@ -85,24 +73,21 @@ export default function ProcurementPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");
 
-  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS" | "MARKETPLACE">("POS");
-  const [supplierViewMode, setSupplierViewMode] = useState<"TABLE" | "CARDS">("TABLE");
-
-  useEffect(() => {
-    if (tabParam === "suppliers") {
-      setActiveTab("SUPPLIERS");
-    } else if (tabParam === "marketplace") {
-      setActiveTab("MARKETPLACE");
-    } else {
-      setActiveTab("POS");
-    }
-  }, [tabParam]);
+  const tabFromParam = (param: string | null | undefined) =>
+    param === "suppliers" ? "SUPPLIERS" : param === "marketplace" ? "MARKETPLACE" : "POS";
+  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS" | "MARKETPLACE">(() => tabFromParam(tabParam));
+  // Follow ?tab= when the URL changes; clicking a tab still switches without touching the URL
+  const [syncedTabParam, setSyncedTabParam] = useState(tabParam);
+  if (tabParam !== syncedTabParam) {
+    setSyncedTabParam(tabParam);
+    setActiveTab(tabFromParam(tabParam));
+  }
 
   // RTK Queries
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useGetSuppliersQuery(undefined, { skip: !activeBranch });
   const { data: purchaseOrders = [], isLoading: isLoadingPOs, refetch: refetchPOs } = useGetPurchaseOrdersQuery(undefined, { skip: !activeBranch });
   const { data: inventoryData } = useGetItemsQuery(undefined, { skip: !activeBranch });
-  const items = inventoryData?.items || [];
+  const items = useMemo(() => inventoryData?.items || [], [inventoryData]);
 
   // Mutations
   const [createSupplier, { isLoading: isCreatingSupplier }] = useCreateSupplierMutation();
@@ -133,31 +118,19 @@ export default function ProcurementPage() {
   const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
   const [selectedSupplierCategoryFilter, setSelectedSupplierCategoryFilter] = useState("ALL");
   const [selectedSupplierTypeFilter, setSelectedSupplierTypeFilter] = useState<"ALL" | "ONLINE" | "OFFLINE">("ALL");
-  const [procurementOutletFilter, setProcurementOutletFilter] = useState("ALL");
+  const [procurementOutletFilter] = useState("ALL");
 
   // Pagination states
   const [poPage, setPoPage] = useState(1);
-  const [poPageSize, setPoPageSize] = useState(10);
+  const [poPageSize] = useState(10);
   const [supPage, setSupPage] = useState(1);
-  const [supPageSize, setSupPageSize] = useState(6);
+  const [supPageSize] = useState(6);
 
   const isAllOutlets = activeBranch?.id === "all";
 
   const lowStockItems = useMemo(() => {
     return items.filter((i) => (i.currentStock || 0) <= i.reorderThreshold);
   }, [items]);
-
-  const availableOutlets = useMemo(() => {
-    const map = new Map<string, string>();
-    suppliers.forEach((s) => {
-      if (s.outlet) map.set(s.outlet.id, s.outlet.name);
-    });
-    purchaseOrders.forEach((po) => {
-      if (po.supplier) map.set(po.supplier.id, po.supplier.name);
-      if (po.outlet) map.set(po.outlet.id, po.outlet.name);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [suppliers, purchaseOrders]);
 
   // Calculated PO Metrics
   const activePOCount = useMemo(() => {
@@ -228,7 +201,7 @@ export default function ProcurementPage() {
 
       return matchesSearch && matchesCategory && matchesType && matchesOutlet;
     });
-  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, isAllOutlets, activeBranch, procurementOutletFilter]);
+  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, procurementOutletFilter]);
 
   // Form states
   const [supplierForm, setSupplierForm] = useState<{
@@ -306,8 +279,8 @@ export default function ProcurementPage() {
           `ONLINE Supplier registered successfully!\n\nLogin Email: ${res.email}\nTemporary Password: ${res.initialPassword}\n\nPlease share these credentials with the vendor.`
         );
       }
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to create supplier");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to create supplier"));
     }
   };
 
@@ -316,8 +289,8 @@ export default function ProcurementPage() {
     try {
       await deleteSupplier(deletingSupplier.id).unwrap();
       setDeletingSupplier(null);
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to delete supplier");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to delete supplier"));
     }
   };
 
@@ -356,7 +329,7 @@ export default function ProcurementPage() {
   const handleConfirmReceive = async () => {
     if (!receivingPO) return;
 
-    for (const [itemId, input] of Object.entries(receiveItemInputs)) {
+    for (const input of Object.values(receiveItemInputs)) {
       const qty = Number(input.receivedQuantity);
       const damaged = Number(input.damagedQuantity || 0);
       if (!Number.isFinite(qty) || !Number.isFinite(damaged) || qty < 0 || damaged < 0) {
@@ -383,8 +356,8 @@ export default function ProcurementPage() {
       await receivePOItem({ id: receivingPO.id, items: itemsPayload }).unwrap();
       setReceivingPO(null);
       refetchPOs();
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to receive PO items");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to receive PO items"));
     }
   };
 
@@ -855,19 +828,6 @@ export default function ProcurementPage() {
               const startSupIdx = (safeSupPage - 1) * supPageSize;
               const paginatedSuppliers = filteredSuppliers.slice(startSupIdx, startSupIdx + supPageSize);
 
-              const getCategoryBadgeStyle = (category?: string) => {
-                const cat = (category || "").toLowerCase();
-                if (cat.includes("dairy")) return "bg-sky-50 text-sky-800 border-sky-200/80 font-semibold";
-                if (cat.includes("produce") || cat.includes("veg")) return "bg-emerald-50 text-emerald-800 border-emerald-200/80 font-semibold";
-                if (cat.includes("meat") || cat.includes("poultry") || cat.includes("chicken")) return "bg-rose-50 text-rose-800 border-rose-200/80 font-semibold";
-                if (cat.includes("beverage") || cat.includes("drink")) return "bg-indigo-50 text-indigo-800 border-indigo-200/80 font-semibold";
-                if (cat.includes("bakery") || cat.includes("bread")) return "bg-amber-50 text-amber-800 border-amber-200/80 font-semibold";
-                if (cat.includes("frozen")) return "bg-cyan-50 text-cyan-800 border-cyan-200/80 font-semibold";
-                if (cat.includes("syrup") || cat.includes("sauce")) return "bg-orange-50 text-orange-800 border-orange-200/80 font-semibold";
-                if (cat.includes("packaging")) return "bg-slate-100 text-slate-800 border-slate-200/80 font-semibold";
-                return "bg-zinc-100 text-zinc-700 border-zinc-200/70 font-semibold";
-              };
-
               return (
                 <div className="space-y-4">
                   {/* DEFAULT ELEGANT TABLE VIEW */}
@@ -1019,7 +979,7 @@ export default function ProcurementPage() {
         {/* TAB 3: MARKETPLACE */}
         {activeTab === "MARKETPLACE" && (
           <SupplierMarketplaceSection
-            inventoryItems={items as any}
+            inventoryItems={items}
             onOrderPO={(supplier, catalogItems) => setMarketplaceOrder({ supplier, items: catalogItems })}
           />
         )}
@@ -1267,8 +1227,8 @@ export default function ProcurementPage() {
                       },
                     }).unwrap();
                     setEditingSupplier(null);
-                  } catch (err: any) {
-                    alert(err?.data?.message || "Failed to update vendor");
+                  } catch (err) {
+                    alert(apiErrorMessage(err, "Failed to update vendor"));
                   }
                 }}
                 className="flex flex-col flex-1 min-h-0"
