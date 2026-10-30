@@ -19,7 +19,6 @@ import TopSellersCard from "@/components/dashboard/TopSellersCard";
 import SlowMoversCard from "@/components/dashboard/SlowMoversCard";
 import { useBranch } from "@/lib/BranchContext";
 import { useIsPro } from "@/lib/plan";
-import { BASIC_AI_QUESTIONS } from "@/lib/pricing";
 import { useGetKpisQuery, useGetTopSellingItemsQuery } from "@/redux/slices/dashboardApiSlice";
 import { Order, useGetOrdersQuery } from "@/redux/slices/orderApiSlice";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
@@ -333,7 +332,7 @@ export default function MasterDashboardPage(props?: PageProps) {
                   <p className="text-sm text-slate-400">
                     {isPro
                       ? "Sales, next week\u2019s forecast, stock, staff or your menu, answered from your own numbers."
-                      : `Sales and menu questions, ${BASIC_AI_QUESTIONS} a day on Alayn Basic. Upgrade to Pro for stock, staff and forecasts.`}
+                      : "Ask about your sales and menu on Alayn Basic. Upgrade to Pro for stock, staff and forecasts."}
                   </p>
                 </div>
               </div>

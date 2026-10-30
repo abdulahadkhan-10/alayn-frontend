@@ -122,7 +122,7 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
 - Inventory with batch expiry, suppliers, purchase orders and waste logging
 - Sales reports and analytics
 - Staff directory, logins and roles
-- Ask Alayn AI: 3 sales and menu questions a day
+- Ask Alayn AI: daily questions on sales and menu
 - Quickii, Alayn's own delivery portal (coming soon)
 
 ## Alayn Pro
@@ -135,6 +135,7 @@ Everything in Basic, plus:
 ## How Billing Works
 - Each outlet has its own subscription.
 - Prices are before 18% GST, which is added at checkout.
+- Ask Alayn AI: Basic includes 3 questions a day on sales and menu; Pro includes 20 a day on every topic. Questions reset at midnight and are shared by the outlet.
 - Pay for 1 to 36 months at a time. Each full year is charged at the yearly price.
 - Move from Basic to Pro at any time; the days left on Basic are taken off the price. Moving from Pro to Basic happens when the Pro period ends.
 - Yearly payments are non-refundable.

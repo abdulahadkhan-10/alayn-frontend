@@ -123,7 +123,7 @@ const FAQS = [
   {
     question: "How much does Alayn AI billing software cost?",
     answer:
-      "Alayn AI has two plans per outlet, + 18% GST. Alayn Basic is ₹599 a month or ₹5,999 a year, with POS billing, KDS, FEFO inventory, waste tracking, staff logins and 3 Ask Alayn AI questions a day. Alayn Pro is ₹1,999 a month or ₹19,999 a year and adds shift scheduling, attendance and leave, the full Ask Alayn AI, and Swiggy or Zomato integration (coming soon).",
+      "Alayn AI has two plans per outlet, + 18% GST. Alayn Basic is ₹599 a month or ₹5,999 a year, with POS billing, KDS, FEFO inventory, waste tracking, staff logins and daily Ask Alayn AI questions on sales and menu. Alayn Pro is ₹1,999 a month or ₹19,999 a year and adds shift scheduling, attendance and leave, the full Ask Alayn AI, and Swiggy or Zomato integration (coming soon).",
   },
 ];
 

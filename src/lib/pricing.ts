@@ -21,6 +21,8 @@ export const AGGREGATOR_NAMES: Record<Aggregator, string> = { SWIGGY: "Swiggy", 
 
 /** Ask Alayn AI questions a day on Basic (the backend's AI_DAILY_QUESTIONS_BASIC) */
 export const BASIC_AI_QUESTIONS = 3;
+/** Ask Alayn AI questions a day on Pro (the backend’s AI_DAILY_QUESTIONS_PER_OUTLET) */
+export const PRO_AI_QUESTIONS = 20;
 
 export const GST_PERCENT = 18;
 export const MAX_MONTHS = 36;

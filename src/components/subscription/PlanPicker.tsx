@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Check, Lock } from "lucide-react";
-import { AGGREGATOR_NAMES, Aggregator, BASIC_AI_QUESTIONS, formatRupees, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
+import { AGGREGATOR_NAMES, Aggregator, formatRupees, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 import type { PlanChoice } from "./SubscriptionMonthSelector";
 
 const FEATURES: Record<PlanCode, string[]> = {
@@ -10,7 +10,7 @@ const FEATURES: Record<PlanCode, string[]> = {
     "POS billing, table QR menus and kitchen display",
     "Inventory, purchase orders and waste tracking",
     "Sales reports and staff logins",
-    `Ask Alayn AI: ${BASIC_AI_QUESTIONS} sales and menu questions a day`,
+    "Ask Alayn AI: daily questions on sales and menu",
     "Quickii delivery portal (coming soon)",
   ],
   ALAYN_PRO: [

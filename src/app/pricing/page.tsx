@@ -5,7 +5,7 @@ import { Check, Minus } from "lucide-react";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import PricingPlans, { SoonTag } from "@/components/pricing/PricingPlans";
-import { BASIC_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
+import { BASIC_AI_QUESTIONS, PRO_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 const siteUrl = "https://alaynai.com";
 const title = "Pricing — Alayn Basic ₹599/mo, Alayn Pro ₹1,999/mo | Restaurant Billing & POS | Alayn AI";
@@ -55,7 +55,7 @@ const COMPARE: { group: string; rows: [string, Cell, Cell][] }[] = [
     group: "Insight",
     rows: [
       ["Sales reports and analytics", true, true],
-      ["Ask Alayn AI", `${BASIC_AI_QUESTIONS} sales and menu questions a day`, "Sales, stock, waste, staff and forecasts"],
+      ["Ask Alayn AI", "Daily questions on sales and menu", "Sales, stock, waste, staff and forecasts"],
     ],
   },
   {
@@ -88,6 +88,10 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   {
     q: "Can I move from Basic to Pro later?",
     a: "Yes, at any time. Pro starts straight away and the days left on Basic are taken off the price. Moving from Pro back to Basic happens when your Pro period ends.",
+  },
+  {
+    q: "How many Ask Alayn AI questions do I get?",
+    a: `Alayn Basic includes ${BASIC_AI_QUESTIONS} questions a day about your sales and menu. Alayn Pro includes ${PRO_AI_QUESTIONS} a day and covers stock, waste, staff and forecasts too. Questions reset at midnight and are shared by everyone at the outlet.`,
   },
   {
     q: "What does “coming soon” mean?",

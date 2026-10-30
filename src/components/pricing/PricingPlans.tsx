@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Check, Minus } from "lucide-react";
-import { BASIC_AI_QUESTIONS, formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
+import { formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
 
 type Cycle = "monthly" | "yearly";
 
@@ -13,7 +13,7 @@ const POINTS: Record<PlanCode, { text: string; included: boolean; soon?: boolean
     { text: "Kitchen display and KOT printing", included: true },
     { text: "Inventory with batch expiry, purchase orders and waste", included: true },
     { text: "Sales reports, staff directory and logins", included: true },
-    { text: `Ask Alayn AI: ${BASIC_AI_QUESTIONS} sales and menu questions a day`, included: true },
+    { text: "Ask Alayn AI: daily questions on sales and menu", included: true },
     { text: "Quickii, Alayn's own delivery portal", included: true, soon: true },
     { text: "Shift scheduling, attendance and leave", included: false },
     { text: "Swiggy or Zomato integration", included: false },
