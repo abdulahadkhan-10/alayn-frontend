@@ -50,6 +50,7 @@ export const inventoryApiSlice = baseApi.injectEndpoints({
         body: data,
       }),
       invalidatesTags: ["Inventory"],
+      transformResponse: (response: { data: InventoryItemApi }) => response.data,
     }),
     adjustStock: builder.mutation<
       { success: boolean },
