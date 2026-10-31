@@ -116,6 +116,11 @@ async function doSync(): Promise<SyncOutcome> {
           break;
         }
         if (!res.ok) {
+          // If 403 Forbidden for this specific outlet (e.g. another branch's user is currently signed in),
+          // skip this outlet's batch so other permitted outlets can still sync normally.
+          if (res.status === 403) {
+            break;
+          }
           // 401 after a refresh, or the server is down: keep every bill and try again later
           stopped = true;
           break;

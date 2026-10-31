@@ -642,23 +642,23 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         </style>
       </head>
       <body>
-        <div class="center bold" style="font-size: 16px; text-transform: uppercase;">${outletName}</div>
-        ${outletAddress ? `<div class="center" style="font-size: 10px; margin-top: 2px;">${outletAddress}</div>` : ""}
-        ${outletPhone ? `<div class="center" style="font-size: 10px;">Ph: ${outletPhone}</div>` : ""}
-        ${gstin ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">GSTIN: ${gstin}</div>` : ""}
-        ${fssai ? `<div class="center" style="font-size: 10px;">FSSAI: ${fssai}</div>` : ""}
+        <div class="center bold" style="font-size: 16px; text-transform: uppercase;">${escapeHtml(outletName)}</div>
+        ${outletAddress ? `<div class="center" style="font-size: 10px; margin-top: 2px;">${escapeHtml(outletAddress)}</div>` : ""}
+        ${outletPhone ? `<div class="center" style="font-size: 10px;">Ph: ${escapeHtml(outletPhone)}</div>` : ""}
+        ${gstin ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">GSTIN: ${escapeHtml(gstin)}</div>` : ""}
+        ${fssai ? `<div class="center" style="font-size: 10px;">FSSAI: ${escapeHtml(fssai)}</div>` : ""}
 
         <div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 3px 6px; margin: 6px auto; display: inline-block;">
-          ${invoiceTitle}
+          ${escapeHtml(invoiceTitle)}
         </div>
 
         <div class="meta-table">
-          <div class="meta-row"><span>Bill No:</span><span class="bold">#${orderNumber}</span></div>
-          <div class="meta-row"><span>Date:</span><span>${timestamp}</span></div>
-          <div class="meta-row"><span>Table:</span><span class="bold">${tableDisplay}</span></div>
-          ${cashierName ? `<div class="meta-row"><span>Cashier:</span><span>${cashierName}</span></div>` : ""}
-          ${customerName ? `<div class="meta-row"><span>Customer:</span><span>${customerName}</span></div>` : ""}
-          ${customerPhone ? `<div class="meta-row"><span>Phone:</span><span>${customerPhone}</span></div>` : ""}
+          <div class="meta-row"><span>Bill No:</span><span class="bold">#${escapeHtml(orderNumber)}</span></div>
+          <div class="meta-row"><span>Date:</span><span>${escapeHtml(timestamp)}</span></div>
+          <div class="meta-row"><span>Table:</span><span class="bold">${escapeHtml(tableDisplay)}</span></div>
+          ${cashierName ? `<div class="meta-row"><span>Cashier:</span><span>${escapeHtml(cashierName)}</span></div>` : ""}
+          ${customerName ? `<div class="meta-row"><span>Customer:</span><span>${escapeHtml(customerName)}</span></div>` : ""}
+          ${customerPhone ? `<div class="meta-row"><span>Phone:</span><span>${escapeHtml(customerPhone)}</span></div>` : ""}
         </div>
 
         <div class="items-header">
@@ -672,7 +672,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           const line = billItemRows(item);
           const addonRows = line.addons.map((a) => `
             <div class="addon-row">
-              <span style="flex: 2; padding-left: 8px;">+ ${a.name}</span>
+              <span style="flex: 2; padding-left: 8px;">+ ${escapeHtml(a.name)}</span>
               <span style="flex: 1; text-align: center;">${line.qty}</span>
               <span style="flex: 1; text-align: right;">${a.unitRupees.toFixed(2)}</span>
               <span style="flex: 1; text-align: right;">${a.amountRupees.toFixed(2)}</span>
@@ -681,7 +681,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           return `
             <div class="item-block">
               <div class="item-row">
-                <span style="flex: 2; font-weight: bold;">${line.name}</span>
+                <span style="flex: 2; font-weight: bold;">${escapeHtml(line.name)}</span>
                 <span style="flex: 1; text-align: center;">${line.qty}</span>
                 <span style="flex: 1; text-align: right;">${line.unitRupees.toFixed(2)}</span>
                 <span style="flex: 1; text-align: right; font-weight: bold;">${line.amountRupees.toFixed(2)}</span>
@@ -706,7 +706,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         </div>
 
         <div class="center bold" style="font-size: 12px; margin: 4px 0;">
-          PAID VIA ${paymentMethodLabel}
+          PAID VIA ${escapeHtml(paymentMethodLabel)}
         </div>
         ${splitRows ? `<div class="summary-table">${splitRows}</div>` : ""}
 
