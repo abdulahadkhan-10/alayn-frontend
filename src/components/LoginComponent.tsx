@@ -212,19 +212,13 @@ export default function LoginComponent() {
               </button>
             </div>
             
-            <div className="mt-5 pt-4 border-t border-[#1B2A4A]/10 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B7A90] font-medium gap-2">
+            <div className="mt-5 pt-4 border-t border-[#1B2A4A]/10 text-center text-xs text-[#6B7A90] font-medium">
               <p>
                 Don&apos;t have an account?{" "}
                 <Link href="/signup" className="font-semibold text-[#C41E2A] hover:text-[#b01e23] transition-colors">
                   Sign Up
                 </Link>
               </p>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_SUPPLIER_PORTAL_URL || "https://suppliers.alaynai.com"}/login`}
-                className="text-xs font-bold text-zinc-800 hover:text-[#C41E2A] transition-colors flex items-center gap-1"
-              >
-                🚚 Supplier Portal (Sign In / Register) →
-              </Link>
             </div>
           </form>
         </div>
