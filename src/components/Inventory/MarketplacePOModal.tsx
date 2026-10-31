@@ -19,6 +19,7 @@ interface Props {
   outletId: string;
   supplier: MarketplaceSupplier;
   catalogItems: SupplierItemApi[];
+  initialQuantities?: Record<string, number>;
   inventoryItems: InventoryItemApi[];
   onClose: () => void;
   onSuccess: () => void;
@@ -38,6 +39,7 @@ export default function MarketplacePOModal({
   outletId,
   supplier,
   catalogItems,
+  initialQuantities,
   inventoryItems,
   onClose,
   onSuccess,
@@ -51,7 +53,7 @@ export default function MarketplacePOModal({
   const [lines, setLines] = useState<Line[]>(() =>
     catalogItems.map((catalogItem) => ({
       catalogItem,
-      quantity: Number(catalogItem.minOrderQty) || 1,
+      quantity: initialQuantities?.[catalogItem.id] || Number(catalogItem.minOrderQty) || 1,
       inventoryItemId: inventoryItems.find((inv) => sameName(inv.name, catalogItem.name))?.id || "",
     }))
   );

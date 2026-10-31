@@ -9,16 +9,9 @@ import {
   Star,
   Clock,
   Package,
-  Phone,
-  Mail,
-  MapPin,
   ShoppingCart,
   Loader2,
-  CheckCircle2,
   AlertCircle,
-  ArrowUpDown,
-  Filter,
-  Check,
 } from "lucide-react";
 import {
   useCompareSuppliersQuery,
@@ -30,7 +23,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   item: InventoryItemApi | null;
-  onSelectSupplierForPO?: (supplierId: string, itemData: any) => void;
+  onSelectSupplierForPO?: (supplierId: string, itemData: ComparisonOption) => void;
 }
 
 export default function CompareSuppliersModal({
@@ -42,7 +35,7 @@ export default function CompareSuppliersModal({
   const [sortMode, setSortMode] = useState<"CHEAPEST" | "QUALITY" | "FASTEST">("CHEAPEST");
   const [inStockOnly, setInStockOnly] = useState(false);
 
-  const { data: comparisonData, isLoading, refetch } = useCompareSuppliersQuery(
+  const { data: comparisonData, isLoading } = useCompareSuppliersQuery(
     {
       itemName: item?.name,
       category: item?.category,
@@ -65,7 +58,7 @@ export default function CompareSuppliersModal({
     if (sortMode === "CHEAPEST") {
       list.sort((a, b) => a.pricePaise - b.pricePaise);
     } else if (sortMode === "QUALITY") {
-      list.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (sortMode === "FASTEST") {
       list.sort((a, b) => (a.leadTimeHours || 24) - (b.leadTimeHours || 24));
     }
@@ -172,7 +165,7 @@ export default function CompareSuppliersModal({
                     <Award className="h-4 w-4" /> Top Quality
                   </span>
                   <span className="bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
-                    {bestQuality?.qualityGrade || "Grade A"}
+                    ★ {bestQuality?.rating || 5.0}
                   </span>
                 </div>
                 <div className="text-sm font-black text-zinc-900 truncate">
@@ -292,10 +285,7 @@ export default function CompareSuppliersModal({
 
                       <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium flex-wrap">
                         <span className="font-semibold text-zinc-700">{opt.name}</span>
-                        <span>•</span>
-                        <span className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 text-[10px] font-bold uppercase">
-                          {opt.qualityGrade || "Standard"}
-                        </span>
+
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3 text-zinc-400" />

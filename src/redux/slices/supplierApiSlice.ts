@@ -10,7 +10,6 @@ export interface SupplierItemApi {
   pricePaise: number;
   minOrderQty: number;
   inStock: boolean;
-  qualityGrade?: string | null;
   leadTimeHours: number;
   description?: string | null;
   createdAt?: string;

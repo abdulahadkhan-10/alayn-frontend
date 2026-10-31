@@ -35,6 +35,9 @@ import {
   Eye,
   Pencil,
   Sparkles,
+  Store,
+  Package,
+  TrendingDown,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
@@ -56,13 +59,6 @@ function generateTimestampBatchNo(category?: string): string {
   const prefix = category ? category.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3) : "BCH";
   const rand = Math.floor(100 + Math.random() * 900);
   return `${prefix}-${yyyy}${mm}${dd}-${hh}${min}-${rand}`;
-}
-
-// Helper for short, clean order numbers fetched from backend or generated compactly: e.g. PO-5F459
-function formatUnderstandableOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
-  if (po.poNumber) return po.poNumber;
-  const shortHash = po.id.slice(0, 5).toUpperCase();
-  return `PO-${shortHash}`;
 }
 
 export default function ProcurementPage() {
@@ -107,6 +103,7 @@ export default function ProcurementPage() {
   const [marketplaceOrder, setMarketplaceOrder] = useState<{
     supplier: MarketplaceSupplier;
     items: SupplierItemApi[];
+    initialQuantities?: Record<string, number>;
   } | null>(null);
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderApi | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
@@ -371,88 +368,102 @@ export default function ProcurementPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-semibold text-zinc-900 tracking-tight">
-                Purchase Orders
+                {activeTab === "MARKETPLACE"
+                  ? "Wholesale Marketplace & Best Rates"
+                  : activeTab === "SUPPLIERS"
+                  ? "Supplier Directory"
+                  : "Purchase Orders"}
               </h1>
               <span className="rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
                 {activeBranch?.name || "Main Branch"}
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-1 font-medium">
-              Create restock orders, track incoming shipments, and manage supplier contacts
+              {activeTab === "MARKETPLACE"
+                ? "Live wholesale prices from verified food, dairy, poultry, and packaging suppliers · Compare against your menu unit costs to optimize margins"
+                : activeTab === "SUPPLIERS"
+                ? "Manage your registered vendor profiles, commercial agreements, and procurement contacts"
+                : "Create restock orders, track incoming shipments, and manage supplier contacts"}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <button
-              id="add-custom-po-btn"
-              onClick={() => {
-                setPrefilledSupplierId(null);
-                setShowCreateCustomPOModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Purchase Order
-            </button>
-            <button
-              id="add-supplier-btn"
-              onClick={() => setShowAddSupplierModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Supplier
-            </button>
-            <button
-              id="smart-po-procurement-btn"
-              onClick={() => {
-                setPrefilledSupplierId(null);
-                setShowSmartPOModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors"
-            >
-              Quick Restock {lowStockItems.length > 0 ? `· ${lowStockItems.length} low` : ''}
-            </button>
+            {activeTab !== "MARKETPLACE" && (
+              <>
+                <button
+                  id="add-custom-po-btn"
+                  onClick={() => {
+                    setPrefilledSupplierId(null);
+                    setShowCreateCustomPOModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Purchase Order
+                </button>
+                <button
+                  id="add-supplier-btn"
+                  onClick={() => setShowAddSupplierModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Supplier
+                </button>
+                <button
+                  id="smart-po-procurement-btn"
+                  onClick={() => {
+                    setPrefilledSupplierId(null);
+                    setShowSmartPOModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors"
+                >
+                  Quick Restock {lowStockItems.length > 0 ? `· ${lowStockItems.length} low` : ""}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Top Executive KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Active Restock Orders</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{activePOCount}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Orders in transit or partial delivery</p>
+        {/* Top Executive KPI Cards (Hidden on Marketplace for clean vendor-first view) */}
+        {activeTab !== "MARKETPLACE" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Active Restock Orders</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{activePOCount}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Orders in transit or partial delivery</p>
+              </div>
+              <div className="rounded-xl bg-blue-50 p-3 text-blue-700 shrink-0">
+                <Truck className="h-5 w-5" />
+              </div>
             </div>
-            <div className="rounded-xl bg-blue-50 p-3 text-blue-700 shrink-0">
-              <Truck className="h-5 w-5" />
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Total Restock Spend</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">₹{totalSpendRupees}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Total purchase order value</p>
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Total Restock Spend</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">₹{totalSpendRupees}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Total purchase order value</p>
+              </div>
+              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 shrink-0">
+                <IndianRupee className="h-5 w-5" />
+              </div>
             </div>
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 shrink-0">
-              <IndianRupee className="h-5 w-5" />
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Registered Vendors</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{suppliers.length}</h2>
-              <button
-                onClick={() => setActiveTab("SUPPLIERS")}
-                className="text-xs text-[#D3232A] font-bold underline hover:text-[#b01e23] mt-1 block text-left"
-              >
-                View Vendors List →
-              </button>
-            </div>
-            <div className="rounded-xl bg-red-50 p-3 text-[#D3232A] shrink-0">
-              <Building2 className="h-5 w-5" />
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Registered Vendors</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{suppliers.length}</h2>
+                <button
+                  onClick={() => setActiveTab("SUPPLIERS")}
+                  className="text-xs text-[#D3232A] font-bold underline hover:text-[#b01e23] mt-1 block text-left"
+                >
+                  View Vendors List →
+                </button>
+              </div>
+              <div className="rounded-xl bg-red-50 p-3 text-[#D3232A] shrink-0">
+                <Building2 className="h-5 w-5" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Sub-Tabs */}
         <div className="flex border-b border-zinc-200/80 gap-6 overflow-x-auto scrollbar-none whitespace-nowrap px-1">
@@ -492,7 +503,7 @@ export default function ProcurementPage() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search by order # or supplier name..."
+                  placeholder="Search by supplier name or items..."
                   value={poSearchQuery}
                   onChange={(e) => {
                     setPoSearchQuery(e.target.value);
@@ -558,16 +569,15 @@ export default function ProcurementPage() {
                       <table className="w-full min-w-[960px] text-sm border-collapse table-fixed">
                       <thead>
                         <tr className="bg-zinc-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[11%]" : "w-[14%]"}`}>Order #</th>
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[18%]" : "w-[24%]"}`}>Supplier</th>
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[24%]" : "w-[30%]"}`}>Supplier</th>
                           {showPoOutlet && (
-                            <th className="px-4 py-3.5 w-[14%]">Outlet</th>
+                            <th className="px-4 py-3.5 w-[16%]">Outlet</th>
                           )}
-                          <th className="px-3 py-3.5 text-center w-[6%]">Items</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[10%]" : "w-[12%]"}`}>Total Cost</th>
+                          <th className="px-3 py-3.5 text-center w-[7%]">Items</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Total Cost</th>
                           <th className={`px-3 py-3.5 text-center ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Status</th>
-                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[13%]" : "w-[14%]"}`}>Date Placed</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Actions</th>
+                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[14%]" : "w-[16%]"}`}>Date Placed</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[14%]" : "w-[16%]"}`}>Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
@@ -593,11 +603,8 @@ export default function ProcurementPage() {
 
                           return (
                             <tr key={po.id} className="hover:bg-zinc-50/70 transition-colors">
-                              <td className="px-4 py-3.5 font-mono font-semibold text-zinc-900 text-xs whitespace-nowrap">
-                                #{formatUnderstandableOrderNo(po)}
-                              </td>
                               <td className="px-4 py-3.5 font-medium text-zinc-900 whitespace-nowrap overflow-hidden">
-                                <span className="truncate max-w-[200px] block">{po.actualSupplier?.name || "Supplier"}</span>
+                                <span className="truncate max-w-[220px] font-bold text-zinc-900 block">{po.actualSupplier?.name || "Supplier"}</span>
                               </td>
                               {showPoOutlet && (
                                 <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
@@ -980,7 +987,9 @@ export default function ProcurementPage() {
         {activeTab === "MARKETPLACE" && (
           <SupplierMarketplaceSection
             inventoryItems={items}
-            onOrderPO={(supplier, catalogItems) => setMarketplaceOrder({ supplier, items: catalogItems })}
+            onOrderPO={(supplier, catalogItems, initialQuantities) =>
+              setMarketplaceOrder({ supplier, items: catalogItems, initialQuantities })
+            }
           />
         )}
 
@@ -1350,7 +1359,7 @@ export default function ProcurementPage() {
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white shrink-0">
                 <div>
                   <h2 className="text-lg font-semibold text-zinc-900 tracking-tight">
-                    Receive Stock — Order #{formatUnderstandableOrderNo(receivingPO)}
+                    Receive Stock from {receivingPO.actualSupplier?.name || "Supplier"}
                   </h2>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Review supplier dispatched quantities, record accepted stock &amp; log damaged items
@@ -1514,6 +1523,7 @@ export default function ProcurementPage() {
               outletId={activeBranch.id}
               supplier={marketplaceOrder.supplier}
               catalogItems={marketplaceOrder.items}
+              initialQuantities={marketplaceOrder.initialQuantities}
               inventoryItems={items}
               onClose={() => setMarketplaceOrder(null)}
               onSuccess={() => {
@@ -1564,7 +1574,7 @@ export default function ProcurementPage() {
                     {poAction.mode === "CANCEL" ? "Cancel Purchase Order" : "Close Purchase Order"}
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    Order #{formatUnderstandableOrderNo(poAction.po)} · {poAction.po.actualSupplier?.name || "Supplier"}
+                    Supplier: <strong className="text-zinc-800">{poAction.po.actualSupplier?.name || "Supplier"}</strong>
                   </p>
                 </div>
               </div>
@@ -1741,8 +1751,8 @@ export default function ProcurementPage() {
                       {supplierPOs.slice(0, 3).map((po) => (
                         <div key={po.id} className="p-3 bg-white flex items-center justify-between gap-3">
                           <div>
-                            <span className="font-mono font-bold text-zinc-900">#{formatUnderstandableOrderNo(po)}</span>
-                            <span className="text-zinc-400 text-[11px] ml-2">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN") : ""}</span>
+                            <span className="font-semibold text-xs text-zinc-900">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Restock Order"}</span>
+                            <span className="text-zinc-400 text-[11px] ml-2 font-medium">({po.items?.length || 0} items)</span>
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-zinc-900 tabular-nums">₹{(po.totalAmountPaise / 100).toFixed(2)}</span>
