@@ -158,36 +158,42 @@ export default function BillingSoftwarePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Hero Header */}
-        <div className="max-w-3xl mb-16">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
+        <div className="max-w-3xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
             RESTAURANT BILLING SOFTWARE &amp; GST POS
           </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
+          <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             Billing software built for{" "}
-            <span className="italic text-amber-400 font-normal">real service rush.</span>
+            <span className="italic font-normal text-[var(--amber)]">real service rush.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed mb-8">
-            <strong className="font-semibold text-white">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs, and cloud kitchens—connecting fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters for{" "}
-            <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
+            <strong className="font-semibold text-[var(--espresso)]">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs, and cloud kitchens—connecting fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters from{" "}
+            <Link href="/pricing" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
               ₹599 per outlet per month
             </Link>
             .
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/signup"
-              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--espresso)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--espresso-mid)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
             >
               Get Started Now
             </Link>
             <Link
               href="/contact#demo"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold border border-white/20 text-white hover:bg-white/5 transition-colors"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--espresso)] px-7 py-3 text-sm font-semibold text-[var(--espresso)] transition-colors hover:bg-[var(--espresso)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
             >
               Book a Live Demo
             </Link>
@@ -195,30 +201,30 @@ export default function BillingSoftwarePage() {
         </div>
 
         {/* Core Billing & POS Capabilities */}
-        <section className="py-12 border-t border-white/10 mb-16">
-          <div className="max-w-2xl mb-10">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-3">
+        <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
+          <div className="max-w-2xl">
+            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
               CAPABILITIES
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
               Everything you need in a GST billing software—plus the rest of your restaurant.
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
             {BILLING_CAPABILITIES.map((cap) => (
               <div
                 key={cap.number}
-                className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-500/30 transition-all duration-300"
+                className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="text-xs font-mono text-amber-400 font-bold block mb-3">
+                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
                   {cap.number}
                 </span>
-                <h3 className="text-xl font-bold text-white mb-3">{cap.title}</h3>
-                <p className="text-sm text-slate-300 font-light leading-relaxed mb-4">
+                <h3 className="mb-3 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{cap.title}</h3>
+                <p className="mb-4 text-[15px] leading-relaxed text-[var(--espresso)]/90">
                   {cap.description}
                 </p>
-                <ul className="space-y-2 text-sm text-slate-400 font-light leading-relaxed list-disc pl-4">
+                <ul className="list-disc space-y-2 pl-4 text-sm leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
                   {cap.bullets.map((b) => (
                     <li key={b}>{b}</li>
                   ))}
@@ -229,16 +235,16 @@ export default function BillingSoftwarePage() {
         </section>
 
         {/* Verticals Served */}
-        <section className="py-12 border-t border-white/10 mb-16">
-          <div className="max-w-2xl mb-8">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-3">
+        <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
+          <div className="max-w-2xl">
+            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
               BUILT FOR EVERY FORMAT
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
               One billing platform across every hospitality format
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div className="mt-8 grid grid-cols-1 gap-4 text-[15px] sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 name: "Fine Dining & Casual Restaurants",
@@ -267,62 +273,64 @@ export default function BillingSoftwarePage() {
             ].map((v) => (
               <div
                 key={v.name}
-                className="p-5 rounded-xl border border-white/10 bg-white/[0.02]"
+                className="rounded-2xl border border-[var(--border-warm)] bg-white p-6"
               >
-                <h3 className="font-bold text-white mb-1.5">{v.name}</h3>
-                <p className="text-slate-400 font-light leading-relaxed">{v.desc}</p>
+                <h3 className="mb-1.5 font-heading font-bold text-[var(--espresso)]">{v.name}</h3>
+                <p className="text-sm leading-relaxed text-[var(--muted)]">{v.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* FAQ Section for High-Intent Search Queries */}
-        <section className="py-12 border-t border-white/10 mb-16">
-          <div className="max-w-2xl mb-10">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-3">
+        <section aria-labelledby="faq-heading" className="mt-24 grid grid-cols-1 gap-10 md:grid-cols-12">
+          <div className="md:col-span-4">
+            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
               FREQUENTLY ASKED QUESTIONS
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h2 id="faq-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
               Common questions about Alayn AI Billing Software
             </h2>
           </div>
-          <div className="space-y-6 max-w-4xl">
+          <div className="divide-y divide-[var(--border-warm)] border-y border-[var(--border-warm)] md:col-span-8">
             {FAQS.map((faq) => (
-              <div
-                key={faq.question}
-                className="p-6 rounded-2xl border border-white/10 bg-white/[0.02]"
-              >
-                <h3 className="text-base sm:text-lg font-bold text-white mb-2">
-                  {faq.question}
-                </h3>
-                <p className="text-sm text-slate-300 font-light leading-relaxed">
+              <details key={faq.question} className="group py-4">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-1 text-[17px] font-semibold transition-colors marker:content-none hover:text-[var(--amber)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--amber)]">
+                  <span>{faq.question}</span>
+                  <span aria-hidden="true" className="relative h-4 w-4 shrink-0">
+                    <span className="absolute left-0 top-1/2 h-0.5 w-4 -translate-y-1/2 rounded bg-[var(--amber)]" />
+                    <span className="absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 rounded bg-[var(--amber)] transition-transform duration-300 group-open:scale-y-0" />
+                  </span>
+                </summary>
+                <p className="mt-2.5 max-w-[65ch] pb-1 text-[15px] leading-relaxed text-[var(--muted)] tabular-nums">
                   {faq.answer}
                 </p>
-              </div>
+              </details>
             ))}
           </div>
         </section>
 
         {/* Bottom CTA */}
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          <div className="md:col-span-8 space-y-3">
-            <h2 className="text-2xl font-bold text-white">
-              Upgrade your restaurant billing software today
-            </h2>
-            <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              Alayn Basic from ₹599 per outlet per month, or Alayn Pro from ₹1,999, + 18% GST. POS, KDS, inventory and waste on both plans from day one.
-            </p>
-          </div>
-          <div className="md:col-span-4 flex flex-wrap justify-start md:justify-end gap-3">
+        <section
+          aria-labelledby="close-heading"
+          className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-center text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
+        >
+          <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
+            <span className="font-[family-name:var(--font-playfair)] font-bold">Upgrade your restaurant billing software today.</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
+            Alayn Basic from ₹599 per outlet per month, or Alayn Pro from ₹1,999, + 18% GST. POS, KDS, inventory and waste on both plans from day one.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/signup"
-              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Start Now
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold border border-white/20 text-white hover:bg-white/5 transition-colors"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               View Pricing
             </Link>

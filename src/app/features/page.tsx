@@ -120,42 +120,48 @@ export default function FeaturesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
-        <div className="max-w-3xl mb-16">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
+        <div className="max-w-3xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
             FEATURES
           </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
-            Everything your restaurant runs on, <span className="italic text-amber-400 font-normal">in one place.</span>
+          <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
+            Everything your restaurant runs on, <span className="italic font-normal text-[var(--amber)]">in one place.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Alayn AI is a{" "}
-            <Link href="/billing-software" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+            <Link href="/billing-software" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
               restaurant billing software
             </Link>{" "}
             and operating system for restaurants, cafés, cloud kitchens and multi-outlet groups. Billing, the kitchen, stock, waste and staff all work from the same live data, and everything comes in two simple{" "}
-            <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+            <Link href="/pricing" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
               per-outlet plans
             </Link>
             .
           </p>
         </div>
 
-        <section className="py-12 border-t border-white/10 mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="mt-16 border-t border-[var(--border-warm)] pt-12">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {MODULES.map((module) => (
               <div
                 key={module.number}
-                className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-500/30 transition-all duration-300"
+                className="flex flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="text-xs font-mono text-amber-400 font-bold block mb-3">
+                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
                   {module.number}
                 </span>
-                <h2 className="text-xl font-bold text-white mb-3">{module.title}</h2>
-                <ul className="space-y-2 text-sm text-slate-400 font-light leading-relaxed list-disc pl-4">
+                <h2 className="mb-3 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{module.title}</h2>
+                <ul className="list-disc space-y-2 pl-4 text-[15px] leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
                   {module.items.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
@@ -163,7 +169,7 @@ export default function FeaturesPage() {
                 {module.link && (
                   <Link
                     href={module.link.href}
-                    className="inline-block mt-4 text-sm text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                    className="mt-5 inline-block w-fit text-sm font-semibold text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]"
                   >
                     {module.link.label}
                   </Link>
@@ -173,19 +179,28 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          <div className="md:col-span-8 space-y-3">
-            <h2 className="text-2xl font-bold text-white">See it on a live service</h2>
-            <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              We&apos;ll walk you through Alayn with your own menu and outlets in mind.
-            </p>
-          </div>
-          <div className="md:col-span-4 flex justify-start md:justify-end">
+        <section
+          aria-labelledby="close-heading"
+          className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-center text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
+        >
+          <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
+            <span className="font-[family-name:var(--font-playfair)] font-bold">See it on a live service.</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
+            We&apos;ll walk you through Alayn with your own menu and outlets in mind.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/contact"
-              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
             >
               Book a Demonstration
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white ring-1 ring-white/50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto"
+            >
+              See Pricing
             </Link>
           </div>
         </section>

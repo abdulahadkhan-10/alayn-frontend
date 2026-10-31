@@ -15,8 +15,8 @@ export default function OrderPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#070C16] text-white flex items-center justify-center p-6">
-          <p className="text-zinc-400 text-sm animate-pulse">Loading menu...</p>
+        <div className="flex min-h-screen items-center justify-center bg-white p-6 text-[var(--espresso)]">
+          <p className="animate-pulse text-sm text-[var(--muted)]">Loading menu...</p>
         </div>
       }
     >

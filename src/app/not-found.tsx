@@ -12,60 +12,64 @@ export const metadata = {
 
 const RECOVERY_LINKS = [
   { label: "Home", href: "/", desc: "Platform overview & demo booking" },
+  { label: "Pricing", href: "/pricing", desc: "Alayn Basic & Pro per-outlet plans" },
+  { label: "Features", href: "/features", desc: "POS, KDS, inventory & workforce" },
   { label: "About Alayn AI", href: "/about", desc: "Founding mission & hospitality philosophy" },
   { label: "Contact & Sales", href: "/contact", desc: "Book a demonstration & support" },
-  { label: "Developer API Docs", href: "/api-docs", desc: "REST APIs, headers & webhooks" },
-  { label: "Privacy Policy", href: "/legal/privacy", desc: "Data protection & compliance terms" },
-  { label: "Terms of Service", href: "/legal/terms", desc: "Platform terms & agreements" },
+  { label: "Developer API Docs", href: "/api-docs", desc: "REST APIs, headers & OpenAPI spec" },
 ];
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex items-center justify-center py-20 px-4 sm:px-6 bg-[#07080a] text-white relative overflow-hidden">
-      <div className="max-w-2xl w-full mx-auto text-center relative z-10">
-        <Link href="/" className="inline-flex mb-8 rounded-xl bg-white px-5 py-3 ring-1 ring-white/10 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]">
-          {/* Trademarked logo in its registered colours, on a white panel against the dark page */}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--cream-light)] px-4 py-20 text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white sm:px-6">
+      <div className="relative z-10 mx-auto w-full max-w-2xl text-center">
+        <Link
+          href="/"
+          className="mb-8 inline-flex rounded-xl border border-[var(--border-warm)] bg-white px-5 py-3 shadow-xs transition-colors hover:border-[var(--espresso)]/25"
+        >
           <Image
             src="/alayn-logo-tm.png"
             alt="Alayn AI Logo"
             width={960}
             height={188}
-            className="h-7 w-auto mx-auto object-contain"
+            className="mx-auto h-7 w-auto object-contain"
           />
         </Link>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 mb-6">
-          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-xs uppercase tracking-widest text-amber-400 font-semibold">
-            HTTP 404 — NOT FOUND
-          </span>
+        <div>
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border-warm)] bg-white px-3.5 py-1.5">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--amber)]" aria-hidden="true" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--amber)]">
+              HTTP 404 — NOT FOUND
+            </span>
+          </div>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+        <h1 className="hero-headline mb-4 text-balance text-3xl sm:text-5xl">
           Page Not Located
         </h1>
 
-        <p className="text-slate-400 text-sm sm:text-base font-light max-w-md mx-auto mb-8 leading-relaxed">
+        <p className="mx-auto mb-8 max-w-md text-[15px] leading-relaxed text-[var(--muted)]">
           The requested page does not exist. Use the directory below to navigate to valid platform sections.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-3 text-left sm:grid-cols-2">
           {RECOVERY_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-amber-500/40 transition-all duration-200"
+              className="rounded-2xl border border-[var(--border-warm)] bg-white p-4 transition-colors hover:border-[var(--espresso)]/30"
             >
-              <div className="font-semibold text-sm text-white mb-0.5">{item.label}</div>
-              <div className="text-xs text-slate-400 font-light">{item.desc}</div>
+              <div className="mb-0.5 font-heading text-sm font-bold text-[var(--espresso)]">{item.label}</div>
+              <div className="text-xs text-[var(--muted)]">{item.desc}</div>
             </Link>
           ))}
         </div>
 
-        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 text-xs font-mono uppercase tracking-wider text-slate-400">
-          <Link href="/llms.txt" className="hover:text-amber-400 transition-colors">llms.txt</Link>
-          <Link href="/llms-full.txt" className="hover:text-amber-400 transition-colors">llms-full.txt</Link>
-          <Link href="/sitemap.xml" className="hover:text-amber-400 transition-colors">sitemap.xml</Link>
+        <div className="flex flex-wrap items-center justify-center gap-6 border-t border-[var(--border-warm)] pt-6 font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
+          <Link href="/llms.txt" className="transition-colors hover:text-[var(--amber)]">llms.txt</Link>
+          <Link href="/llms-full.txt" className="transition-colors hover:text-[var(--amber)]">llms-full.txt</Link>
+          <Link href="/sitemap.xml" className="transition-colors hover:text-[var(--amber)]">sitemap.xml</Link>
         </div>
       </div>
     </main>

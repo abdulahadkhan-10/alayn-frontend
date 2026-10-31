@@ -74,87 +74,102 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
-        <div className="max-w-3xl mb-16">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
+        <div className="max-w-3xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
             CONNECT WITH ALAYN AI
           </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
-            Let&apos;s Transform Your <span className="italic text-amber-400 font-normal">Operations.</span>
+          <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
+            Let&apos;s Transform Your <span className="italic font-normal text-[var(--amber)]">Operations.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Whether you run a single high-volume café or manage dozens of multi-city restaurant outlets, our team is ready to demonstrate how Alayn AI unifies your business.
           </p>
         </div>
 
-        <section id="demo" className="scroll-mt-32 mb-16">
+        <section id="demo" className="mt-12 scroll-mt-32">
           <DemoRequestForm />
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
           {CHANNELS.map((ch) => (
             <div
               key={ch.title}
-              className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between"
+              className="flex flex-col justify-between rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-[var(--cream-light)] px-2.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--amber)] ring-1 ring-[var(--border-warm)]">
                     {ch.badge}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono uppercase">
+                  <span className="font-mono text-[11px] uppercase text-[var(--muted)]">
                     {ch.sla}
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">{ch.title}</h2>
-                <p className="text-xs sm:text-sm text-slate-400 font-light leading-relaxed mb-6">
+                <h2 className="mb-2 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{ch.title}</h2>
+                <p className="mb-6 text-sm leading-relaxed text-[var(--muted)]">
                   {ch.desc}
                 </p>
               </div>
 
               <a
                 href={`mailto:${ch.email}?subject=${encodeURIComponent(ch.subject)}`}
-                className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-400 font-bold hover:underline"
+                className="inline-flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]"
               >
                 <span>{ch.email}</span>
-                <span>→</span>
+                <span aria-hidden="true">→</span>
               </a>
             </div>
           ))}
         </div>
 
         {/* Self-serve option, secondary to the demo */}
-        <div className="p-8 rounded-2xl border border-white/10 bg-gradient-to-r from-amber-500/10 to-transparent flex flex-col sm:flex-row items-center justify-between gap-6 mb-16">
+        <section
+          aria-labelledby="self-serve-heading"
+          className="mt-16 flex flex-col items-start justify-between gap-6 rounded-2xl bg-[var(--espresso)] p-7 text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:flex-row sm:items-center sm:p-10"
+        >
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Prefer to look around first?</h3>
-            <p className="text-xs sm:text-sm text-slate-400 font-light">Create an operator account and explore the platform at your own pace.</p>
+            <h2 id="self-serve-heading" className="font-heading text-xl font-bold sm:text-2xl">
+              Prefer to look around first?
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted-on-dark)]">
+              Create an operator account and explore the platform at your own pace.
+            </p>
           </div>
           <Link
             href="/signup"
-            className="shrink-0 px-6 py-3 rounded-full border border-white/20 text-white text-xs uppercase tracking-wider font-bold hover:bg-white/5 transition-colors"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[var(--amber)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Create an account
           </Link>
-        </div>
+        </section>
 
         {/* Registered business address, matching /legal/corporate */}
-        <address className="not-italic text-sm text-slate-400 font-light leading-relaxed">
-          <span className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Business address</span>
+        <address className="mt-16 border-t border-[var(--border-warm)] pt-10 not-italic text-sm leading-relaxed text-[var(--muted)]">
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--espresso)]">Business address</span>
           Alayn AI · BRAHM Global Holdings<br />
           Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg<br />
           Bandra West, Mumbai, Maharashtra 400050, India<br />
-          <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>
+          <a href="mailto:info@alaynai.com" className="font-medium text-[var(--amber)] underline underline-offset-4 hover:text-[var(--espresso)]">
+            info@alaynai.com
+          </a>
         </address>
       </main>
 
       <LandingFooter />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </div>
   );
 }

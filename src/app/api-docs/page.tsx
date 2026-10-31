@@ -40,47 +40,64 @@ const ENDPOINT_GROUPS: [string, string][] = [
   ["/notifications", "In-app notifications"],
 ];
 
+const inlineCodeClass = "rounded bg-[var(--cream-light)] px-1.5 py-0.5 font-mono text-[13px] font-medium text-[var(--espresso)] ring-1 ring-[var(--border-warm)]";
+
 export default function ApiDocsPage() {
   return (
-    <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Header */}
-        <div className="max-w-3xl mb-12">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
+        <div className="max-w-3xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
             ALAYN API
           </span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-4">
+          <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             API Reference
           </h1>
-          <p className="text-base text-slate-300 font-light leading-relaxed">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             The Alayn app runs on a REST API, and the same API is available to your own integrations. You sign in with an Alayn account and act with that account&apos;s role and outlets.
           </p>
         </div>
 
         {/* Quick Links */}
-        <div className="flex flex-wrap gap-4 mb-12 text-xs font-mono">
-          <a href="https://api.alaynai.com/api/docs" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-amber-400 hover:bg-white/10 transition-colors">
+        <div className="mt-8 flex flex-wrap gap-3 font-mono text-xs">
+          <a
+            href="https://api.alaynai.com/api/docs"
+            className="inline-flex min-h-10 items-center rounded-full bg-[var(--espresso)] px-5 py-2 font-semibold text-white transition-colors hover:bg-[var(--espresso-mid)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+          >
             Interactive reference (Swagger)
           </a>
-          <Link href="/openapi.json" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-colors">
+          <Link
+            href="/openapi.json"
+            className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-warm)] bg-white px-5 py-2 font-medium text-[var(--espresso)] transition-colors hover:border-[var(--espresso)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+          >
             openapi.json (OpenAPI 3.0)
           </Link>
-          <Link href="/llms.txt" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-colors">
+          <Link
+            href="/llms.txt"
+            className="inline-flex min-h-10 items-center rounded-full border border-[var(--border-warm)] bg-white px-5 py-2 font-medium text-[var(--espresso)] transition-colors hover:border-[var(--espresso)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
+          >
             llms.txt
           </Link>
         </div>
 
-        <div className="space-y-10">
+        <div className="mt-12 space-y-8">
           {/* Getting started */}
-          <section id="authentication" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">AUTHENTICATION</span>
-            <h2 className="text-2xl font-bold text-white mb-3">Log in, then send a Bearer token</h2>
-            <p className="text-sm text-slate-400 font-light mb-4">
-              Exchange an Alayn account&apos;s email and password for an access token, and send it on every request. When it expires, call <code className="text-amber-400">/api/v1/auth/refresh</code> with the refresh token.
+          <section id="authentication" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">AUTHENTICATION</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Log in, then send a Bearer token</h2>
+            <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
+              Exchange an Alayn account&apos;s email and password for an access token, and send it on every request. When it expires, call <code className={inlineCodeClass}>/api/v1/auth/refresh</code> with the refresh token.
             </p>
-            <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-amber-300 overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl bg-[var(--espresso)] p-5 font-mono text-xs leading-relaxed text-[var(--chip-on-dark)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)]">
               <pre>{`curl -X POST https://api.alaynai.com/api/v1/auth/login \\
   -H "Content-Type: application/json" \\
   -d '{"email":"owner@yourcafe.com","password":"••••••••"}'
@@ -94,35 +111,35 @@ curl https://api.alaynai.com/api/v1/orders \\
           </section>
 
           {/* Base URL & outlet scoping */}
-          <section id="outlets" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">BASE URL &amp; OUTLETS</span>
-            <h2 className="text-2xl font-bold text-white mb-3">Every request is scoped to an outlet</h2>
-            <p className="text-sm text-slate-400 font-light mb-4">
-              Pass the outlet&apos;s ID in the <code className="text-amber-400">x-outlet-id</code> header. If you leave it out, the API uses the first outlet on your account; super-admin accounts must always send it.
+          <section id="outlets" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">BASE URL &amp; OUTLETS</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Every request is scoped to an outlet</h2>
+            <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
+              Pass the outlet&apos;s ID in the <code className={inlineCodeClass}>x-outlet-id</code> header. If you leave it out, the API uses the first outlet on your account; super-admin accounts must always send it.
             </p>
-            <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-slate-300 space-y-1">
-              <p><span className="text-amber-400">Base URL:</span> https://api.alaynai.com/api/v1</p>
-              <p><span className="text-amber-400">Authorization:</span> Bearer &lt;accessToken&gt;</p>
-              <p><span className="text-amber-400">x-outlet-id:</span> &lt;outlet-uuid&gt;</p>
+            <div className="space-y-1.5 rounded-xl bg-[var(--espresso)] p-5 font-mono text-xs text-[var(--chip-on-dark)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)]">
+              <p><span className="font-semibold text-[var(--amber-on-dark)]">Base URL:</span> https://api.alaynai.com/api/v1</p>
+              <p><span className="font-semibold text-[var(--amber-on-dark)]">Authorization:</span> Bearer &lt;accessToken&gt;</p>
+              <p><span className="font-semibold text-[var(--amber-on-dark)]">x-outlet-id:</span> &lt;outlet-uuid&gt;</p>
             </div>
           </section>
 
           {/* Responses & errors */}
-          <section id="responses" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">RESPONSES &amp; ERRORS</span>
-            <h2 className="text-2xl font-bold text-white mb-3">One envelope for every response</h2>
-            <p className="text-sm text-slate-400 font-light mb-4">
-              Successful responses wrap the result in <code className="text-amber-400">data</code>; lists add a <code className="text-amber-400">meta</code> object with <code>limit</code>, <code>offset</code> and <code>total</code>. Errors return an HTTP status code and a machine-readable <code className="text-amber-400">code</code>.
+          <section id="responses" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">RESPONSES &amp; ERRORS</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">One envelope for every response</h2>
+            <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
+              Successful responses wrap the result in <code className={inlineCodeClass}>data</code>; lists add a <code className={inlineCodeClass}>meta</code> object with <code className={inlineCodeClass}>limit</code>, <code className={inlineCodeClass}>offset</code> and <code className={inlineCodeClass}>total</code>. Errors return an HTTP status code and a machine-readable <code className={inlineCodeClass}>code</code>.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-amber-300 overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl bg-[var(--espresso)] p-5 font-mono text-xs leading-relaxed text-[var(--chip-on-dark)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)]">
                 <pre>{`{
   "success": true,
   "data": [ … ],
   "meta": { "limit": 20, "offset": 0, "total": 134 }
 }`}</pre>
               </div>
-              <div className="p-4 rounded-xl bg-black/60 border border-white/10 font-mono text-xs text-amber-300 overflow-x-auto">
+              <div className="overflow-x-auto rounded-xl bg-[var(--espresso)] p-5 font-mono text-xs leading-relaxed text-[var(--chip-on-dark)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)]">
                 <pre>{`{
   "success": false,
   "error": {
@@ -135,47 +152,53 @@ curl https://api.alaynai.com/api/v1/orders \\
           </section>
 
           {/* Endpoint groups */}
-          <section id="endpoints" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">ENDPOINTS</span>
-            <h2 className="text-2xl font-bold text-white mb-3">What the API covers</h2>
-            <p className="text-sm text-slate-400 font-light mb-5">
-              All paths sit under <code className="text-amber-400">/api/v1</code>. Request and response schemas for the documented operations are in the interactive reference and <code className="text-amber-400">openapi.json</code>.
+          <section id="endpoints" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">ENDPOINTS</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">What the API covers</h2>
+            <p className="mb-6 text-[15px] leading-relaxed text-[var(--muted)]">
+              All paths sit under <code className={inlineCodeClass}>/api/v1</code>. Request and response schemas for the documented operations are in the interactive reference and <code className={inlineCodeClass}>openapi.json</code>.
             </p>
-            <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2 text-sm">
+            <div className="grid gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
               {ENDPOINT_GROUPS.map(([path, what]) => (
-                <div key={path} className="flex gap-3 border-b border-white/5 py-2">
-                  <code className="w-36 shrink-0 text-amber-400 font-mono text-xs pt-0.5">{path}</code>
-                  <span className="text-slate-300 font-light">{what}</span>
+                <div key={path} className="flex gap-3 border-b border-[var(--border-warm)] py-2.5">
+                  <code className="w-36 shrink-0 pt-0.5 font-mono text-xs font-semibold text-[var(--amber)]">{path}</code>
+                  <span className="text-[var(--muted)]">{what}</span>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Rate Limiting */}
-          <section id="rate-limits" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">RATE LIMITING</span>
-            <h2 className="text-2xl font-bold text-white mb-3">Rate Limits</h2>
-            <p className="text-sm text-slate-400 font-light mb-4">
+          <section id="rate-limits" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">RATE LIMITING</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Rate Limits</h2>
+            <p className="mb-4 text-[15px] leading-relaxed text-[var(--muted)]">
               Authenticated endpoints are not rate limited today. Public, unauthenticated endpoints are limited per IP address:
             </p>
-            <ul className="list-disc pl-6 space-y-1 text-xs sm:text-sm text-slate-300 font-mono">
-              <li><strong className="text-amber-400">QR table menu</strong> (<code>GET /api/v1/orders/tables/:token/menu</code>): 10 requests per minute</li>
-              <li><strong className="text-amber-400">Customer feedback</strong> (<code>POST /api/v1/tickets/feedback</code>): 5 requests per 15 minutes</li>
-              <li><strong className="text-amber-400">Password reset</strong> (<code>POST /api/v1/auth/forgot-password</code>): 5 requests per 15 minutes</li>
-              <li><strong className="text-amber-400">HTTP 429:</strong> returned when a limit is exceeded, with a <code>Retry-After</code> header</li>
+            <ul className="list-disc space-y-2 pl-6 text-sm leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
+              <li><strong className="font-semibold text-[var(--espresso)]">QR table menu</strong> (<code className={inlineCodeClass}>GET /api/v1/orders/tables/:token/menu</code>): 10 requests per minute</li>
+              <li><strong className="font-semibold text-[var(--espresso)]">Customer feedback</strong> (<code className={inlineCodeClass}>POST /api/v1/tickets/feedback</code>): 5 requests per 15 minutes</li>
+              <li><strong className="font-semibold text-[var(--espresso)]">Password reset</strong> (<code className={inlineCodeClass}>POST /api/v1/auth/forgot-password</code>): 5 requests per 15 minutes</li>
+              <li><strong className="font-semibold text-[var(--espresso)]">HTTP 429:</strong> returned when a limit is exceeded, with a <code className={inlineCodeClass}>Retry-After</code> header</li>
             </ul>
           </section>
 
           {/* Versioning & access */}
-          <section id="versioning" className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
-            <span className="text-xs font-mono text-amber-400 font-bold block mb-2">VERSIONING &amp; ACCESS</span>
-            <h2 className="text-2xl font-bold text-white mb-3">What&apos;s available today</h2>
-            <ul className="list-disc pl-6 space-y-2 text-sm text-slate-300 font-light">
-              <li>The current version is <code className="text-amber-400">v1</code>, in the URL path.</li>
+          <section id="versioning" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
+            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">VERSIONING &amp; ACCESS</span>
+            <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">What&apos;s available today</h2>
+            <ul className="list-disc space-y-2.5 pl-6 text-[15px] leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
+              <li>The current version is <code className={inlineCodeClass}>v1</code>, in the URL path.</li>
               <li>Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced on this page.</li>
-              <li>Every response carries <code className="text-amber-400">RateLimit-Limit</code>, <code className="text-amber-400">RateLimit-Remaining</code> and <code className="text-amber-400">RateLimit-Reset</code> headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes <code className="text-amber-400">Retry-After</code>.</li>
+              <li>Every response carries <code className={inlineCodeClass}>RateLimit-Limit</code>, <code className={inlineCodeClass}>RateLimit-Remaining</code> and <code className={inlineCodeClass}>RateLimit-Reset</code> headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes <code className={inlineCodeClass}>Retry-After</code>.</li>
               <li>Access uses Alayn user accounts. There are no separate API keys, webhooks or official SDK or CLI yet.</li>
-              <li>Planning an integration with a POS, delivery platform or accounting tool? Write to <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>.</li>
+              <li>
+                Planning an integration with a POS, delivery platform or accounting tool? Write to{" "}
+                <a href="mailto:info@alaynai.com" className="font-medium text-[var(--amber)] underline underline-offset-4 hover:text-[var(--espresso)]">
+                  info@alaynai.com
+                </a>
+                .
+              </li>
             </ul>
           </section>
         </div>

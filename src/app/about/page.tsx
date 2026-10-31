@@ -70,98 +70,114 @@ export default function AboutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-white flex flex-col justify-between">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="flex min-h-screen flex-col justify-between bg-[var(--cream-light)] text-[var(--espresso)] selection:bg-[var(--amber)] selection:text-white">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--espresso)] focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <LandingNav />
 
-      <main className="pt-36 pb-20 px-6 sm:px-8 max-w-6xl mx-auto w-full">
+      <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Header */}
-        <div className="max-w-3xl mb-16">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
+        <div className="max-w-3xl">
+          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
             ABOUT ALAYN AI
           </span>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
-            The Operating System Built for <span className="italic text-amber-400 font-normal">Hospitality Operators.</span>
+          <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
+            The Operating System Built for <span className="italic font-normal text-[var(--amber)]">Hospitality Operators.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed">
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Alayn AI is an enterprise-grade platform designed from first principles to solve the fragmentation of restaurant technology. We unite counter POS, table dining, kitchen tickets, inventory procurement, and workforce scheduling into one synchronized ecosystem.
           </p>
         </div>
 
         {/* Operating Mandate */}
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-start mb-16">
+        <section className="mt-20 grid grid-cols-1 items-start gap-8 border-t border-[var(--border-warm)] pt-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <span className="text-xs uppercase tracking-widest text-amber-400 font-bold block mb-2">
+            <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--amber)]">
               OUR MISSION
             </span>
-            <h2 className="text-2xl font-bold text-white leading-snug">
+            <h2 className="font-heading text-2xl font-bold leading-snug tracking-[-0.02em] text-[var(--espresso)] sm:text-3xl">
               Replacing Operational Chaos with Complete Clarity.
             </h2>
           </div>
-          <div className="md:col-span-8 space-y-4 text-slate-300 text-sm sm:text-base font-light leading-relaxed">
+          <div className="space-y-4 text-[15px] leading-relaxed text-[var(--muted)] md:col-span-8">
             <p>
               In most restaurant environments, operations are fractured across offline notebooks, WhatsApp groups, separate billing machines, and manual inventory spreadsheets. When an unexpected rush hits, communication collapses.
             </p>
             <p>
               Alayn AI was conceived by restaurant operators and enterprise software engineers to eliminate these bottlenecks. Every module—from frontline order entry to automated supplier purchase orders—talks to the same transactional ledger in real time.
             </p>
-            <p className="text-white italic font-normal">
+            <p className="font-[family-name:var(--font-playfair)] text-lg italic text-[var(--espresso)]">
               &ldquo;We don&apos;t build generic business software. We engineer tools tuned to the heartbeat of a live restaurant kitchen.&rdquo;
             </p>
           </div>
         </section>
 
         {/* Four Core Pillars */}
-        <section className="py-12 border-t border-white/10 mb-16">
-          <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold mb-8">
+        <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
+          <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--amber)]">
             FOUR CORE PILLARS
+          </span>
+          <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
+            How the platform fits together
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
             {PILLARS.map((pillar) => (
               <div
                 key={pillar.number}
-                className="p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-500/30 transition-all duration-300"
+                className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="text-xs font-mono text-amber-400 font-bold block mb-3">
+                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
                   {pillar.number}
                 </span>
-                <h3 className="text-xl font-bold text-white mb-2">{pillar.title}</h3>
-                <p className="text-sm text-slate-400 font-light leading-relaxed">{pillar.desc}</p>
+                <h3 className="mb-2 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{pillar.title}</h3>
+                <p className="text-[15px] leading-relaxed text-[var(--muted)]">{pillar.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* Corporate Backing */}
-        <section className="py-12 border-t border-white/10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          <div className="md:col-span-8 space-y-3">
-            <h2 className="text-xs uppercase tracking-widest text-amber-400 font-bold">
-              INSTITUTIONAL GOVERNANCE
-            </h2>
-            <h3 className="text-2xl font-bold text-white">Built and operated by BRAHM Global Holdings</h3>
-            <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              Alayn AI is built and operated by BRAHM Global Holdings, based in Mumbai, India. Our registration details, GSTIN and policies are published on the{" "}
-              <Link href="/legal/corporate" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                corporate information
-              </Link>{" "}
-              page.
-            </p>
-          </div>
-          <div className="md:col-span-4 flex justify-start md:justify-end">
-            <Link
-              href="/contact"
-              className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs uppercase tracking-wider font-bold"
-            >
-              Book a Demonstration
-            </Link>
+        <section
+          aria-labelledby="governance-heading"
+          className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
+        >
+          <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-12">
+            <div className="space-y-3 md:col-span-8">
+              <span className="block text-xs font-bold uppercase tracking-widest text-[var(--amber-on-dark)]">
+                INSTITUTIONAL GOVERNANCE
+              </span>
+              <h2 id="governance-heading" className="text-2xl leading-tight sm:text-3xl">
+                <span className="font-[family-name:var(--font-playfair)] font-bold">Built and operated by BRAHM Global Holdings</span>
+              </h2>
+              <p className="max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
+                Alayn AI is built and operated by BRAHM Global Holdings, based in Mumbai, India. Our registration details, GSTIN and policies are published on the{" "}
+                <Link href="/legal/corporate" className="font-medium text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white">
+                  corporate information
+                </Link>{" "}
+                page.
+              </p>
+            </div>
+            <div className="flex justify-start md:col-span-4 md:justify-end">
+              <Link
+                href="/contact"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Book a Demonstration
+              </Link>
+            </div>
           </div>
         </section>
       </main>
 
       <LandingFooter />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
     </div>
   );
 }
