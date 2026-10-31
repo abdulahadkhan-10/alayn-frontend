@@ -797,59 +797,60 @@ export default function SupplierMarketplaceSection({
       {/* VENDOR CATALOG & DIRECT ORDER MODAL DRAWER */}
       {/* ======================================================== */}
       {activeVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div
-            className="w-full max-w-4xl max-h-[92vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-150"
+            className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-2xl border border-zinc-200/90 overflow-hidden ring-1 ring-black/5 animate-in zoom-in-95 duration-150"
             role="dialog"
             aria-modal="true"
           >
             {/* Modal Header */}
-            <div className="p-5 border-b border-zinc-200/80 bg-zinc-50/60 flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-red-50 text-[#D3232A] border border-red-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <Building2 className="h-5 w-5" />
+            <div className="p-5 sm:p-6 border-b border-zinc-100 bg-linear-to-b from-zinc-50/80 to-white flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-md shadow-zinc-900/10 shrink-0">
+                  <Building2 className="h-6 w-6 text-zinc-100" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg font-black text-zinc-900 tracking-tight">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-xl font-black text-zinc-900 tracking-tight">
                       {activeVendor.supplier.name}
                     </h2>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                       <span>Verified Wholesaler</span>
                     </span>
+                    <span className="text-[11px] font-medium text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
+                      Direct B2B Catalog
+                    </span>
                   </div>
 
-                  <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                    <span>Direct B2B Wholesaler Catalog</span>
-                    <span>·</span>
-                    <span className="font-semibold text-zinc-700">{activeVendor.totalItems} Materials Available</span>
-                    {activeVendor.supplier.deliveryTerms && (
-                      <>
-                        <span>·</span>
-                        <span className="text-zinc-600">{activeVendor.supplier.deliveryTerms}</span>
-                      </>
-                    )}
-                  </p>
+                  {/* Contact & SLA pills */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
+                      <Clock className="h-3.5 w-3.5 text-zinc-500" />
+                      <span className="font-bold text-zinc-800">{activeVendor.fastestLeadTimeHours}h SLA</span>
+                      <span className="text-zinc-400">Turnaround</span>
+                    </span>
 
-                  {/* Contact pills */}
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 mt-2 flex-wrap">
                     {activeVendor.supplier.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3 text-zinc-400" />
+                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
+                        <Phone className="h-3.5 w-3.5 text-zinc-500" />
                         <span>{activeVendor.supplier.phone}</span>
                       </span>
                     )}
+
                     {activeVendor.supplier.address && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-zinc-400" />
-                        <span>{activeVendor.supplier.address}</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
+                        <MapPin className="h-3.5 w-3.5 text-zinc-500" />
+                        <span className="truncate max-w-[200px]">{activeVendor.supplier.address}</span>
                       </span>
                     )}
-                    <span className="flex items-center gap-1 text-zinc-700 font-medium">
-                      <Clock className="h-3 w-3 text-zinc-400" />
-                      <span>{activeVendor.fastestLeadTimeHours}h SLA Turnaround</span>
-                    </span>
+
+                    {activeVendor.supplier.deliveryTerms && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 bg-zinc-50 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
+                        <Truck className="h-3.5 w-3.5 text-zinc-400" />
+                        <span>{activeVendor.supplier.deliveryTerms}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -858,17 +859,23 @@ export default function SupplierMarketplaceSection({
               <button
                 type="button"
                 onClick={() => setActiveVendor(null)}
-                className="h-8 w-8 rounded-lg border border-zinc-200 bg-white flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors shrink-0"
+                className="h-9 w-9 rounded-xl border border-zinc-200 bg-white flex items-center justify-center text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100/80 active:scale-95 transition-all shrink-0 cursor-pointer shadow-2xs"
+                title="Close (Esc)"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Modal Sub-Header Toolbar (Category filter & Select All) */}
-            <div className="px-6 py-2.5 border-b border-zinc-100 bg-zinc-50/60 flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-                Available Materials ({activeVendor.items.length})
-              </span>
+            <div className="px-6 py-2.5 border-b border-zinc-100 bg-zinc-50/70 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-zinc-800">
+                  Catalog Materials
+                </span>
+                <span className="text-[11px] font-bold text-zinc-500 bg-white border border-zinc-200/80 px-2 py-0.5 rounded-full shadow-2xs">
+                  {activeVendor.items.length} materials
+                </span>
+              </div>
 
               <div className="flex items-center gap-3">
                 {/* Category Filter inside vendor */}
@@ -876,9 +883,9 @@ export default function SupplierMarketplaceSection({
                   <select
                     value={catalogModalCategory}
                     onChange={(e) => setCatalogModalCategory(e.target.value)}
-                    className="text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1 focus:outline-none"
+                    className="text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-zinc-400"
                   >
-                    <option value="All">All Categories ({activeVendor.items.length})</option>
+                    <option value="All">All Departments ({activeVendor.items.length})</option>
                     {activeVendor.categories.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -888,9 +895,11 @@ export default function SupplierMarketplaceSection({
                 <button
                   type="button"
                   onClick={() => selectAllInActiveVendor(activeVendor.items)}
-                  className="text-xs font-bold text-zinc-700 hover:text-zinc-900 underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-700 hover:text-zinc-950 active:scale-95 transition-all cursor-pointer"
                 >
-                  {activeVendor.items.every((i) => selectedItemIds[i.id]) ? "Deselect All" : "Select All"}
+                  <span className="underline">
+                    {activeVendor.items.every((i) => selectedItemIds[i.id]) ? "Deselect All" : "Select All Items"}
+                  </span>
                 </button>
               </div>
             </div>
@@ -917,14 +926,14 @@ export default function SupplierMarketplaceSection({
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="sticky top-0 bg-zinc-50/95 backdrop-blur-xs border-b border-zinc-200/80 text-zinc-400 text-[10px] font-bold uppercase tracking-wider z-10">
                       <tr>
-                        <th className="py-2.5 px-4 w-10 text-center"></th>
-                        <th className="py-2.5 px-4">Raw Material</th>
-                        <th className="py-2.5 px-3">Department</th>
-                        <th className="py-2.5 px-4 text-right">Wholesale Rate</th>
-                        <th className="py-2.5 px-4">Margin Benchmark</th>
-                        <th className="py-2.5 px-3">Stock &amp; MOQ</th>
-                        <th className="py-2.5 px-3 text-center">Order Quantity</th>
-                        <th className="py-2.5 px-4 text-right">Estimated Line Total</th>
+                        <th className="py-3 px-4 w-10 text-center"></th>
+                        <th className="py-3 px-4">Raw Material</th>
+                        <th className="py-3 px-3">Department</th>
+                        <th className="py-3 px-4 text-right">Wholesale Rate</th>
+                        <th className="py-3 px-4">Margin Benchmark</th>
+                        <th className="py-3 px-3">Stock &amp; MOQ</th>
+                        <th className="py-3 px-3 text-center">Order Quantity</th>
+                        <th className="py-3 px-4 text-right">Estimated Line Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">
@@ -938,40 +947,42 @@ export default function SupplierMarketplaceSection({
                         return (
                           <tr
                             key={item.id}
-                            className={`transition-colors ${
-                              isSelected ? "bg-red-50/30" : "hover:bg-zinc-50/80"
+                            className={`transition-colors border-l-3 ${
+                              isSelected
+                                ? "bg-red-50/20 border-l-[#D3232A]"
+                                : "hover:bg-zinc-50/80 border-l-transparent"
                             }`}
                           >
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3.5 px-4 text-center">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleSelect(item.id, min)}
-                                className="rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A] cursor-pointer"
+                                className="rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A] cursor-pointer h-4 w-4"
                               />
                             </td>
-                            <td className="py-3 px-4">
-                              <span className="font-bold text-xs text-zinc-900 block">
+                            <td className="py-3.5 px-4">
+                              <span className={`font-bold text-xs block ${isSelected ? "text-zinc-950 font-extrabold" : "text-zinc-800"}`}>
                                 {item.name}
                               </span>
                               {item.sku && (
-                                <span className="text-[10px] font-mono text-zinc-400 block">
+                                <span className="text-[10px] font-mono text-zinc-400 block mt-0.5">
                                   SKU: {item.sku}
                                 </span>
                               )}
                             </td>
-                            <td className="py-3 px-3">
+                            <td className="py-3.5 px-3">
                               <span className="inline-flex items-center text-[10px] font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md">
                                 {item.category || "General"}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right font-extrabold text-xs text-zinc-900 tabular-nums">
+                            <td className="py-3.5 px-4 text-right font-extrabold text-xs text-zinc-900 tabular-nums whitespace-nowrap">
                               ₹{item.priceRupees.toFixed(2)}
                               <span className="text-[10px] text-zinc-400 font-normal block">
                                 / {item.unit}
                               </span>
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3.5 px-4">
                               {hasSavings ? (
                                 <div>
                                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md">
@@ -983,21 +994,26 @@ export default function SupplierMarketplaceSection({
                                   </span>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-zinc-400">
+                                <span className="inline-flex items-center text-[10px] font-semibold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
                                   Wholesale Direct
                                 </span>
                               )}
                             </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <span className={`text-[10px] font-bold ${item.inStock ? "text-emerald-700" : "text-zinc-500"}`}>
-                                {item.inStock ? "● In Stock" : "Pre-order"}
+                            <td className="py-3.5 px-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                item.inStock 
+                                  ? "text-emerald-700 bg-emerald-50 border border-emerald-200/80" 
+                                  : "text-zinc-500 bg-zinc-100"
+                              }`}>
+                                {item.inStock && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                                {item.inStock ? "In Stock" : "Pre-order"}
                               </span>
-                              <span className="text-[10px] text-zinc-400 block mt-0.5">
+                              <span className="text-[10px] text-zinc-400 block mt-0.5 font-medium">
                                 Min: {item.minOrderQty} {item.unit}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-center whitespace-nowrap">
-                              <div className="inline-flex items-center border border-zinc-200 rounded-lg bg-white overflow-hidden shadow-2xs">
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                              <div className="inline-flex items-center border border-zinc-200 rounded-xl bg-white overflow-hidden shadow-2xs hover:border-zinc-300 transition-colors">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1005,7 +1021,7 @@ export default function SupplierMarketplaceSection({
                                     updateQuantity(item.id, currentQty - 1, min);
                                   }}
                                   disabled={currentQty <= min}
-                                  className="px-2 py-1 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 active:scale-95 transition-all"
+                                  className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 active:scale-90 transition-all cursor-pointer"
                                 >
                                   <Minus className="h-3 w-3" />
                                 </button>
@@ -1018,7 +1034,7 @@ export default function SupplierMarketplaceSection({
                                     if (!isSelected) toggleSelect(item.id, min);
                                     updateQuantity(item.id, Number(e.target.value) || min, min);
                                   }}
-                                  className="w-12 text-center text-xs font-bold text-zinc-900 border-x border-zinc-200 py-1 focus:outline-none"
+                                  className="w-11 text-center text-xs font-black text-zinc-900 border-x border-zinc-200 py-1 focus:outline-none focus:bg-zinc-50"
                                 />
                                 <button
                                   type="button"
@@ -1026,17 +1042,19 @@ export default function SupplierMarketplaceSection({
                                     if (!isSelected) toggleSelect(item.id, min);
                                     updateQuantity(item.id, currentQty + 1, min);
                                   }}
-                                  className="px-2 py-1 text-zinc-500 hover:bg-zinc-100 active:scale-95 transition-all"
+                                  className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 active:scale-90 transition-all cursor-pointer"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </div>
-                              <span className="text-[10px] text-zinc-400 block mt-0.5">
+                              <span className="text-[10px] text-zinc-400 block mt-0.5 font-medium">
                                 {item.unit}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right font-extrabold text-xs text-zinc-900 tabular-nums">
-                              ₹{lineTotalRupees}
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <span className={`text-xs tabular-nums block ${isSelected ? "font-black text-zinc-900" : "font-medium text-zinc-400"}`}>
+                                ₹{lineTotalRupees}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -1048,23 +1066,41 @@ export default function SupplierMarketplaceSection({
             </div>
 
             {/* Modal Sticky Bottom Order Dock */}
-            <div className="p-4 border-t border-zinc-200/80 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                  <Check className="h-4 w-4" />
+            <div className="p-4 sm:p-5 border-t border-zinc-200/80 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div
+                  className={`h-10 w-10 rounded-2xl flex items-center justify-center font-bold shrink-0 transition-all ${
+                    activeVendorOrderMetrics.count > 0
+                      ? "bg-emerald-500 text-white shadow-xs"
+                      : "bg-zinc-200/80 text-zinc-400"
+                  }`}
+                >
+                  {activeVendorOrderMetrics.count > 0 ? (
+                    <Check className="h-5 w-5 stroke-[2.5]" />
+                  ) : (
+                    <ShoppingCart className="h-5 w-5" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold text-sm text-zinc-900">
-                      {activeVendorOrderMetrics.count} {activeVendorOrderMetrics.count === 1 ? "Material" : "Materials"} Selected
+                      {activeVendorOrderMetrics.count === 0
+                        ? "0 Materials Selected"
+                        : `${activeVendorOrderMetrics.count} ${activeVendorOrderMetrics.count === 1 ? "Material" : "Materials"} Selected`}
                     </span>
                     <span className="text-xs text-zinc-400">· Subtotal:</span>
-                    <span className="font-black text-sm text-emerald-700 tabular-nums">
+                    <span
+                      className={`font-black text-base tabular-nums ${
+                        activeVendorOrderMetrics.count > 0 ? "text-emerald-700" : "text-zinc-400"
+                      }`}
+                    >
                       ₹{activeVendorOrderMetrics.subtotalRupees}
                     </span>
                   </div>
                   <span className="text-[11px] text-zinc-500 block">
-                    Ordering directly from {activeVendor.supplier.name} with {activeVendor.fastestLeadTimeHours}h SLA
+                    {activeVendorOrderMetrics.count > 0
+                      ? `Direct wholesale restock with ${activeVendor.supplier.name} · ${activeVendor.fastestLeadTimeHours}h SLA`
+                      : "Tick items above or click a [+] button to add to your order"}
                   </span>
                 </div>
               </div>
@@ -1073,18 +1109,32 @@ export default function SupplierMarketplaceSection({
                 <button
                   type="button"
                   onClick={() => setActiveVendor(null)}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="button"
-                  onClick={handlePlaceOrderForActiveVendor}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white text-xs font-extrabold shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                  onClick={() => {
+                    if (activeVendorOrderMetrics.count === 0) {
+                      selectAllInActiveVendor(activeVendor.items);
+                      return;
+                    }
+                    handlePlaceOrderForActiveVendor();
+                  }}
+                  className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
+                    activeVendorOrderMetrics.count > 0
+                      ? "bg-[#D3232A] hover:bg-[#b01e23] text-white"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-white"
+                  }`}
                 >
                   <ShoppingCart className="h-3.5 w-3.5" />
-                  <span>Create Purchase Order with {activeVendor.supplier.name} →</span>
+                  <span>
+                    {activeVendorOrderMetrics.count > 0
+                      ? `Create Purchase Order (${activeVendorOrderMetrics.count} items) →`
+                      : `Select All & Order (${activeVendor.items.length} items) →`}
+                  </span>
                 </button>
               </div>
             </div>
