@@ -27,6 +27,10 @@ export function saveOfflinePack(pack: Omit<OfflinePack, "savedAt">): Promise<boo
   return kvSet(PACK_KEY, { ...pack, savedAt: Date.now() });
 }
 
+export function clearOfflinePack(): Promise<boolean> {
+  return kvSet(PACK_KEY, null);
+}
+
 /** The saved pack, or null when there is none or it is older than the offline allowance. */
 export async function loadOfflinePack(): Promise<OfflinePack | null> {
   const pack = await kvGet<OfflinePack>(PACK_KEY);

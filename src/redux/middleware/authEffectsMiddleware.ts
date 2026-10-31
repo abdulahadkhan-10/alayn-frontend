@@ -3,6 +3,7 @@ import { baseApi } from "../store/baseApi";
 import type { AuthState } from "../slices/authSlice";
 import { announceAuth } from "@/lib/authSession";
 import { writeUserHint, clearUserHint } from "@/components/landing/landingSession";
+import { clearOfflinePack } from "@/lib/offline/offlinePack";
 
 type StateWithAuth = { auth: AuthState };
 
@@ -25,10 +26,21 @@ export const authEffectsMiddleware: Middleware<object, StateWithAuth> = (storeAp
     const isIn = after.status === "authenticated";
 
     if (isIn) {
+        if (wasIn && before.user?.id && after.user?.id && before.user.id !== after.user.id) {
+            try {
+                localStorage.removeItem("alayn_active_branch_id");
+                localStorage.removeItem("alayn_cached_branches");
+            } catch {
+                /* storage unavailable */
+            }
+            void clearOfflinePack();
+            storeApi.dispatch(baseApi.util.resetApiState());
+        }
         writeUserHint(after.user);
-        if (!wasIn && type === "auth/setCredentials") announceAuth("login");
+        if ((!wasIn || before.user?.id !== after.user?.id) && type === "auth/setCredentials") announceAuth("login");
     } else if (wasIn) {
         clearUserHint();
+        void clearOfflinePack();
         try {
             localStorage.removeItem("alayn_active_branch_id");
             localStorage.removeItem("alayn_cached_branches");
