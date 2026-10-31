@@ -9,6 +9,7 @@ import { useLogoutMutation } from "@/redux/slices/authApiSlice";
 import { logout } from "@/redux/slices/authSlice";
 import { baseApi } from "@/redux/store/baseApi";
 import { useBranch } from "@/lib/BranchContext";
+import { useOfflineStatus } from "@/lib/offline/offlineStatus";
 import { formatRole } from "@/lib/utils";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -27,6 +28,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   const { activeBranch, setActiveBranch, branches, loading: branchesLoading, isDemo } = useBranch();
+  const { unsyncedBills } = useOfflineStatus();
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -233,7 +235,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
                 <button
                   type="button"
+                  disabled={unsyncedBills > 0}
+                  title={unsyncedBills > 0 ? `${unsyncedBills} offline bill(s) waiting to sync before signing out` : undefined}
                   onClick={async () => {
+                    if (unsyncedBills > 0) return;
                     setProfileDropdownOpen(false);
                     try {
                       await logoutApi(undefined).unwrap();

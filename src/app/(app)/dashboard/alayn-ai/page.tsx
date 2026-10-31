@@ -97,9 +97,18 @@ function toTurns(messages: AlaynAISavedMessage[]): ChatTurn[] {
 }
 
 export default function AlaynAIPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const allowed = !user || user.role === "BUSINESS_OWNER" || user.role === "MANAGER" || user.role === "SUPER_ADMIN";
+
+  useEffect(() => {
+    if (user && !allowed) {
+      window.location.replace(user.role === "KITCHEN" ? "/kitchen" : user.role === "SUPPLIER" ? "/supplier/orders" : "/pos");
+    }
+  }, [user, allowed]);
+
   return (
     <AuthGuard>
-      <AlaynAIWorkspace />
+      {allowed ? <AlaynAIWorkspace /> : null}
     </AuthGuard>
   );
 }
