@@ -1,7 +1,7 @@
 "use client";
 
 import { TModal } from "@/components/ui/TModal";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   useGetMenuItemsQuery,
   useGetCategoriesQuery,
@@ -427,6 +427,102 @@ export default function PosTerminalComponent() {
     return Array.from(map.values());
   }, [categories]);
 
+  // Build category tabs with item counts: non-empty categories come first, empty ones last
+  const categoryTabs = useMemo(() => {
+    const availableItems = (menuItems || []).filter((item) => item.isAvailable !== false);
+    const catTabs = categoriesDeduplicated.map((cat) => {
+      const catNameKey = cat.name.trim().toLowerCase();
+      const count = availableItems.filter(
+        (item) =>
+          item.categoryId === cat.id ||
+          (item.category?.name && item.category.name.trim().toLowerCase() === catNameKey)
+      ).length;
+      return {
+        id: cat.id,
+        name: cat.name,
+        nameKey: catNameKey,
+        count,
+      };
+    });
+
+    catTabs.sort((a, b) => {
+      if (a.count > 0 && b.count === 0) return -1;
+      if (a.count === 0 && b.count > 0) return 1;
+      return 0;
+    });
+
+    return [
+      { id: "ALL", name: "All items", nameKey: "", count: availableItems.length },
+      ...catTabs,
+    ];
+  }, [categoriesDeduplicated, menuItems]);
+
+  const selectedCategoryNameKey = useMemo(() => {
+    if (selectedCategoryId === "ALL") return "";
+    const found = categoriesDeduplicated.find((c) => c.id === selectedCategoryId);
+    return found ? found.name.trim().toLowerCase() : "";
+  }, [selectedCategoryId, categoriesDeduplicated]);
+
+  // Cursor grab-to-scroll for the horizontal category strip
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
+  const categoryDragRef = useRef({
+    isDown: false,
+    startX: 0,
+    scrollLeft: 0,
+    hasMoved: false,
+  });
+  const [isDraggingCategories, setIsDraggingCategories] = useState(false);
+
+  const handleCategoryMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    categoryDragRef.current = {
+      isDown: true,
+      startX: e.pageX - el.offsetLeft,
+      scrollLeft: el.scrollLeft,
+      hasMoved: false,
+    };
+  };
+
+  const handleCategoryMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const drag = categoryDragRef.current;
+    const el = categoryScrollRef.current;
+    if (!drag.isDown || !el) return;
+    const x = e.pageX - el.offsetLeft;
+    const walk = x - drag.startX;
+    if (!drag.hasMoved && Math.abs(walk) > 4) {
+      drag.hasMoved = true;
+      setIsDraggingCategories(true);
+    }
+    if (drag.hasMoved) {
+      e.preventDefault();
+      el.scrollLeft = drag.scrollLeft - walk;
+    }
+  };
+
+  const handleCategoryMouseUpOrLeave = () => {
+    if (!categoryDragRef.current.isDown) return;
+    categoryDragRef.current.isDown = false;
+    setIsDraggingCategories(false);
+  };
+
+  const handleCategoryClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (categoryDragRef.current.hasMoved) {
+      e.stopPropagation();
+      e.preventDefault();
+      categoryDragRef.current.hasMoved = false;
+    }
+  };
+
+  const handleCategoryWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && el.scrollWidth > el.clientWidth) {
+      el.scrollLeft += e.deltaY;
+    }
+  };
+
   // Dynamically detect available dietary types in current outlet menu
   const { hasVegItems, hasNonVegItems, hasVeganItems } = useMemo(() => {
     let veg = false;
@@ -445,7 +541,11 @@ export default function PosTerminalComponent() {
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
       const matchesCategory =
-        selectedCategoryId === "ALL" || item.categoryId === selectedCategoryId;
+        selectedCategoryId === "ALL" ||
+        item.categoryId === selectedCategoryId ||
+        (selectedCategoryNameKey !== "" &&
+          Boolean(item.category?.name) &&
+          item.category!.name.trim().toLowerCase() === selectedCategoryNameKey);
       const matchesSearch =
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.category?.name &&
@@ -459,7 +559,7 @@ export default function PosTerminalComponent() {
 
       return matchesCategory && matchesSearch && matchesDietary && item.isAvailable;
     });
-  }, [menuItems, selectedCategoryId, searchQuery, dietaryFilter]);
+  }, [menuItems, selectedCategoryId, selectedCategoryNameKey, searchQuery, dietaryFilter]);
 
   // Cart Operations — Blocked if 'All Outlets' is active
   const addToCart = (
@@ -1378,20 +1478,19 @@ export default function PosTerminalComponent() {
             </div>
 
             {!isAllOutletsSelected && (
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none px-4 py-2.5 border-t border-slate-100">
-                {[{ id: "ALL", name: "All items", count: menuItems.length }, ...categoriesDeduplicated.map((cat) => {
-                  const catNameKey = cat.name.trim().toLowerCase();
-                  return {
-                    id: cat.id,
-                    name: cat.name,
-                    count: menuItems.filter(
-                      (item) =>
-                        item.isAvailable !== false &&
-                        (item.categoryId === cat.id ||
-                          (item.category?.name && item.category.name.trim().toLowerCase() === catNameKey))
-                    ).length,
-                  };
-                })].map((cat) => {
+              <div
+                ref={categoryScrollRef}
+                onMouseDown={handleCategoryMouseDown}
+                onMouseMove={handleCategoryMouseMove}
+                onMouseUp={handleCategoryMouseUpOrLeave}
+                onMouseLeave={handleCategoryMouseUpOrLeave}
+                onClickCapture={handleCategoryClickCapture}
+                onWheel={handleCategoryWheel}
+                className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none px-4 py-2.5 border-t border-slate-100 select-none ${
+                  isDraggingCategories ? "cursor-grabbing" : "cursor-grab"
+                }`}
+              >
+                {categoryTabs.map((cat) => {
                   const isSelected = selectedCategoryId === cat.id;
                   return (
                     <button
@@ -1401,7 +1500,9 @@ export default function PosTerminalComponent() {
                         setSelectedCategoryId(cat.id);
                         setCurrentPage(1);
                       }}
-                      className={`h-8 px-3 rounded-lg text-xs whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                      className={`h-8 px-3 rounded-lg text-xs whitespace-nowrap transition flex items-center gap-1.5 ${
+                        isDraggingCategories ? "cursor-grabbing" : "cursor-pointer"
+                      } ${
                         isSelected
                           ? "bg-[#1B2A4A] text-white font-semibold"
                           : "text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900"
