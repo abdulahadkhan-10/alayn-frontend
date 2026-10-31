@@ -339,6 +339,9 @@ function AlaynAIWorkspace() {
         <>This outlet has used all {allowance.limit} Alayn AI questions for today. More questions at midnight.</>
       )}
     </div>
+  ) : allowance.remaining === null ? (
+    // No daily limit right now: only Basic's topic note is worth showing
+    isBasic ? <span>Basic covers sales and menu; Pro adds stock, staff and forecasts</span> : null
   ) : (
     <span className={allowance.remaining <= 3 && !isBasic ? "text-amber-300" : undefined}>
       {allowance.remaining} of {allowance.limit} questions left today
