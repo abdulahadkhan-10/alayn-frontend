@@ -499,8 +499,9 @@ export interface AlaynAIChatTarget {
 /** What an outlet has left of today's Ask Alayn AI questions (resets at midnight India time) */
 export interface AlaynAIAllowance {
   used: number;
-  limit: number;
-  remaining: number;
+  /** null while the server has daily limits switched off */
+  limit: number | null;
+  remaining: number | null;
   resetsAt: string;
   /** Alayn Pro: every topic and the full allowance. Alayn Basic: a few sales and menu questions. */
   fullAccess: boolean;
