@@ -28,7 +28,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   const { activeBranch, setActiveBranch, branches, loading: branchesLoading, isDemo } = useBranch();
-  const { unsyncedBills } = useOfflineStatus();
+  const { pending: unsyncedBills } = useOfflineStatus();
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);

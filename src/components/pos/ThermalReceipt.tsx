@@ -267,7 +267,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${invoiceTitle} — ${billNo} | ${outletName}</title>
+          <title>${String(invoiceTitle).replace(/[&<>"']/g, '')} — ${String(billNo).replace(/[&<>"']/g, '')} | ${String(outletName).replace(/[&<>"']/g, '')}</title>
           <meta charset="UTF-8" />
           ${styles}
           <style>
