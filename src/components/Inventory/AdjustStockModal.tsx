@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { X, AlertTriangle, Truck, Utensils, Trash2, CheckCircle2, RefreshCw } from "lucide-react";
 import { adjustInventoryStock, InventoryItem } from "@/lib/api";
+import NumberInput from "@/components/ui/NumberInput";
 
 type FlowType = "RECEIVED" | "USED" | "WASTE" | "CORRECT";
 
@@ -241,16 +242,15 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1.5">
                     How much arrived? ({item.unit})
                   </label>
-                  <input
-                    type="number"
-                    min="0.001"
-                    step="any"
+                  <NumberInput
+                    allowEmpty
+                    min={0}
                     required
                     autoFocus
                     placeholder={`Enter ${item.unit} received...`}
                     value={amount}
-                    onChange={(e) => {
-                      setAmount(e.target.value === "" ? "" : Number(e.target.value));
+                    onChange={(v) => {
+                      setAmount(v);
                       setError(null);
                     }}
                     className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-lg font-bold focus:border-[#D3232A] focus:outline-none"
@@ -281,16 +281,15 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1.5">
                     How much was used? ({item.unit})
                   </label>
-                  <input
-                    type="number"
-                    min="0.001"
-                    step="any"
+                  <NumberInput
+                    allowEmpty
+                    min={0}
                     required
                     autoFocus
                     placeholder={`Enter ${item.unit} used...`}
                     value={amount}
-                    onChange={(e) => {
-                      setAmount(e.target.value === "" ? "" : Number(e.target.value));
+                    onChange={(v) => {
+                      setAmount(v);
                       setError(null);
                     }}
                     className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-lg font-bold focus:border-[#D3232A] focus:outline-none"
@@ -321,16 +320,15 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1.5">
                     How much was wasted? ({item.unit})
                   </label>
-                  <input
-                    type="number"
-                    min="0.001"
-                    step="any"
+                  <NumberInput
+                    allowEmpty
+                    min={0}
                     required
                     autoFocus
                     placeholder={`Enter ${item.unit} wasted...`}
                     value={amount}
-                    onChange={(e) => {
-                      setAmount(e.target.value === "" ? "" : Number(e.target.value));
+                    onChange={(v) => {
+                      setAmount(v);
                       setError(null);
                     }}
                     className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-lg font-bold focus:border-[#D3232A] focus:outline-none"
@@ -362,16 +360,15 @@ export default function AdjustStockModal({ outletId, item, onAdjusted, onClose }
                   <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1.5">
                     How much stock do you actually have? ({item.unit})
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
+                  <NumberInput
+                    allowEmpty
+                    min={0}
                     required
                     autoFocus
                     placeholder={`Enter physical ${item.unit} count...`}
                     value={physicalStock}
-                    onChange={(e) => {
-                      setPhysicalStock(e.target.value === "" ? "" : Number(e.target.value));
+                    onChange={(v) => {
+                      setPhysicalStock(v);
                       setError(null);
                     }}
                     className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-lg font-bold focus:border-[#D3232A] focus:outline-none"

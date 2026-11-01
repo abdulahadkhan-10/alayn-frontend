@@ -43,6 +43,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
+import NumberInput from "@/components/ui/NumberInput";
 import {
   AreaChart,
   Area,
@@ -1016,15 +1017,14 @@ export default function WasteManagementPage() {
                       <label htmlFor="modal-waste-quantity-input" className="block font-bold text-zinc-800 mb-1">
                         Wasted Quantity ({selectedItem?.unit || "units"}) <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      <NumberInput
                         id="modal-waste-quantity-input"
-                        type="number"
-                        step="any"
-                        min="0.001"
+                        allowEmpty
+                        min={0}
                         required
                         placeholder="Enter quantity amount..."
                         value={quantity}
-                        onChange={(e) => setQuantity(e.target.value === "" ? "" : Number(e.target.value))}
+                        onChange={setQuantity}
                         className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
                       />
                     </div>
