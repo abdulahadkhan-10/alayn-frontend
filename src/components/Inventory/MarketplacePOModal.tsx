@@ -7,6 +7,7 @@ import { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { useCreatePurchaseOrderMutation } from "@/redux/slices/procurementApiSlice";
 import type { MarketplaceSupplier } from "./SupplierMarketplaceSection";
 import { apiErrorMessage } from "@/lib/apiError";
+import QuantityInput from "./QuantityInput";
 
 interface Line {
   catalogItem: SupplierItemApi;
@@ -247,12 +248,11 @@ export default function MarketplacePOModal({
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         <div className="inline-flex items-center gap-1 border border-zinc-200 rounded-lg bg-white px-2 py-1">
-                          <input
-                            type="number"
-                            min={min || 1}
-                            step="any"
+                          <QuantityInput
                             value={line.quantity}
-                            onChange={(e) => updateLine(catalogItem.id, { quantity: Math.max(0, Number(e.target.value)) })}
+                            min={min || 1}
+                            onChange={(quantity) => updateLine(catalogItem.id, { quantity })}
+                            aria-label={`${catalogItem.name} quantity in ${catalogItem.unit}`}
                             className="w-14 text-center text-xs font-semibold text-zinc-900 focus:outline-none"
                           />
                           <span className="text-[11px] text-zinc-400 font-medium">{catalogItem.unit}</span>

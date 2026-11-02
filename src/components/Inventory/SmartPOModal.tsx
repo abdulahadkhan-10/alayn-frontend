@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { X, CheckCircle2, AlertTriangle, Package, IndianRupee, Loader2, ChevronDown } from "lucide-react";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
+import NumberInput from "@/components/ui/NumberInput";
 import {
   useGetSuppliersQuery,
   useCreatePurchaseOrderMutation,
@@ -274,11 +275,11 @@ export default function SmartPOModal({
                     {/* Qty + remove */}
                     <div className="w-32 flex items-center justify-end gap-2">
                       <div className="flex items-center gap-1 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                        <input
-                          type="number"
-                          min="1"
+                        <NumberInput
+                          min={1}
+                          aria-label={`${line.item.name} quantity`}
                           value={line.suggestedQty}
-                          onChange={(e) => handleLineQtyChange(line.item.id, Number(e.target.value))}
+                          onChange={(qty) => handleLineQtyChange(line.item.id, qty)}
                           className="w-14 px-2 py-1.5 text-center text-sm font-semibold text-zinc-900 focus:outline-none bg-transparent"
                         />
                         <span className="pr-2.5 text-xs text-zinc-400 font-medium">{line.item.unit}</span>

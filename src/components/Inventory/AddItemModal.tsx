@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { X, AlertTriangle, Loader2 } from "lucide-react";
 import { useBranch } from "@/lib/BranchContext";
 import { useCreateItemMutation } from "@/redux/slices/inventoryApiSlice";
+import NumberInput from "@/components/ui/NumberInput";
 
 const STANDARD_UNITS = [
   { value: "kg",    label: "Kilograms (kg)" },
@@ -242,15 +243,14 @@ export default function AddItemModal({
               <label htmlFor="item-qty" className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 mb-1.5">
                 Initial Stock Quantity
               </label>
-              <input
+              <NumberInput
                 id="item-qty"
-                type="number"
-                min="0"
-                step="any"
+                allowEmpty
+                min={0}
                 placeholder="0"
                 className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold text-zinc-900 focus:border-zinc-800 focus:outline-none shadow-xs"
                 value={currentQty}
-                onChange={(e) => setCurrentQty(e.target.value === "" ? "" : Number(e.target.value))}
+                onChange={setCurrentQty}
               />
             </div>
 
@@ -259,15 +259,14 @@ export default function AddItemModal({
               <label htmlFor="item-notify" className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 mb-1.5">
                 Reorder Threshold
               </label>
-              <input
+              <NumberInput
                 id="item-notify"
-                type="number"
-                min="0"
-                step="any"
+                allowEmpty
+                min={0}
                 placeholder="5"
                 className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold text-zinc-900 focus:border-zinc-800 focus:outline-none shadow-xs"
                 value={notifyBelow}
-                onChange={(e) => setNotifyBelow(e.target.value === "" ? "" : Number(e.target.value))}
+                onChange={setNotifyBelow}
               />
             </div>
 

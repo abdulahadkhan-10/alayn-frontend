@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
 import {
   Search,
   Clock,
@@ -8,27 +9,27 @@ import {
   Plus,
   Minus,
   ShoppingCart,
-  Check,
   RotateCcw,
-  Table2,
   TrendingDown,
   X,
-  ShieldCheck,
-  Building2,
+  BadgeCheck,
   Truck,
   Phone,
-  Mail,
   MapPin,
   ArrowRight,
-  Package,
-  Layers,
+  User,
+  Loader2,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import {
-  useGetMarketCatalogQuery,
+  useGetMarketplaceSuppliersQuery,
+  useGetMarketplaceSupplierItemsQuery,
   SupplierItemApi,
+  MarketplaceSort,
+  MarketplaceSupplierRow,
 } from "@/redux/slices/supplierApiSlice";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
+import QuantityInput from "./QuantityInput";
 
 export interface MarketplaceSupplier {
   id: string;
@@ -40,26 +41,6 @@ export interface MarketplaceSupplier {
   deliveryTerms?: string;
 }
 
-interface ProcessedMarketItem extends SupplierItemApi {
-  priceRupees: number;
-  matchingStockItem?: InventoryItemApi;
-  currentCostRupees: number | null;
-  savingsRupees: number | null;
-  savingsPercent: number | null;
-}
-
-interface VendorProfile {
-  supplier: MarketplaceSupplier;
-  items: ProcessedMarketItem[];
-  categories: string[];
-  totalItems: number;
-  minPriceRupees: number;
-  maxPriceRupees: number;
-  fastestLeadTimeHours: number;
-  sampleItems: ProcessedMarketItem[];
-  hasInStock: boolean;
-}
-
 interface Props {
   inventoryItems?: InventoryItemApi[];
   onOrderPO?: (
@@ -69,1080 +50,743 @@ interface Props {
   ) => void;
 }
 
+const MAX_MATCHES_SHOWN = 2;
+const SEARCH_DEBOUNCE_MS = 300;
+
+function formatRupees(value: number): string {
+  return value.toLocaleString("en-IN", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function minQtyOf(item: SupplierItemApi): number {
+  return Number(item.minOrderQty) || 1;
+}
+
+function toMarketplaceSupplier(s: MarketplaceSupplierRow["supplier"]): MarketplaceSupplier {
+  return {
+    id: s.id,
+    name: s.name,
+    contactPerson: s.contactPerson || undefined,
+    phone: s.phone || undefined,
+    email: s.email || undefined,
+    address: s.address || undefined,
+    deliveryTerms: s.deliveryTerms || undefined,
+  };
+}
+
+/**
+ * How much cheaper a supplier's price is than what the restaurant pays now,
+ * matching its own stock items by name. null when there is nothing to compare.
+ */
+function savingsAgainstStock(
+  item: { name: string; pricePaise: number },
+  inventoryItems: InventoryItemApi[]
+): { percent: number; currentCostPaise: number } | null {
+  const supName = item.name.toLowerCase().trim();
+  const match = inventoryItems.find((inv) => {
+    const invName = inv.name.toLowerCase().trim();
+    return invName === supName || invName.includes(supName) || supName.includes(invName);
+  });
+  if (!match || match.unitCostPaise <= 0) return null;
+  const percent = Math.round(((match.unitCostPaise - item.pricePaise) / match.unitCostPaise) * 100);
+  return percent > 0 ? { percent, currentCostPaise: match.unitCostPaise } : null;
+}
+
 export default function SupplierMarketplaceSection({
   inventoryItems = [],
   onOrderPO,
 }: Props) {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [viewMode, setViewMode] = useState<"VENDORS" | "LEDGER">("VENDORS");
+  const [sortBy, setSortBy] = useState<MarketplaceSort>("BEST");
 
-  // Selected items across marketplace keyed by itemId: boolean
-  const [selectedItemIds, setSelectedItemIds] = useState<Record<string, boolean>>({});
-  // Quantities keyed by itemId: number
+  // Selected items (item id -> supplier id) and their quantities
+  const [selected, setSelected] = useState<Record<string, string>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
-  // Active vendor for the "View Catalog & Order" modal drawer
-  const [activeVendor, setActiveVendor] = useState<VendorProfile | null>(null);
-  const [catalogModalCategory, setCatalogModalCategory] = useState("All");
+  // Supplier whose catalog is open in the order dialog
+  const [activeRow, setActiveRow] = useState<MarketplaceSupplierRow | null>(null);
+  const [catalogCategory, setCatalogCategory] = useState("All");
+  const [catalogSearch, setCatalogSearch] = useState("");
 
-  const { data: marketItems = [], isLoading } = useGetMarketCatalogQuery({
-    search: search.trim() || undefined,
-    category: selectedCategory !== "All" ? selectedCategory : undefined,
+  // Only hit the server once the user pauses typing
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // "Show more" page counter; starts over whenever the filters change
+  const filterKey = `${debouncedSearch}|${selectedCategory}|${sortBy}`;
+  const [paging, setPaging] = useState({ key: filterKey, page: 1 });
+  const page = paging.key === filterKey ? paging.page : 1;
+
+  const { data, isLoading, isFetching, isError, refetch } = useGetMarketplaceSuppliersQuery({
+    search: debouncedSearch || undefined,
+    category: selectedCategory,
+    sort: sortBy,
+    page,
   });
 
-  const safeMarketItems: SupplierItemApi[] = useMemo(() => {
-    if (Array.isArray(marketItems)) return marketItems;
-    if (marketItems && typeof marketItems === "object") {
-      const maybeData = (marketItems as { data?: unknown }).data;
-      if (Array.isArray(maybeData)) {
-        return maybeData as SupplierItemApi[];
-      }
-    }
-    return [];
-  }, [marketItems]);
+  const rows = useMemo(() => data?.suppliers ?? [], [data]);
+  const isSearching = !!debouncedSearch;
+  const isTyping = search.trim() !== debouncedSearch;
 
-  // Compute live matches, benchmark rates, and savings against current inventory costs
-  const processedItems: ProcessedMarketItem[] = useMemo(() => {
-    return safeMarketItems.map((item) => {
-      const priceRupees = item.pricePaise / 100;
+  // Category tabs come with page 1 and are kept while other filters load
+  const [tabsSource, setTabsSource] = useState<{ categories: { name: string; supplierCount: number }[]; total: number } | null>(null);
+  if (data?.categories && data.totalSuppliers !== undefined && tabsSource?.categories !== data.categories) {
+    setTabsSource({ categories: data.categories, total: data.totalSuppliers });
+  }
+  const categoryTabs = tabsSource
+    ? [
+        { id: "All", label: "All", count: tabsSource.total },
+        ...tabsSource.categories.map((c) => ({ id: c.name, label: c.name, count: c.supplierCount })),
+      ]
+    : [];
 
-      // Match item in restaurant's own inventory by substring/exact name
-      const matchingStockItem = inventoryItems.find((inv) => {
-        const invName = inv.name.toLowerCase().trim();
-        const supName = item.name.toLowerCase().trim();
-        return invName === supName || invName.includes(supName) || supName.includes(invName);
-      });
+  // ---------- Order dialog ----------
+  const { data: catalogData, isFetching: catalogLoading } = useGetMarketplaceSupplierItemsQuery(
+    activeRow ? activeRow.supplier.id : skipToken
+  );
+  const catalog = useMemo(() => (activeRow ? catalogData ?? [] : []), [activeRow, catalogData]);
+  const catalogCategories = useMemo(
+    () => Array.from(new Set(catalog.map((i) => i.category || "General"))).sort(),
+    [catalog]
+  );
 
-      let currentCostRupees: number | null = null;
-      let savingsRupees: number | null = null;
-      let savingsPercent: number | null = null;
+  const catalogItems = useMemo(() => {
+    const q = catalogSearch.toLowerCase().trim();
+    return catalog.filter(
+      (item) =>
+        (catalogCategory === "All" || item.category.toLowerCase() === catalogCategory.toLowerCase()) &&
+        (!q || item.name.toLowerCase().includes(q))
+    );
+  }, [catalog, catalogCategory, catalogSearch]);
 
-      if (matchingStockItem && matchingStockItem.unitCostPaise > 0) {
-        currentCostRupees = matchingStockItem.unitCostPaise / 100;
-        savingsRupees = currentCostRupees - priceRupees;
-        savingsPercent = Math.round((savingsRupees / currentCostRupees) * 100);
-      }
-
-      return {
-        ...item,
-        priceRupees,
-        matchingStockItem,
-        currentCostRupees,
-        savingsRupees,
-        savingsPercent,
-      };
-    });
-  }, [safeMarketItems, inventoryItems]);
-
-  // Derive vendor profiles grouped by supplier
-  const vendorProfiles: VendorProfile[] = useMemo(() => {
-    const map = new Map<string, ProcessedMarketItem[]>();
-
-    for (const item of processedItems) {
-      const supId = item.supplierId;
-      if (!map.has(supId)) {
-        map.set(supId, []);
-      }
-      map.get(supId)!.push(item);
-    }
-
-    const profiles: VendorProfile[] = [];
-
-    map.forEach((items, supId) => {
-      const firstItem = items[0];
-      const supMeta = firstItem.supplier;
-
-      const categories = Array.from(
-        new Set(items.map((i) => i.category || "General Supplies"))
-      );
-
-      const prices = items.map((i) => i.priceRupees);
-      const minPriceRupees = Math.min(...prices);
-      const maxPriceRupees = Math.max(...prices);
-
-      const leadTimes = items.map((i) => i.leadTimeHours || 24);
-      const fastestLeadTimeHours = Math.min(...leadTimes);
-
-      profiles.push({
-        supplier: {
-          id: supId,
-          name: supMeta?.name || "Wholesale Distributor",
-          contactPerson: supMeta?.contactPerson,
-          phone: supMeta?.phone,
-          email: supMeta?.email,
-          address: supMeta?.address,
-          deliveryTerms: supMeta?.deliveryTerms,
-        },
-        items,
-        categories,
-        totalItems: items.length,
-        minPriceRupees,
-        maxPriceRupees,
-        fastestLeadTimeHours,
-        sampleItems: items.slice(0, 5),
-        hasInStock: items.some((i) => i.inStock),
-      });
-    });
-
-    // Sort by name
-    return profiles.sort((a, b) => a.supplier.name.localeCompare(b.supplier.name));
-  }, [processedItems]);
-
-  // Sync activeVendor if data refreshes
-  useEffect(() => {
-    if (activeVendor) {
-      const updated = vendorProfiles.find((v) => v.supplier.id === activeVendor.supplier.id);
-      if (updated) {
-        setActiveVendor(updated);
-      }
-    }
-  }, [vendorProfiles, activeVendor]);
-
-  // Derived category pills for the top filter bar
-  const categoryPills = useMemo(() => {
-    const counts: Record<string, number> = { All: 0 };
-    const supplierSet = new Set<string>();
-
-    processedItems.forEach((item) => {
-      supplierSet.add(item.supplierId);
-      const cat = item.category || "General";
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-
-    counts.All = supplierSet.size;
-
-    const dynamicCategories = Object.keys(counts).filter((c) => c !== "All");
-
-    return [
-      { id: "All", label: "All Wholesalers", count: counts.All },
-      ...dynamicCategories.map((c) => ({
-        id: c,
-        label: c,
-        count: counts[c] || 0,
-      })),
-    ];
-  }, [processedItems]);
-
-  // Filtered vendors based on search and category
-  const filteredVendors = useMemo(() => {
-    const q = search.toLowerCase().trim();
-
-    return vendorProfiles.filter((vp) => {
-      // Category filter
-      if (selectedCategory !== "All") {
-        const matchesCategory = vp.categories.some(
-          (c) => c.toLowerCase() === selectedCategory.toLowerCase()
-        );
-        if (!matchesCategory) return false;
-      }
-
-      // Search query filter (matches vendor name, contact person, or any item name they supply)
-      if (q) {
-        const matchesName = vp.supplier.name.toLowerCase().includes(q);
-        const matchesContact = vp.supplier.contactPerson?.toLowerCase().includes(q);
-        const matchesAddress = vp.supplier.address?.toLowerCase().includes(q);
-        const matchesCategory = vp.categories.some((c) => c.toLowerCase().includes(q));
-        const matchesItem = vp.items.some((i) => i.name.toLowerCase().includes(q));
-
-        return matchesName || matchesContact || matchesAddress || matchesCategory || matchesItem;
-      }
-
-      return true;
-    });
-  }, [vendorProfiles, search, selectedCategory]);
-
-  // Quantities & Selection Helpers
-  const toggleSelect = (itemId: string, defaultMinQty = 1) => {
-    setSelectedItemIds((prev) => {
-      const next = { ...prev, [itemId]: !prev[itemId] };
-      if (!prev[itemId] && !quantities[itemId]) {
-        setQuantities((q) => ({ ...q, [itemId]: defaultMinQty }));
-      }
+  const selectItem = (item: SupplierItemApi, on: boolean) => {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (on) next[item.id] = item.supplierId;
+      else delete next[item.id];
       return next;
     });
+    if (on) {
+      setQuantities((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: minQtyOf(item) }));
+    }
   };
 
-  const updateQuantity = (itemId: string, value: number, min = 1) => {
-    const safeVal = Math.max(min, Math.round(value * 10) / 10);
-    setQuantities((prev) => ({ ...prev, [itemId]: safeVal }));
+  // While typing the value isn't clamped (the field clamps to the minimum on blur)
+  const setItemQuantity = (item: SupplierItemApi, value: number, { clamp = true } = {}) => {
+    const rounded = Math.round(value * 1000) / 1000;
+    const safe = clamp ? Math.max(minQtyOf(item), rounded) : rounded;
+    setSelected((prev) => ({ ...prev, [item.id]: item.supplierId }));
+    setQuantities((prev) => ({ ...prev, [item.id]: safe }));
   };
 
-  const selectAllInActiveVendor = (items: ProcessedMarketItem[]) => {
-    const allSelected = items.every((i) => selectedItemIds[i.id]);
-    const nextIds = { ...selectedItemIds };
-    const nextQty = { ...quantities };
+  const qtyOf = (item: SupplierItemApi) => quantities[item.id] ?? minQtyOf(item);
 
-    items.forEach((i) => {
-      nextIds[i.id] = !allSelected;
-      if (!allSelected && !nextQty[i.id]) {
-        nextQty[i.id] = Number(i.minOrderQty) || 1;
-      }
+  const allVisibleSelected = catalogItems.length > 0 && catalogItems.every((i) => selected[i.id]);
+
+  const toggleAllVisible = () => {
+    const on = !allVisibleSelected;
+    setSelected((prev) => {
+      const next = { ...prev };
+      catalogItems.forEach((i) => {
+        if (on) next[i.id] = i.supplierId;
+        else delete next[i.id];
+      });
+      return next;
     });
-
-    setSelectedItemIds(nextIds);
-    setQuantities(nextQty);
-  };
-
-  // Metrics for active vendor's catalog drawer
-  const activeVendorOrderMetrics = useMemo(() => {
-    if (!activeVendor) return { selectedItems: [], count: 0, subtotalRupees: 0 };
-
-    const selected = activeVendor.items.filter((i) => selectedItemIds[i.id]);
-    let totalPaise = 0;
-
-    for (const item of selected) {
-      const qty = quantities[item.id] || Number(item.minOrderQty) || 1;
-      totalPaise += Math.round(qty * item.pricePaise);
-    }
-
-    return {
-      selectedItems: selected,
-      count: selected.length,
-      subtotalRupees: (totalPaise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 }),
-      rawPaise: totalPaise,
-    };
-  }, [activeVendor, selectedItemIds, quantities]);
-
-  // Handler to place PO from the catalog drawer
-  const handlePlaceOrderForActiveVendor = () => {
-    if (!activeVendor) return;
-
-    // Get selected items or all items that have a configured quantity
-    let orderItems = activeVendorOrderMetrics.selectedItems;
-
-    // If nothing checked, check if there's any item with quantity or select all visible
-    if (orderItems.length === 0) {
-      orderItems = activeVendor.items.filter((i) => (quantities[i.id] || 0) > 0);
-    }
-
-    // If still empty, pick the first item with minimum order quantity
-    if (orderItems.length === 0 && activeVendor.items.length > 0) {
-      const first = activeVendor.items[0];
-      orderItems = [first];
-      if (!quantities[first.id]) {
-        quantities[first.id] = Number(first.minOrderQty) || 1;
-      }
-    }
-
-    if (orderItems.length > 0) {
-      onOrderPO?.(activeVendor.supplier, orderItems, quantities);
-      setActiveVendor(null);
+    if (on) {
+      setQuantities((prev) => {
+        const next = { ...prev };
+        catalogItems.forEach((i) => {
+          if (!next[i.id]) next[i.id] = minQtyOf(i);
+        });
+        return next;
+      });
     }
   };
 
-  // Close catalog modal on ESC key
+  const orderSummary = useMemo(() => {
+    const items = catalog.filter((i) => selected[i.id]);
+    const totalPaise = items.reduce(
+      (sum, i) => sum + Math.round((quantities[i.id] ?? minQtyOf(i)) * i.pricePaise),
+      0
+    );
+    return { items, totalRupees: totalPaise / 100 };
+  }, [catalog, selected, quantities]);
+
+  const selectedCountFor = (supplierId: string) =>
+    Object.values(selected).filter((s) => s === supplierId).length;
+
+  const openCatalog = (row: MarketplaceSupplierRow) => {
+    setActiveRow(row);
+    // Carry the current search/category into the dialog when it narrows things down
+    setCatalogCategory(selectedCategory);
+    setCatalogSearch(row.matchedCount > 0 ? debouncedSearch : "");
+  };
+
+  const closeCatalog = () => setActiveRow(null);
+
+  const placeOrder = () => {
+    if (!activeRow || orderSummary.items.length === 0) return;
+    const qtys: Record<string, number> = {};
+    orderSummary.items.forEach((i) => (qtys[i.id] = qtyOf(i)));
+    onOrderPO?.(toMarketplaceSupplier(activeRow.supplier), orderSummary.items, qtys);
+    // Clear this supplier's selection once the PO is handed off
+    const supplierId = activeRow.supplier.id;
+    setSelected((prev) => Object.fromEntries(Object.entries(prev).filter(([, s]) => s !== supplierId)));
+    closeCatalog();
+  };
+
+  // Close the dialog on Escape
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeVendor) {
-        setActiveVendor(null);
-      }
+    if (!activeRow) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveRow(null);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeVendor]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeRow]);
+
+  const resetFilters = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setSelectedCategory("All");
+  };
+
+  const total = data?.total ?? 0;
+  const marketplaceEmpty = tabsSource?.total === 0;
+  // A new search/category/sort shows its first page; until it arrives, dim the old list
+  const showingStale = isFetching && page === 1 && !isLoading;
 
   return (
-    <div className="flex flex-col gap-5 w-full">
-
-      {/* Category Pills Navigation Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {categoryPills.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 active:scale-[0.98] ${
-                isActive
-                  ? "bg-zinc-900 text-white shadow-xs"
-                  : "bg-white border border-zinc-200/80 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 hover:bg-zinc-50/50"
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
-                  isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
-                }`}
-              >
-                {cat.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Search, View Modes & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs">
-        
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search verified wholesalers, supplied materials (e.g. Chicken, Milk, Buff)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-xs text-zinc-800 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A] transition-all"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-0.5"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+    <div className="flex flex-col gap-4 w-full">
+      {/* Search, sort and category filter */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+            <input
+              type="search"
+              aria-label="Search suppliers and products"
+              placeholder="Search a product or supplier — e.g. chicken, paneer, milk"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-11 pl-10 pr-10 rounded-xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A] transition-colors [&::-webkit-search-cancel-button]:hidden"
+            />
+            {(isTyping || (showingStale && isSearching)) ? (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 animate-spin" />
+            ) : (
+              search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )
+            )}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as MarketplaceSort)}
+            aria-label="Sort suppliers"
+            className="h-11 shrink-0 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A]"
+          >
+            <option value="BEST">Sort: Best match</option>
+            <option value="PRICE">Sort: Lowest price</option>
+            <option value="DELIVERY">Sort: Fastest delivery</option>
+            <option value="NAME">Sort: Name A–Z</option>
+          </select>
         </div>
 
-        {/* View Switcher: Vendors Directory vs Ledger Table */}
-        <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl text-xs font-semibold shrink-0">
-          <button
-            onClick={() => setViewMode("VENDORS")}
-            title="Verified Wholesalers Directory"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.98] ${
-              viewMode === "VENDORS"
-                ? "bg-white text-zinc-900 shadow-2xs font-bold"
-                : "text-zinc-500 hover:text-zinc-800"
-            }`}
+        {categoryTabs.length > 2 && (
+          <div
+            role="tablist"
+            aria-label="Filter by category"
+            className="flex items-center gap-1.5 overflow-x-auto px-3 sm:px-4 pb-3 scrollbar-none"
           >
-            <Store className="h-3.5 w-3.5" />
-            <span>Wholesalers ({filteredVendors.length})</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode("LEDGER")}
-            title="Master Wholesale Price Ledger"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-[0.98] ${
-              viewMode === "LEDGER"
-                ? "bg-white text-zinc-900 shadow-2xs font-bold"
-                : "text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            <Table2 className="h-3.5 w-3.5" />
-            <span>All Materials Ledger</span>
-          </button>
-        </div>
+            {categoryTabs.map((cat) => {
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                    isActive ? "bg-zinc-900 text-white" : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
+                  }`}
+                >
+                  {cat.label}
+                  <span className={`tabular-nums text-[11px] ${isActive ? "text-white/70" : "text-zinc-400"}`}>
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Loading Skeleton */}
+      {/* Supplier list */}
       {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton height={140} borderRadius={16} count={3} className="mb-3" />
+        <div className="space-y-2">
+          <Skeleton height={64} borderRadius={12} count={6} className="mb-2" />
         </div>
-      ) : filteredVendors.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-zinc-200 rounded-2xl bg-white">
+      ) : isError && rows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-14 px-4 text-center rounded-2xl border border-zinc-200 bg-white">
+          <h3 className="text-sm font-semibold text-zinc-900">Couldn’t load suppliers</h3>
+          <p className="text-xs text-zinc-500 mt-1.5">Check your connection and try again.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 h-9 px-4 mt-4 rounded-xl text-xs font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Try again
+          </button>
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-dashed border-zinc-300 bg-white">
           <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 mb-3">
             <Store className="h-6 w-6" />
           </div>
-          <h3 className="text-base font-bold text-zinc-900">
-            {selectedCategory !== "All"
-              ? `No registered wholesalers under "${selectedCategory}"`
-              : "No verified wholesalers found"}
+          <h3 className="text-sm font-semibold text-zinc-900">
+            {marketplaceEmpty
+              ? "No suppliers are listed yet"
+              : isSearching
+              ? `No suppliers match “${debouncedSearch}”`
+              : `No suppliers in ${selectedCategory}`}
           </h3>
-          <p className="text-xs text-zinc-500 max-w-md mt-1.5 leading-relaxed">
-            {selectedCategory !== "All"
-              ? `We couldn't find suppliers listed under ${selectedCategory}. Try viewing all categories or inviting your local distributor to list on the Alayn procurement exchange.`
-              : "Try adjusting your search keywords, or reset filters to view all available wholesale suppliers."}
+          <p className="text-xs text-zinc-500 max-w-sm mt-1.5 leading-relaxed">
+            {marketplaceEmpty
+              ? "Once wholesalers list their products on Alayn, their rates will show up here."
+              : "Try a different product name, or clear the filters to see every supplier."}
           </p>
-          <button
-            onClick={() => {
-              setSearch("");
-              setSelectedCategory("All");
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 mt-4 rounded-xl text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Reset All Filters
-          </button>
+          {!marketplaceEmpty && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-1.5 h-9 px-4 mt-4 rounded-xl text-xs font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
-        <>
-          {/* ======================================================== */}
-          {/* PRIMARY VIEW: LIST OF VENDORS (WHO THEY ARE & WHAT THEY PROVIDE) */}
-          {/* ======================================================== */}
-          {viewMode === "VENDORS" && (
-            <div className="grid grid-cols-1 gap-4">
-              {filteredVendors.map((vp) => {
-                const { supplier, items, categories, sampleItems, fastestLeadTimeHours, totalItems } = vp;
+        <div className={`flex flex-col gap-3 transition-opacity ${showingStale ? "opacity-60" : ""}`}>
+          <ul className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs divide-y divide-zinc-100 overflow-hidden">
+            {rows.map((row) => {
+              const { supplier } = row;
+              const selectedCount = selectedCountFor(supplier.id);
+              const shownMatches = row.matchedItems.slice(0, MAX_MATCHES_SHOWN);
+              const extraMatches = row.matchedCount - shownMatches.length;
+              const location = supplier.address?.split(",")[0]?.trim();
+              const bestSaving = shownMatches
+                .map((m) => savingsAgainstStock(m, inventoryItems))
+                .find((s) => s !== null);
 
-                return (
-                  <div
-                    key={supplier.id}
-                    className="group bg-white rounded-2xl border border-zinc-200/80 shadow-2xs hover:border-zinc-300 hover:shadow-xs transition-all duration-200 overflow-hidden"
-                  >
-                    <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-                      
-                      {/* Left Block: Vendor Identity & Contact */}
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
-                        {/* Wholesaler Avatar */}
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-700 shrink-0 group-hover:bg-red-50 group-hover:text-[#D3232A] group-hover:border-red-200 transition-colors">
-                          <Building2 className="h-6 w-6" />
-                        </div>
-
-                        {/* Details */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-extrabold text-base text-zinc-900 tracking-tight">
-                              {supplier.name}
-                            </h3>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
-                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                              <span>Verified Wholesaler</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md">
-                              Direct Distributor
-                            </span>
-                          </div>
-
-                          {/* Contact & Location Snippet */}
-                          <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 flex-wrap">
-                            {supplier.address && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3 text-zinc-400" />
-                                <span className="truncate max-w-[200px]">{supplier.address}</span>
-                              </span>
-                            )}
-                            {supplier.contactPerson && (
-                              <span className="flex items-center gap-1">
-                                <span className="text-zinc-400">Rep:</span>
-                                <span className="font-medium text-zinc-700">{supplier.contactPerson}</span>
-                              </span>
-                            )}
-                            {supplier.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3 text-zinc-400" />
-                                <span>{supplier.phone}</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Logistics / SLA line */}
-                          <div className="flex items-center gap-3 text-xs text-zinc-600 mt-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 font-semibold text-zinc-700">
-                              <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                              <span>{fastestLeadTimeHours}h Delivery SLA</span>
-                            </span>
-                            {supplier.deliveryTerms && (
-                              <span className="inline-flex items-center gap-1 text-zinc-500">
-                                <Truck className="h-3.5 w-3.5 text-zinc-400" />
-                                <span>{supplier.deliveryTerms}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Middle Block: What they are providing (Categories & Top Items preview) */}
-                      <div className="flex-1 lg:max-w-md bg-zinc-50/70 rounded-xl p-3.5 border border-zinc-100">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                            Supplies Provided
-                          </span>
-                          <span className="text-[11px] font-bold text-zinc-700 bg-white px-2 py-0.5 rounded-md border border-zinc-200">
-                            {totalItems} {totalItems === 1 ? "Product" : "Products"} Listed
-                          </span>
-                        </div>
-
-                        {/* Category Tags */}
-                        <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                          {categories.map((c) => (
-                            <span
-                              key={c}
-                              className="text-xs font-bold text-zinc-800 bg-white px-2.5 py-0.5 rounded-lg border border-zinc-200/90 shadow-2xs"
-                            >
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Preview of items they provide */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {sampleItems.map((item) => (
-                            <span
-                              key={item.id}
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 bg-white/80 px-2 py-0.5 rounded-md border border-zinc-200/60"
-                            >
-                              <span className="font-semibold text-zinc-800">{item.name}</span>
-                              <span className="text-zinc-400 font-mono">₹{item.priceRupees.toFixed(0)}/{item.unit}</span>
-                            </span>
-                          ))}
-                          {totalItems > sampleItems.length && (
-                            <span className="text-[11px] font-bold text-zinc-400 px-1">
-                              +{totalItems - sampleItems.length} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Block: Action to View Catalog & Place Order */}
-                      <div className="flex lg:flex-col items-center lg:items-end justify-between lg:justify-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-zinc-100">
-                        <div className="text-left lg:text-right">
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">
-                            Wholesale Rates
-                          </span>
-                          <span className="text-xs font-bold text-zinc-700">
-                            ₹{vp.minPriceRupees.toFixed(0)} – ₹{vp.maxPriceRupees.toFixed(0)}
-                          </span>
-                        </div>
-
+              return (
+                <li
+                  key={supplier.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-zinc-50/70 transition-colors"
+                >
+                  {/* Who */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div
+                      aria-hidden
+                      className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-xs font-semibold shrink-0"
+                    >
+                      {initialsOf(supplier.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveVendor(vp);
-                            setCatalogModalCategory("All");
-                          }}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-[#D3232A] text-white text-xs font-extrabold shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+                          onClick={() => openCatalog(row)}
+                          className="text-sm font-semibold text-zinc-900 hover:text-[#D3232A] transition-colors text-left truncate"
                         >
-                          <span>View Catalog &amp; Order</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
+                          {supplier.name}
                         </button>
+                        <span title="Verified wholesaler" className="inline-flex shrink-0">
+                          <BadgeCheck className="h-4 w-4 text-emerald-600" aria-label="Verified wholesaler" />
+                        </span>
                       </div>
 
+                      {shownMatches.length > 0 ? (
+                        // Searching for a product: show this supplier's price for it
+                        <p className="text-xs text-zinc-600 mt-0.5 truncate">
+                          {shownMatches.map((item, idx) => (
+                            <span key={item.id}>
+                              {idx > 0 && <span className="text-zinc-300"> · </span>}
+                              {item.name}{" "}
+                              <span className="font-semibold text-zinc-900 tabular-nums">
+                                ₹{formatRupees(item.pricePaise / 100)}
+                              </span>
+                              <span className="text-zinc-400">/{item.unit}</span>
+                            </span>
+                          ))}
+                          {extraMatches > 0 && <span className="text-zinc-400"> · +{extraMatches} more</span>}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                          {row.categories.join(", ")} · {row.totalItems} {row.totalItems === 1 ? "product" : "products"}
+                          {location && (
+                            <>
+                              <span className="text-zinc-300"> · </span>
+                              <MapPin className="inline h-3 w-3 -mt-0.5 text-zinc-400" /> {location}
+                            </>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
 
-          {/* ======================================================== */}
-          {/* ALTERNATE VIEW: MASTER WHOLESALE PRICE LEDGER TABLE */}
-          {/* ======================================================== */}
-          {viewMode === "LEDGER" && (
-            <div className="rounded-2xl border border-zinc-200/80 bg-white shadow-2xs overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/60">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                    Live Wholesale Price Ledger
-                  </span>
-                  <span className="text-xs font-semibold text-zinc-400">
-                    · Showing {processedItems.length} materials across all suppliers
-                  </span>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-zinc-200/80 bg-zinc-50/30 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
-                      <th className="py-3 px-4 w-10 text-center"></th>
-                      <th className="py-3 px-4">Raw Material</th>
-                      <th className="py-3 px-3">Department</th>
-                      <th className="py-3 px-3">Verified Wholesaler</th>
-                      <th className="py-3 px-3">SLA / Dispatch</th>
-                      <th className="py-3 px-4 text-right">Wholesale Rate</th>
-                      <th className="py-3 px-4">Margin Benchmark</th>
-                      <th className="py-3 px-3">Stock &amp; MOQ</th>
-                      <th className="py-3 px-3 text-center">Order Qty</th>
-                      <th className="py-3 px-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {processedItems.map((item) => {
-                      const isSelected = !!selectedItemIds[item.id];
-                      const currentQty = quantities[item.id] || Number(item.minOrderQty) || 1;
-                      const hasSavings = item.savingsPercent && item.savingsPercent > 0;
-                      const min = Number(item.minOrderQty) || 1;
-
-                      return (
-                        <tr
-                          key={item.id}
-                          className={`group transition-colors ${
-                            isSelected ? "bg-red-50/30 border-l-2 border-l-[#D3232A]" : "hover:bg-zinc-50/80"
-                          }`}
-                        >
-                          <td className="py-3.5 px-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelect(item.id, min)}
-                              className="rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A] cursor-pointer"
-                            />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="font-bold text-sm text-zinc-900 group-hover:text-black">
-                              {item.name}
-                            </span>
-                            {item.sku && (
-                              <span className="text-[10px] font-mono text-zinc-400 block mt-0.5">
-                                SKU: {item.sku}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-3">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md">
-                              {item.category || "General"}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-3">
-                            <div className="min-w-[140px]">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-semibold text-xs text-zinc-900">
-                                  {item.supplier?.name || "Independent"}
-                                </span>
-                                <ShieldCheck className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                              </div>
-                              <span className="text-[10px] text-zinc-400 block font-medium mt-0.5">
-                                Direct Wholesaler
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1 text-xs text-zinc-600 font-medium">
-                              <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                              <span>{item.leadTimeHours}h delivery</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <span className="text-sm font-extrabold text-zinc-900 tabular-nums">
-                              ₹{item.priceRupees.toFixed(2)}
-                            </span>
-                            <span className="text-[11px] text-zinc-400 font-normal block">
-                              / {item.unit}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {hasSavings ? (
-                              <div className="min-w-[130px]">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md">
-                                  <TrendingDown className="h-3 w-3 shrink-0" />
-                                  <span>Save {item.savingsPercent}%</span>
-                                </span>
-                                <span className="text-[10px] text-emerald-600 block mt-0.5 font-medium">
-                                  -₹{item.savingsRupees?.toFixed(2)} / {item.unit} vs menu cost
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-zinc-400 font-medium">
-                                Wholesale Direct
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              {item.inStock ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                  In Stock
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full">
-                                  Pre-order
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">
-                              Min: {item.minOrderQty} {item.unit}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                            <div className="inline-flex items-center border border-zinc-200 rounded-lg bg-white overflow-hidden shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item.id, currentQty - 1, min)}
-                                disabled={currentQty <= min}
-                                className="px-2 py-1 text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 active:scale-95 transition-all"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <input
-                                type="number"
-                                min={min}
-                                step="any"
-                                value={currentQty}
-                                onChange={(e) => updateQuantity(item.id, Number(e.target.value) || min, min)}
-                                className="w-12 text-center text-xs font-bold text-zinc-900 border-x border-zinc-200 py-1 focus:outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item.id, currentQty + 1, min)}
-                                className="px-2 py-1 text-zinc-500 hover:bg-zinc-100 active:scale-95 transition-all"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                            <span className="text-[10px] text-zinc-400 block mt-0.5 font-medium">
-                              {item.unit}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const vendor = vendorProfiles.find((v) => v.supplier.id === item.supplierId);
-                                if (vendor) {
-                                  setActiveVendor(vendor);
-                                  toggleSelect(item.id, min);
-                                }
-                              }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-[#D3232A] active:scale-95 transition-all shadow-2xs"
-                            >
-                              <ShoppingCart className="h-3 w-3" />
-                              <span>Order</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ======================================================== */}
-      {/* VENDOR CATALOG & DIRECT ORDER MODAL DRAWER */}
-      {/* ======================================================== */}
-      {activeVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div
-            className="w-full max-w-4xl max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-2xl border border-zinc-200/90 overflow-hidden ring-1 ring-black/5 animate-in zoom-in-95 duration-150"
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-zinc-100 bg-linear-to-b from-zinc-50/80 to-white flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-md shadow-zinc-900/10 shrink-0">
-                  <Building2 className="h-6 w-6 text-zinc-100" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h2 className="text-xl font-black text-zinc-900 tracking-tight">
-                      {activeVendor.supplier.name}
-                    </h2>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
-                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Verified Wholesaler</span>
-                    </span>
-                    <span className="text-[11px] font-medium text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
-                      Direct B2B Catalog
-                    </span>
-                  </div>
-
-                  {/* Contact & SLA pills */}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
-                      <Clock className="h-3.5 w-3.5 text-zinc-500" />
-                      <span className="font-bold text-zinc-800">{activeVendor.fastestLeadTimeHours}h SLA</span>
-                      <span className="text-zinc-400">Turnaround</span>
-                    </span>
-
-                    {activeVendor.supplier.phone && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
-                        <Phone className="h-3.5 w-3.5 text-zinc-500" />
-                        <span>{activeVendor.supplier.phone}</span>
+                  {/* Key facts + action */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 shrink-0 pl-[52px] sm:pl-0">
+                    {bestSaving && (
+                      <span
+                        className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md"
+                        title={`You pay ₹${formatRupees(bestSaving.currentCostPaise / 100)} now`}
+                      >
+                        <TrendingDown className="h-3 w-3" />
+                        {bestSaving.percent}% cheaper
                       </span>
                     )}
-
-                    {activeVendor.supplier.address && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-600 bg-zinc-100/80 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
-                        <MapPin className="h-3.5 w-3.5 text-zinc-500" />
-                        <span className="truncate max-w-[200px]">{activeVendor.supplier.address}</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-zinc-600 whitespace-nowrap" title="Fastest delivery">
+                      <Clock className="h-3.5 w-3.5 text-zinc-400" />
+                      {row.fastestLeadTimeHours}h
+                    </span>
+                    <div className="text-right w-20">
+                      <span className="block text-[10px] text-zinc-400 leading-tight">from</span>
+                      <span className="text-sm font-semibold text-zinc-900 tabular-nums">
+                        ₹{formatRupees(row.minPricePaise / 100)}
                       </span>
-                    )}
-
-                    {activeVendor.supplier.deliveryTerms && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 bg-zinc-50 border border-zinc-200/60 px-2.5 py-1 rounded-lg">
-                        <Truck className="h-3.5 w-3.5 text-zinc-400" />
-                        <span>{activeVendor.supplier.deliveryTerms}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setActiveVendor(null)}
-                className="h-9 w-9 rounded-xl border border-zinc-200 bg-white flex items-center justify-center text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100/80 active:scale-95 transition-all shrink-0 cursor-pointer shadow-2xs"
-                title="Close (Esc)"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Modal Sub-Header Toolbar (Category filter & Select All) */}
-            <div className="px-6 py-2.5 border-b border-zinc-100 bg-zinc-50/70 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-800">
-                  Catalog Materials
-                </span>
-                <span className="text-[11px] font-bold text-zinc-500 bg-white border border-zinc-200/80 px-2 py-0.5 rounded-full shadow-2xs">
-                  {activeVendor.items.length} materials
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* Category Filter inside vendor */}
-                {activeVendor.categories.length > 1 && (
-                  <select
-                    value={catalogModalCategory}
-                    onChange={(e) => setCatalogModalCategory(e.target.value)}
-                    className="text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-zinc-400"
-                  >
-                    <option value="All">All Departments ({activeVendor.items.length})</option>
-                    {activeVendor.categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => selectAllInActiveVendor(activeVendor.items)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-700 hover:text-zinc-950 active:scale-95 transition-all cursor-pointer"
-                >
-                  <span className="underline">
-                    {activeVendor.items.every((i) => selectedItemIds[i.id]) ? "Deselect All" : "Select All Items"}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Catalog Items Table */}
-            <div className="flex-1 overflow-y-auto p-0">
-              {(() => {
-                const filteredModalItems = activeVendor.items.filter((item) => {
-                  if (catalogModalCategory !== "All" && item.category !== catalogModalCategory) {
-                    return false;
-                  }
-                  return true;
-                });
-
-                if (filteredModalItems.length === 0) {
-                  return (
-                    <div className="py-12 text-center text-zinc-400 text-xs">
-                      No materials found under the selected category.
                     </div>
-                  );
-                }
-
-                return (
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 bg-zinc-50/95 backdrop-blur-xs border-b border-zinc-200/80 text-zinc-400 text-[10px] font-bold uppercase tracking-wider z-10">
-                      <tr>
-                        <th className="py-3 px-4 w-10 text-center"></th>
-                        <th className="py-3 px-4">Raw Material</th>
-                        <th className="py-3 px-3">Department</th>
-                        <th className="py-3 px-4 text-right">Wholesale Rate</th>
-                        <th className="py-3 px-4">Margin Benchmark</th>
-                        <th className="py-3 px-3">Stock &amp; MOQ</th>
-                        <th className="py-3 px-3 text-center">Order Quantity</th>
-                        <th className="py-3 px-4 text-right">Estimated Line Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                      {filteredModalItems.map((item) => {
-                        const isSelected = !!selectedItemIds[item.id];
-                        const currentQty = quantities[item.id] || Number(item.minOrderQty) || 1;
-                        const min = Number(item.minOrderQty) || 1;
-                        const lineTotalRupees = (currentQty * item.priceRupees).toFixed(2);
-                        const hasSavings = item.savingsPercent && item.savingsPercent > 0;
-
-                        return (
-                          <tr
-                            key={item.id}
-                            className={`transition-colors border-l-3 ${
-                              isSelected
-                                ? "bg-red-50/20 border-l-[#D3232A]"
-                                : "hover:bg-zinc-50/80 border-l-transparent"
-                            }`}
-                          >
-                            <td className="py-3.5 px-4 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => toggleSelect(item.id, min)}
-                                className="rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A] cursor-pointer h-4 w-4"
-                              />
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className={`font-bold text-xs block ${isSelected ? "text-zinc-950 font-extrabold" : "text-zinc-800"}`}>
-                                {item.name}
-                              </span>
-                              {item.sku && (
-                                <span className="text-[10px] font-mono text-zinc-400 block mt-0.5">
-                                  SKU: {item.sku}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-3">
-                              <span className="inline-flex items-center text-[10px] font-semibold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded-md">
-                                {item.category || "General"}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-right font-extrabold text-xs text-zinc-900 tabular-nums whitespace-nowrap">
-                              ₹{item.priceRupees.toFixed(2)}
-                              <span className="text-[10px] text-zinc-400 font-normal block">
-                                / {item.unit}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              {hasSavings ? (
-                                <div>
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md">
-                                    <TrendingDown className="h-3 w-3 shrink-0" />
-                                    <span>Save {item.savingsPercent}%</span>
-                                  </span>
-                                  <span className="text-[9px] text-emerald-600 block mt-0.5">
-                                    vs your menu cost ₹{item.currentCostRupees?.toFixed(2)}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="inline-flex items-center text-[10px] font-semibold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
-                                  Wholesale Direct
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                item.inStock 
-                                  ? "text-emerald-700 bg-emerald-50 border border-emerald-200/80" 
-                                  : "text-zinc-500 bg-zinc-100"
-                              }`}>
-                                {item.inStock && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
-                                {item.inStock ? "In Stock" : "Pre-order"}
-                              </span>
-                              <span className="text-[10px] text-zinc-400 block mt-0.5 font-medium">
-                                Min: {item.minOrderQty} {item.unit}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                              <div className="inline-flex items-center border border-zinc-200 rounded-xl bg-white overflow-hidden shadow-2xs hover:border-zinc-300 transition-colors">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!isSelected) toggleSelect(item.id, min);
-                                    updateQuantity(item.id, currentQty - 1, min);
-                                  }}
-                                  disabled={currentQty <= min}
-                                  className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 active:scale-90 transition-all cursor-pointer"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <input
-                                  type="number"
-                                  min={min}
-                                  step="any"
-                                  value={currentQty}
-                                  onChange={(e) => {
-                                    if (!isSelected) toggleSelect(item.id, min);
-                                    updateQuantity(item.id, Number(e.target.value) || min, min);
-                                  }}
-                                  className="w-11 text-center text-xs font-black text-zinc-900 border-x border-zinc-200 py-1 focus:outline-none focus:bg-zinc-50"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!isSelected) toggleSelect(item.id, min);
-                                    updateQuantity(item.id, currentQty + 1, min);
-                                  }}
-                                  className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 active:scale-90 transition-all cursor-pointer"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                              <span className="text-[10px] text-zinc-400 block mt-0.5 font-medium">
-                                {item.unit}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                              <span className={`text-xs tabular-nums block ${isSelected ? "font-black text-zinc-900" : "font-medium text-zinc-400"}`}>
-                                ₹{lineTotalRupees}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                );
-              })()}
-            </div>
-
-            {/* Modal Sticky Bottom Order Dock */}
-            <div className="p-4 sm:p-5 border-t border-zinc-200/80 bg-zinc-50/90 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div
-                  className={`h-10 w-10 rounded-2xl flex items-center justify-center font-bold shrink-0 transition-all ${
-                    activeVendorOrderMetrics.count > 0
-                      ? "bg-emerald-500 text-white shadow-xs"
-                      : "bg-zinc-200/80 text-zinc-400"
-                  }`}
-                >
-                  {activeVendorOrderMetrics.count > 0 ? (
-                    <Check className="h-5 w-5 stroke-[2.5]" />
-                  ) : (
-                    <ShoppingCart className="h-5 w-5" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-zinc-900">
-                      {activeVendorOrderMetrics.count === 0
-                        ? "0 Materials Selected"
-                        : `${activeVendorOrderMetrics.count} ${activeVendorOrderMetrics.count === 1 ? "Material" : "Materials"} Selected`}
-                    </span>
-                    <span className="text-xs text-zinc-400">· Subtotal:</span>
-                    <span
-                      className={`font-black text-base tabular-nums ${
-                        activeVendorOrderMetrics.count > 0 ? "text-emerald-700" : "text-zinc-400"
+                    <button
+                      type="button"
+                      onClick={() => openCatalog(row)}
+                      className={`inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-semibold whitespace-nowrap active:scale-[0.98] transition-colors ${
+                        selectedCount > 0
+                          ? "bg-[#D3232A] hover:bg-[#b01e23] text-white"
+                          : "bg-zinc-900 hover:bg-zinc-700 text-white"
                       }`}
                     >
-                      ₹{activeVendorOrderMetrics.subtotalRupees}
-                    </span>
+                      {selectedCount > 0 ? `Review (${selectedCount})` : "Order"}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <span className="text-[11px] text-zinc-500 block">
-                    {activeVendorOrderMetrics.count > 0
-                      ? `Direct wholesale restock with ${activeVendor.supplier.name} · ${activeVendor.fastestLeadTimeHours}h SLA`
-                      : "Tick items above or click a [+] button to add to your order"}
-                  </span>
-                </div>
-              </div>
+                </li>
+              );
+            })}
+          </ul>
 
-              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  onClick={() => setActiveVendor(null)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeVendorOrderMetrics.count === 0) {
-                      selectAllInActiveVendor(activeVendor.items);
-                      return;
-                    }
-                    handlePlaceOrderForActiveVendor();
-                  }}
-                  className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
-                    activeVendorOrderMetrics.count > 0
-                      ? "bg-[#D3232A] hover:bg-[#b01e23] text-white"
-                      : "bg-zinc-900 hover:bg-zinc-800 text-white"
-                  }`}
-                >
-                  <ShoppingCart className="h-3.5 w-3.5" />
-                  <span>
-                    {activeVendorOrderMetrics.count > 0
-                      ? `Create Purchase Order (${activeVendorOrderMetrics.count} items) →`
-                      : `Select All & Order (${activeVendor.items.length} items) →`}
-                  </span>
-                </button>
-              </div>
-            </div>
-
+          <div className="flex flex-col items-center gap-2 py-1">
+            <p className="text-xs text-zinc-500" aria-live="polite">
+              Showing {rows.length} of {total} {total === 1 ? "supplier" : "suppliers"}
+            </p>
+            {data?.hasMore && (
+              <button
+                type="button"
+                disabled={isFetching}
+                onClick={() => setPaging({ key: filterKey, page: page + 1 })}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-zinc-200 bg-white text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
+              >
+                {isFetching && page > 1 && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Show more suppliers
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* Catalog & order dialog */}
+      {activeRow && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-5 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeCatalog();
+          }}
+        >
+          <div
+            className="w-full max-w-3xl max-h-[92vh] flex flex-col bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-dialog-title"
+          >
+            {/* Header */}
+            <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-zinc-100 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div
+                  aria-hidden
+                  className="w-11 h-11 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-sm font-semibold shrink-0"
+                >
+                  {initialsOf(activeRow.supplier.name)}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h2 id="catalog-dialog-title" className="text-lg font-semibold text-zinc-900 tracking-tight truncate">
+                      {activeRow.supplier.name}
+                    </h2>
+                    <BadgeCheck className="h-4 w-4 text-emerald-600 shrink-0" aria-label="Verified wholesaler" />
+                  </div>
+                  <div className="flex items-center gap-x-4 gap-y-1 text-xs text-zinc-500 mt-1 flex-wrap">
+                    <span className="inline-flex items-center gap-1 font-medium text-zinc-700">
+                      <Clock className="h-3.5 w-3.5 text-zinc-400" />
+                      Delivers in {activeRow.fastestLeadTimeHours}h
+                    </span>
+                    {activeRow.supplier.address && (
+                      <span className="inline-flex items-center gap-1 min-w-0" title={activeRow.supplier.address}>
+                        <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <span className="truncate max-w-[220px]">{activeRow.supplier.address}</span>
+                      </span>
+                    )}
+                    {activeRow.supplier.contactPerson && (
+                      <span className="inline-flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-zinc-400" />
+                        {activeRow.supplier.contactPerson}
+                      </span>
+                    )}
+                    {activeRow.supplier.phone && (
+                      <a
+                        href={`tel:${activeRow.supplier.phone}`}
+                        className="inline-flex items-center gap-1 hover:text-zinc-900 hover:underline"
+                      >
+                        <Phone className="h-3.5 w-3.5 text-zinc-400" />
+                        {activeRow.supplier.phone}
+                      </a>
+                    )}
+                    {activeRow.supplier.deliveryTerms && (
+                      <span className="inline-flex items-center gap-1">
+                        <Truck className="h-3.5 w-3.5 text-zinc-400" />
+                        {activeRow.supplier.deliveryTerms}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeCatalog}
+                aria-label="Close"
+                title="Close (Esc)"
+                className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors shrink-0"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Toolbar */}
+            <div className="px-5 sm:px-6 py-3 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                <input
+                  type="search"
+                  aria-label="Search this supplier's products"
+                  placeholder={`Search ${activeRow.totalItems} products`}
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-zinc-200 bg-zinc-50 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A]"
+                />
+              </div>
+              <div className="flex items-center gap-2 justify-between sm:justify-end">
+                {catalogCategories.length > 1 && (
+                  <select
+                    value={catalogCategory}
+                    onChange={(e) => setCatalogCategory(e.target.value)}
+                    aria-label="Category"
+                    className="h-9 text-xs font-medium text-zinc-700 bg-white border border-zinc-200 rounded-lg px-2.5 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                  >
+                    <option value="All">All categories</option>
+                    {catalogCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {catalogItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAllVisible}
+                    className="h-9 px-3 rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition-colors whitespace-nowrap"
+                  >
+                    {allVisibleSelected ? "Clear selection" : "Select all"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Product list */}
+            <div className="flex-1 overflow-y-auto">
+              {catalogLoading && catalog.length === 0 ? (
+                <div className="p-5 space-y-2">
+                  <Skeleton height={48} borderRadius={10} count={5} className="mb-2" />
+                </div>
+              ) : catalogItems.length === 0 ? (
+                <div className="py-14 text-center text-sm text-zinc-500">
+                  No products match your search.
+                  {(catalogSearch || catalogCategory !== "All") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCatalogSearch("");
+                        setCatalogCategory("All");
+                      }}
+                      className="block mx-auto mt-2 text-xs font-semibold text-zinc-700 underline"
+                    >
+                      Show all products
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <ul className="divide-y divide-zinc-100">
+                  {catalogItems.map((item) => {
+                    const isSelected = !!selected[item.id];
+                    const qty = qtyOf(item);
+                    const min = minQtyOf(item);
+                    const saving = savingsAgainstStock(item, inventoryItems);
+                    const checkboxId = `mkt-item-${item.id}`;
+
+                    return (
+                      <li
+                        key={item.id}
+                        className={`flex items-center gap-3 px-5 sm:px-6 py-3 transition-colors ${
+                          isSelected ? "bg-red-50/40" : "hover:bg-zinc-50"
+                        }`}
+                      >
+                        <input
+                          id={checkboxId}
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => selectItem(item, e.target.checked)}
+                          className="h-4 w-4 rounded border-zinc-300 text-[#D3232A] focus:ring-[#D3232A] cursor-pointer shrink-0"
+                        />
+
+                        <label htmlFor={checkboxId} className="flex-1 min-w-0 cursor-pointer">
+                          <span className="block text-sm font-medium text-zinc-900 truncate">{item.name}</span>
+                          <span className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-0.5 text-[11px] text-zinc-500">
+                            <span className="tabular-nums">
+                              <span className="font-semibold text-zinc-800">₹{formatRupees(item.pricePaise / 100)}</span>/{item.unit}
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span>
+                              Min {Number(item.minOrderQty)} {item.unit}
+                            </span>
+                            {!item.inStock && (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span className="text-amber-700 font-medium">Pre-order</span>
+                              </>
+                            )}
+                            {saving && (
+                              <span
+                                className="inline-flex items-center gap-0.5 font-semibold text-emerald-700"
+                                title={`You currently pay ₹${formatRupees(saving.currentCostPaise / 100)}/${item.unit}`}
+                              >
+                                <TrendingDown className="h-3 w-3" />
+                                {saving.percent}% cheaper than now
+                              </span>
+                            )}
+                          </span>
+                        </label>
+
+                        {/* Quantity stepper */}
+                        <div className="inline-flex items-center h-9 border border-zinc-200 rounded-lg bg-white overflow-hidden shrink-0">
+                          <button
+                            type="button"
+                            aria-label={`Decrease ${item.name}`}
+                            onClick={() => setItemQuantity(item, qty - 1)}
+                            disabled={!isSelected || qty <= min}
+                            className="w-8 h-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <QuantityInput
+                            aria-label={`${item.name} quantity in ${item.unit}`}
+                            min={min}
+                            value={qty}
+                            onChange={(n) => setItemQuantity(item, n, { clamp: false })}
+                            className="w-12 h-full text-center text-sm font-semibold text-zinc-900 border-x border-zinc-200 focus:outline-none focus:bg-zinc-50"
+                          />
+                          <button
+                            type="button"
+                            aria-label={`Increase ${item.name}`}
+                            onClick={() => setItemQuantity(item, isSelected ? qty + 1 : qty)}
+                            className="w-8 h-full flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <span
+                          className={`hidden sm:block w-24 text-right text-sm tabular-nums shrink-0 ${
+                            isSelected ? "font-semibold text-zinc-900" : "text-zinc-300"
+                          }`}
+                        >
+                          ₹{formatRupees(Math.round(qty * item.pricePaise) / 100)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Order footer */}
+            <div className="px-5 sm:px-6 py-4 border-t border-zinc-200/80 bg-zinc-50 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                {orderSummary.items.length > 0 ? (
+                  <>
+                    <span className="block text-xs text-zinc-500">
+                      {orderSummary.items.length} {orderSummary.items.length === 1 ? "item" : "items"} selected
+                    </span>
+                    <span className="block text-lg font-semibold text-zinc-900 tabular-nums">
+                      ₹{formatRupees(orderSummary.totalRupees)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-zinc-500">Tick products or press + to add them</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={closeCatalog}
+                  className="hidden sm:inline-flex h-10 items-center px-4 rounded-xl text-sm font-semibold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={placeOrder}
+                  disabled={orderSummary.items.length === 0}
+                  className="inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-[#D3232A] hover:bg-[#b01e23] text-white text-sm font-semibold active:scale-[0.98] transition-colors disabled:bg-zinc-300 disabled:cursor-not-allowed disabled:active:scale-100"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Create purchase order
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

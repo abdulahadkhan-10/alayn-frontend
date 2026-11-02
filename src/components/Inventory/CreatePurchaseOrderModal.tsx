@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { X, Trash2, IndianRupee, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
+import NumberInput from "@/components/ui/NumberInput";
 import {
   useGetSuppliersQuery,
   useCreatePurchaseOrderMutation,
@@ -246,12 +247,12 @@ export default function CreatePurchaseOrderModal({
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 </div>
-                <input
-                  type="number"
-                  min="1"
+                <NumberInput
+                  min={1}
                   placeholder="Qty"
+                  aria-label="Quantity to add"
                   value={addQty}
-                  onChange={(e) => setAddQty(Number(e.target.value))}
+                  onChange={setAddQty}
                   className="w-16 rounded-xl border border-zinc-300 bg-white px-2.5 py-2.5 text-center text-xs font-semibold text-zinc-900 focus:border-zinc-800 focus:outline-none shadow-xs"
                 />
                 <button
@@ -295,11 +296,11 @@ export default function CreatePurchaseOrderModal({
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         <div className="inline-flex items-center gap-1 border border-zinc-200 rounded-lg bg-white px-2 py-1">
-                          <input
-                            type="number"
-                            min="1"
+                          <NumberInput
+                            min={1}
+                            aria-label="Quantity"
                             value={line.quantity}
-                            onChange={(e) => handleQtyChange(line.itemId, Number(e.target.value))}
+                            onChange={(qty) => handleQtyChange(line.itemId, qty)}
                             className="w-12 text-center text-xs font-semibold text-zinc-900 focus:outline-none"
                           />
                           <span className="text-[11px] text-zinc-400 font-medium">{line.unit}</span>
@@ -308,12 +309,11 @@ export default function CreatePurchaseOrderModal({
                       <td className="py-3.5 px-2 text-center">
                         <div className="inline-flex items-center gap-1 border border-zinc-200 rounded-lg bg-white px-2 py-1">
                           <span className="text-[11px] text-zinc-400">₹</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
+                          <NumberInput
+                            min={0}
+                            aria-label="Unit cost in rupees"
                             value={line.unitCostRupees}
-                            onChange={(e) => handleCostChange(line.itemId, Number(e.target.value))}
+                            onChange={(rupees) => handleCostChange(line.itemId, rupees)}
                             className="w-16 text-center text-xs font-semibold text-zinc-900 focus:outline-none"
                           />
                         </div>

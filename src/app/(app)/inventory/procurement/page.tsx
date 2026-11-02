@@ -34,7 +34,6 @@ import {
   RotateCcw,
   Eye,
   Pencil,
-  Sparkles,
   Store,
   Package,
   TrendingDown,
@@ -47,6 +46,7 @@ import SupplierMarketplaceSection, { type MarketplaceSupplier } from "@/componen
 import MarketplacePOModal from "@/components/Inventory/MarketplacePOModal";
 import type { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { apiErrorMessage } from "@/lib/apiError";
+import NumberInput from "@/components/ui/NumberInput";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
 function generateTimestampBatchNo(category?: string): string {
@@ -380,7 +380,7 @@ export default function ProcurementPage() {
             </div>
             <p className="text-xs text-zinc-500 mt-1 font-medium">
               {activeTab === "MARKETPLACE"
-                ? "Live wholesale prices from verified food, dairy, poultry, and packaging suppliers · Compare against your menu unit costs to optimize margins"
+                ? "Compare live rates from verified suppliers and place an order in a few clicks"
                 : activeTab === "SUPPLIERS"
                 ? "Manage your registered vendor profiles, commercial agreements, and procurement contacts"
                 : "Create restock orders, track incoming shipments, and manage supplier contacts"}
@@ -464,35 +464,6 @@ export default function ProcurementPage() {
             </div>
           </div>
         )}
-
-        {/* Sub-Tabs */}
-        <div className="flex border-b border-zinc-200/80 gap-6 overflow-x-auto scrollbar-none whitespace-nowrap px-1">
-          <button
-            onClick={() => setActiveTab("POS")}
-            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 ${
-              activeTab === "POS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            Restock Orders ({finalFilteredPOs.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("SUPPLIERS")}
-            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 ${
-              activeTab === "SUPPLIERS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            Supplier Directory ({filteredSuppliers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("MARKETPLACE")}
-            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
-              activeTab === "MARKETPLACE" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            Marketplace & Best Rates
-          </button>
-        </div>
 
         {/* TAB 1: PURCHASE ORDERS */}
         {activeTab === "POS" && (
@@ -1433,32 +1404,30 @@ export default function ProcurementPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Received Qty (accepted)</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
+                            <NumberInput
+                              min={0}
+                              aria-label="Received quantity"
                               value={input.receivedQuantity}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
-                                })
+                              onChange={(receivedQuantity) =>
+                                setReceiveItemInputs((prev) => ({
+                                  ...prev,
+                                  [poItem.itemId]: { ...(prev[poItem.itemId] ?? input), receivedQuantity },
+                                }))
                               }
                               className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
                             />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Damaged / Rejected Qty</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
+                            <NumberInput
+                              min={0}
+                              aria-label="Damaged or rejected quantity"
                               value={input.damagedQuantity}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, damagedQuantity: Number(e.target.value) },
-                                })
+                              onChange={(damagedQuantity) =>
+                                setReceiveItemInputs((prev) => ({
+                                  ...prev,
+                                  [poItem.itemId]: { ...(prev[poItem.itemId] ?? input), damagedQuantity },
+                                }))
                               }
                               className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-rose-500 focus:outline-none font-semibold text-rose-800 shadow-xs"
                             />

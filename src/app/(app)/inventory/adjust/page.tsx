@@ -7,6 +7,7 @@ import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetItemsQuery, useAdjustStockMutation } from "@/redux/slices/inventoryApiSlice";
 import { Sliders, CheckCircle2, AlertTriangle, Loader2, Building2, Filter, TrendingUp, TrendingDown } from "lucide-react";
+import NumberInput from "@/components/ui/NumberInput";
 
 export default function InventoryAdjustPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
@@ -216,14 +217,13 @@ export default function InventoryAdjustPage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
                   Quantity ({selectedItem?.unit || "units"})
                 </label>
-                <input
+                <NumberInput
                   id="adjust-quantity-input"
-                  type="number"
-                  step="any"
-                  min="0.001"
+                  allowEmpty
+                  min={0}
                   placeholder="Enter quantity amount..."
                   value={changeAmount}
-                  onChange={(e) => setChangeAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                  onChange={setChangeAmount}
                   className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm focus:border-[#D3232A] focus:outline-none font-bold text-zinc-900"
                 />
               </div>
