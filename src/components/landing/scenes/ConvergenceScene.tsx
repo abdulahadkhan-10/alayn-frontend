@@ -171,19 +171,6 @@ export default function ConvergenceScene() {
 
         {/* Section Header */}
         <div style={{ textAlign: "center", marginBottom: "64px" }}>
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              color: "var(--amber)",
-              marginBottom: "12px",
-            }}
-          >
-            The Operational Modules
-          </span>
           <h2
             style={{
               fontFamily: "var(--font-playfair), Georgia, serif",

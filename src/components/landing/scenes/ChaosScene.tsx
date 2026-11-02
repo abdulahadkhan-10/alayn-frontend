@@ -95,19 +95,6 @@ export default function ChaosScene() {
         {/* Section header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14 sm:mb-20">
           <div className="max-w-3xl">
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: "0.6875rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--amber-on-dark)",
-                marginBottom: "16px",
-              }}
-            >
-              HOW ALAYN WORKS
-            </span>
 
             <h2
               style={{

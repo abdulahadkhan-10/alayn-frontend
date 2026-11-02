@@ -113,7 +113,7 @@ const FAQS = [
   {
     question: "What hardware do I need to run Alayn AI billing software?",
     answer:
-      "Alayn AI runs on any laptop, desktop, iPad, Android tablet, or POS touch terminal with standard thermal receipt printers—with unlimited billing terminals per outlet.",
+      "Alayn AI runs on any laptop, desktop, iPad, Android tablet, or POS touch terminal with standard thermal receipt printers, with unlimited billing terminals per outlet.",
   },
   {
     question: "Can I manage billing across multiple restaurant outlets from one account?",
@@ -170,15 +170,12 @@ export default function BillingSoftwarePage() {
       <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Hero Header */}
         <div className="max-w-3xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-            RESTAURANT BILLING SOFTWARE &amp; GST POS
-          </span>
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             Billing software built for{" "}
             <span className="italic font-normal text-[var(--amber)]">real service rush.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
-            <strong className="font-semibold text-[var(--espresso)]">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs, and cloud kitchens—connecting fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters from{" "}
+            <strong className="font-semibold text-[var(--espresso)]">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs and cloud kitchens. It connects fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters from{" "}
             <Link href="/pricing" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
               ₹599 per outlet per month
             </Link>
@@ -203,11 +200,8 @@ export default function BillingSoftwarePage() {
         {/* Core Billing & POS Capabilities */}
         <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
           <div className="max-w-2xl">
-            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-              CAPABILITIES
-            </span>
-            <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
-              Everything you need in a GST billing software—plus the rest of your restaurant.
+            <h2 className="section-headline text-3xl sm:text-4xl">
+              GST billing software that runs the rest of your restaurant too
             </h2>
           </div>
 
@@ -217,9 +211,6 @@ export default function BillingSoftwarePage() {
                 key={cap.number}
                 className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
-                  {cap.number}
-                </span>
                 <h3 className="mb-3 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{cap.title}</h3>
                 <p className="mb-4 text-[15px] leading-relaxed text-[var(--espresso)]/90">
                   {cap.description}
@@ -237,10 +228,7 @@ export default function BillingSoftwarePage() {
         {/* Verticals Served */}
         <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
           <div className="max-w-2xl">
-            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-              BUILT FOR EVERY FORMAT
-            </span>
-            <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
+            <h2 className="section-headline text-3xl sm:text-4xl">
               One billing platform across every hospitality format
             </h2>
           </div>
@@ -285,10 +273,7 @@ export default function BillingSoftwarePage() {
         {/* FAQ Section for High-Intent Search Queries */}
         <section aria-labelledby="faq-heading" className="mt-24 grid grid-cols-1 gap-10 md:grid-cols-12">
           <div className="md:col-span-4">
-            <span className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-              FREQUENTLY ASKED QUESTIONS
-            </span>
-            <h2 id="faq-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
+            <h2 id="faq-heading" className="section-headline text-3xl sm:text-4xl">
               Common questions about Alayn AI Billing Software
             </h2>
           </div>
@@ -316,7 +301,7 @@ export default function BillingSoftwarePage() {
           className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-center text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
         >
           <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
-            <span className="font-[family-name:var(--font-playfair)] font-bold">Upgrade your restaurant billing software today.</span>
+            <span className="font-[family-name:var(--font-playfair)] font-bold">Move your billing to Alayn from ₹599 a month.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
             Alayn Basic from ₹599 per outlet per month, or Alayn Pro from ₹1,999, + 18% GST. POS, KDS, inventory and waste on both plans from day one.

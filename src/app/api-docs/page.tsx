@@ -56,9 +56,6 @@ export default function ApiDocsPage() {
       <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Header */}
         <div className="max-w-3xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-            ALAYN API
-          </span>
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             API Reference
           </h1>
@@ -92,7 +89,6 @@ export default function ApiDocsPage() {
         <div className="mt-12 space-y-8">
           {/* Getting started */}
           <section id="authentication" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">AUTHENTICATION</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Log in, then send a Bearer token</h2>
             <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
               Exchange an Alayn account&apos;s email and password for an access token, and send it on every request. When it expires, call <code className={inlineCodeClass}>/api/v1/auth/refresh</code> with the refresh token.
@@ -112,7 +108,6 @@ curl https://api.alaynai.com/api/v1/orders \\
 
           {/* Base URL & outlet scoping */}
           <section id="outlets" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">BASE URL &amp; OUTLETS</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Every request is scoped to an outlet</h2>
             <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
               Pass the outlet&apos;s ID in the <code className={inlineCodeClass}>x-outlet-id</code> header. If you leave it out, the API uses the first outlet on your account; super-admin accounts must always send it.
@@ -126,7 +121,6 @@ curl https://api.alaynai.com/api/v1/orders \\
 
           {/* Responses & errors */}
           <section id="responses" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">RESPONSES &amp; ERRORS</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">One envelope for every response</h2>
             <p className="mb-5 text-[15px] leading-relaxed text-[var(--muted)]">
               Successful responses wrap the result in <code className={inlineCodeClass}>data</code>; lists add a <code className={inlineCodeClass}>meta</code> object with <code className={inlineCodeClass}>limit</code>, <code className={inlineCodeClass}>offset</code> and <code className={inlineCodeClass}>total</code>. Errors return an HTTP status code and a machine-readable <code className={inlineCodeClass}>code</code>.
@@ -153,7 +147,6 @@ curl https://api.alaynai.com/api/v1/orders \\
 
           {/* Endpoint groups */}
           <section id="endpoints" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">ENDPOINTS</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">What the API covers</h2>
             <p className="mb-6 text-[15px] leading-relaxed text-[var(--muted)]">
               All paths sit under <code className={inlineCodeClass}>/api/v1</code>. Request and response schemas for the documented operations are in the interactive reference and <code className={inlineCodeClass}>openapi.json</code>.
@@ -170,7 +163,6 @@ curl https://api.alaynai.com/api/v1/orders \\
 
           {/* Rate Limiting */}
           <section id="rate-limits" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">RATE LIMITING</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">Rate Limits</h2>
             <p className="mb-4 text-[15px] leading-relaxed text-[var(--muted)]">
               Authenticated endpoints are not rate limited today. Public, unauthenticated endpoints are limited per IP address:
@@ -185,7 +177,6 @@ curl https://api.alaynai.com/api/v1/orders \\
 
           {/* Versioning & access */}
           <section id="versioning" className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 sm:p-8">
-            <span className="mb-2 block font-mono text-xs font-bold uppercase tracking-wider text-[var(--amber)]">VERSIONING &amp; ACCESS</span>
             <h2 className="mb-3 font-heading text-2xl font-bold tracking-[-0.015em] text-[var(--espresso)]">What&apos;s available today</h2>
             <ul className="list-disc space-y-2.5 pl-6 text-[15px] leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
               <li>The current version is <code className={inlineCodeClass}>v1</code>, in the URL path.</li>

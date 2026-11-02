@@ -96,7 +96,7 @@ export default function VerticalsScene() {
             <button
               key={v.name}
               onClick={() => setActive(i)}
-              className="px-4 py-2.5 rounded-full border text-xs sm:text-sm font-semibold transition-all duration-200 min-h-[44px] flex items-center justify-center"
+              className="px-4 py-2.5 rounded-full border text-xs sm:text-sm font-semibold transition-colors duration-200 min-h-[44px] flex items-center justify-center"
               style={{
                 borderColor: active === i ? "var(--amber)" : "var(--border-warm)",
                 background: active === i ? "rgba(196, 30, 42, 0.05)" : "transparent",
@@ -114,7 +114,7 @@ export default function VerticalsScene() {
             
             {/* Context Details */}
             <div>
-              <span style={{ display: "inline-block", fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--amber)", marginBottom: "14px" }}>
+              <span style={{ display: "inline-block", fontSize: "0.875rem", fontWeight: 600, color: "var(--amber)", marginBottom: "14px" }}>
                 What changes
               </span>
               

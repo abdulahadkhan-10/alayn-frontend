@@ -131,11 +131,8 @@ export default function FeaturesPage() {
 
       <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         <div className="max-w-3xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-            FEATURES
-          </span>
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
-            Everything your restaurant runs on, <span className="italic font-normal text-[var(--amber)]">in one place.</span>
+            Billing, kitchen, stock and staff, <span className="italic font-normal text-[var(--amber)]">in one place.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Alayn AI is a{" "}
@@ -157,9 +154,6 @@ export default function FeaturesPage() {
                 key={module.number}
                 className="flex flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
-                  {module.number}
-                </span>
                 <h2 className="mb-3 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{module.title}</h2>
                 <ul className="list-disc space-y-2 pl-4 text-[15px] leading-relaxed text-[var(--muted)] marker:text-[var(--amber)]">
                   {module.items.map((item) => (

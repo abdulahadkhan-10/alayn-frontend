@@ -202,19 +202,6 @@ export default function RunningScene() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Copy */}
           <div className="lg:col-span-6">
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: "0.6875rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--amber-on-dark)",
-                marginBottom: "16px",
-              }}
-            >
-              WHAT ALAYN FLAGS
-            </span>
 
             <h2
               style={{

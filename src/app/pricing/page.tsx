@@ -197,7 +197,7 @@ export default function PricingPage() {
         </p>
 
         <section aria-labelledby="compare-heading" className="mt-24">
-          <h2 id="compare-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
+          <h2 id="compare-heading" className="section-headline text-3xl sm:text-4xl">
             What Pro adds
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--muted)]">
@@ -273,7 +273,7 @@ export default function PricingPage() {
         </section>
 
         <section aria-labelledby="faq-heading" className="mt-24 grid grid-cols-1 gap-10 md:grid-cols-12">
-          <h2 id="faq-heading" className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl md:col-span-4">
+          <h2 id="faq-heading" className="section-headline text-3xl sm:text-4xl md:col-span-4">
             Common questions
           </h2>
           <div className="divide-y divide-[var(--border-warm)] border-y border-[var(--border-warm)] md:col-span-8">

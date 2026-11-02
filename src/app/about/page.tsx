@@ -82,25 +82,19 @@ export default function AboutPage() {
       <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         {/* Header */}
         <div className="max-w-3xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-            ABOUT ALAYN AI
-          </span>
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
             The Operating System Built for <span className="italic font-normal text-[var(--amber)]">Hospitality Operators.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
-            Alayn AI is an enterprise-grade platform designed from first principles to solve the fragmentation of restaurant technology. We unite counter POS, table dining, kitchen tickets, inventory procurement, and workforce scheduling into one synchronized ecosystem.
+            Alayn AI runs a restaurant from one system: counter POS, table orders, kitchen tickets, inventory purchasing and staff scheduling, all on the same live record.
           </p>
         </div>
 
         {/* Operating Mandate */}
         <section className="mt-20 grid grid-cols-1 items-start gap-8 border-t border-[var(--border-warm)] pt-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--amber)]">
-              OUR MISSION
-            </span>
-            <h2 className="font-heading text-2xl font-bold leading-snug tracking-[-0.02em] text-[var(--espresso)] sm:text-3xl">
-              Replacing Operational Chaos with Complete Clarity.
+            <h2 className="section-headline text-3xl text-[var(--espresso)] sm:text-4xl">
+              Why we built Alayn
             </h2>
           </div>
           <div className="space-y-4 text-[15px] leading-relaxed text-[var(--muted)] md:col-span-8">
@@ -108,7 +102,7 @@ export default function AboutPage() {
               In most restaurant environments, operations are fractured across offline notebooks, WhatsApp groups, separate billing machines, and manual inventory spreadsheets. When an unexpected rush hits, communication collapses.
             </p>
             <p>
-              Alayn AI was conceived by restaurant operators and enterprise software engineers to eliminate these bottlenecks. Every module—from frontline order entry to automated supplier purchase orders—talks to the same transactional ledger in real time.
+              Alayn AI was conceived by restaurant operators and enterprise software engineers to eliminate these bottlenecks. Every module, from order entry at the counter to supplier purchase orders, writes to the same ledger in real time.
             </p>
             <p className="font-[family-name:var(--font-playfair)] text-lg italic text-[var(--espresso)]">
               &ldquo;We don&apos;t build generic business software. We engineer tools tuned to the heartbeat of a live restaurant kitchen.&rdquo;
@@ -118,10 +112,7 @@ export default function AboutPage() {
 
         {/* Four Core Pillars */}
         <section className="mt-20 border-t border-[var(--border-warm)] pt-12">
-          <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--amber)]">
-            FOUR CORE PILLARS
-          </span>
-          <h2 className="font-heading text-3xl font-bold tracking-[-0.02em] sm:text-4xl">
+          <h2 className="section-headline text-3xl sm:text-4xl">
             How the platform fits together
           </h2>
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -130,9 +121,6 @@ export default function AboutPage() {
                 key={pillar.number}
                 className="rounded-2xl border border-[var(--border-warm)] bg-white p-6 transition-colors hover:border-[var(--espresso)]/25 sm:p-8"
               >
-                <span className="mb-3 block font-mono text-xs font-bold text-[var(--amber)]">
-                  {pillar.number}
-                </span>
                 <h3 className="mb-2 font-heading text-xl font-bold tracking-[-0.015em] text-[var(--espresso)]">{pillar.title}</h3>
                 <p className="text-[15px] leading-relaxed text-[var(--muted)]">{pillar.desc}</p>
               </div>
@@ -147,9 +135,6 @@ export default function AboutPage() {
         >
           <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-12">
             <div className="space-y-3 md:col-span-8">
-              <span className="block text-xs font-bold uppercase tracking-widest text-[var(--amber-on-dark)]">
-                INSTITUTIONAL GOVERNANCE
-              </span>
               <h2 id="governance-heading" className="text-2xl leading-tight sm:text-3xl">
                 <span className="font-[family-name:var(--font-playfair)] font-bold">Built and operated by BRAHM Global Holdings</span>
               </h2>
@@ -164,7 +149,7 @@ export default function AboutPage() {
             <div className="flex justify-start md:col-span-4 md:justify-end">
               <Link
                 href="/contact"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full bg-[var(--amber)] px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--amber-light)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Book a Demonstration
               </Link>

@@ -85,11 +85,8 @@ export default function ContactPage() {
 
       <main id="main-content" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-24 pt-32 sm:px-8 sm:pt-40">
         <div className="max-w-3xl">
-          <span className="mb-4 block text-xs font-bold uppercase tracking-[0.2em] text-[var(--amber)]">
-            CONNECT WITH ALAYN AI
-          </span>
           <h1 className="hero-headline text-balance text-[2.6rem] sm:text-6xl">
-            Let&apos;s Transform Your <span className="italic font-normal text-[var(--amber)]">Operations.</span>
+            See Alayn running on <span className="italic font-normal text-[var(--amber)]">your menu.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Whether you run a single high-volume café or manage dozens of multi-city restaurant outlets, our team is ready to demonstrate how Alayn AI unifies your business.
@@ -155,7 +152,7 @@ export default function ContactPage() {
 
         {/* Registered business address, matching /legal/corporate */}
         <address className="mt-16 border-t border-[var(--border-warm)] pt-10 not-italic text-sm leading-relaxed text-[var(--muted)]">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--espresso)]">Business address</span>
+          <span className="mb-2 block text-sm font-semibold text-[var(--espresso)]">Business address</span>
           Alayn AI · BRAHM Global Holdings<br />
           Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg<br />
           Bandra West, Mumbai, Maharashtra 400050, India<br />

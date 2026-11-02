@@ -67,7 +67,7 @@ export default function LandingFooter() {
 
           {/* Navigation Links (Platform) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Platform</h3>
+            <h3 className="text-sm font-semibold text-white/80 mb-1">Platform</h3>
             <Link href="/billing-software" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Billing Software
             </Link>
@@ -96,7 +96,7 @@ export default function LandingFooter() {
 
           {/* Navigation Links (Connect) */}
           <div className="md:col-span-4 lg:col-span-2 flex flex-col gap-4">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Connect</h3>
+            <h3 className="text-sm font-semibold text-white/80 mb-1">Connect</h3>
             <Link href="/contact" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Contact Sales
             </Link>
@@ -107,7 +107,7 @@ export default function LandingFooter() {
 
           {/* Navigation Links (Legal & Trust) */}
           <div className="md:col-span-4 lg:col-span-3 flex flex-col gap-3">
-            <h3 className="text-[10px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-1">Legal &amp; Trust</h3>
+            <h3 className="text-sm font-semibold text-white/80 mb-1">Legal &amp; Trust</h3>
             <Link href="/legal/privacy" className="text-xs font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               Privacy Policy
             </Link>

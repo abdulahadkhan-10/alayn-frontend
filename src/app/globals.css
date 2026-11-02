@@ -60,6 +60,20 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
 }
 
+/* Keyboard focus: a visible ring everywhere (navy on light surfaces, white on
+   navy bands and the footer). In the base layer so a component's own
+   focus-visible utilities still win. */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--espresso);
+    outline-offset: 2px;
+  }
+  footer :focus-visible,
+  [class~="bg-[var(--espresso)]"] :focus-visible {
+    outline-color: #ffffff;
+  }
+}
+
 /* Shared form input style used across the dashboard */
 .input {
   width: 100%;
@@ -202,6 +216,15 @@ html {
   line-height: 1.08;
   letter-spacing: -0.02em;
   color: var(--espresso);
+}
+
+/* Section heads on marketing pages share the hero's serif so a page reads
+   as one voice; item titles inside cards stay in the sans. */
+.section-headline {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 
 /* ---- Hero aurora (Stripe-style soft gradient wash) ----

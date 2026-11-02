@@ -43,3 +43,7 @@ next-env.d.ts
 # local design-review artifacts (Playwright screenshots, impeccable critiques)
 .playwright-mcp/
 .impeccable/
+
+# hallmark design skill (installed locally, not part of the app) and its run output
+.claude/skills/hallmark/
+.hallmark/

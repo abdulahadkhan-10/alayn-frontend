@@ -47,19 +47,6 @@ export default function TrustedByScene() {
             marginBottom: "48px",
           }}
         >
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              color: "var(--amber)",
-              marginBottom: "16px",
-            }}
-          >
-            The Vanguard
-          </span>
           <h2
             style={{
               fontFamily: "var(--font-playfair), Georgia, serif",
@@ -70,10 +57,10 @@ export default function TrustedByScene() {
               letterSpacing: "-0.02em",
             }}
           >
-            Trusted by operators who refuse{" "}
+            Restaurants already running{" "}
             <br />
             <em style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: 400 }}>
-              to compromise.
+              on Alayn.
             </em>
           </h2>
         </Assemble>

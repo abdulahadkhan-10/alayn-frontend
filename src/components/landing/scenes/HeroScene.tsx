@@ -98,20 +98,6 @@ export default function HeroScene() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           {/* Left — the pitch */}
           <div className="lg:col-span-6">
-            <Assemble
-              as="span"
-              style={{
-                display: "inline-block",
-                fontSize: "0.6875rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--amber)",
-                marginBottom: "18px",
-              }}
-            >
-              Billing Software &amp; POS for Restaurants, Cafés &amp; Cloud Kitchens
-            </Assemble>
 
             <Assemble
               as="h1"
@@ -136,7 +122,7 @@ export default function HeroScene() {
             </Assemble>
 
             <Assemble as="p" delay={0.12} visibleOnLoad style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
-              GST billing, counter &amp; table POS, instant KOTs, kitchen display, FEFO inventory, waste tracking and staff scheduling—unified in one intelligent platform with real-time visibility across every location.
+              GST billing, counter &amp; table POS, instant KOTs, kitchen display, FEFO inventory, waste tracking and staff scheduling, in one platform with live visibility across every outlet.
             </Assemble>
 
             <Assemble
@@ -189,11 +175,11 @@ export default function HeroScene() {
             </Assemble>
 
             <Assemble as="p" delay={0.24} className="hidden sm:block" style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0 }}>
-              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent{" "}
+              Book a demonstration and we&apos;ll show you Alayn&apos;s{" "}
               <Link href="/billing-software" className="underline underline-offset-2 hover:text-slate-900">
                 restaurant billing software
               </Link>{" "}
-              and operational automation can transform your outlets.
+              running on your own menu.
             </Assemble>
           </div>
 
@@ -328,11 +314,11 @@ export default function HeroScene() {
           {/* Mobile-only paragraph below the fold */}
           <div className="sm:hidden mt-8 px-2 text-center w-full max-w-[320px] mx-auto">
             <Assemble as="p" delay={0.4} style={{ fontSize: "0.8125rem", color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>
-              We&apos;re introducing Alayn AI to a select group of forward-thinking organisations. Arrange a demonstration to discover how intelligent{" "}
+              Book a demonstration and we&apos;ll show you Alayn&apos;s{" "}
               <Link href="/billing-software" className="underline underline-offset-2">
                 billing software
               </Link>{" "}
-              can transform your operations.
+              running on your own menu.
             </Assemble>
           </div>
         </div>

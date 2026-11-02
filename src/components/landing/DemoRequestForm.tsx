@@ -7,7 +7,7 @@ const DEMO_EMAIL = "info@alaynai.com";
 const OUTLET_OPTIONS = ["1 outlet", "2–5 outlets", "6–20 outlets", "More than 20 outlets"];
 
 const inputClass =
-  "w-full rounded-xl border border-[var(--border-warm)] bg-[var(--cream-light)]/60 px-4 py-3 text-sm text-[var(--espresso)] placeholder:text-[var(--muted)]/70 focus:border-[var(--amber)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]/20 transition-colors";
+  "w-full rounded-xl border border-[var(--muted)]/75 bg-white px-4 py-3 text-sm text-[var(--espresso)] placeholder:text-[var(--muted)]/70 focus:border-[var(--amber)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--amber)]/20 transition-colors";
 
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-[var(--espresso)] mb-2";
 

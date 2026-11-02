@@ -67,11 +67,12 @@ function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode
         </span>
       </p>
       <p className={`mt-1.5 text-[13px] tabular-nums ${subtextTone}`}>
-        {formatRupees(Math.round(withGst(amount)))} with 18% GST
+        {formatRupees(Math.round(withGst(amount)))} with 18% GST.
         {cycle === "yearly" && (
           <>
-            {" "}· <span className={dark ? "font-semibold text-white" : "font-semibold text-[var(--espresso)]"}>save {formatRupees(yearlySaving(plan))}</span> on
-            paying monthly · non-refundable
+            <br />
+            <span className={dark ? "font-semibold text-white" : "font-semibold text-[var(--espresso)]"}>Save {formatRupees(yearlySaving(plan))}</span> compared
+            with paying monthly. Non-refundable.
           </>
         )}
       </p>
@@ -211,7 +212,7 @@ export default function PricingPlans() {
           <div className="lg:min-h-[6.25rem]">
             <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_BASIC.name}</h3>
             <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">
-              Billing, kitchen and stock for one outlet. Everything you need to run service.
+              Billing, kitchen and stock for one outlet.
             </p>
           </div>
           <div className="mt-7">
