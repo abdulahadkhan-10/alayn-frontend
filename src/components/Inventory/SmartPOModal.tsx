@@ -9,6 +9,7 @@ import {
   useCreatePurchaseOrderMutation,
   SupplierApi,
 } from "@/redux/slices/procurementApiSlice";
+import { useRequestKeys } from "@/lib/useRequestKeys";
 
 interface SmartPOItemLine {
   item: InventoryItemApi;
@@ -33,6 +34,9 @@ export default function SmartPOModal({
 }: Props) {
   const { data: suppliers = [] } = useGetSuppliersQuery(undefined, { skip: !outletId });
   const [createPO, { isLoading: isSubmitting }] = useCreatePurchaseOrderMutation();
+  // One key per supplier's PO: if the loop fails part-way and the user retries, the POs that
+  // already went through are returned again instead of being created a second time
+  const keyFor = useRequestKeys();
 
   const [editingSupplierItemId, setEditingSupplierItemId] = useState<string | null>(null);
   const [lines, setLines] = useState<SmartPOItemLine[]>(() => {
@@ -129,10 +133,8 @@ export default function SmartPOModal({
           unitCostPaise: l.unitCostPaise,
         }));
 
-        await createPO({
-          supplierId: supId,
-          items: poLines,
-        }).unwrap();
+        const payload = { supplierId: supId, items: poLines };
+        await createPO({ ...payload, clientRequestId: keyFor(payload) }).unwrap();
       }
 
       setFeedback({

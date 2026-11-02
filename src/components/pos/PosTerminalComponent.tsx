@@ -374,6 +374,18 @@ export default function PosTerminalComponent() {
   const { data: liveCategories } = useGetCategoriesQuery();
   const { data: liveMenuItems, isLoading: isLoadingLiveMenu } = useGetMenuItemsQuery({ isAvailable: true });
   const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
+  // A second tap that lands before the button re-renders as disabled would otherwise send the same
+  // order again under a new clientOrderId. Ignore taps while one send/checkout is still in flight.
+  const inFlightRef = useRef(false);
+  const runOnce = (fn: () => Promise<void>) => async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      await fn();
+    } finally {
+      inFlightRef.current = false;
+    }
+  };
 
   // Reloaded with no internet: fall back to the saved offline copy until the server answers again
   const savedPack = !liveMenuItems && !offlineStatus.online ? offlinePack : null;
@@ -769,7 +781,7 @@ export default function PosTerminalComponent() {
   };
 
   // Send to Kitchen Handler — Directly dispatches order ticket to Kitchen (KDS)
-  const handleSendToKitchen = async () => {
+  const handleSendToKitchen = runOnce(async () => {
     if (cart.length === 0) return;
 
     if (isAllOutletsSelected) {
@@ -833,7 +845,7 @@ export default function PosTerminalComponent() {
       console.error("Sending to kitchen failed:", err);
       alert(err?.data?.message || "Failed to send order to kitchen. Please try again.");
     }
-  };
+  });
 
   // Checkout Initiation Handler — Checks if 'All Outlets' is selected
   const handleInitiateCheckout = () => {
@@ -848,7 +860,7 @@ export default function PosTerminalComponent() {
   };
 
   // Order Submission Handler
-  const handleProcessCheckout = async () => {
+  const handleProcessCheckout = runOnce(async () => {
     if (chargeTarget) {
       try {
         const order = await settleOfflineBill(chargeTarget.clientOrderId, paymentMethod);
@@ -926,7 +938,7 @@ export default function PosTerminalComponent() {
       console.error("Order creation failed:", err);
       alert(err?.data?.message || "Failed to create order. Please try again.");
     }
-  };
+  });
 
   const completedOrderObj = completedOrder?.data || completedOrder;
   const isKitchenDispatch = completedOrderObj?._flow === "KITCHEN";

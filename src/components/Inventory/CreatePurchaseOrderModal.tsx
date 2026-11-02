@@ -9,6 +9,7 @@ import {
   useCreatePurchaseOrderMutation,
   SupplierApi,
 } from "@/redux/slices/procurementApiSlice";
+import { useRequestKeys } from "@/lib/useRequestKeys";
 
 interface CustomPOLine {
   itemId: string;
@@ -38,6 +39,7 @@ export default function CreatePurchaseOrderModal({
     skip: !outletId,
   });
   const [createPO, { isLoading: isSubmitting }] = useCreatePurchaseOrderMutation();
+  const keyFor = useRequestKeys();
 
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>(() => {
     if (prefilledSupplierId) return prefilledSupplierId;
@@ -125,10 +127,8 @@ export default function CreatePurchaseOrderModal({
         unitCostPaise: Math.round(l.unitCostRupees * 100),
       }));
 
-      await createPO({
-        supplierId: selectedSupplierId,
-        items: payloadItems,
-      }).unwrap();
+      const payload = { supplierId: selectedSupplierId, items: payloadItems };
+      await createPO({ ...payload, clientRequestId: keyFor(payload) }).unwrap();
 
       setFeedback({
         type: "success",

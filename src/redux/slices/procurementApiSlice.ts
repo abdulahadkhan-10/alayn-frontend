@@ -33,6 +33,8 @@ export interface PurchaseOrderItemApi {
 
 export interface PurchaseOrderApi {
   id: string;
+  /** Shared order number, e.g. "PO-SEA-20261102-001". Same in the supplier portal and notifications. */
+  poNumber?: string;
   supplierId: string;
   status:
     | "DRAFT"
@@ -97,7 +99,12 @@ export const procurementApiSlice = baseApi.injectEndpoints({
     }),
     createPurchaseOrder: builder.mutation<
       PurchaseOrderApi,
-      { supplierId: string; items: { itemId: string; orderedQuantity: number; unitCostPaise: number }[] }
+      {
+        supplierId: string;
+        items: { itemId: string; orderedQuantity: number; unitCostPaise: number }[];
+        /** Same key twice returns the PO already created (see useRequestKeys) */
+        clientRequestId?: string;
+      }
     >({
       query: (data) => ({
         url: "/purchase-orders",
@@ -105,6 +112,7 @@ export const procurementApiSlice = baseApi.injectEndpoints({
         body: data,
       }),
       invalidatesTags: ["PurchaseOrder"],
+      transformResponse: (response: { data?: PurchaseOrderApi }) => response?.data as PurchaseOrderApi,
     }),
     receivePOItem: builder.mutation<
       PurchaseOrderApi,

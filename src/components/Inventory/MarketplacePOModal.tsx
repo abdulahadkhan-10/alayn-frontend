@@ -7,6 +7,7 @@ import { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { useCreatePurchaseOrderMutation } from "@/redux/slices/procurementApiSlice";
 import type { MarketplaceSupplier } from "./SupplierMarketplaceSection";
 import { apiErrorMessage } from "@/lib/apiError";
+import { useRequestKeys } from "@/lib/useRequestKeys";
 import QuantityInput from "./QuantityInput";
 
 interface Line {
@@ -46,6 +47,7 @@ export default function MarketplacePOModal({
   onSuccess,
 }: Props) {
   const [createPO, { isLoading: isSubmitting }] = useCreatePurchaseOrderMutation();
+  const keyFor = useRequestKeys();
   const [createItem] = useCreateItemMutation();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,14 +122,15 @@ export default function MarketplacePOModal({
     }
 
     try {
-      await createPO({
+      const payload = {
         supplierId: supplier.id,
         items: lines.map((l) => ({
           itemId: l.inventoryItemId,
           orderedQuantity: l.quantity,
           unitCostPaise: l.catalogItem.pricePaise,
         })),
-      }).unwrap();
+      };
+      await createPO({ ...payload, clientRequestId: keyFor(payload) }).unwrap();
       onSuccess();
     } catch (err) {
       setError(apiErrorMessage(err, "Failed to create order."));

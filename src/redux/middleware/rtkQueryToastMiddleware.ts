@@ -1,6 +1,7 @@
 import { Middleware, isFulfilled, isRejected } from "@reduxjs/toolkit";
 import { showToast } from "@/lib/toast";
 import { CLOCK_IN_CONFIRMATION_REQUIRED } from "@/lib/attendance";
+import { formatPONumber } from "@/lib/poNumber";
 
 // Human-friendly success messages for RTK Query mutations across Alayn platform
 const mutationSuccessMessages: Record<string, { title: string; message?: string }> = {
@@ -87,7 +88,10 @@ export const rtkQueryToastMiddleware: Middleware = () => (next) => (action: any)
   if (isMutation) {
     if (isFulfilled(action)) {
       const customMsg = mutationSuccessMessages[endpointName];
-      if (customMsg) {
+      const poRef = endpointName === "createPurchaseOrder" ? formatPONumber(action.payload ?? {}) : null;
+      if (poRef) {
+        showToast.success("Purchase Order Created", `${poRef} issued to supplier.`);
+      } else if (customMsg) {
         showToast.success(customMsg.title, customMsg.message);
       } else {
         const title = `${formatEndpointTitle(endpointName)} Successful`;

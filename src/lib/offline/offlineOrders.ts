@@ -29,6 +29,9 @@ export interface OfflineOrderPayload {
     notes?: string;
     unitPricePaise: number;
     modifiers?: { id: string; groupId?: string; name: string; pricePaise: number; isVariant?: boolean }[];
+    /** The round (clientOrderId of the send) that added this line, so the server can tell which
+     *  rounds of a table's offline bill already reached it online before the internet dropped. */
+    clientRoundId?: string;
   }[];
   discountPaise?: number;
   rates: { cgstRate: number; sgstRate: number; serviceChargeRate: number };
@@ -78,7 +81,7 @@ function istDateKey(d: Date) {
 
 const toPaise = (rupees: number) => Math.round(rupees * 100);
 
-function lineFromCart(ci: OfflineCartLine) {
+function lineFromCart(ci: OfflineCartLine, clientRoundId?: string) {
   const modifiers = (ci.selectedModifiers || [])
     .filter((m) => m.id)
     .map((m) => ({ id: m.id as string, groupId: m.groupId, name: m.name, pricePaise: toPaise(Number(m.price) || 0), isVariant: !!m.isVariant }));
@@ -88,6 +91,7 @@ function lineFromCart(ci: OfflineCartLine) {
     notes: ci.notes || undefined,
     unitPricePaise: toPaise(ci.unitPrice),
     ...(modifiers.length > 0 ? { modifiers } : {}),
+    ...(clientRoundId ? { clientRoundId } : {}),
   };
 }
 
@@ -219,7 +223,7 @@ export function previewOfflineBill(
 ) {
   const rates = openBill?.payload.rates ?? ratesFor(outlet);
   const gst = openBill?.payload.gstRegistrationType ?? ((outlet.gstRegistrationType || "REGULAR") as GstRegistrationType);
-  const items = [...(openBill?.payload.items ?? []), ...cart.map(lineFromCart)];
+  const items = [...(openBill?.payload.items ?? []), ...cart.map((ci) => lineFromCart(ci))];
   const discountPaise = toPaise(discount || 0) || openBill?.payload.discountPaise || 0;
   return { ...priceBill(items, rates, openBill?.payload.source ?? source, discountPaise, gst), rates, gstRegistrationType: gst };
 }
@@ -270,7 +274,7 @@ export async function createOfflineOrder(input: OfflineOrderInput) {
   const rates = ratesFor(outlet);
   const gstRegistrationType = (outlet.gstRegistrationType || "REGULAR") as GstRegistrationType;
   const tableNumber = input.source === "TABLE" && input.tableNo ? parseInt(input.tableNo, 10) || undefined : undefined;
-  const newItems = input.cart.map(lineFromCart);
+  const newItems = input.cart.map((ci) => lineFromCart(ci, input.clientOrderId));
   const itemNames: Record<string, string> = {};
   input.cart.forEach((ci) => (itemNames[ci.menuItem.id] = ci.menuItem.name));
 

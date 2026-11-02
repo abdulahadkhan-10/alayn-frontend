@@ -46,6 +46,7 @@ import SupplierMarketplaceSection, { type MarketplaceSupplier } from "@/componen
 import MarketplacePOModal from "@/components/Inventory/MarketplacePOModal";
 import type { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { apiErrorMessage } from "@/lib/apiError";
+import { formatPONumber, matchesPONumber } from "@/lib/poNumber";
 import NumberInput from "@/components/ui/NumberInput";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
@@ -156,7 +157,7 @@ export default function ProcurementPage() {
       const q = poSearchQuery.toLowerCase().trim();
       result = result.filter(
         (po) =>
-          po.id.toLowerCase().includes(q) ||
+          matchesPONumber(po, q) ||
           po.actualSupplier?.name.toLowerCase().includes(q) ||
           po.supplier?.name.toLowerCase().includes(q)
       );
@@ -474,7 +475,7 @@ export default function ProcurementPage() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search by supplier name or items..."
+                  placeholder="Search by PO number or supplier..."
                   value={poSearchQuery}
                   onChange={(e) => {
                     setPoSearchQuery(e.target.value);
@@ -576,6 +577,9 @@ export default function ProcurementPage() {
                             <tr key={po.id} className="hover:bg-zinc-50/70 transition-colors">
                               <td className="px-4 py-3.5 font-medium text-zinc-900 whitespace-nowrap overflow-hidden">
                                 <span className="truncate max-w-[220px] font-bold text-zinc-900 block">{po.actualSupplier?.name || "Supplier"}</span>
+                                {formatPONumber(po) && (
+                                  <span className="block font-mono text-[11px] font-medium text-zinc-500">{formatPONumber(po)}</span>
+                                )}
                               </td>
                               {showPoOutlet && (
                                 <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
@@ -1332,6 +1336,9 @@ export default function ProcurementPage() {
                   <h2 className="text-lg font-semibold text-zinc-900 tracking-tight">
                     Receive Stock from {receivingPO.actualSupplier?.name || "Supplier"}
                   </h2>
+                  {formatPONumber(receivingPO) && (
+                    <p className="mt-0.5 font-mono text-xs font-medium text-zinc-500">{formatPONumber(receivingPO)}</p>
+                  )}
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Review supplier dispatched quantities, record accepted stock &amp; log damaged items
                   </p>
@@ -1543,6 +1550,7 @@ export default function ProcurementPage() {
                     {poAction.mode === "CANCEL" ? "Cancel Purchase Order" : "Close Purchase Order"}
                   </h3>
                   <p className="text-xs text-zinc-500">
+                    {formatPONumber(poAction.po) && <span className="font-mono">{formatPONumber(poAction.po)} · </span>}
                     Supplier: <strong className="text-zinc-800">{poAction.po.actualSupplier?.name || "Supplier"}</strong>
                   </p>
                 </div>
@@ -1722,6 +1730,9 @@ export default function ProcurementPage() {
                           <div>
                             <span className="font-semibold text-xs text-zinc-900">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Restock Order"}</span>
                             <span className="text-zinc-400 text-[11px] ml-2 font-medium">({po.items?.length || 0} items)</span>
+                            {formatPONumber(po) && (
+                              <span className="block font-mono text-[11px] text-zinc-500">{formatPONumber(po)}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-zinc-900 tabular-nums">₹{(po.totalAmountPaise / 100).toFixed(2)}</span>
