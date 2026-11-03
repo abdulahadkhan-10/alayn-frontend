@@ -67,6 +67,37 @@ function groupByKot<T extends { kotNo?: number; createdAt?: string }>(items: T[]
   return [...groups.values()].sort((a, b) => a.kotNo - b.kotNo);
 }
 
+// Acknowledged cancel alerts, kept in localStorage: { [orderId or itemKey]: acknowledgedAt }.
+// Alerts only live 3 minutes, so entries older than an hour are dropped to keep this small.
+const ACK_STORAGE_KEY = "kds:acknowledgedCancels";
+const ACK_KEEP_MS = 60 * 60 * 1000;
+
+function readAcknowledged(): Record<string, number> {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(ACK_STORAGE_KEY) : null;
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function loadAcknowledged(): Set<string> {
+  const cutoff = Date.now() - ACK_KEEP_MS;
+  return new Set(Object.entries(readAcknowledged()).filter(([, at]) => at > cutoff).map(([id]) => id));
+}
+
+function saveAcknowledged(id: string) {
+  try {
+    const cutoff = Date.now() - ACK_KEEP_MS;
+    const kept = Object.fromEntries(Object.entries(readAcknowledged()).filter(([, at]) => at > cutoff));
+    kept[id] = Date.now();
+    window.localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(kept));
+  } catch {
+    // Storage full or blocked (private mode): the alert is still cleared for this session
+  }
+}
+
 export default function KitchenDispatchBoardComponent() {
   const { activeBranch } = useBranch();
   const currentOutletId = activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
@@ -77,8 +108,9 @@ export default function KitchenDispatchBoardComponent() {
 
 
 
-  // Dismissed cancelled orders state (manually cleared by cook)
-  const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(new Set());
+  // Cancel alerts the cook acknowledged on this screen. Saved in the browser so they stay
+  // acknowledged after a refresh or after visiting another page and coming back.
+  const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(() => loadAcknowledged());
 
   // Real-time clock ticker for ticket timers and 3-minute cancellation countdowns
   const [now, setNow] = useState<number>(Date.now());
@@ -186,6 +218,7 @@ export default function KitchenDispatchBoardComponent() {
   }, [tickets, dismissedCancelledIds, now]);
 
   const handleDismissCancelled = (id: string) => {
+    saveAcknowledged(id);
     setDismissedCancelledIds((prev) => new Set([...Array.from(prev), id]));
   };
 
