@@ -20,11 +20,13 @@ import {
   Bell,
   Layers,
   Monitor,
-  Check,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
+import { CancelledOrdersTray, CancelledItemsTray, CANCEL_RETENTION_SECONDS } from "./CancellationAlerts";
 import { useBranch } from "@/lib/BranchContext";
 import { useSocket } from "@/lib/useSocket";
+import { playCancelChime, unlockCancelChimeOnFirstInteraction, CANCEL_CHIME_MS } from "@/lib/cancelChime";
+import { speakKitchenAlert, cancellationMessage, isNewCancellation } from "@/lib/kitchenVoice";
 
 // Minutes after which a waiting ticket turns amber, then red
 const TICKET_WARN_MINUTES = 10;
@@ -101,13 +103,17 @@ export default function KitchenDispatchBoardComponent() {
     } catch {
       // Audio fallback
     }
+    return unlockCancelChimeOnFirstInteraction();
   }, []);
 
   // Kitchen acoustic notification handler
-  const playKitchenChime = (isCancel = false) => {
+  const playKitchenChime = (isCancel = false, announcement?: string) => {
     try {
       if (isCancel) {
-        // Play custom cancel bell MP3
+        // Spoken alert ("Table 4. Order cancelled. Stop preparing.") once the chime has rung
+        if (announcement) speakKitchenAlert(announcement, CANCEL_CHIME_MS);
+        // Synthesized soft falling chime; the MP3 is only a fallback when Web Audio is unavailable
+        if (playCancelChime()) return;
         if (cancelAudioRef.current) {
           cancelAudioRef.current.currentTime = 0;
           cancelAudioRef.current.play().catch((err) => {
@@ -144,7 +150,8 @@ export default function KitchenDispatchBoardComponent() {
 
       // An item removed from a running order rings the cancel bell, not the new-order bell
       if (orderStatus === "CANCELLED" || data?.itemCancelled) {
-        playKitchenChime(true);
+        // Later updates to an already-cancelled order (refund, notes) must not announce it again
+        if (isNewCancellation(data)) playKitchenChime(true, cancellationMessage(data));
       } else if (orderStatus === "SENT_TO_KITCHEN" || orderStatus === "RECEIVED") {
         playKitchenChime(false);
       }
@@ -265,7 +272,7 @@ export default function KitchenDispatchBoardComponent() {
               <span className="hidden md:inline">Test Order</span>
             </button>
             <button
-              onClick={() => playKitchenChime(true)}
+              onClick={() => playKitchenChime(true, "Test alert. Order cancelled. Stop preparing.")}
               className="p-2 border border-red-200 hover:bg-red-50 text-red-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
               title="Test Cancellation Sound"
             >
@@ -300,196 +307,33 @@ export default function KitchenDispatchBoardComponent() {
           </div>
         )}
 
-        {/* ── PRIORITY ALERT TRAY: CANCELLED ORDERS (Retained for 3 Minutes) ── */}
+        {/* ── PRIORITY ALERTS: cancelled orders and items removed from running orders (kept 3 minutes) ── */}
         {activeCancelledOrders.length > 0 && (
-          <div className="bg-rose-500/10 border-2 border-rose-500 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-rose-700">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
-                </span>
-                <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  Order Cancellation Alert — Stop Preparation
-                </h3>
-              </div>
-              <span className="text-xs font-bold text-rose-700 font-mono">
-                {activeCancelledOrders.length} ticket(s) cancelled &bull; Auto-dismissing in 3 min
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {activeCancelledOrders.map((cancelledTicket) => {
-                const cancelTime = new Date(cancelledTicket.updatedAt || cancelledTicket.createdAt).getTime();
-                const elapsedSeconds = Math.floor((now - cancelTime) / 1000);
-                const remainingSeconds = Math.max(0, 180 - elapsedSeconds);
-                const mins = Math.floor(remainingSeconds / 60);
-                const secs = remainingSeconds % 60;
-                const formattedTime = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-                const progressPercent = Math.max(0, (remainingSeconds / 180) * 100);
-
-                const cOrderNo = cancelledTicket.orderNo || cancelledTicket.orderNumber || `#${cancelledTicket.id.slice(0, 6)}`;
-                const cTableNo = cancelledTicket.tableNo || cancelledTicket.tableNumber || "COUNTER";
-                // Items removed before the order was cancelled were already alerted on their own
-                const cItems = (cancelledTicket.items || cancelledTicket.orderItems || []).filter(
-                  (ci: any) => ci.status !== "CANCELLED"
-                );
-
-                return (
-                  <div
-                    key={cancelledTicket.id}
-                    className="bg-white border-2 border-rose-400 rounded-xl p-3.5 shadow-md space-y-2.5 relative overflow-hidden"
-                  >
-                    {/* Visual countdown progress line at the top */}
-                    <div
-                      className="absolute top-0 left-0 h-1 bg-rose-500 transition-all duration-1000"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-
-                    <div className="flex justify-between items-start pt-1">
-                      <div>
-                        <span className="text-base font-black text-rose-700 tracking-tight">
-                          {cOrderNo}
-                        </span>
-                        <div className="text-xs font-black uppercase text-zinc-900 mt-0.5">
-                          TBL: <span className="text-rose-600 text-sm">{cTableNo}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="bg-rose-100 text-rose-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-rose-300">
-                          VOID / CANCELLED
-                        </span>
-                        <span className="text-[11px] font-mono font-black text-rose-600">
-                          Clearing in {formattedTime}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Cancelled items list */}
-                    <div className="bg-rose-50/70 border border-rose-200/80 rounded-lg p-2 space-y-1">
-                      <span className="text-[10px] font-bold text-rose-800 uppercase tracking-widest block">
-                        Cancelled Items (Do Not Cook):
-                      </span>
-                      {cItems.map((ci: any, idx: number) => {
-                        const cMods: any[] = (() => {
-                          if (Array.isArray(ci.modifiers) && ci.modifiers.length > 0) return ci.modifiers;
-                          if (ci.modifiersJson) {
-                            try {
-                              const parsed = typeof ci.modifiersJson === "string" ? JSON.parse(ci.modifiersJson) : ci.modifiersJson;
-                              if (Array.isArray(parsed)) return parsed;
-                            } catch {
-                              return [];
-                            }
-                          }
-                          return [];
-                        })();
-
-                        return (
-                          <div key={idx} className="flex flex-col gap-0.5 text-xs text-rose-950 font-bold">
-                            <div className="flex items-center justify-between">
-                              <span className="truncate pr-2">{ci.menuItem?.name || ci.menuItemName || "Item"}</span>
-                              <span className="font-black px-1.5 py-0.5 bg-rose-200 text-rose-900 rounded-xs text-[11px]">
-                                x{ci.quantity}
-                              </span>
-                            </div>
-                            {cMods.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-0.5">
-                                {cMods.map((m: any, mIdx: number) => (
-                                  <span
-                                    key={mIdx}
-                                    className="text-[10px] text-rose-700 bg-rose-100/90 border border-rose-200 px-1.5 py-0.5 rounded-md font-extrabold line-through"
-                                  >
-                                    + {m.name || m.title || "Extra"}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => handleDismissCancelled(cancelledTicket.id)}
-                        className="w-full py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        Acknowledge & Clear
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CancelledOrdersTray
+            onAcknowledge={handleDismissCancelled}
+            entries={activeCancelledOrders.map((t) => ({
+              ticket: t,
+              // Items removed before the order was cancelled were already alerted on their own
+              items: (t.items || t.orderItems || []).filter((ci: any) => ci.status !== "CANCELLED"),
+              remainingSeconds: Math.max(
+                0,
+                CANCEL_RETENTION_SECONDS - Math.floor((now - new Date(t.updatedAt || t.createdAt).getTime()) / 1000)
+              ),
+            }))}
+          />
         )}
 
-        {/* ── PRIORITY ALERT TRAY: ITEMS REMOVED FROM RUNNING ORDERS (Retained for 3 Minutes) ── */}
         {activeCancelledItems.length > 0 && (
-          <div className="bg-amber-500/10 border-2 border-amber-500 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-amber-800">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-600"></span>
-                </span>
-                <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Item Cancelled — Stop Preparing
-                </h3>
-              </div>
-              <span className="text-xs font-bold text-amber-800 font-mono">
-                {activeCancelledItems.length} item(s) removed &bull; Auto-dismissing in 3 min
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {activeCancelledItems.map(({ key, ticket, item, isFullyRemoved }) => {
-                const remainingSeconds = Math.max(0, 180 - Math.floor((now - new Date(item.cancelledAt).getTime()) / 1000));
-                const formattedTime = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
-                const cOrderNo = ticket.orderNo || ticket.orderNumber || `#${ticket.id.slice(0, 6)}`;
-                const cTableNo = ticket.tableNo || ticket.tableNumber || "COUNTER";
-
-                return (
-                  <div key={key} className="bg-white border-2 border-amber-400 rounded-xl p-3 shadow-md space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-sm font-black text-[#1B2A4A] tracking-tight">{cOrderNo}</span>
-                        <div className="text-xs font-black uppercase text-zinc-900 mt-0.5">
-                          TBL: <span className="text-rose-600 text-sm">{cTableNo}</span>
-                          {item.kotNo > 1 && <span className="ml-1.5 text-[10px] text-gray-500">KOT #{item.kotNo}</span>}
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-mono font-black text-amber-700">{formattedTime}</span>
-                    </div>
-
-                    <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-rose-900 line-through truncate">
-                        {item.menuItem?.name || item.menuItemName || "Item"}
-                      </span>
-                      <span className="font-black px-1.5 py-0.5 bg-rose-200 text-rose-900 rounded-xs text-[11px] shrink-0">
-                        −{item.cancelledQuantity}
-                      </span>
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">
-                      {isFullyRemoved ? "Do not cook" : `Reduce to ${item.quantity} — cook only ${item.quantity}`}
-                    </p>
-
-                    <button
-                      onClick={() => handleDismissCancelled(key)}
-                      className="w-full py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      Acknowledge
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <CancelledItemsTray
+            onAcknowledge={handleDismissCancelled}
+            entries={activeCancelledItems.map((entry) => ({
+              ...entry,
+              remainingSeconds: Math.max(
+                0,
+                CANCEL_RETENTION_SECONDS - Math.floor((now - new Date(entry.item.cancelledAt).getTime()) / 1000)
+              ),
+            }))}
+          />
         )}
 
         {/* ── KANBAN BOARD COLUMNS ── */}
