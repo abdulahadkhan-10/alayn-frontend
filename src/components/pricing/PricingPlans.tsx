@@ -33,14 +33,14 @@ export function PlanSignupLink({ plan, className, children }: { plan: PlanCode; 
 }
 const CYCLES: Cycle[] = ["monthly", "yearly"];
 
-// Basic: what runs service. Plain lines.
-const BASIC_POINTS: { text: string; soon?: boolean }[] = [
-  { text: "POS billing on unlimited counters, with table QR menus" },
-  { text: "Kitchen display and KOT printing" },
-  { text: "Inventory with batch expiry, purchase orders and waste" },
-  { text: "Sales reports, staff directory and logins" },
-  { text: "Ask Alayn AI: daily questions on sales and menu" },
-  { text: "Quickii: your own delivery link and QR code, with no commission", soon: true },
+// Basic: what runs service. Same lead + description hierarchy as Pro for visual symmetry.
+const BASIC_POINTS: { lead: string; text: string; soon?: boolean }[] = [
+  { lead: "POS billing", text: "on unlimited counters, with table QR menus." },
+  { lead: "Kitchen display", text: "and KOT printing." },
+  { lead: "Inventory", text: "with batch expiry, purchase orders and waste." },
+  { lead: "Sales reports", text: "staff directory and logins." },
+  { lead: "Ask Alayn AI", text: "daily questions on sales and menu." },
+  { lead: "Quickii", text: "your own delivery link and QR code, with no commission.", soon: true },
 ];
 
 // Pro: what changes for the owner, led by what works today. Each line names the outcome first.
@@ -169,13 +169,13 @@ export default function PricingPlans() {
         </a>
       </p>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1.12fr_1fr] lg:items-stretch">
-        {/* Pro: the navy of the logo and the hero's serif voice. First everywhere, so nobody reads all of Basic before seeing it
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+        {/* Pro: the navy of the logo. First everywhere, so nobody reads all of Basic before seeing it
             and keyboard order matches what's on screen. */}
         <article className="flex flex-col rounded-2xl bg-[var(--espresso)] p-7 text-white shadow-[0_4px_12px_rgba(27,42,74,0.16),0_28px_56px_-24px_rgba(27,42,74,0.65)] selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:p-9">
-          <div className="lg:min-h-[6.25rem]">
+          <div className="lg:min-h-[4.25rem]">
             <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_PRO.name}</h3>
-            <p className="mt-2.5 max-w-md font-[family-name:var(--font-playfair)] text-[1.65rem] font-bold leading-[1.15] tracking-[-0.015em] text-balance sm:text-[1.9rem]">
+            <p className="mt-2 text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
               For outlets that run a team, not just a counter.
             </p>
           </div>
@@ -188,7 +188,7 @@ export default function PricingPlans() {
           >
             Start with Pro
           </Link>
-          <ul className="mt-7 space-y-4 border-t border-white/15 pt-7 text-[15px] leading-relaxed">
+          <ul className="mt-7 mb-7 space-y-4 border-t border-white/15 pt-7 text-[15px] leading-relaxed">
             {PRO_POINTS.map((p) => (
               <li key={p.lead} className="flex gap-3">
                 <Check className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--amber-on-dark)]" aria-hidden="true" />
@@ -199,7 +199,7 @@ export default function PricingPlans() {
               </li>
             ))}
           </ul>
-          <p className="mt-auto border-t border-white/15 pt-5 text-sm leading-relaxed text-[var(--muted-on-dark)]">
+          <p className="mt-auto border-t border-white/15 pt-5 text-[13px] leading-relaxed text-[var(--muted-on-dark)] lg:min-h-[4rem]">
             Want both Swiggy and Zomato? Add the second one for{" "}
             <strong className="whitespace-nowrap font-semibold text-white tabular-nums">
               {formatRupees(addOn)} / {cycle === "monthly" ? "month" : "year"} + GST
@@ -209,9 +209,9 @@ export default function PricingPlans() {
         </article>
         {/* Basic: plain paper, deliberately quiet — border elevation only, no ghost-card shadow */}
         <article id="plan-basic" className="flex scroll-mt-28 flex-col rounded-2xl border border-[var(--border-warm)] bg-white p-7 text-[var(--espresso)] sm:p-9">
-          <div className="lg:min-h-[6.25rem]">
+          <div className="lg:min-h-[4.25rem]">
             <h3 className="font-heading text-2xl font-bold tracking-[-0.02em]">{PLANS.ALAYN_BASIC.name}</h3>
-            <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">
+            <p className="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">
               Billing, kitchen and stock for one outlet.
             </p>
           </div>
@@ -224,18 +224,18 @@ export default function PricingPlans() {
           >
             Start with Basic
           </Link>
-          <ul className="mt-7 space-y-3.5 border-t border-[var(--border-warm)] pt-7 text-[15px] leading-relaxed">
+          <ul className="mt-7 mb-7 space-y-4 border-t border-[var(--border-warm)] pt-7 text-[15px] leading-relaxed">
             {BASIC_POINTS.map((p) => (
-              <li key={p.text} className="flex gap-3">
+              <li key={p.lead} className="flex gap-3">
                 <Check className="mt-1 h-[18px] w-[18px] shrink-0 text-[var(--amber)]" aria-hidden="true" />
-                <span>
-                  {p.text}
+                <span className="text-[var(--muted)]">
+                  <strong className="font-semibold text-[var(--espresso)]">{p.lead}:</strong> {p.text}
                   {p.soon && <SoonTag />}
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-auto border-t border-[var(--border-warm)] pt-5 text-[13px] leading-relaxed text-[var(--muted)]">
+          <p className="mt-auto border-t border-[var(--border-warm)] pt-5 text-[13px] leading-relaxed text-[var(--muted)] lg:min-h-[4rem]">
             Move to Pro any time. Days left on Basic are credited automatically.
           </p>
         </article>
