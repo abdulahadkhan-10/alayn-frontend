@@ -3,6 +3,7 @@
 import { useTabsPill } from "@/lib/useTabsPill";
 import React, { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
@@ -662,22 +663,15 @@ export default function ShiftSchedulerPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4">
-        {/* Navigation Tabs Header */}
-        <WorkforceHeaderNav />
-
-        {/* Compact Clean Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 rounded-lg border border-gray-200">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Staff Schedule</h1>
-            <p className="text-xs text-gray-500">Plan shifts, availability and weekly staffing.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isManagerOrOwner && (
+      <div className="space-y-6">
+        <PageHeader
+          title="Staff Schedule"
+          subtitle="Plan shifts, availability and weekly staffing."
+          actions={isManagerOrOwner ? (
               <>
                 <a
                   href="/settings"
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Outlet holidays
                 </a>
@@ -686,7 +680,7 @@ export default function ShiftSchedulerPage() {
                     setRosterEmployeeId(employees[0]?.id || "");
                     setShowRosterModal(true);
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Weekly roster
                 </button>
@@ -697,9 +691,11 @@ export default function ShiftSchedulerPage() {
                   New shift
                 </button>
               </>
-            )}
-          </div>
-        </div>
+          ) : undefined}
+        />
+
+        {/* Navigation Tabs */}
+        <WorkforceHeaderNav />
 
         {/* Feedback Alert Banner */}
         {feedbackMsg && (
@@ -714,10 +710,10 @@ export default function ShiftSchedulerPage() {
         {/* ========================================================================= */}
         {/* HERO CALENDAR WORKSPACE (FULL-VIEWPORT FIT WITH NO INTERNAL SCROLL) */}
         {/* ========================================================================= */}
-        <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
+        <div className="w-full bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col">
           
           {/* Calendar Toolbar Immediately Above Calendar (36-40px high controls) */}
-          <div className="px-3.5 py-2 bg-white border-b border-gray-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <div className="px-3.5 py-2 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
             
             {/* LEFT: Date Navigator + Range Segment + Tab Switcher */}
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -730,11 +726,11 @@ export default function ShiftSchedulerPage() {
                       prev.setDate(prev.getDate() - (viewRange === "7" ? 7 : viewRange === "14" ? 14 : 30));
                       setSelectedMonthDate(prev);
                     }}
-                    className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                    className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <span className="font-semibold text-gray-900 min-w-[110px] text-center text-xs">
+                  <span className="font-semibold text-slate-900 min-w-[110px] text-center text-xs">
                     {columns[0]?.monthName} {columns[0]?.dayNum} – {columns[columns.length - 1]?.monthName} {columns[columns.length - 1]?.dayNum}
                   </span>
                   <button
@@ -743,13 +739,13 @@ export default function ShiftSchedulerPage() {
                       next.setDate(next.getDate() + (viewRange === "7" ? 7 : viewRange === "14" ? 14 : 30));
                       setSelectedMonthDate(next);
                     }}
-                    className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                    className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors cursor-pointer"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setSelectedMonthDate(new Date())}
-                    className="ml-1 px-2 py-0.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors cursor-pointer"
+                    className="ml-1 px-2 py-0.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded transition-colors cursor-pointer"
                   >
                     Today
                   </button>
@@ -758,11 +754,11 @@ export default function ShiftSchedulerPage() {
 
               {/* View Range Segment Control */}
               {activeTab === "roster" && (
-                <div className="flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                <div className="flex items-center bg-slate-100 p-0.5 rounded border border-slate-200 text-xs">
                   <button
                     onClick={() => setViewRange("7")}
                     className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                      viewRange === "7" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                      viewRange === "7" ? "bg-white text-slate-900 font-semibold shadow-2xs" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     7 days
@@ -770,7 +766,7 @@ export default function ShiftSchedulerPage() {
                   <button
                     onClick={() => setViewRange("14")}
                     className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                      viewRange === "14" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                      viewRange === "14" ? "bg-white text-slate-900 font-semibold shadow-2xs" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     14 days
@@ -778,7 +774,7 @@ export default function ShiftSchedulerPage() {
                   <button
                     onClick={() => setViewRange("30")}
                     className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                      viewRange === "30" ? "bg-white text-gray-900 font-semibold shadow-2xs" : "text-gray-600 hover:text-gray-900"
+                      viewRange === "30" ? "bg-white text-slate-900 font-semibold shadow-2xs" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     Month
@@ -788,14 +784,14 @@ export default function ShiftSchedulerPage() {
 
               {/* Tab Switcher */}
               {isManagerOrOwner && (
-                <div ref={tabsBarRef} role="tablist" className="relative flex items-center bg-gray-100 p-0.5 rounded border border-gray-200 text-xs">
+                <div ref={tabsBarRef} role="tablist" className="relative flex items-center bg-slate-100 p-0.5 rounded border border-slate-200 text-xs">
                   <span className="t-tabs-pill shadow-2xs" aria-hidden="true" />
                   <button
                     role="tab"
                     aria-selected={activeTab === "roster"}
                     onClick={() => setActiveTab("roster")}
                     className={`relative z-[1] px-2 py-0.5 rounded font-medium transition-colors cursor-pointer ${
-                      activeTab === "roster" ? "text-gray-900 font-semibold" : "text-gray-600 hover:text-gray-900"
+                      activeTab === "roster" ? "text-slate-900 font-semibold" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     Schedule
@@ -805,7 +801,7 @@ export default function ShiftSchedulerPage() {
                     aria-selected={activeTab === "templates"}
                     onClick={() => setActiveTab("templates")}
                     className={`relative z-[1] px-2 py-0.5 rounded font-medium transition-colors cursor-pointer ${
-                      activeTab === "templates" ? "text-gray-900 font-semibold" : "text-gray-600 hover:text-gray-900"
+                      activeTab === "templates" ? "text-slate-900 font-semibold" : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
                     Shift templates ({shifts.length})
@@ -818,13 +814,13 @@ export default function ShiftSchedulerPage() {
             {isManagerOrOwner && (
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="h-3.5 w-3.5 text-gray-400 absolute left-2 top-1.5" />
+                  <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2 top-1.5" />
                   <input
                     type="text"
                     placeholder="Search staff..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-7 pr-2 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-40 sm:w-44"
+                    className="pl-7 pr-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#D3232A] w-40 sm:w-44"
                   />
                 </div>
               </div>
@@ -839,21 +835,21 @@ export default function ShiftSchedulerPage() {
                 <table className="w-full border-collapse text-left text-xs">
                   {/* Table Header: Sticky Left Employee Column + Date Headers */}
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="sticky left-0 z-20 bg-gray-50 px-3 py-1.5 font-semibold text-gray-600 w-52 min-w-[200px] border-r border-gray-200">
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="sticky left-0 z-20 bg-slate-50 px-3 py-1.5 font-semibold text-slate-600 w-52 min-w-[200px] border-r border-slate-200">
                         EMPLOYEE
                       </th>
 
                       {columns.map((col) => (
                         <th
                           key={col.dateKey}
-                          className={`px-2 py-1.5 font-semibold text-center border-r border-gray-200 min-w-[120px] max-w-[160px] ${
-                            col.isToday ? "bg-red-50/40 text-[#D3232A]" : "text-gray-700"
+                          className={`px-2 py-1.5 font-semibold text-center border-r border-slate-200 min-w-[120px] max-w-[160px] ${
+                            col.isToday ? "bg-red-50/40 text-[#D3232A]" : "text-slate-700"
                           }`}
                         >
                           <div className="flex flex-col items-center leading-tight">
-                            <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">{col.dayName}</span>
-                            <span className={`text-[11px] font-semibold ${col.isToday ? "text-[#D3232A]" : "text-gray-900"}`}>
+                            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">{col.dayName}</span>
+                            <span className={`text-[11px] font-semibold ${col.isToday ? "text-[#D3232A]" : "text-slate-900"}`}>
                               {col.dayNum} {col.monthName}
                             </span>
                           </div>
@@ -863,16 +859,16 @@ export default function ShiftSchedulerPage() {
                   </thead>
 
                   {/* Table Body */}
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {isEmpLoading || isShiftsLoading ? (
                       <tr>
-                        <td colSpan={columns.length + 1} className="py-8 text-center text-gray-500 font-medium">
+                        <td colSpan={columns.length + 1} className="py-8 text-center text-slate-500 font-medium">
                           Loading staff schedule...
                         </td>
                       </tr>
                     ) : paginatedRosterEmployees.length === 0 ? (
                       <tr>
-                        <td colSpan={columns.length + 1} className="py-8 text-center text-gray-500 font-medium">
+                        <td colSpan={columns.length + 1} className="py-8 text-center text-slate-500 font-medium">
                           No employees found matching filter criteria.
                         </td>
                       </tr>
@@ -882,16 +878,16 @@ export default function ShiftSchedulerPage() {
                         const initials = getInitials(cleanName);
 
                         return (
-                          <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors group">
+                          <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors group">
                             {/* Sticky Left Column: Employee Cell */}
-                            <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-3 py-1.5 border-r border-gray-200">
+                            <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-3 py-1.5 border-r border-slate-200">
                               <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px] flex items-center justify-center border border-gray-200 shrink-0">
+                                <div className="h-6 w-6 rounded-full bg-slate-100 text-slate-700 font-semibold text-[10px] flex items-center justify-center border border-slate-200 shrink-0">
                                   {initials}
                                 </div>
                                 <div className="overflow-hidden leading-tight">
-                                  <span className="font-medium text-gray-900 truncate block text-xs">{cleanName}</span>
-                                  <span className="text-[10px] text-gray-500 font-normal truncate block">
+                                  <span className="font-medium text-slate-900 truncate block text-xs">{cleanName}</span>
+                                  <span className="text-[10px] text-slate-500 font-normal truncate block">
                                     {emp.role || "Staff"}
                                   </span>
                                 </div>
@@ -909,7 +905,7 @@ export default function ShiftSchedulerPage() {
                               return (
                                 <td
                                   key={col.dateKey}
-                                  className={`px-1.5 py-1 border-r border-gray-200 align-top ${
+                                  className={`px-1.5 py-1 border-r border-slate-200 align-top ${
                                     col.isToday ? "bg-red-50/10" : ""
                                   }`}
                                 >
@@ -946,14 +942,14 @@ export default function ShiftSchedulerPage() {
                                             });
                                             setShowEditAssignmentModal(true);
                                           }}
-                                          className={`p-1.5 bg-gray-50 border border-gray-200 rounded text-gray-900 leading-snug transition-all ${
+                                          className={`p-1.5 bg-slate-50 border border-slate-200 rounded text-slate-900 leading-snug transition-all ${
                                             isManagerOrOwner
                                               ? "cursor-pointer hover:bg-red-50/40 hover:border-red-300 hover:shadow-xs group/chip"
                                               : ""
                                           }`}
                                         >
                                           <div className="flex items-center justify-between gap-1">
-                                            <span className="font-semibold text-[11px] text-gray-900 truncate">{item.data.shift.name}</span>
+                                            <span className="font-semibold text-[11px] text-slate-900 truncate">{item.data.shift.name}</span>
                                             {item.data.isRecurring ? (
                                               <span
                                                 onClick={(e) => {
@@ -966,18 +962,18 @@ export default function ShiftSchedulerPage() {
                                                 Weekly
                                               </span>
                                             ) : isManagerOrOwner ? (
-                                              <span className="text-[9px] font-medium text-gray-400 group-hover/chip:text-[#D3232A] transition-colors">
+                                              <span className="text-[9px] font-medium text-slate-400 group-hover/chip:text-[#D3232A] transition-colors">
                                                 Edit
                                               </span>
                                             ) : null}
                                           </div>
 
-                                          <div className="text-[10px] text-gray-500 font-normal">
+                                          <div className="text-[10px] text-slate-500 font-normal">
                                             {item.data.shift.startTime} – {item.data.shift.endTime}
                                           </div>
 
                                           {selectedOutlet === "ALL" && item.data.shift.outlet?.name && (
-                                            <div className="text-[9px] text-gray-500 truncate" title={item.data.shift.outlet.name}>
+                                            <div className="text-[9px] text-slate-500 truncate" title={item.data.shift.outlet.name}>
                                               {item.data.shift.outlet.name}
                                             </div>
                                           )}
@@ -1003,7 +999,7 @@ export default function ShiftSchedulerPage() {
                                             });
                                             setShowAssignModal(true);
                                           }}
-                                          className="w-full py-0.5 text-[9px] text-gray-400 hover:text-[#D3232A] hover:bg-gray-100 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                          className="w-full py-0.5 text-[9px] text-slate-400 hover:text-[#D3232A] hover:bg-slate-100 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
                                         >
                                           <Plus className="h-2.5 w-2.5" />
                                           <span>Add shift</span>
@@ -1030,13 +1026,13 @@ export default function ShiftSchedulerPage() {
                                             });
                                             setShowAssignModal(true);
                                           }}
-                                          className="w-full h-full py-1 text-[11px] text-gray-400 hover:text-[#D3232A] hover:bg-gray-50 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                          className="w-full h-full py-1 text-[11px] text-slate-400 hover:text-[#D3232A] hover:bg-slate-50 rounded transition-colors flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 cursor-pointer"
                                         >
                                           <Plus className="h-3 w-3" />
                                           <span>Assign</span>
                                         </button>
                                       ) : (
-                                        <span className="text-[10px] text-gray-300">—</span>
+                                        <span className="text-[10px] text-slate-300">—</span>
                                       )}
                                     </div>
                                   )}
@@ -1052,7 +1048,7 @@ export default function ShiftSchedulerPage() {
               </div>
 
               {/* Simplified Footer */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3.5 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3.5 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
                 <div>
                   Showing <strong>{filteredEmployees.length > 0 ? (matrixPageSize === "ALL" ? 1 : (safeMatrixPage - 1) * (matrixPageSize as number) + 1) : 0}–{matrixPageSize === "ALL" ? filteredEmployees.length : Math.min(safeMatrixPage * (matrixPageSize as number), filteredEmployees.length)}</strong> of <strong>{filteredEmployees.length}</strong> employees
                 </div>
@@ -1066,7 +1062,7 @@ export default function ShiftSchedulerPage() {
                         setMatrixPageSize(val);
                         setMatrixPage(1);
                       }}
-                      className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-800 focus:outline-none"
+                      className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-800 focus:outline-none"
                     >
                       <option value={10}>10 per page</option>
                       <option value={15}>15 per page</option>
@@ -1080,7 +1076,7 @@ export default function ShiftSchedulerPage() {
                       <button
                         onClick={() => setMatrixPage((p) => Math.max(1, p - 1))}
                         disabled={safeMatrixPage === 1}
-                        className="rounded border border-gray-200 bg-white p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer"
+                        className="rounded border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         <ChevronLeft className="h-3.5 w-3.5" />
                       </button>
@@ -1090,7 +1086,7 @@ export default function ShiftSchedulerPage() {
                       <button
                         onClick={() => setMatrixPage((p) => Math.min(totalMatrixPages, p + 1))}
                         disabled={safeMatrixPage >= totalMatrixPages}
-                        className="rounded border border-gray-200 bg-white p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer"
+                        className="rounded border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         <ChevronRight className="h-3.5 w-3.5" />
                       </button>
@@ -1104,9 +1100,9 @@ export default function ShiftSchedulerPage() {
           {/* ================= TAB 2: SHIFT TEMPLATES TAB ================= */}
           {activeTab === "templates" && (
             <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                     <tr>
                       <th className="px-4 py-2.5">Shift</th>
                       <th className="px-4 py-2.5">Hours</th>
@@ -1115,13 +1111,13 @@ export default function ShiftSchedulerPage() {
                       <th className="px-4 py-2.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-slate-200">
                     {shifts.map((shift: any) => (
-                      <tr key={shift.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-gray-900">{shift.name}</td>
-                        <td className="px-4 py-3 text-gray-600">{shift.startTime} – {shift.endTime}</td>
-                        <td className="px-4 py-3 text-gray-600">{shift.outlet?.name || "All outlets"}</td>
-                        <td className="px-4 py-3 text-gray-600">{shift.assignments?.length || 0} staff members</td>
+                      <tr key={shift.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-900">{shift.name}</td>
+                        <td className="px-4 py-3 text-slate-600">{shift.startTime} – {shift.endTime}</td>
+                        <td className="px-4 py-3 text-slate-600">{shift.outlet?.name || "All outlets"}</td>
+                        <td className="px-4 py-3 text-slate-600">{shift.assignments?.length || 0} staff members</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -1140,7 +1136,7 @@ export default function ShiftSchedulerPage() {
                                 });
                                 setShowAssignModal(true);
                               }}
-                              className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                              className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                             >
                               Assign
                             </button>
@@ -1156,14 +1152,14 @@ export default function ShiftSchedulerPage() {
                                     });
                                     setShowEditTemplateModal(true);
                                   }}
-                                  className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeleteTemplate(shift.id, shift.name)}
                                   disabled={isDeletingShift}
-                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
                                   title="Delete shift template"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -1183,9 +1179,9 @@ export default function ShiftSchedulerPage() {
         </div>
 
         {/* Compact Swap Requests Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-3.5 space-y-2.5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-lg border border-slate-200 p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
               <span>Shift swap requests</span>
               <span className="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-800 rounded border border-amber-200">
                 {allSwapRequests.length} pending
@@ -1195,26 +1191,26 @@ export default function ShiftSchedulerPage() {
 
           <div className="space-y-2">
             {allSwapRequests.length === 0 ? (
-              <p className="text-xs text-gray-500 py-1">No active shift swap requests right now.</p>
+              <p className="text-xs text-slate-500 py-1">No active shift swap requests right now.</p>
             ) : (
               allSwapRequests.map((swap: any) => (
                 <div
                   key={swap.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-gray-50 rounded-md border border-gray-200 gap-3 text-xs"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50 rounded-md border border-slate-200 gap-3 text-xs"
                 >
                   <div className="space-y-0.5">
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-slate-900">
                       Swap Request #{swap.id.slice(0, 6)} ·{" "}
                       {swap.status === "ACCEPTED" ? "Accepted by colleague — needs approval" : "Waiting for colleague to accept"}
                     </div>
-                    <p className="text-gray-500">Requested date: {formatDateNice(swap.date)}</p>
+                    <p className="text-slate-500">Requested date: {formatDateNice(swap.date)}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleSwapAction(swap.id, "REJECTED")}
                       disabled={isUpdatingSwap}
-                      className="px-3 py-1 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                      className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-md text-xs font-medium transition-colors cursor-pointer"
                     >
                       Reject
                     </button>
@@ -1238,17 +1234,17 @@ export default function ShiftSchedulerPage() {
         {/* Modal 1: Create Shift Slot */}
         <TModal open={showCreateShiftModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showCreateShiftModal && (
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
-                <h3 className="text-base font-semibold text-gray-900">Create shift</h3>
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
+                <h3 className="text-base font-semibold text-slate-900">Create shift</h3>
                 <button onClick={() => setShowCreateShiftModal(false)} className="cursor-pointer">
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleCreateShiftSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">
+                    <label className="block font-medium text-slate-700 mb-1">
                       Shift name
                     </label>
                     <input
@@ -1257,12 +1253,12 @@ export default function ShiftSchedulerPage() {
                       placeholder="Morning Shift"
                       value={shiftForm.name}
                       onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-medium text-gray-700 mb-1">
+                      <label className="block font-medium text-slate-700 mb-1">
                         Start time
                       </label>
                       <CustomTimePicker
@@ -1272,7 +1268,7 @@ export default function ShiftSchedulerPage() {
                       />
                     </div>
                     <div>
-                      <label className="block font-medium text-gray-700 mb-1">
+                      <label className="block font-medium text-slate-700 mb-1">
                         End time
                       </label>
                       <CustomTimePicker
@@ -1283,11 +1279,11 @@ export default function ShiftSchedulerPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowCreateShiftModal(false)}
-                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1307,20 +1303,20 @@ export default function ShiftSchedulerPage() {
         {/* Modal 2: Assign Shift (CONTAINED IN VIEWPORT WITH STICKY FOOTER) */}
         <TModal open={showAssignModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showAssignModal && (
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-slate-900">
                     {assignForm.isSingleEmp ? `Assign shift — ${assignForm.singleEmpName}` : "Assign shift"}
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500">
                     {formatDateNice(assignForm.date)}
                   </p>
                 </div>
                 <button onClick={() => setShowAssignModal(false)} className="cursor-pointer">
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
 
@@ -1328,16 +1324,16 @@ export default function ShiftSchedulerPage() {
               <form onSubmit={handleAssignSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
                   {assignForm.isSingleEmp ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
                       <div>
-                        <span className="font-medium text-gray-900 block">{assignForm.singleEmpName}</span>
+                        <span className="font-medium text-slate-900 block">{assignForm.singleEmpName}</span>
                         <span className="text-[#64748b] text-[11px]">{assignForm.singleEmpRole || "Staff"}</span>
                       </div>
                     </div>
                   ) : (
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="font-medium text-gray-700">
+                        <label className="font-medium text-slate-700">
                           Staff members ({assignForm.employeeIds.length} selected)
                         </label>
                         <button
@@ -1355,7 +1351,7 @@ export default function ShiftSchedulerPage() {
                         </button>
                       </div>
 
-                      <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1 bg-gray-50">
+                      <div className="max-h-36 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1 bg-slate-50">
                         {employees.map((e: any) => {
                           const isChecked = assignForm.employeeIds.includes(e.id);
                           const selectedShift = shifts.find((s: any) => s.id === assignForm.shiftId);
@@ -1372,7 +1368,7 @@ export default function ShiftSchedulerPage() {
                           return (
                             <label
                               key={e.id}
-                              className="flex items-center justify-between p-2 rounded border bg-white border-gray-200 cursor-pointer hover:bg-gray-50"
+                              className="flex items-center justify-between p-2 rounded border bg-white border-slate-200 cursor-pointer hover:bg-slate-50"
                             >
                               <div className="flex items-center gap-2">
                                 <input
@@ -1385,9 +1381,9 @@ export default function ShiftSchedulerPage() {
                                       setAssignForm({ ...assignForm, employeeIds: assignForm.employeeIds.filter((id) => id !== e.id) });
                                     }
                                   }}
-                                  className="h-3.5 w-3.5 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A]"
+                                  className="h-3.5 w-3.5 text-[#D3232A] rounded border-slate-300 focus:ring-[#D3232A]"
                                 />
-                                <span className="font-medium text-gray-900">{e.name}</span>
+                                <span className="font-medium text-slate-900">{e.name}</span>
                               </div>
                               {leaveItem ? (
                                 <span className="text-[10px] text-rose-700 font-medium">On leave</span>
@@ -1404,7 +1400,7 @@ export default function ShiftSchedulerPage() {
                   {/* Shift Selector */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="font-medium text-gray-700">Shift</label>
+                      <label className="font-medium text-slate-700">Shift</label>
                       <button
                         type="button"
                         onClick={() => setAssignForm({ ...assignForm, isCustomHours: !assignForm.isCustomHours })}
@@ -1431,20 +1427,20 @@ export default function ShiftSchedulerPage() {
                                 })
                               }
                               className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer flex items-center justify-between ${
-                                isSelected ? "bg-red-50/50 border-[#D3232A]" : "bg-white border-gray-200 hover:bg-gray-50"
+                                isSelected ? "bg-red-50/50 border-[#D3232A]" : "bg-white border-slate-200 hover:bg-slate-50"
                               }`}
                             >
-                              <span className="font-medium text-gray-900">{s.name}</span>
-                              <span className="text-gray-500">{s.startTime} – {s.endTime}</span>
+                              <span className="font-medium text-slate-900">{s.name}</span>
+                              <span className="text-slate-500">{s.startTime} – {s.endTime}</span>
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[11px] font-medium text-gray-700 mb-1">Start time</label>
+                            <label className="block text-[11px] font-medium text-slate-700 mb-1">Start time</label>
                             <CustomTimePicker
                               value={assignForm.customStartTime || "09:00"}
                               onChange={(time) => setAssignForm({ ...assignForm, customStartTime: time })}
@@ -1452,7 +1448,7 @@ export default function ShiftSchedulerPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-medium text-gray-700 mb-1">End time</label>
+                            <label className="block text-[11px] font-medium text-slate-700 mb-1">End time</label>
                             <CustomTimePicker
                               value={assignForm.customEndTime || "17:00"}
                               onChange={(time) => setAssignForm({ ...assignForm, customEndTime: time })}
@@ -1466,7 +1462,7 @@ export default function ShiftSchedulerPage() {
 
                   {/* Shift Date Picker */}
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Shift date</label>
+                    <label className="block font-medium text-slate-700 mb-1">Shift date</label>
                     <CustomDatePicker
                       value={assignForm.date}
                       minDate={parseDateKey(new Date())}
@@ -1474,30 +1470,30 @@ export default function ShiftSchedulerPage() {
                     />
                   </div>
                   {/* Overlap / Replace Toggle */}
-                  <div className="pt-2 border-t border-gray-100">
+                  <div className="pt-2 border-t border-slate-100">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={Boolean(assignForm.replaceExisting)}
                         onChange={(e) => setAssignForm({ ...assignForm, replaceExisting: e.target.checked })}
-                        className="h-3.5 w-3.5 text-[#D3232A] rounded border-gray-300 focus:ring-[#D3232A]"
+                        className="h-3.5 w-3.5 text-[#D3232A] rounded border-slate-300 focus:ring-[#D3232A]"
                       />
-                      <span className="text-[11px] font-medium text-gray-700">
+                      <span className="text-[11px] font-medium text-slate-700">
                         Overwrite / replace existing conflicting shifts for selected staff
                       </span>
                     </label>
-                    <p className="text-[10px] text-gray-400 pl-5.5 mt-0.5">
+                    <p className="text-[10px] text-slate-400 pl-5.5 mt-0.5">
                       When enabled, any overlapping shift on this date will be replaced cleanly by the new shift.
                     </p>
                   </div>
                 </div>
 
                 {/* Sticky Action Footer */}
-                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1523,21 +1519,21 @@ export default function ShiftSchedulerPage() {
         {/* Modal: Edit or Delete Shift Assignment */}
         <TModal open={showEditAssignmentModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showEditAssignmentModal && (
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-slate-900">
                     Edit Shift — {editAssignmentData.employeeName}
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500">
                     {formatDateNice(editAssignmentData.date)} • {editAssignmentData.employeeRole}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowEditAssignmentModal(false)}
-                  className="cursor-pointer text-gray-400 hover:text-gray-600"
+                  className="cursor-pointer text-slate-400 hover:text-slate-600"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1547,11 +1543,11 @@ export default function ShiftSchedulerPage() {
               <form onSubmit={handleUpdateAssignment} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
                   {/* Current Shift Indicator */}
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Current Assigned Shift</span>
-                      <div className="font-semibold text-gray-900 text-sm">{editAssignmentData.shiftName}</div>
-                      <div className="text-gray-600 text-xs">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Current Assigned Shift</span>
+                      <div className="font-semibold text-slate-900 text-sm">{editAssignmentData.shiftName}</div>
+                      <div className="text-slate-600 text-xs">
                         {editAssignmentData.startTime} – {editAssignmentData.endTime}
                       </div>
                     </div>
@@ -1583,7 +1579,7 @@ export default function ShiftSchedulerPage() {
                       {/* Change Shift / Custom Hours */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="font-medium text-gray-700">Change shift timings</label>
+                          <label className="font-medium text-slate-700">Change shift timings</label>
                           <button
                             type="button"
                             onClick={() =>
@@ -1620,12 +1616,12 @@ export default function ShiftSchedulerPage() {
                                   className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer flex items-center justify-between ${
                                     isSelected
                                       ? "bg-red-50/50 border-[#D3232A]"
-                                      : "bg-white border-gray-200 hover:bg-gray-50"
+                                      : "bg-white border-slate-200 hover:bg-slate-50"
                                   }`}
                                 >
                                   <div>
-                                    <span className="font-medium text-gray-900 block">{s.name}</span>
-                                    <span className="text-[11px] text-gray-500">{s.startTime} – {s.endTime}</span>
+                                    <span className="font-medium text-slate-900 block">{s.name}</span>
+                                    <span className="text-[11px] text-slate-500">{s.startTime} – {s.endTime}</span>
                                   </div>
                                   {isSelected && (
                                     <span className="text-[10px] font-semibold text-[#D3232A]">Selected</span>
@@ -1635,10 +1631,10 @@ export default function ShiftSchedulerPage() {
                             })}
                           </div>
                         ) : (
-                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-[11px] font-medium text-gray-700 mb-1">Start time</label>
+                                <label className="block text-[11px] font-medium text-slate-700 mb-1">Start time</label>
                                 <CustomTimePicker
                                   value={editAssignmentData.customStartTime || "09:00"}
                                   onChange={(time) =>
@@ -1648,7 +1644,7 @@ export default function ShiftSchedulerPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-[11px] font-medium text-gray-700 mb-1">End time</label>
+                                <label className="block text-[11px] font-medium text-slate-700 mb-1">End time</label>
                                 <CustomTimePicker
                                   value={editAssignmentData.customEndTime || "17:00"}
                                   onChange={(time) =>
@@ -1666,7 +1662,7 @@ export default function ShiftSchedulerPage() {
                 </div>
 
                 {/* Footer with Unassign / Delete Button and Save Button */}
-                <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   {!editAssignmentData.isRecurring ? (
                     <button
                       type="button"
@@ -1685,7 +1681,7 @@ export default function ShiftSchedulerPage() {
                     <button
                       type="button"
                       onClick={() => setShowEditAssignmentModal(false)}
-                      className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                      className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -1708,13 +1704,13 @@ export default function ShiftSchedulerPage() {
         {/* Modal: Edit Shift Template */}
         <TModal open={showEditTemplateModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showEditTemplateModal && (
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
-                <h3 className="text-base font-semibold text-gray-900">Edit Shift Template</h3>
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
+                <h3 className="text-base font-semibold text-slate-900">Edit Shift Template</h3>
                 <button
                   type="button"
                   onClick={() => setShowEditTemplateModal(false)}
-                  className="cursor-pointer text-gray-400 hover:text-gray-600"
+                  className="cursor-pointer text-slate-400 hover:text-slate-600"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1722,18 +1718,18 @@ export default function ShiftSchedulerPage() {
               <form onSubmit={handleUpdateTemplate} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Shift name</label>
+                    <label className="block font-medium text-slate-700 mb-1">Shift name</label>
                     <input
                       type="text"
                       required
                       value={editTemplateForm.name}
                       onChange={(e) => setEditTemplateForm({ ...editTemplateForm, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-medium text-gray-700 mb-1">Start time</label>
+                      <label className="block font-medium text-slate-700 mb-1">Start time</label>
                       <CustomTimePicker
                         value={editTemplateForm.startTime}
                         onChange={(time) => setEditTemplateForm({ ...editTemplateForm, startTime: time })}
@@ -1741,7 +1737,7 @@ export default function ShiftSchedulerPage() {
                       />
                     </div>
                     <div>
-                      <label className="block font-medium text-gray-700 mb-1">End time</label>
+                      <label className="block font-medium text-slate-700 mb-1">End time</label>
                       <CustomTimePicker
                         value={editTemplateForm.endTime}
                         onChange={(time) => setEditTemplateForm({ ...editTemplateForm, endTime: time })}
@@ -1750,11 +1746,11 @@ export default function ShiftSchedulerPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowEditTemplateModal(false)}
-                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1774,22 +1770,22 @@ export default function ShiftSchedulerPage() {
         {/* Modal 3: Request Swap */}
         <TModal open={showSwapModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showSwapModal && (
-            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
-                <h3 className="text-base font-semibold text-gray-900">Request shift swap</h3>
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
+                <h3 className="text-base font-semibold text-slate-900">Request shift swap</h3>
                 <button onClick={() => setShowSwapModal(false)} className="cursor-pointer">
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleSwapSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-3">
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">From employee</label>
+                    <label className="block font-medium text-slate-700 mb-1">From employee</label>
                     <select
                       required
                       value={swapForm.fromEmployeeId}
                       onChange={(e) => setSwapForm({ ...swapForm, fromEmployeeId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     >
                       <option value="">-- Select employee --</option>
                       {employees.map((e: any) => (
@@ -1798,12 +1794,12 @@ export default function ShiftSchedulerPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">To employee</label>
+                    <label className="block font-medium text-slate-700 mb-1">To employee</label>
                     <select
                       required
                       value={swapForm.toEmployeeId}
                       onChange={(e) => setSwapForm({ ...swapForm, toEmployeeId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     >
                       <option value="">-- Select replacement --</option>
                       {employees.map((e: any) => (
@@ -1812,12 +1808,12 @@ export default function ShiftSchedulerPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Shift</label>
+                    <label className="block font-medium text-slate-700 mb-1">Shift</label>
                     <select
                       required
                       value={swapForm.shiftId}
                       onChange={(e) => setSwapForm({ ...swapForm, shiftId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     >
                       <option value="">-- Select shift --</option>
                       {shifts.map((s: any) => (
@@ -1826,21 +1822,21 @@ export default function ShiftSchedulerPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Date</label>
+                    <label className="block font-medium text-slate-700 mb-1">Date</label>
                     <input
                       type="date"
                       required
                       value={swapForm.date}
                       onChange={(e) => setSwapForm({ ...swapForm, date: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowSwapModal(false)}
-                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1860,25 +1856,25 @@ export default function ShiftSchedulerPage() {
         {/* Modal 4: Set Weekly Roster */}
         <TModal open={showRosterModal} className="bg-black/40 p-4 sm:p-6 overflow-y-auto">
           {showRosterModal && (
-            <div className="w-full max-w-lg bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white rounded-t-xl shrink-0">
+            <div className="w-full max-w-lg bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col max-h-[85vh] my-auto overflow-hidden text-xs">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-white rounded-t-xl shrink-0">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Weekly roster</h3>
-                  <p className="text-gray-500 text-[11px]">This schedule repeats every week until changed.</p>
+                  <h3 className="text-base font-semibold text-slate-900">Weekly roster</h3>
+                  <p className="text-slate-500 text-[11px]">This schedule repeats every week until changed.</p>
                 </div>
                 <button onClick={() => setShowRosterModal(false)} className="cursor-pointer">
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleRosterSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-5 space-y-3.5">
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Employee</label>
+                    <label className="block font-medium text-slate-700 mb-1">Employee</label>
                     <select
                       required
                       value={rosterEmployeeId}
                       onChange={(e) => setRosterEmployeeId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     >
                       <option value="">-- Choose employee --</option>
                       {employees.map((e: any) => (
@@ -1887,8 +1883,8 @@ export default function ShiftSchedulerPage() {
                     </select>
                   </div>
 
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-1.5">
-                    <span className="font-medium text-gray-800 block">Apply the same shift to all days</span>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
+                    <span className="font-medium text-slate-800 block">Apply the same shift to all days</span>
                     <select
                       value={applyToAllShiftId}
                       onChange={(e) => {
@@ -1907,7 +1903,7 @@ export default function ShiftSchedulerPage() {
                           setWeeklySchedule(nextSchedule);
                         }
                       }}
-                      className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                     >
                       <option value="">-- Choose shift timing --</option>
                       {shifts.map((s: any) => (
@@ -1917,19 +1913,19 @@ export default function ShiftSchedulerPage() {
                   </div>
 
                   <div className="space-y-2 pt-1">
-                    <label className="block font-medium text-gray-800">Weekly schedule (Mon – Sun)</label>
+                    <label className="block font-medium text-slate-800">Weekly schedule (Mon – Sun)</label>
                     {["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"].map((day) => {
                       const isClosed = !operatingDays.includes(day);
                       return (
-                        <div key={day} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200">
-                          <span className="font-medium text-gray-700 min-w-[90px] capitalize">{day.toLowerCase()}</span>
+                        <div key={day} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-200">
+                          <span className="font-medium text-slate-700 min-w-[90px] capitalize">{day.toLowerCase()}</span>
                           {isClosed ? (
-                            <span className="text-gray-400 italic">Outlet closed</span>
+                            <span className="text-slate-400 italic">Outlet closed</span>
                           ) : (
                             <select
                               value={weeklySchedule[day] || ""}
                               onChange={(e) => setWeeklySchedule({ ...weeklySchedule, [day]: e.target.value })}
-                              className="px-2.5 py-1 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                              className="px-2.5 py-1 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                             >
                               <option value="">Off</option>
                               {shifts.map((s: any) => (
@@ -1942,11 +1938,11 @@ export default function ShiftSchedulerPage() {
                     })}
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
+                <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 bg-slate-50 rounded-b-xl shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowRosterModal(false)}
-                    className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer"
+                    className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
