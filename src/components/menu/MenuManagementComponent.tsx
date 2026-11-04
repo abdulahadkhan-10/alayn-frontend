@@ -877,7 +877,7 @@ export default function MenuManagementComponent() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 max-w-[1600px] mx-auto space-y-6 bg-[#F4F5F8] min-h-screen text-[#1B2A4A]">
+      <div className="max-w-[1500px] mx-auto space-y-6 text-[#1B2A4A]">
         {/* Top Header Card */}
         <PageHeader
           title="Menu Management"

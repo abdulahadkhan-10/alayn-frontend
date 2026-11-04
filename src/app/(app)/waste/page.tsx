@@ -396,7 +396,7 @@ export default function WasteManagementPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col min-h-full gap-5 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16 font-sans text-slate-900">
+      <div className="flex flex-col min-h-full gap-6 max-w-[1500px] mx-auto pb-16 font-sans text-slate-900">
         
         {/* Header & Date Shortcuts Controls Bar */}
         <PageHeader

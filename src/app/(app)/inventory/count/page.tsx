@@ -5,6 +5,7 @@ import Link from "next/link";
 import Skeleton from "react-loading-skeleton";
 import { ArrowLeft, Building2, CheckCircle2, AlertTriangle, Loader2, Search } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
 import { useBranch } from "@/lib/BranchContext";
 import {
@@ -64,26 +65,26 @@ export default function StockCountPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col min-h-full gap-5 max-w-3xl mx-auto px-3 sm:px-6 pb-28">
+      <div className="flex flex-col min-h-full gap-6 max-w-[1500px] mx-auto pb-28">
+        <PageHeader
+          title="Count stock"
+          subtitle="Type what is on the shelf right now. Leave an item blank to skip it. Counting once a week is enough for Alayn to learn how fast you use each item and warn you before it runs out."
+          badge={
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-0.5 text-xs font-bold text-[#D3232A]">
+                <Building2 className="h-3 w-3" /> {activeBranch?.name || "Main Branch"}
+              </span>
+          }
+          actions={
+            <Link href="/inventory" className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+              <ArrowLeft className="h-4 w-4" /> Back to Inventory
+            </Link>
+          }
+        />
+
         <InventoryNavTabs />
 
-        <div className="flex flex-col gap-1">
-          <Link href="/inventory" className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-900 w-fit">
-            <ArrowLeft className="h-3.5 w-3.5" /> Inventory
-          </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight">Count stock</h1>
-            <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-0.5 text-xs font-bold text-[#D3232A] border border-red-100">
-              <Building2 className="h-3.5 w-3.5" />
-              {activeBranch?.name || "Main Branch"}
-            </span>
-          </div>
-          <p className="text-sm text-zinc-600 max-w-prose">
-            Type what is on the shelf right now. Leave an item blank to skip it. Counting once a week is enough
-            for Alayn to learn how fast you use each item and warn you before it runs out.
-          </p>
-        </div>
-
+        {/* The count form keeps a readable width */}
+        <div className="w-full max-w-3xl mx-auto flex flex-col gap-5">
         {result && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 shadow-2xs">
             <p className="flex items-center gap-2 font-bold">
@@ -115,39 +116,39 @@ export default function StockCountPage() {
         )}
 
         <div className="relative">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
             type="search"
             placeholder="Find an item…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-zinc-900 focus:outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
           />
         </div>
 
         {isLoading || branchLoading ? (
           <Skeleton count={6} height={52} borderRadius={12} className="mb-2" />
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center">
-            <p className="text-sm font-semibold text-zinc-700">No stock items yet</p>
-            <p className="text-sm text-zinc-500 mt-1">Add the items you keep in stock on the Inventory page first.</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+            <p className="text-sm font-semibold text-slate-700">No stock items yet</p>
+            <p className="text-sm text-slate-500 mt-1">Add the items you keep in stock on the Inventory page first.</p>
           </div>
         ) : (
           groups.map(([category, list]) => (
-            <section key={category} className="rounded-2xl border border-zinc-200 bg-white shadow-2xs overflow-hidden">
-              <h2 className="px-4 py-2.5 text-xs font-semibold text-zinc-500 bg-zinc-50 border-b border-zinc-100">{category}</h2>
-              <ul className="divide-y divide-zinc-100">
+            <section key={category} className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+              <h2 className="px-4 py-2.5 text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-100">{category}</h2>
+              <ul className="divide-y divide-slate-100">
                 {list.map((item) => {
                   const value = counts[item.id] ?? "";
                   const bad = value.trim() !== "" && !(Number.isFinite(Number(value)) && Number(value) >= 0);
                   return (
                     <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
                       <label htmlFor={`count-${item.id}`} className="min-w-0">
-                        <span className="block text-sm font-semibold text-zinc-900 truncate">
+                        <span className="block text-sm font-semibold text-slate-900 truncate">
                           {item.name}
-                          {isAllOutlets && item.outlet ? <span className="font-normal text-zinc-500"> · {item.outlet.name}</span> : null}
+                          {isAllOutlets && item.outlet ? <span className="font-normal text-slate-500"> · {item.outlet.name}</span> : null}
                         </span>
-                        <span className="block text-xs text-zinc-500 tabular-nums">
+                        <span className="block text-xs text-slate-500 tabular-nums">
                           Alayn has {qty(item.currentStock)} {item.unit}
                         </span>
                       </label>
@@ -160,10 +161,10 @@ export default function StockCountPage() {
                           onChange={(e) => setCounts((c) => ({ ...c, [item.id]: e.target.value }))}
                           aria-invalid={bad}
                           className={`w-24 rounded-lg border px-3 py-2 text-right text-sm tabular-nums focus:outline-none ${
-                            bad ? "border-red-400 focus:border-red-500" : "border-zinc-200 focus:border-zinc-900"
+                            bad ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-slate-900"
                           }`}
                         />
-                        <span className="w-8 text-xs text-zinc-500">{item.unit}</span>
+                        <span className="w-8 text-xs text-slate-500">{item.unit}</span>
                       </div>
                     </li>
                   );
@@ -172,13 +173,14 @@ export default function StockCountPage() {
             </section>
           ))
         )}
+        </div>
       </div>
 
       {/* Save bar stays in reach on a phone while scrolling the list */}
       {items.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 backdrop-blur px-4 py-3">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur px-4 py-3">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-slate-600">
               {invalid
                 ? "Fix the numbers marked in red"
                 : entered.length

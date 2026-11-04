@@ -303,7 +303,7 @@ export default function LeaveApprovalsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="max-w-[1500px] mx-auto space-y-6">
         {/* Header Title */}
         <PageHeader
           title={isManagerOrOwner ? "Leave Approvals & Requests Calendar" : "My Leave Requests"}

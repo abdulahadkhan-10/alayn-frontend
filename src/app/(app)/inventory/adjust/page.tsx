@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
 import { useBranch } from "@/lib/BranchContext";
 import { useGetItemsQuery, useAdjustStockMutation } from "@/redux/slices/inventoryApiSlice";
@@ -90,25 +91,18 @@ export default function InventoryAdjustPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full gap-4 sm:gap-6 max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pb-12">
-        <InventoryNavTabs />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-zinc-200 shadow-2xs">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-extrabold text-zinc-900 tracking-tight">
-                Update Stock
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-0.5 text-xs font-bold text-[#D3232A] border border-red-100">
-                <Building2 className="h-3.5 w-3.5" />
-                {activeBranch?.name || "Main Branch"}
+      <div className="flex flex-col h-full gap-6 max-w-[1500px] mx-auto pb-12">
+        <PageHeader
+          title="Update Stock"
+          subtitle="Update item stock balances for received shipments, usage, waste, or physical count corrections"
+          badge={
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-0.5 text-xs font-bold text-[#D3232A]">
+                <Building2 className="h-3 w-3" /> {activeBranch?.name || "Main Branch"}
               </span>
-            </div>
-            <p className="text-xs text-zinc-500 mt-1 font-medium">
-              Update item stock balances for received shipments, usage, waste, or physical count corrections
-            </p>
-          </div>
-        </div>
+          }
+        />
+
+        <InventoryNavTabs />
 
         {/* Feedback Banners */}
         {successMsg && (
@@ -127,14 +121,14 @@ export default function InventoryAdjustPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Form Card */}
-          <div className="lg:col-span-2 rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-2xs">
-            <h2 className="text-sm sm:text-base font-extrabold text-zinc-900 mb-4 flex items-center gap-2">
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-2xs">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 mb-4 flex items-center gap-2">
               <Sliders className="h-5 w-5 text-[#D3232A]" /> Adjust Item Stock
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Select Stock Item</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Select Stock Item</label>
                 {(isLoading || branchLoading) ? (
                   <Skeleton height={38} borderRadius={8} />
                 ) : (
@@ -142,7 +136,7 @@ export default function InventoryAdjustPage() {
                     id="adjust-item-select"
                     value={selectedItemId}
                     onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none bg-white font-semibold text-zinc-900"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm focus:border-[#D3232A] focus:outline-none bg-white font-semibold text-slate-900"
                     disabled={isLoading}
                   >
                     <option value="">-- Choose an item to update --</option>
@@ -157,7 +151,7 @@ export default function InventoryAdjustPage() {
 
               {/* Action Direction Segmented Toggle */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1.5">Adjustment Type</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Adjustment Type</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -168,7 +162,7 @@ export default function InventoryAdjustPage() {
                     className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-xs sm:text-sm font-bold transition-all ${
                       direction === "ADD"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-900 shadow-2xs"
-                        : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     <TrendingUp className="h-4 w-4 text-emerald-600" /> Add Stock (+)
@@ -183,7 +177,7 @@ export default function InventoryAdjustPage() {
                     className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-xs sm:text-sm font-bold transition-all ${
                       direction === "DEDUCT"
                         ? "border-red-500 bg-red-50 text-red-900 shadow-2xs"
-                        : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     <TrendingDown className="h-4 w-4 text-red-600" /> Deduct Stock (-)
@@ -192,12 +186,12 @@ export default function InventoryAdjustPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Reason for Change</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Reason for Change</label>
                 <select
                   id="adjust-reason-select"
                   value={reason}
                   onChange={(e) => setReason(e.target.value as any)}
-                  className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm focus:border-[#D3232A] focus:outline-none bg-white font-semibold text-zinc-900"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-[#D3232A] focus:outline-none bg-white font-semibold text-slate-900"
                 >
                   {direction === "ADD" ? (
                     <>
@@ -214,7 +208,7 @@ export default function InventoryAdjustPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Quantity ({selectedItem?.unit || "units"})
                 </label>
                 <NumberInput
@@ -224,34 +218,34 @@ export default function InventoryAdjustPage() {
                   placeholder="Enter quantity amount..."
                   value={changeAmount}
                   onChange={setChangeAmount}
-                  className="w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-sm focus:border-[#D3232A] focus:outline-none font-bold text-zinc-900"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-[#D3232A] focus:outline-none font-bold text-slate-900"
                 />
               </div>
 
               {/* Live Calculator Stock Preview Card */}
               {selectedItem && (
-                <div className="rounded-xl bg-zinc-50 border border-zinc-200/80 p-4 space-y-2 text-xs text-zinc-700">
+                <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-4 space-y-2 text-xs text-slate-700">
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-zinc-900 text-sm">{selectedItem.name}</span>
+                    <span className="font-extrabold text-slate-900 text-sm">{selectedItem.name}</span>
                     {selectedItem.outlet && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-200 px-2 py-0.5 text-[10px] font-bold text-zinc-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
                         <Building2 className="h-3 w-3" /> {selectedItem.outlet.name}
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-200/60 text-center">
-                    <div className="bg-white p-2 rounded-xl border border-zinc-200/80">
-                      <span className="block text-[10px] text-zinc-400 font-bold uppercase">CURRENT</span>
-                      <strong className="text-sm text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/60 text-center">
+                    <div className="bg-white p-2 rounded-xl border border-slate-200/80">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">CURRENT</span>
+                      <strong className="text-sm text-slate-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
                     </div>
-                    <div className="bg-white p-2 rounded-xl border border-zinc-200/80">
-                      <span className="block text-[10px] text-zinc-400 font-bold uppercase">CHANGE</span>
+                    <div className="bg-white p-2 rounded-xl border border-slate-200/80">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">CHANGE</span>
                       <strong className={`text-sm ${direction === "ADD" ? "text-emerald-700" : "text-red-600"}`}>
                         {direction === "ADD" ? "+" : "-"}{numChange} {selectedItem.unit}
                       </strong>
                     </div>
-                    <div className="bg-white p-2 rounded-xl border border-zinc-200/80">
-                      <span className="block text-[10px] text-zinc-400 font-bold uppercase">PROJECTED</span>
+                    <div className="bg-white p-2 rounded-xl border border-slate-200/80">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase">PROJECTED</span>
                       <strong className={`text-sm ${projectedStock < selectedItem.reorderThreshold ? "text-amber-700" : "text-emerald-700"}`}>
                         {projectedStock} {selectedItem.unit}
                       </strong>
@@ -278,9 +272,9 @@ export default function InventoryAdjustPage() {
           </div>
 
           {/* Guidelines Sidebar Card */}
-          <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/70 p-5 sm:p-6 shadow-2xs flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-zinc-900">Adjustment Guidelines</h3>
-            <ul className="text-xs text-zinc-600 space-y-2.5 list-disc pl-4 leading-relaxed font-medium">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 sm:p-6 shadow-2xs flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-slate-900">Adjustment Guidelines</h3>
+            <ul className="text-xs text-slate-600 space-y-2.5 list-disc pl-4 leading-relaxed font-medium">
               <li><strong>New Deliveries:</strong> Add stock when receiving fresh items from vendors outside restock orders.</li>
               <li><strong>Kitchen Usage:</strong> Deduct stock used in daily cooking or prep.</li>
               <li><strong>Stock Audit:</strong> Use when physical count differs from the live record balance.</li>

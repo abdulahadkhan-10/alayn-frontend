@@ -18,7 +18,7 @@ export default function InventoryNavTabs() {
   const activeTabParam = searchParams?.get("tab");
 
   return (
-    <div className="w-full border-b border-zinc-200 bg-white">
+    <div className="w-full border-b border-slate-200 bg-white">
       <nav aria-label="Inventory Navigation" className="flex items-center gap-0 px-0 overflow-x-auto">
         {tabs.map((tab) => {
           const isMarketplaceTab = tab.href.includes("tab=marketplace");
@@ -44,8 +44,8 @@ export default function InventoryNavTabs() {
                 "relative py-3.5 px-5 text-sm font-medium transition-colors duration-150 whitespace-nowrap",
                 "border-b-2",
                 isActive
-                  ? "border-[#D3232A] text-zinc-900 font-semibold"
-                  : "border-transparent text-zinc-500 hover:text-zinc-800 hover:border-zinc-300"
+                  ? "border-[#D3232A] text-slate-900 font-semibold"
+                  : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
               )}
             >
               {tab.name}

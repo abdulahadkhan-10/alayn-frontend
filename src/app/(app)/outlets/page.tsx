@@ -97,7 +97,7 @@ export default function OutletsLedgerPage() {
   return (
     <AuthGuard>
       <DashboardLayout>
-        <div className="space-y-6 pb-12">
+        <div className="max-w-[1500px] mx-auto space-y-6 pb-12">
           {/* Top Header Banner */}
           <PageHeader
             title="Outlet & Subscription Ledger"

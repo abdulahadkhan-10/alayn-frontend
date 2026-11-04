@@ -282,7 +282,7 @@ export default function WorkforcePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="max-w-[1500px] mx-auto space-y-6">
         {/* Header Title */}
         <PageHeader
           title="Staff Directory"

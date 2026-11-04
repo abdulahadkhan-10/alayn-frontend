@@ -663,7 +663,7 @@ export default function ShiftSchedulerPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="max-w-[1500px] mx-auto space-y-6">
         <PageHeader
           title="Staff Schedule"
           subtitle="Plan shifts, availability and weekly staffing."

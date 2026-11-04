@@ -93,10 +93,7 @@ export default function InventoryPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col min-h-full gap-5 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-10">
-        <InventoryNavTabs />
-
-        {/* Clean Header: Inventory & Add Item */}
+      <div className="flex flex-col min-h-full gap-6 max-w-[1500px] mx-auto pb-10">
         <PageHeader
           title="Inventory"
           subtitle="Stock levels, low-stock alerts and stock counts"
@@ -118,6 +115,8 @@ export default function InventoryPage() {
           </>
           }
         />
+
+        <InventoryNavTabs />
 
         {/* Search & Simple Filters Row */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

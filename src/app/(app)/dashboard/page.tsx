@@ -194,7 +194,7 @@ export default function MasterDashboardPage(props?: PageProps) {
         {isInitialLoading || hasNoOutlets ? (
           <DashboardSkeleton />
         ) : (
-          <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-6 font-sans bg-[#F8FAFC]">
+          <div className="max-w-[1500px] mx-auto space-y-6 font-sans">
             {/* Header & date range */}
             {/* The date buttons keep their size; when there isn't room beside the title they move below it */}
             <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">

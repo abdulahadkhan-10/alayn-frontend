@@ -119,7 +119,7 @@ function ReportsContent() {
   const detail = serverMessage(error);
 
   return (
-    <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto space-y-6 font-sans bg-[#F8FAFC] min-w-0">
+    <div className="max-w-[1500px] mx-auto space-y-6 font-sans min-w-0">
       <div className={`${CARD} flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5`}>
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Reports</h1>
@@ -164,7 +164,7 @@ export default function ReportsPage() {
       <DashboardLayout>
         <Suspense
           fallback={
-            <div className="py-6 px-4 sm:px-6 max-w-[1500px] mx-auto">
+            <div className="max-w-[1500px] mx-auto">
               <ReportSkeleton />
             </div>
           }
