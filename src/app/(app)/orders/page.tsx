@@ -4,6 +4,7 @@ import { TModal } from "@/components/ui/TModal";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import {
   useGetOrdersQuery,
   useUpdateOrderStatusMutation,
@@ -202,10 +203,10 @@ const STATUS_META: Record<
   },
   COMPLETED: {
     label: "Completed",
-    bg: "bg-gray-100",
-    text: "text-gray-600",
-    border: "border-gray-300",
-    dot: "bg-gray-400",
+    bg: "bg-slate-100",
+    text: "text-slate-600",
+    border: "border-slate-300",
+    dot: "bg-slate-400",
   },
   CANCELLED: {
     label: "Cancelled",
@@ -844,26 +845,11 @@ export default function LiveOrdersPage() {
       <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
 
         {/* ── Page Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#D3232A]/10 border border-[#D3232A]/20">
-                <ChefHat className="w-5 h-5 text-[#D3232A]" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-[#1B2A4A] leading-tight">
-                  Live Orders
-                </h1>
-                <p className="text-xs text-gray-500 font-medium mt-0.5">
-                  {isStaffRole
-                    ? "Your assigned table orders"
-                    : "Real-time order tracking across all channels"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
+        <PageHeader
+          title="Live Orders"
+          subtitle={isStaffRole ? "Your assigned table orders" : "Real-time order tracking across all channels"}
+          actions={
+          <>
             <Link
               href="/orders/completed"
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs hover:shadow"
@@ -886,18 +872,19 @@ export default function LiveOrdersPage() {
                   : "No Tables Assigned"}
               </span>
             )}
-          </div>
-        </div>
+          </>
+          }
+        />
 
         {/* ── Unified Sticky Filter Header Wrapper ── */}
         <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 bg-[#F4F7F9]">
-          <div className="bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-2xl p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 sm:gap-4">
+          <div className="bg-white/95 backdrop-blur-md border border-slate-200/60 rounded-2xl p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 sm:gap-4">
           
           {/* Top Row: Channels & Search */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             {/* Channel Tabs */}
             {!isStaffRole && (
-              <div className="flex bg-gray-100/80 p-1 rounded-xl w-full sm:w-fit border border-gray-200/50 overflow-x-auto min-w-0">
+              <div className="flex bg-slate-100/80 p-1 rounded-xl w-full sm:w-fit border border-slate-200/50 overflow-x-auto min-w-0">
                 {channelTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = selectedSourceFilter === tab.id;
@@ -911,15 +898,15 @@ export default function LiveOrdersPage() {
                       }}
                       className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
                         isActive
-                          ? "bg-white text-[#1B2A4A] shadow-sm rounded-lg border border-gray-200"
-                          : "text-gray-500 hover:text-gray-800 hover:bg-white/50 rounded-lg border border-transparent"
+                          ? "bg-white text-[#1B2A4A] shadow-sm rounded-lg border border-slate-200"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white/50 rounded-lg border border-transparent"
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       <span className="uppercase tracking-wider">{tab.label}</span>
                       <span
                         className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          isActive ? "bg-gray-100 text-[#1B2A4A]" : "bg-gray-200/60 text-gray-400"
+                          isActive ? "bg-slate-100 text-[#1B2A4A]" : "bg-slate-200/60 text-slate-400"
                         }`}
                       >
                         {tab.count}
@@ -932,13 +919,13 @@ export default function LiveOrdersPage() {
 
             {/* Search */}
             <div className="relative w-full sm:w-64 shrink-0">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search ID or Table..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition shadow-xs rounded-xl"
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition shadow-xs rounded-xl"
               />
             </div>
           </div>
@@ -955,7 +942,7 @@ export default function LiveOrdersPage() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                     active
                       ? "bg-[#1B2A4A] text-white shadow-xs"
-                      : "bg-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                      : "bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                   }`}
                 >
                   {meta && (
@@ -967,7 +954,7 @@ export default function LiveOrdersPage() {
                   {tab.id !== "ALL" && (
                     <span
                       className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
+                        active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-400"
                       }`}
                     >
                       {getTabBadgeCount(tab.id)}
@@ -986,17 +973,17 @@ export default function LiveOrdersPage() {
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
               <div
                 key={n}
-                className="h-64 bg-white animate-pulse rounded-2xl border border-gray-200 shadow-sm"
+                className="h-64 bg-white animate-pulse rounded-2xl border border-slate-200 shadow-sm"
               />
             ))}
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center space-y-3 shadow-xs">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
-              <ChefHat className="w-7 h-7 text-gray-400" />
+          <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center space-y-3 shadow-xs">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+              <ChefHat className="w-7 h-7 text-slate-400" />
             </div>
             <p className="text-sm font-bold text-[#1B2A4A] uppercase tracking-widest">No active orders</p>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto">
+            <p className="text-xs text-slate-500 max-w-xs mx-auto">
               {selectedSourceFilter !== "ALL"
                 ? `No active ${channelTabs.find((c) => c.id === selectedSourceFilter)?.label.toLowerCase()} match your filters.`
                 : "Active orders will appear here in real time."}
@@ -1031,10 +1018,10 @@ export default function LiveOrdersPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col overflow-hidden group"
+                  className="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col overflow-hidden group"
                 >
                   {/* Card Header */}
-                  <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-2 relative overflow-hidden">
+                  <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-2 relative overflow-hidden">
                     {/* Status Top Line indicator */}
                     <div className={`absolute top-0 left-0 w-full h-1 ${meta.bg}`} />
                     
@@ -1060,13 +1047,13 @@ export default function LiveOrdersPage() {
                                 e.stopPropagation();
                                 setDismissedCancelledIds((prev) => new Set(prev).add(order.id));
                               }}
-                              className="text-[9px] font-bold text-gray-500 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-gray-200 hover:border-rose-200 transition cursor-pointer"
+                              className="text-[9px] font-bold text-slate-500 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-slate-200 hover:border-rose-200 transition cursor-pointer"
                               title="Dismiss from All tab (still visible in Cancelled tab)"
                             >
                               Dismiss
                             </button>
                           )}
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap text-right">
                             {formattedTime}
                           </span>
                         </div>
@@ -1078,7 +1065,7 @@ export default function LiveOrdersPage() {
                           {orderNumDisplay}
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                             {isCounter ? "COUNTER ORDER" : `TABLE ${tableNumDisplay}`}
                           </span>
                           {(order.orderSource === "QR" || order.source === "QR" || order.placedByName?.includes("QR")) && (
@@ -1141,7 +1128,7 @@ export default function LiveOrdersPage() {
                           return (
                             <>
                               {displayItems.map(({ item, totalQty, variantName }, idx: number) => (
-                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-200 text-gray-700 text-[10px] font-bold rounded-lg max-w-full truncate">
+                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg max-w-full truncate">
                                   <span className="text-[#1B2A4A] font-bold">{totalQty}×</span>
                                   <span className="truncate ml-1">{item.menuItem?.name || item.name || "Item"}</span>
                                   {variantName && (
@@ -1152,7 +1139,7 @@ export default function LiveOrdersPage() {
                                 </span>
                               ))}
                               {remaining > 0 && (
-                                <span className="inline-flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-400 text-[10px] font-bold rounded-lg italic">
+                                <span className="inline-flex items-center px-2 py-1 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold rounded-lg italic">
                                   +{remaining} more
                                 </span>
                               )}
@@ -1168,20 +1155,20 @@ export default function LiveOrdersPage() {
                       </div>
                     ) : (
                       <div className="flex-1 flex items-center justify-center p-4">
-                        <span className="italic text-[11px] text-gray-400">No items recorded</span>
+                        <span className="italic text-[11px] text-slate-400">No items recorded</span>
                       </div>
                     )}
                   </div>
 
                   {/* Card Footer (Totals & Actions) */}
-                  <div className="p-4 pt-3 border-t border-gray-100 bg-white flex flex-col gap-3">
+                  <div className="p-4 pt-3 border-t border-slate-100 bg-white flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">Total</span>
+                      <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total</span>
                       <span className="text-base font-bold text-[#1B2A4A] font-mono">₹{Number(totalAmt).toFixed(2)}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setSelectedOrder(order)} className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-[11px] font-bold rounded-xl transition-colors text-center">
+                      <button onClick={() => setSelectedOrder(order)} className="flex-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-xl transition-colors text-center">
                         Details
                       </button>
                       
@@ -1228,10 +1215,10 @@ export default function LiveOrdersPage() {
                             e.stopPropagation();
                             setPrintingKOT({ order, isCancellation: order.status === "CANCELLED" });
                           }}
-                          className="px-2.5 py-2 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl transition cursor-pointer shrink-0"
+                          className="px-2.5 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl transition cursor-pointer shrink-0"
                           title="Print Kitchen Order Ticket (KOT)"
                         >
-                          <Printer className="w-3.5 h-3.5 text-zinc-700" />
+                          <Printer className="w-3.5 h-3.5 text-slate-700" />
                         </button>
                       )}
                     </div>
@@ -1243,11 +1230,11 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Modal: Full Order Details ── */}
-        <TModal open={!!selectedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!selectedOrder} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {selectedOrder && (
-            <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full shadow-2xl overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full shadow-2xl overflow-hidden">
               {/* Modal header */}
-              <div className="flex justify-between items-center p-5 border-b border-gray-100">
+              <div className="flex justify-between items-center p-5 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div
                     className={`p-2 rounded-xl ${selectedOrder.tableNo ||
@@ -1269,7 +1256,7 @@ export default function LiveOrdersPage() {
                         (selectedOrder as any).orderNumber ||
                         `#${selectedOrder.id.slice(0, 8).toUpperCase()}`}
                     </h3>
-                    <p className="text-xs text-gray-500 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       {selectedOrder.tableNo ||
                         (selectedOrder as any).tableNumber
                         ? `Table ${selectedOrder.tableNo || (selectedOrder as any).tableNumber}`
@@ -1284,7 +1271,7 @@ export default function LiveOrdersPage() {
                 </div>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1315,7 +1302,7 @@ export default function LiveOrdersPage() {
 
                 {/* Items */}
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                     Ordered Items
                   </p>
                   <div className="space-y-2">
@@ -1345,7 +1332,7 @@ export default function LiveOrdersPage() {
                           {Array.from(modalConsolidated.values()).map(({ item, totalQty, totalPrice, notes }, idx: number) => (
                             <div
                               key={item.id || idx}
-                              className="flex justify-between items-start p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs"
+                              className="flex justify-between items-start p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs"
                             >
                               <div>
                                 <span className="font-bold text-[#1B2A4A] block">
@@ -1396,13 +1383,13 @@ export default function LiveOrdersPage() {
                                   );
                                 })()}
                                 {notes.length > 0 && (
-                                  <span className="text-[10px] text-gray-400 italic mt-0.5 block">
+                                  <span className="text-[10px] text-slate-400 italic mt-0.5 block">
                                     {notes.join(", ")}
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-gray-700">
+                                <span className="font-bold text-slate-700">
                                   ₹{totalPrice.toFixed(2)}
                                 </span>
                                 {selectedOrder.status !== "COMPLETED" &&
@@ -1422,7 +1409,7 @@ export default function LiveOrdersPage() {
                           ))}
 
                           {cancelledItems.length > 0 && (
-                            <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200">
+                            <div className="mt-2.5 pt-2 border-t border-dashed border-slate-200">
                               <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1.5 flex items-center gap-1">
                                 <XCircle className="w-3 h-3" /> Removed Items ({cancelledItems.length})
                               </p>
@@ -1521,10 +1508,10 @@ export default function LiveOrdersPage() {
                   const isOrderOpen = selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED";
 
                   return (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
-                      <div className="flex justify-between text-gray-600 font-medium">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+                      <div className="flex justify-between text-slate-600 font-medium">
                         <span>Actual Amount (Subtotal)</span>
-                        <span className="font-semibold text-gray-800">
+                        <span className="font-semibold text-slate-800">
                           ₹{subtotalVal.toFixed(2)}
                         </span>
                       </div>
@@ -1537,7 +1524,7 @@ export default function LiveOrdersPage() {
                               - ₹{discountVal.toFixed(2)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-gray-200 pt-1">
+                          <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-slate-200 pt-1">
                             <span>Taxable Value</span>
                             <span>₹{taxableVal.toFixed(2)}</span>
                           </div>
@@ -1545,9 +1532,9 @@ export default function LiveOrdersPage() {
                       )}
 
                       {serviceChargeVal > 0 && (
-                        <div className="flex justify-between text-gray-600 font-medium">
+                        <div className="flex justify-between text-slate-600 font-medium">
                           <span>Service Charge ({scRate}%)</span>
-                          <span className="font-semibold text-gray-800">
+                          <span className="font-semibold text-slate-800">
                             ₹{serviceChargeVal.toFixed(2)}
                           </span>
                         </div>
@@ -1563,33 +1550,33 @@ export default function LiveOrdersPage() {
                       )}
 
                       {cgstVal > 0 && (
-                        <div className="flex justify-between text-gray-600 font-medium">
+                        <div className="flex justify-between text-slate-600 font-medium">
                           <span>CGST ({cgstRate}%)</span>
-                          <span className="font-semibold text-gray-800">
+                          <span className="font-semibold text-slate-800">
                             ₹{cgstVal.toFixed(2)}
                           </span>
                         </div>
                       )}
 
                       {sgstVal > 0 && (
-                        <div className="flex justify-between text-gray-600 font-medium">
+                        <div className="flex justify-between text-slate-600 font-medium">
                           <span>SGST ({sgstRate}%)</span>
-                          <span className="font-semibold text-gray-800">
+                          <span className="font-semibold text-slate-800">
                             ₹{sgstVal.toFixed(2)}
                           </span>
                         </div>
                       )}
 
                       {roundOffVal !== 0 && (
-                        <div className="flex justify-between text-gray-500 font-medium text-[11px]">
+                        <div className="flex justify-between text-slate-500 font-medium text-[11px]">
                           <span>Round off</span>
-                          <span className="font-semibold text-gray-700">
+                          <span className="font-semibold text-slate-700">
                             {roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}
                           </span>
                         </div>
                       )}
 
-                      <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
+                      <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-slate-200">
                         <span>Overall Total</span>
                         <span className="text-[#D3232A]">
                           ₹{totalVal.toFixed(2)}
@@ -1598,7 +1585,7 @@ export default function LiveOrdersPage() {
 
                       {/* Voluntary Service Charge action for open dine-in orders */}
                       {isDineIn && isOrderOpen && (
-                        <div className="pt-2 border-t border-dashed border-gray-200">
+                        <div className="pt-2 border-t border-dashed border-slate-200">
                           {!selectedOrder.serviceChargeWaived && (serviceChargeVal > 0 || scRate > 0) ? (
                             <button
                               type="button"
@@ -1620,25 +1607,25 @@ export default function LiveOrdersPage() {
                       )}
 
                       {selectedOrder.placedByName && (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
-                          <span className="text-gray-500 font-medium">Placed Source</span>
-                          <span className="inline-flex items-center gap-1 font-bold text-[#1B2A4A] bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                        <div className="mt-2 pt-2 border-t border-dashed border-slate-200 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-medium">Placed Source</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-[#1B2A4A] bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                             {selectedOrder.placedByName}
                           </span>
                         </div>
                       )}
 
                       {selectedOrder.status === "COMPLETED" || selectedOrder.paymentStatus === "CONFIRMED" ? (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
-                          <span className="text-gray-500 font-medium">Payment Method</span>
-                          <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                        <div className="mt-2 pt-2 border-t border-dashed border-slate-200 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-medium">Payment Method</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
                             {describePaymentLines(selectedOrder, selectedOrder.paymentMethod || "PAID")}
                             <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
-                          <span className="text-gray-500 font-medium">Payment Status</span>
+                        <div className="mt-2 pt-2 border-t border-dashed border-slate-200 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-medium">Payment Status</span>
                           <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                             Unpaid (Collect at Settlement)
                           </span>
@@ -1650,7 +1637,7 @@ export default function LiveOrdersPage() {
               </div>
 
               {/* Modal footer */}
-              <div className="p-4 border-t border-gray-100 flex gap-2">
+              <div className="p-4 border-t border-slate-100 flex gap-2">
                 {selectedOrder.status !== "COMPLETED" &&
                   selectedOrder.status !== "CANCELLED" && (
                     <>
@@ -1667,10 +1654,10 @@ export default function LiveOrdersPage() {
                         </button>
                       ) : (
                         <div
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-400 font-semibold text-[11px] rounded-xl cursor-not-allowed select-none"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 text-slate-400 font-semibold text-[11px] rounded-xl cursor-not-allowed select-none"
                           title="Only a Manager or Business Owner can cancel an order"
                         >
-                          <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
                           <span>Cancel (Manager Only)</span>
                         </div>
                       )}
@@ -1700,7 +1687,7 @@ export default function LiveOrdersPage() {
                   )}
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   Close
                 </button>
@@ -2454,9 +2441,9 @@ export default function LiveOrdersPage() {
         )}
 
         {/* ── Modal: Cancel Order Confirmation ── */}
-        <TModal open={!!cancellingOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!cancellingOrder} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {cancellingOrder && (
-            <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                   <XCircle className="w-6 h-6 text-rose-600" />
@@ -2465,7 +2452,7 @@ export default function LiveOrdersPage() {
                   <h3 className="text-base font-bold text-[#1B2A4A]">
                     Cancel Order
                   </h3>
-                  <p className="text-xs text-gray-500 font-bold font-mono">
+                  <p className="text-xs text-slate-500 font-bold font-mono">
                     {cancellingOrder.orderNo ||
                       (cancellingOrder as any).orderNumber ||
                       `#${cancellingOrder.id.slice(0, 8)}`}
@@ -2483,7 +2470,7 @@ export default function LiveOrdersPage() {
               </div>
 
               {/* Manager Authorization Audit Badge */}
-              <div className="flex items-center gap-2 text-[11px] text-gray-600 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
                 <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>
                   Authorizing: <strong className="text-[#1B2A4A]">{user?.name || "Manager"}</strong> ({user?.role?.replace("_", " ")})
@@ -2501,17 +2488,17 @@ export default function LiveOrdersPage() {
               {/* Cancellation Reason Dropdown & Quick Select */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Reason for Cancellation
                   </label>
-                  <span className="text-[10px] text-gray-400 font-medium">Select or specify</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Select or specify</span>
                 </div>
 
                 {/* Dropdown Selector */}
                 <select
                   value={selectedCancelPreset}
                   onChange={(e) => setSelectedCancelPreset(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-xs transition"
+                  className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-xs transition"
                 >
                   {CANCELLATION_PRESETS.map((preset) => (
                     <option key={preset} value={preset}>
@@ -2532,7 +2519,7 @@ export default function LiveOrdersPage() {
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                           isSelected
                             ? "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs"
-                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                            : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
                         }`}
                       >
                         {preset === "Other (Specify reason)" ? "Custom Other..." : preset}
@@ -2550,7 +2537,7 @@ export default function LiveOrdersPage() {
                       onChange={(e) => setCustomCancelReason(e.target.value)}
                       placeholder="Type specific reason for audit log..."
                       autoFocus
-                      className="w-full px-3 py-2 border border-rose-300 bg-rose-50/30 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition"
+                      className="w-full px-3 py-2 border border-rose-300 bg-rose-50/30 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition"
                     />
                   </div>
                 )}
@@ -2558,7 +2545,7 @@ export default function LiveOrdersPage() {
 
               {/* Print Cancellation KOT Checkbox - only shown if outlet supports KOT */}
               {kitchenCaps.supportsKotPrint && (
-                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={printCancelKOTOnConfirm}
@@ -2604,7 +2591,7 @@ export default function LiveOrdersPage() {
                     setCustomCancelReason("");
                     setSelectedCancelPreset("Customer changed mind");
                   }}
-                  className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="px-4 border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   Keep Order
                 </button>

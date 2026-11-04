@@ -39,6 +39,7 @@ import {
   Check,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { getImageUrl } from "@/lib/utils";
 import { useBranch } from "@/lib/BranchContext";
 
@@ -878,17 +879,11 @@ export default function MenuManagementComponent() {
     <DashboardLayout>
       <div className="p-6 max-w-[1600px] mx-auto space-y-6 bg-[#F4F5F8] min-h-screen text-[#1B2A4A]">
         {/* Top Header Card */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-xs">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1B2A4A] flex items-center gap-2">
-              <UtensilsCrossed className="w-6 h-6 text-[#D3232A]" />
-              Menu Management
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Scalable product catalog dashboard for managing dishes, categories, pricing, and stock status.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 shrink-0">
+        <PageHeader
+          title="Menu Management"
+          subtitle="Scalable product catalog dashboard for managing dishes, categories, pricing, and stock status."
+          actions={
+          <>
             <button
               onClick={() => {
                 if (isAllOutletsSelected) {
@@ -899,12 +894,12 @@ export default function MenuManagementComponent() {
               }}
               disabled={isAllOutletsSelected}
               className={`flex justify-center items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition duration-200 w-full sm:w-auto whitespace-nowrap ${isAllOutletsSelected
-                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                  : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
                 }`}
               title={isAllOutletsSelected ? "Select a specific outlet to add categories" : "Add Category"}
             >
-              <Tag className={`w-4 h-4 ${isAllOutletsSelected ? "text-gray-400" : "text-gray-500"}`} />
+              <Tag className={`w-4 h-4 ${isAllOutletsSelected ? "text-slate-400" : "text-slate-500"}`} />
               Add Category
             </button>
             <button
@@ -914,25 +909,26 @@ export default function MenuManagementComponent() {
               <Plus className="w-4 h-4" />
               Add Menu Item
             </button>
-          </div>
-        </div>
+          </>
+          }
+        />
 
         {/* Primary View Tab Switcher: Menu Items vs Add-ons & Variations */}
-        <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
           <button
             type="button"
             onClick={() => setActiveTab("ITEMS")}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
               activeTab === "ITEMS"
                 ? "bg-[#1B2A4A] text-white shadow-sm"
-                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
             <UtensilsCrossed className="w-4 h-4" />
             <span>Menu Items & Catalog</span>
             <span
               className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                activeTab === "ITEMS" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                activeTab === "ITEMS" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
               }`}
             >
               {metrics.total}
@@ -945,7 +941,7 @@ export default function MenuManagementComponent() {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
               activeTab === "MODIFIERS"
                 ? "bg-[#1B2A4A] text-white shadow-sm"
-                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
             <SlidersHorizontal className="w-4 h-4 text-amber-500" />
@@ -953,7 +949,7 @@ export default function MenuManagementComponent() {
             {availableModifierGroups.length > 0 && (
               <span
                 className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  activeTab === "MODIFIERS" ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                  activeTab === "MODIFIERS" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                 }`}
               >
                 {availableModifierGroups.length}
@@ -968,27 +964,27 @@ export default function MenuManagementComponent() {
           <>
         {/* Scalable Stats Summary Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Items</p>
               <h3 className="text-2xl font-extrabold text-[#1B2A4A] mt-1">{metrics.total}</h3>
             </div>
             <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
               <UtensilsCrossed className="w-5 h-5" />
             </div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Items</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Items</p>
               <h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{metrics.active}</h3>
             </div>
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
               <PackageCheck className="w-5 h-5" />
             </div>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categories</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Categories</p>
               <h3 className="text-2xl font-extrabold text-indigo-600 mt-1">{metrics.catCount}</h3>
             </div>
             <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -998,7 +994,7 @@ export default function MenuManagementComponent() {
         </div>
 
         {/* Modern Minimalist SaaS Filter Toolbar (Direct Access: Search | Category | Status | Type | Sort) */}
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-2xs overflow-visible">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-visible">
           {/* Primary Control Bar */}
           <div className="p-3 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
             {/* 1. Primary Search Input */}
@@ -1009,7 +1005,7 @@ export default function MenuManagementComponent() {
                 placeholder="Search dishes or descriptions..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white border border-gray-200/80 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1B2A4A] focus:border-[#1B2A4A] transition"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50/80 hover:bg-slate-100/60 focus:bg-white border border-slate-200/80 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1B2A4A] focus:border-[#1B2A4A] transition"
               />
               {searchQuery && (
                 <button
@@ -1032,7 +1028,7 @@ export default function MenuManagementComponent() {
                   onClick={() => setIsCategoryPopoverOpen((prev) => !prev)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${selectedCategory !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
-                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                      : "bg-slate-50/80 border-slate-200/80 text-slate-700 hover:bg-slate-100/80"
                     }`}
                 >
                   <Tag className={`w-3.5 h-3.5 ${selectedCategory !== "ALL" ? "text-white" : "text-slate-400"}`} />
@@ -1044,7 +1040,7 @@ export default function MenuManagementComponent() {
 
                 {/* Popover Menu for 100+ Categories */}
                 {isCategoryPopoverOpen && (
-                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-slate-200 shadow-lg z-30 p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
                       <input
@@ -1052,7 +1048,7 @@ export default function MenuManagementComponent() {
                         placeholder="Filter 100+ categories..."
                         value={categorySearchQuery}
                         onChange={(e) => setCategorySearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-gray-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#1B2A4A]"
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#1B2A4A]"
                         autoFocus
                       />
                     </div>
@@ -1118,7 +1114,7 @@ export default function MenuManagementComponent() {
                   onClick={() => setIsStatusPopoverOpen((prev) => !prev)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${statusFilter !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
-                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                      : "bg-slate-50/80 border-slate-200/80 text-slate-700 hover:bg-slate-100/80"
                     }`}
                 >
                   {statusFilter === "ACTIVE" ? <ActiveDot /> : statusFilter === "INACTIVE" ? <InactiveDot /> : null}
@@ -1129,7 +1125,7 @@ export default function MenuManagementComponent() {
                 </button>
 
                 {isStatusPopoverOpen && (
-                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-44 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-44 bg-white rounded-xl border border-slate-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                     {[
                       { id: "ALL", label: "All Status", dot: null },
                       { id: "ACTIVE", label: "Active", dot: <ActiveDot /> },
@@ -1162,7 +1158,7 @@ export default function MenuManagementComponent() {
                   onClick={() => setIsDietaryPopoverOpen((prev) => !prev)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition cursor-pointer ${dietaryFilter !== "ALL"
                       ? "bg-[#1B2A4A] border-[#1B2A4A] text-white shadow-2xs"
-                      : "bg-slate-50/80 border-gray-200/80 text-slate-700 hover:bg-slate-100/80"
+                      : "bg-slate-50/80 border-slate-200/80 text-slate-700 hover:bg-slate-100/80"
                     }`}
                 >
                   {dietaryFilter === "VEG" ? (
@@ -1185,7 +1181,7 @@ export default function MenuManagementComponent() {
                 </button>
 
                 {isDietaryPopoverOpen && (
-                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-slate-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                     {[
                       { id: "ALL", label: "All Types", icon: null },
                       { id: "VEG", label: "Vegetarian", icon: <FssaiVegIcon /> },
@@ -1217,7 +1213,7 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setIsSortPopoverOpen((prev) => !prev)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200/80 bg-slate-50/80 hover:bg-slate-100/80 text-xs font-medium text-slate-700 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100/80 text-xs font-medium text-slate-700 transition cursor-pointer"
                 >
                   <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">
@@ -1231,7 +1227,7 @@ export default function MenuManagementComponent() {
                 </button>
 
                 {isSortPopoverOpen && (
-                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-slate-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                     {[
                       { id: "NAME_ASC", label: "Name (A-Z)" },
                       { id: "PRICE_ASC", label: "Price (Low → High)" },
@@ -1258,7 +1254,7 @@ export default function MenuManagementComponent() {
 
               {/* Scope Toggle (Common Items in All Outlets View) */}
               {isAllOutletsSelected && (
-                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-slate-50/80 border border-gray-200/80 px-2.5 py-2 rounded-lg text-xs text-slate-700 font-medium">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none bg-slate-50/80 border border-slate-200/80 px-2.5 py-2 rounded-lg text-xs text-slate-700 font-medium">
                   <input
                     type="checkbox"
                     checked={showCommonOnly}
@@ -1266,7 +1262,7 @@ export default function MenuManagementComponent() {
                       setShowCommonOnly(e.target.checked);
                       setCurrentPage(1);
                     }}
-                    className="w-3.5 h-3.5 rounded text-[#1B2A4A] focus:ring-[#1B2A4A] border-gray-300 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded text-[#1B2A4A] focus:ring-[#1B2A4A] border-slate-300 cursor-pointer"
                   />
                   <span>Common Only</span>
                 </label>
@@ -1288,7 +1284,7 @@ export default function MenuManagementComponent() {
 
           {/* Active Filter Badges */}
           {activeBadges.length > 0 && (
-            <div className="px-3 pb-2.5 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-2">
+            <div className="px-3 pb-2.5 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
               <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 mr-1">
                 Active:
               </span>
@@ -1322,24 +1318,24 @@ export default function MenuManagementComponent() {
 
         {/* Content Body: Table View */}
         {isItemsLoading ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-8 space-y-3 shadow-xs">
+          <div className="bg-white border border-slate-200 rounded-xl p-8 space-y-3 shadow-xs">
             {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} className="h-12 bg-gray-100 animate-pulse rounded-lg" />
+              <div key={n} className="h-12 bg-slate-100 animate-pulse rounded-lg" />
             ))}
           </div>
         ) : totalDisplayedItems === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-12 text-center shadow-xs">
-            <UtensilsCrossed className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-gray-800">No menu items found</h3>
-            <p className="text-gray-500 text-sm mt-1">Try resetting filters, changing search terms, or adding a new menu item.</p>
+          <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-xs">
+            <UtensilsCrossed className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-800">No menu items found</h3>
+            <p className="text-slate-500 text-sm mt-1">Try resetting filters, changing search terms, or adding a new menu item.</p>
           </div>
         ) : (
           /* HIGH-DENSITY COMPACT TABLE VIEW */
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-xs">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase font-bold tracking-wider">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase font-bold tracking-wider">
                     <th className="py-3 px-4">Item</th>
                     {isAllOutletsSelected && <th className="py-3 px-4">Outlet Location</th>}
                     <th className="py-3 px-4">Category</th>
@@ -1348,22 +1344,22 @@ export default function MenuManagementComponent() {
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-800">
+                <tbody className="divide-y divide-slate-100 text-slate-800">
                   {displayItems.map(({ primaryItem: item, outletIds, allRelatedItems, isGroupActive }) => (
-                    <tr key={item.id} className="hover:bg-gray-50/80 transition">
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           {item.imageUrl ? (
                             <img
                               src={getImageUrl(item.imageUrl)}
                               alt=""
-                              className="w-10 h-10 rounded-lg object-cover border border-gray-200 shrink-0"
+                              className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
                               onError={(e) => {
                                 (e.currentTarget as HTMLElement).style.display = "none";
                               }}
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 text-gray-400">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-slate-400">
                               <UtensilsCrossed className="w-4 h-4" />
                             </div>
                           )}
@@ -1381,7 +1377,7 @@ export default function MenuManagementComponent() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-400 max-w-xs truncate">
+                            <p className="text-xs text-slate-400 max-w-xs truncate">
                               {item.description || "No description"}
                             </p>
                           </div>
@@ -1437,7 +1433,7 @@ export default function MenuManagementComponent() {
                         </td>
                       )}
                       <td className="py-3 px-4">
-                        <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                        <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                           {item.category?.name || "Uncategorized"}
                         </span>
                       </td>
@@ -1449,7 +1445,7 @@ export default function MenuManagementComponent() {
                           <button
                             type="button"
                             onClick={() => handleToggleAvailabilityClick(item, allRelatedItems, isGroupActive)}
-                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGroupActive ? "bg-emerald-500" : "bg-gray-300"
+                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGroupActive ? "bg-emerald-500" : "bg-slate-300"
                               }`}
                             title={
                               isAllOutletsSelected
@@ -1478,14 +1474,14 @@ export default function MenuManagementComponent() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenEditModal(item, outletIds, allRelatedItems)}
-                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#1B2A4A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:text-[#1B2A4A] hover:bg-slate-100 transition text-xs font-semibold inline-flex items-center gap-1"
                           >
-                            <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                            <Pencil className="w-3.5 h-3.5 text-slate-500" />
                             <span>Edit</span>
                           </button>
                           <button
                             onClick={() => setItemToDelete(item)}
-                            className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-white hover:bg-rose-500 hover:border-rose-500 transition text-xs font-semibold inline-flex items-center"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:text-white hover:bg-rose-500 hover:border-rose-500 transition text-xs font-semibold inline-flex items-center"
                             title="Delete Item"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1502,24 +1498,24 @@ export default function MenuManagementComponent() {
 
         {/* Scalable Pagination Footer */}
         {totalDisplayedItems > 0 && (
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
             {/* Range info */}
-            <div className="text-xs text-gray-500 font-medium">
+            <div className="text-xs text-slate-500 font-medium">
               Showing{" "}
-              <span className="font-bold text-gray-900">
+              <span className="font-bold text-slate-900">
                 {Math.min((currentPage - 1) * pageSize + 1, totalDisplayedItems)}
               </span>{" "}
               to{" "}
-              <span className="font-bold text-gray-900">
+              <span className="font-bold text-slate-900">
                 {Math.min(currentPage * pageSize, totalDisplayedItems)}
               </span>{" "}
-              of <span className="font-bold text-gray-900">{totalDisplayedItems}</span> items
+              of <span className="font-bold text-slate-900">{totalDisplayedItems}</span> items
             </div>
 
             {/* Pagination Controls */}
             <div className="flex items-center gap-4">
               {/* Page Size Selector */}
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
                 <span>Items per page:</span>
                 <select
                   value={pageSize}
@@ -1527,7 +1523,7 @@ export default function MenuManagementComponent() {
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-900 font-bold focus:outline-none cursor-pointer"
+                  className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-900 font-bold focus:outline-none cursor-pointer"
                 >
                   <option value={12}>12</option>
                   <option value={24}>24</option>
@@ -1541,7 +1537,7 @@ export default function MenuManagementComponent() {
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
                   title="Previous Page"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -1552,7 +1548,7 @@ export default function MenuManagementComponent() {
                 <button
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
                   title="Next Page"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1565,15 +1561,15 @@ export default function MenuManagementComponent() {
         )}
 
         {/* Add Item Modal */}
-        <TModal open={isAddItemOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isAddItemOpen} className="p-4 bg-slate-900/50 backdrop-blur-sm">
           {isAddItemOpen && (
-            <div className="bg-white border border-gray-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
-              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
+            <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
+              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Plus className="w-5 h-5 text-[#D3232A]" /> Create Menu Item
               </h2>
               <form onSubmit={handleCreateItem} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Item Name *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Item Name *</label>
                   <input
                     type="text"
                     required
@@ -1586,14 +1582,14 @@ export default function MenuManagementComponent() {
 
                 {/* Dietary Type Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Dietary Type *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Dietary Type *</label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setNewItem({ ...newItem, dietaryType: "VEG", isVeg: true })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1604,7 +1600,7 @@ export default function MenuManagementComponent() {
                       onClick={() => setNewItem({ ...newItem, dietaryType: "NON_VEG", isVeg: false })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
@@ -1615,7 +1611,7 @@ export default function MenuManagementComponent() {
                       onClick={() => setNewItem({ ...newItem, dietaryType: "VEGAN", isVeg: true })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${newItem.dietaryType === "VEGAN"
                           ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
@@ -1626,7 +1622,7 @@ export default function MenuManagementComponent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Price (₹) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1638,7 +1634,7 @@ export default function MenuManagementComponent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Category *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
                     <select
                       required
                       value={newItem.categoryId}
@@ -1657,9 +1653,9 @@ export default function MenuManagementComponent() {
 
                 {/* Upload Item Photo */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Item Photo (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Item Photo (Optional)</label>
                   <div className="flex items-center gap-3">
-                    <label className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 text-xs font-semibold cursor-pointer hover:bg-gray-100 transition">
+                    <label className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-100 transition">
                       <Upload className="w-4 h-4 text-[#D3232A]" /> Upload Image
                       <input
                         type="file"
@@ -1670,11 +1666,11 @@ export default function MenuManagementComponent() {
                     </label>
                     {newItem.imageUrl ? (
                       <div className="flex items-center gap-2">
-                        <img src={newItem.imageUrl} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-gray-200" />
+                        <img src={newItem.imageUrl} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
                         <span className="text-[11px] text-emerald-600 font-bold">Image Uploaded</span>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-gray-400">No image chosen</span>
+                      <span className="text-[11px] text-slate-400">No image chosen</span>
                     )}
                   </div>
                 </div>
@@ -1683,7 +1679,7 @@ export default function MenuManagementComponent() {
                 {isAllOutletsSelected && specificBranches.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-gray-700">Assigned Outlets / Locations *</label>
+                      <label className="text-xs font-semibold text-slate-700">Assigned Outlets / Locations *</label>
                       <button
                         type="button"
                         onClick={() => {
@@ -1696,7 +1692,7 @@ export default function MenuManagementComponent() {
                         {newItem.outletIds.length === specificBranches.length ? "Deselect All" : "Select All Outlets"}
                       </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-36 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-xl max-h-36 overflow-y-auto">
                       {specificBranches.map((b) => {
                         const isChecked = newItem.outletIds.includes(b.id);
                         return (
@@ -1704,7 +1700,7 @@ export default function MenuManagementComponent() {
                             key={b.id}
                             className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${isChecked
                                 ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
-                                : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
+                                : "bg-slate-100/60 border-transparent text-slate-500 hover:bg-slate-100"
                               }`}
                           >
                             <input
@@ -1718,7 +1714,7 @@ export default function MenuManagementComponent() {
                               }}
                               className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
                             />
-                            <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                            <Store className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                             <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
                           </label>
                         );
@@ -1730,10 +1726,10 @@ export default function MenuManagementComponent() {
                 {/* Modifier Groups / Add-ons Assignment */}
                 {availableModifierGroups.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Add-on Groups & Customizations
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-40 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-xl max-h-40 overflow-y-auto">
                       {availableModifierGroups.map((group) => {
                         const isChecked = newItem.modifierGroupIds.includes(group.id);
                         return (
@@ -1742,7 +1738,7 @@ export default function MenuManagementComponent() {
                             className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
                               isChecked
                                 ? "bg-amber-50/80 border-amber-400 text-amber-950 font-bold shadow-2xs"
-                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                             }`}
                           >
                             <input
@@ -1759,11 +1755,11 @@ export default function MenuManagementComponent() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-1">
                                 <span className="font-semibold truncate">{group.name}</span>
-                                <span className="text-[10px] px-1 py-0.2 bg-gray-100 text-gray-600 rounded">
+                                <span className="text-[10px] px-1 py-0.2 bg-slate-100 text-slate-600 rounded">
                                   {group.modifiers?.length || 0} opts
                                 </span>
                               </div>
-                              <p className="text-[10px] text-gray-500 font-normal line-clamp-1">
+                              <p className="text-[10px] text-slate-500 font-normal line-clamp-1">
                                 {group.modifiers?.map((m) => m.name).join(", ") || "No options"}
                               </p>
                             </div>
@@ -1775,7 +1771,7 @@ export default function MenuManagementComponent() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
                   <textarea
                     rows={2}
                     placeholder="Short dish summary, ingredients..."
@@ -1785,7 +1781,7 @@ export default function MenuManagementComponent() {
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsAddItemOpen(false)}
@@ -1807,15 +1803,15 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* Add Category Modal */}
-        <TModal open={isAddCategoryOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isAddCategoryOpen} className="p-4 bg-slate-900/50 backdrop-blur-sm">
           {isAddCategoryOpen && (
-            <div className="bg-white border border-gray-200 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
-              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
+            <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
+              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Tag className="w-5 h-5 text-[#D3232A]" /> New Menu Category
               </h2>
               <form onSubmit={handleCreateCategory} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category Name *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category Name *</label>
                   <input
                     type="text"
                     required
@@ -1827,7 +1823,7 @@ export default function MenuManagementComponent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
                   <input
                     type="text"
                     placeholder="Optional category description"
@@ -1836,7 +1832,7 @@ export default function MenuManagementComponent() {
                     className="input"
                   />
                 </div>
-                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsAddCategoryOpen(false)}
@@ -1858,15 +1854,15 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* Edit Item Modal */}
-        <TModal open={isEditItemOpen} className="p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={isEditItemOpen} className="p-4 bg-slate-900/50 backdrop-blur-sm">
           {isEditItemOpen && (
-            <div className="bg-white border border-gray-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
-              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-gray-100">
+            <div className="bg-white border border-slate-200 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl space-y-5">
+              <h2 className="text-lg font-bold text-[#1B2A4A] flex items-center gap-2 pb-3 border-b border-slate-100">
                 <Pencil className="w-5 h-5 text-[#D3232A]" /> Edit Menu Item
               </h2>
               <form onSubmit={handleUpdateItem} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Item Name *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Item Name *</label>
                   <input
                     type="text"
                     required
@@ -1879,14 +1875,14 @@ export default function MenuManagementComponent() {
 
                 {/* Dietary Type Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Dietary Type *</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Dietary Type *</label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setEditItem({ ...editItem, dietaryType: "VEG", isVeg: true })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "VEG"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1897,7 +1893,7 @@ export default function MenuManagementComponent() {
                       onClick={() => setEditItem({ ...editItem, dietaryType: "NON_VEG", isVeg: false })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "NON_VEG"
                           ? "bg-rose-50 text-rose-700 border-rose-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
@@ -1908,7 +1904,7 @@ export default function MenuManagementComponent() {
                       onClick={() => setEditItem({ ...editItem, dietaryType: "VEGAN", isVeg: true })}
                       className={`py-2 px-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 transition ${editItem.dietaryType === "VEGAN"
                           ? "bg-teal-50 text-teal-700 border-teal-500 shadow-2xs"
-                          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
                         }`}
                     >
                       <Leaf className="w-3.5 h-3.5 text-teal-600 shrink-0" />
@@ -1919,7 +1915,7 @@ export default function MenuManagementComponent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Price (₹) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1931,7 +1927,7 @@ export default function MenuManagementComponent() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Category *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
                     <select
                       required
                       value={editItem.categoryId}
@@ -1950,9 +1946,9 @@ export default function MenuManagementComponent() {
 
                 {/* Upload Item Photo */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Item Photo (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Item Photo (Optional)</label>
                   <div className="flex items-center gap-3">
-                    <label className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 text-xs font-semibold cursor-pointer hover:bg-gray-100 transition">
+                    <label className="flex items-center justify-center gap-2 px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-100 transition">
                       <Upload className="w-4 h-4 text-[#D3232A]" /> Upload Image
                       <input
                         type="file"
@@ -1963,11 +1959,11 @@ export default function MenuManagementComponent() {
                     </label>
                     {editItem.imageUrl ? (
                       <div className="flex items-center gap-2">
-                        <img src={getImageUrl(editItem.imageUrl)} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-gray-200" />
+                        <img src={getImageUrl(editItem.imageUrl)} alt="Preview" className="w-8 h-8 rounded-lg object-cover border border-slate-200" />
                         <span className="text-[11px] text-emerald-600 font-bold">Image Set</span>
                       </div>
                     ) : (
-                      <span className="text-[11px] text-gray-400">No image chosen</span>
+                      <span className="text-[11px] text-slate-400">No image chosen</span>
                     )}
                   </div>
                 </div>
@@ -1976,7 +1972,7 @@ export default function MenuManagementComponent() {
                 {specificBranches.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-gray-700">Assigned Outlets / Locations *</label>
+                      <label className="text-xs font-semibold text-slate-700">Assigned Outlets / Locations *</label>
                       <button
                         type="button"
                         onClick={() => {
@@ -1989,7 +1985,7 @@ export default function MenuManagementComponent() {
                         {editItem.outletIds.length === specificBranches.length ? "Deselect All" : "Select All Outlets"}
                       </button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-36 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-xl max-h-36 overflow-y-auto">
                       {specificBranches.map((b) => {
                         const isChecked = editItem.outletIds.includes(b.id);
                         return (
@@ -1997,7 +1993,7 @@ export default function MenuManagementComponent() {
                             key={b.id}
                             className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-bold cursor-pointer transition ${isChecked
                                 ? "bg-white border-[#1B2A4A] text-[#1B2A4A] shadow-xs"
-                                : "bg-gray-100/60 border-transparent text-gray-500 hover:bg-gray-100"
+                                : "bg-slate-100/60 border-transparent text-slate-500 hover:bg-slate-100"
                               }`}
                           >
                             <input
@@ -2011,7 +2007,7 @@ export default function MenuManagementComponent() {
                               }}
                               className="rounded text-[#1B2A4A] focus:ring-[#1B2A4A]"
                             />
-                            <Store className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                            <Store className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                             <span className="whitespace-normal break-words leading-tight" title={b.name}>{b.name}</span>
                           </label>
                         );
@@ -2023,10 +2019,10 @@ export default function MenuManagementComponent() {
                 {/* Modifier Groups / Add-ons Assignment */}
                 {availableModifierGroups.length > 0 && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Add-on Groups & Customizations
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 p-3 rounded-xl max-h-40 overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-xl max-h-40 overflow-y-auto">
                       {availableModifierGroups.map((group) => {
                         const isChecked = editItem.modifierGroupIds.includes(group.id);
                         return (
@@ -2035,7 +2031,7 @@ export default function MenuManagementComponent() {
                             className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
                               isChecked
                                 ? "bg-amber-50/80 border-amber-400 text-amber-950 font-bold shadow-2xs"
-                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                             }`}
                           >
                             <input
@@ -2052,11 +2048,11 @@ export default function MenuManagementComponent() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-1">
                                 <span className="font-semibold truncate">{group.name}</span>
-                                <span className="text-[10px] px-1 py-0.2 bg-gray-100 text-gray-600 rounded">
+                                <span className="text-[10px] px-1 py-0.2 bg-slate-100 text-slate-600 rounded">
                                   {group.modifiers?.length || 0} opts
                                 </span>
                               </div>
-                              <p className="text-[10px] text-gray-500 font-normal line-clamp-1">
+                              <p className="text-[10px] text-slate-500 font-normal line-clamp-1">
                                 {group.modifiers?.map((m) => m.name).join(", ") || "No options"}
                               </p>
                             </div>
@@ -2068,7 +2064,7 @@ export default function MenuManagementComponent() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
                   <textarea
                     rows={2}
                     placeholder="Short dish summary, ingredients..."
@@ -2078,7 +2074,7 @@ export default function MenuManagementComponent() {
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsEditItemOpen(false)}
@@ -2100,10 +2096,10 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* All Outlets Creation Confirmation Modal */}
-        <TModal open={!!pendingConfirmAction} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!pendingConfirmAction} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {pendingConfirmAction && (
-            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800">
                     <Store className="w-5 h-5" />
@@ -2112,14 +2108,14 @@ export default function MenuManagementComponent() {
                     <h3 className="text-base font-black text-[#1B2A4A]">
                       Add to All Outlets?
                     </h3>
-                    <p className="text-xs text-gray-500 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       'All Outlets' filter is currently selected.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setPendingConfirmAction(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -2143,7 +2139,7 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setPendingConfirmAction(null)}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="flex-1 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2169,10 +2165,10 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* Status Toggle Confirmation Modal */}
-        <TModal open={!!pendingStatusToggle} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!pendingStatusToggle} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {pendingStatusToggle && (
-            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+            <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
                   <div
                     className={`p-2.5 rounded-xl ${pendingStatusToggle.targetStatus
@@ -2186,14 +2182,14 @@ export default function MenuManagementComponent() {
                     <h3 className="text-base font-black text-[#1B2A4A]">
                       {pendingStatusToggle.targetStatus ? "Activate" : "Deactivate"} across assigned outlets?
                     </h3>
-                    <p className="text-xs text-gray-500 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                       'All Outlets' filter is currently selected.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setPendingStatusToggle(null)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -2226,7 +2222,7 @@ export default function MenuManagementComponent() {
                 <button
                   type="button"
                   onClick={() => setPendingStatusToggle(null)}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                  className="flex-1 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2246,16 +2242,16 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* Delete Confirmation Modal */}
-        <TModal open={!!itemToDelete} className="z-[60] p-4 bg-gray-900/50 backdrop-blur-sm">
+        <TModal open={!!itemToDelete} className="z-[60] p-4 bg-slate-900/50 backdrop-blur-sm">
           {itemToDelete && (
-            <div className="bg-white border border-gray-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+            <div className="bg-white border border-slate-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
                   <Trash2 className="w-6 h-6 text-rose-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 mb-1">Delete Menu Item</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
+                  <h3 className="text-lg font-black text-slate-900 mb-1">Delete Menu Item</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">
                     Are you sure you want to delete <strong>"{itemToDelete.name}"</strong>? This action cannot be undone.
                   </p>
                 </div>
@@ -2266,7 +2262,7 @@ export default function MenuManagementComponent() {
                   type="button"
                   onClick={() => setItemToDelete(null)}
                   disabled={isDeletingItem}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -2290,10 +2286,10 @@ export default function MenuManagementComponent() {
           )}
         </TModal>
         {/* Edit Category Modal */}
-        <TModal open={isEditCategoryOpen} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={isEditCategoryOpen} className="p-4 bg-slate-900/60 backdrop-blur-sm">
           {isEditCategoryOpen && (
-            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+            <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                     <Pencil className="w-5 h-5" />
@@ -2302,7 +2298,7 @@ export default function MenuManagementComponent() {
                 </div>
                 <button
                   onClick={() => setIsEditCategoryOpen(false)}
-                  className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                  className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2310,7 +2306,7 @@ export default function MenuManagementComponent() {
 
               <form onSubmit={handleUpdateCategorySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
                     Category Name <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -2318,7 +2314,7 @@ export default function MenuManagementComponent() {
                     required
                     value={editCategory.name}
                     onChange={(e) => setEditCategory({ ...editCategory, name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 focus:border-[#1B2A4A] transition"
                     placeholder="e.g., Starters, Beverages"
                   />
                 </div>
@@ -2327,7 +2323,7 @@ export default function MenuManagementComponent() {
                   <button
                     type="button"
                     onClick={() => setIsEditCategoryOpen(false)}
-                    className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+                    className="flex-1 py-2.5 border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -2345,21 +2341,21 @@ export default function MenuManagementComponent() {
         </TModal>
 
         {/* Delete Category Confirmation Modal */}
-        <TModal open={!!categoryToDelete} className="z-[60] p-4 bg-gray-900/60 backdrop-blur-sm">
+        <TModal open={!!categoryToDelete} className="z-[60] p-4 bg-slate-900/60 backdrop-blur-sm">
           {categoryToDelete && (
-            <div className="bg-white border border-gray-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+            <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
               <div className="flex flex-col items-center text-center space-y-3">
                 <div className="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center border border-rose-100">
                   <Trash2 className="w-7 h-7 text-rose-500" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 mb-2">Delete Category?</h3>
+                  <h3 className="text-xl font-black text-slate-900 mb-2">Delete Category?</h3>
                   <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg mb-2">
                     <p className="text-sm text-rose-800 font-medium">
                       All menu items inside <strong>"{categoryToDelete.name}"</strong> will also be removed!
                     </p>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed font-semibold">
+                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                     This action is permanent and affects the selected outlets.
                   </p>
                 </div>
@@ -2370,7 +2366,7 @@ export default function MenuManagementComponent() {
                   type="button"
                   onClick={() => setCategoryToDelete(null)}
                   disabled={isDeletingCat}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>

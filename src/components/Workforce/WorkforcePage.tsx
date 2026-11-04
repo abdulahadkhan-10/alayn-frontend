@@ -3,6 +3,7 @@
 import { TModal } from "@/components/ui/TModal";
 import React, { useState } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import WorkforceHeaderNav from "./WorkforceHeaderNav";
 import WorkforceSkeleton from "./WorkforceSkeleton";
 import {
@@ -283,18 +284,14 @@ export default function WorkforcePage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Staff Directory</h1>
-            <p className="text-sm text-gray-500">
-              Manage team accounts, view staff profiles, roles, and compliance documents.
-            </p>
-          </div>
-          {isManagerOrOwner ? (
-            <div className="flex items-center gap-2">
+        <PageHeader
+          title="Staff Directory"
+          subtitle="Manage team accounts, view staff profiles, roles, and compliance documents."
+          actions={isManagerOrOwner ? (
+            <>
               <button
                 onClick={() => setShowBulkUploadModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-white border border-gray-200 text-gray-700 px-4 py-2.5 text-sm font-semibold shadow-2xs hover:bg-gray-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 text-slate-700 px-4 py-2.5 text-sm font-semibold shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
                 Bulk CSV Import
@@ -323,9 +320,9 @@ export default function WorkforcePage() {
                 <Plus className="h-4 w-4" />
                 Add Employee
               </button>
-            </div>
-          ) : null}
-        </div>
+            </>
+          ) : undefined}
+        />
 
         {/* Navigation Tabs */}
         <WorkforceHeaderNav />
@@ -347,13 +344,13 @@ export default function WorkforcePage() {
           <>
             {/* Metrics Row */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Total Staff
                     </p>
-                    <p className="mt-1 text-2xl font-extrabold text-gray-900">{employees.length}</p>
+                    <p className="mt-1 text-2xl font-extrabold text-slate-900">{employees.length}</p>
                   </div>
                   <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
                     <Users className="h-6 w-6" />
@@ -361,10 +358,10 @@ export default function WorkforcePage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Active Employees
                     </p>
                     <p className="mt-1 text-2xl font-extrabold text-emerald-600">
@@ -377,10 +374,10 @@ export default function WorkforcePage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Inactive Staff
                     </p>
                     <p className="mt-1 text-2xl font-extrabold text-rose-600">
@@ -393,10 +390,10 @@ export default function WorkforcePage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Uploaded Docs
                     </p>
                     <p className="mt-1 text-2xl font-extrabold text-purple-600">
@@ -411,26 +408,26 @@ export default function WorkforcePage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
+            <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
               <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search staff by name, email or phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                 />
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
-                  <Filter className="h-3.5 w-3.5 text-gray-400" />
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <Filter className="h-3.5 w-3.5 text-slate-400" />
                   <span>Role:</span>
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
-                    className="border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="ALL">All Roles</option>
                     <option value="BUSINESS_OWNER">Business Owner</option>
@@ -440,12 +437,12 @@ export default function WorkforcePage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
                   <span>Status:</span>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value="ALL">All Status</option>
                     <option value="ACTIVE">Active</option>
@@ -456,10 +453,10 @@ export default function WorkforcePage() {
             </div>
 
             {/* GOLD STANDARD 4-COLUMN STREAMLINED STAFF TABLE */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-2xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50/90 text-xs font-bold uppercase tracking-wider text-gray-600 border-b border-gray-200/80">
+                  <thead className="bg-slate-50/90 text-xs font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200/80">
                     <tr>
                       <th className="px-6 py-3.5">Employee</th>
                       <th className="px-6 py-3.5">Role & Branch</th>
@@ -467,16 +464,16 @@ export default function WorkforcePage() {
                       <th className="px-6 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200/60">
+                  <tbody className="divide-y divide-slate-200/60">
                     {paginatedEmployees.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-gray-500 text-xs font-medium">
+                        <td colSpan={4} className="px-6 py-8 text-center text-slate-500 text-xs font-medium">
                           No employee profiles found matching your search.
                         </td>
                       </tr>
                     ) : (
                       paginatedEmployees.map((emp: any) => (
-                        <tr key={emp.id} className="hover:bg-gray-50/80 transition-colors">
+                        <tr key={emp.id} className="hover:bg-slate-50/80 transition-colors">
                           {/* 1. EMPLOYEE (Avatar, Name, Email) */}
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -484,8 +481,8 @@ export default function WorkforcePage() {
                                 {emp.name?.[0] || "E"}
                               </div>
                               <div>
-                                <div className="font-bold text-gray-900 text-sm">{emp.name}</div>
-                                <div className="text-xs text-gray-500 font-medium">
+                                <div className="font-bold text-slate-900 text-sm">{emp.name}</div>
+                                <div className="text-xs text-slate-500 font-medium">
                                   {emp.email || emp.user?.email || emp.phone || "No email provided"}
                                 </div>
                               </div>
@@ -518,15 +515,15 @@ export default function WorkforcePage() {
                                 emp.user.outlets.map((u: any) => (
                                   <span
                                     key={u.outlet.id}
-                                    className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[11px] px-2 py-0.5 rounded-md border border-gray-200 font-medium"
+                                    className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[11px] px-2 py-0.5 rounded-md border border-slate-200 font-medium"
                                   >
-                                    <Building2 className="h-3 w-3 text-gray-400" />
+                                    <Building2 className="h-3 w-3 text-slate-400" />
                                     {u.outlet.name}
                                   </span>
                                 ))
                               ) : (
-                                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[11px] px-2 py-0.5 rounded-md border border-gray-200 font-medium">
-                                  <Building2 className="h-3 w-3 text-gray-400" />
+                                <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded-md border border-slate-200 font-medium">
+                                  <Building2 className="h-3 w-3 text-slate-400" />
                                   Default Branch
                                 </span>
                               )}
@@ -589,7 +586,7 @@ export default function WorkforcePage() {
                                   setShowEditPassword(false);
                                 }}
                                 title="Edit Employee Profile"
-                                className="p-1.5 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer border border-gray-200 shadow-2xs"
+                                className="p-1.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer border border-slate-200 shadow-2xs"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
@@ -604,7 +601,7 @@ export default function WorkforcePage() {
               </div>
 
               {/* Pagination Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 bg-gray-50/80 border-t border-gray-200 text-xs text-gray-600">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 bg-slate-50/80 border-t border-slate-200 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <span>Show</span>
                   <select
@@ -613,7 +610,7 @@ export default function WorkforcePage() {
                       setPageSize(Number(e.target.value));
                       setCurrentPage(1);
                     }}
-                    className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#D3232A]"
                   >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -621,7 +618,7 @@ export default function WorkforcePage() {
                     <option value={50}>50</option>
                   </select>
                   <span>per page</span>
-                  <span className="text-gray-300 mx-1">|</span>
+                  <span className="text-slate-300 mx-1">|</span>
                   <span>
                     Showing <strong>{filteredEmployees.length > 0 ? startIndex + 1 : 0}</strong> to <strong>{Math.min(startIndex + pageSize, filteredEmployees.length)}</strong> of <strong>{filteredEmployees.length}</strong> staff members
                   </span>
@@ -631,7 +628,7 @@ export default function WorkforcePage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={safeCurrentPage === 1}
-                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -641,7 +638,7 @@ export default function WorkforcePage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={safeCurrentPage >= totalPages}
-                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
+                    className="rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white transition-colors cursor-pointer"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -654,11 +651,11 @@ export default function WorkforcePage() {
         {/* Modal: Bulk CSV Import */}
         <TModal open={showBulkUploadModal} className="bg-black/50 p-4">
           {showBulkUploadModal && (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
-                <h3 className="text-lg font-bold text-gray-900">Bulk CSV Import</h3>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+                <h3 className="text-lg font-bold text-slate-900">Bulk CSV Import</h3>
                 <button onClick={() => setShowBulkUploadModal(false)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleBulkUploadSubmit} className="flex flex-col">
@@ -692,7 +689,7 @@ export default function WorkforcePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       CSV File <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -700,15 +697,15 @@ export default function WorkforcePage() {
                       accept=".csv"
                       required
                       onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowBulkUploadModal(false)}
-                    className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -738,17 +735,17 @@ export default function WorkforcePage() {
         {/* Modal: Create Employee */}
         <TModal open={showCreateModal} className="bg-black/50 p-4">
           {showCreateModal && (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
-                <h3 className="text-lg font-bold text-gray-900">Add New Employee</h3>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+                <h3 className="text-lg font-bold text-slate-900">Add New Employee</h3>
                 <button onClick={() => setShowCreateModal(false)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -757,45 +754,45 @@ export default function WorkforcePage() {
                     placeholder="e.g. Rahul Verma"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Email Address (Login Username) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <input
                       type="email"
                       required
                       placeholder="e.g. rahul.verma@alayn.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Initial Login Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <input
                       type={showPassword ? "text" : "password"}
                       required
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-10 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                       tabIndex={-1}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -809,7 +806,7 @@ export default function WorkforcePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Phone Number <span className="text-red-[#D3232A]">*</span>
                   </label>
                   <input
@@ -818,12 +815,12 @@ export default function WorkforcePage() {
                     placeholder="+91 98765 43210"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Operational Designation / Job Title
                   </label>
                   <input
@@ -831,13 +828,13 @@ export default function WorkforcePage() {
                     placeholder="e.g. Senior Waiter, Head Chef, Barista, Order Captain, Junior Manager..."
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       App Access Level (RBAC) <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -852,7 +849,7 @@ export default function WorkforcePage() {
                             : prev.outletIds,
                         }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       {roleOptionsFor().map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -860,13 +857,13 @@ export default function WorkforcePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Status
                     </label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
@@ -879,9 +876,9 @@ export default function WorkforcePage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-gray-200 p-3 bg-gray-50/50 space-y-2">
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-slate-700">
                       Assigned Branch / Outlet <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[11px] font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
@@ -890,13 +887,13 @@ export default function WorkforcePage() {
                   </div>
 
                   {outlets.length === 0 ? (
-                    <p className="text-xs text-gray-500 italic">No outlets found.</p>
+                    <p className="text-xs text-slate-500 italic">No outlets found.</p>
                   ) : formData.role === "MANAGER" ? (
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-white">
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-2 bg-white">
                       {outlets.map((outlet: any) => {
                         const isChecked = formData.outletIds.includes(outlet.id);
                         return (
-                          <label key={outlet.id} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <label key={outlet.id} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:bg-slate-50 p-1 rounded">
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -915,10 +912,10 @@ export default function WorkforcePage() {
                                   }
                                 }
                               }}
-                              className="rounded border-gray-300 text-[#D3232A] focus:ring-[#D3232A]"
+                              className="rounded border-slate-300 text-[#D3232A] focus:ring-[#D3232A]"
                             />
                             <span className="font-medium">{outlet.name}</span>
-                            <span className="text-[10px] text-gray-400 ml-auto">{outlet.city}</span>
+                            <span className="text-[10px] text-slate-400 ml-auto">{outlet.city}</span>
                           </label>
                         );
                       })}
@@ -927,7 +924,7 @@ export default function WorkforcePage() {
                     <select
                       value={formData.outletIds[0] || ""}
                       onChange={(e) => setFormData({ ...formData, outletIds: [e.target.value] })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       {outlets.map((outlet: any) => (
                         <option key={outlet.id} value={outlet.id}>
@@ -939,7 +936,7 @@ export default function WorkforcePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Joining Date
                   </label>
                   <input
@@ -947,17 +944,17 @@ export default function WorkforcePage() {
                     required
                     value={formData.joiningDate}
                     onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 </div>
 
-                <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 shrink-0">
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -977,17 +974,17 @@ export default function WorkforcePage() {
         {/* Modal: Edit Employee */}
         <TModal open={!!editEmployeeItem} className="bg-black/50 p-4">
           {editEmployeeItem && (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50 shrink-0">
-                <h3 className="text-lg font-bold text-gray-900">Edit Employee Profile</h3>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+                <h3 className="text-lg font-bold text-slate-900">Edit Employee Profile</h3>
                 <button onClick={() => setEditEmployeeItem(null)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 overflow-hidden">
                 <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -995,43 +992,43 @@ export default function WorkforcePage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Email Address (Login Username) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <input
                       type="email"
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     New Password (Optional)
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <input
                       type={showEditPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       placeholder="Leave empty to keep existing password"
-                      className="w-full pl-9 pr-10 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full pl-9 pr-10 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowEditPassword(!showEditPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                       tabIndex={-1}
                       aria-label={showEditPassword ? "Hide password" : "Show password"}
                     >
@@ -1045,7 +1042,7 @@ export default function WorkforcePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Phone Number <span className="text-red-[#D3232A]">*</span>
                   </label>
                   <input
@@ -1053,12 +1050,12 @@ export default function WorkforcePage() {
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Operational Designation / Job Title
                   </label>
                   <input
@@ -1066,7 +1063,7 @@ export default function WorkforcePage() {
                     placeholder="e.g. Senior Waiter, Head Chef, Barista, Order Captain, Junior Manager..."
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
@@ -1079,7 +1076,7 @@ export default function WorkforcePage() {
                 <fieldset disabled={isSelf(editEmployeeItem)} className="space-y-4 disabled:opacity-60">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       App Access Level (RBAC) <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -1094,7 +1091,7 @@ export default function WorkforcePage() {
                             : prev.outletIds,
                         }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       {roleOptionsFor(editEmployeeItem?.role).map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -1102,13 +1099,13 @@ export default function WorkforcePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
                       Status
                     </label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       <option value="ACTIVE">Active</option>
                       <option value="INACTIVE">Inactive</option>
@@ -1121,9 +1118,9 @@ export default function WorkforcePage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-gray-200 p-3 bg-gray-50/50 space-y-2">
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-slate-700">
                       Assigned Branch / Outlet <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[11px] font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
@@ -1132,13 +1129,13 @@ export default function WorkforcePage() {
                   </div>
 
                   {outlets.length === 0 ? (
-                    <p className="text-xs text-gray-500 italic">No outlets found.</p>
+                    <p className="text-xs text-slate-500 italic">No outlets found.</p>
                   ) : formData.role === "MANAGER" ? (
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-white">
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-2 bg-white">
                       {outlets.map((outlet: any) => {
                         const isChecked = formData.outletIds.includes(outlet.id);
                         return (
-                          <label key={outlet.id} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <label key={outlet.id} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:bg-slate-50 p-1 rounded">
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -1157,10 +1154,10 @@ export default function WorkforcePage() {
                                   }
                                 }
                               }}
-                              className="rounded border-gray-300 text-[#D3232A] focus:ring-[#D3232A]"
+                              className="rounded border-slate-300 text-[#D3232A] focus:ring-[#D3232A]"
                             />
                             <span className="font-medium">{outlet.name}</span>
-                            <span className="text-[10px] text-gray-400 ml-auto">{outlet.city}</span>
+                            <span className="text-[10px] text-slate-400 ml-auto">{outlet.city}</span>
                           </label>
                         );
                       })}
@@ -1169,7 +1166,7 @@ export default function WorkforcePage() {
                     <select
                       value={formData.outletIds[0] || ""}
                       onChange={(e) => setFormData({ ...formData, outletIds: [e.target.value] })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       {outlets.map((outlet: any) => (
                         <option key={outlet.id} value={outlet.id}>
@@ -1182,7 +1179,7 @@ export default function WorkforcePage() {
                 </fieldset>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Joining Date
                   </label>
                   <input
@@ -1190,17 +1187,17 @@ export default function WorkforcePage() {
                     required
                     value={formData.joiningDate}
                     onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 </div>
 
-                <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 shrink-0">
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
                   <button
                     type="button"
                     onClick={() => setEditEmployeeItem(null)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1220,19 +1217,19 @@ export default function WorkforcePage() {
         {/* Modal: Upload Document */}
         <TModal open={!!docUploadItem} className="bg-black/50 p-4">
           {docUploadItem && (
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-bold text-gray-900">Upload Document</h3>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <h3 className="text-lg font-bold text-slate-900">Upload Document</h3>
                 <button onClick={() => setDocUploadItem(null)} className="cursor-pointer">
-                  <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
               <form onSubmit={handleUploadDocSubmit} className="p-6 space-y-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-600">
                   Upload verification/compliance document for <strong>{docUploadItem.name}</strong>.
                 </p>
 
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#D3232A] transition-colors cursor-pointer bg-gray-50">
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-[#D3232A] transition-colors cursor-pointer bg-slate-50">
                   <input
                     type="file"
                     required
@@ -1241,18 +1238,18 @@ export default function WorkforcePage() {
                     id="file-upload"
                   />
                   <label htmlFor="file-upload" className="cursor-pointer block">
-                    <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                    <Upload className="mx-auto h-8 w-8 text-slate-400 mb-2" />
                     <span className="text-sm font-semibold text-[#D3232A]">
                       {selectedFile ? selectedFile.name : "Click to choose PDF or Image"}
                     </span>
                   </label>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                   <button
                     type="button"
                     onClick={() => setDocUploadItem(null)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1272,12 +1269,12 @@ export default function WorkforcePage() {
         {/* Modal: Employee Profile & Deep Details (👁️ Eye Icon) */}
         <TModal open={!!selectedEmployeeDetail} className="bg-black/50 p-4">
           {selectedEmployeeDetail && (
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
               {/* Profile Header */}
-              <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-[#1A2335] text-white p-6 relative">
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-[#1A2335] text-white p-6 relative">
                 <button
                   onClick={() => setSelectedEmployeeDetail(null)}
-                  className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1322,35 +1319,35 @@ export default function WorkforcePage() {
               </div>
 
               {/* Profile Details Content */}
-              <div className="p-6 space-y-5 text-xs text-gray-700 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-5 text-xs text-slate-700 max-h-[70vh] overflow-y-auto">
                 {/* Contact & Personal Info Grid */}
-                <div className="bg-gray-50/80 rounded-xl p-4 border border-gray-200/80 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                     Contact & Personal Details
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex items-center gap-2.5">
-                      <Mail className="h-4 w-4 text-gray-400 shrink-0" />
+                      <Mail className="h-4 w-4 text-slate-400 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Login Email</span>
-                        <span className="font-bold text-gray-900">{selectedEmployeeDetail.email || selectedEmployeeDetail.user?.email || "No email"}</span>
+                        <span className="text-[10px] text-slate-400 block font-medium">Login Email</span>
+                        <span className="font-bold text-slate-900">{selectedEmployeeDetail.email || selectedEmployeeDetail.user?.email || "No email"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <Phone className="h-4 w-4 text-gray-400 shrink-0" />
+                      <Phone className="h-4 w-4 text-slate-400 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Phone Number</span>
-                        <span className="font-bold text-gray-900">{selectedEmployeeDetail.phone || "Not provided"}</span>
+                        <span className="text-[10px] text-slate-400 block font-medium">Phone Number</span>
+                        <span className="font-bold text-slate-900">{selectedEmployeeDetail.phone || "Not provided"}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <CalendarIcon className="h-4 w-4 text-gray-400 shrink-0" />
+                      <CalendarIcon className="h-4 w-4 text-slate-400 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Joining Date</span>
-                        <span className="font-bold text-gray-900">
+                        <span className="text-[10px] text-slate-400 block font-medium">Joining Date</span>
+                        <span className="font-bold text-slate-900">
                           {selectedEmployeeDetail.joiningDate
                             ? new Date(selectedEmployeeDetail.joiningDate).toLocaleDateString("en-US", {
                                 day: "numeric",
@@ -1363,10 +1360,10 @@ export default function WorkforcePage() {
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <Building2 className="h-4 w-4 text-gray-400 shrink-0" />
+                      <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
                       <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Primary Branch</span>
-                        <span className="font-bold text-gray-900">
+                        <span className="text-[10px] text-slate-400 block font-medium">Primary Branch</span>
+                        <span className="font-bold text-slate-900">
                           {selectedEmployeeDetail.user?.outlets?.[0]?.outlet?.name || "Main Outlet"}
                         </span>
                       </div>
@@ -1375,8 +1372,8 @@ export default function WorkforcePage() {
                 </div>
 
                 {/* Assigned Outlets Section */}
-                <div className="bg-gray-50/80 rounded-xl p-4 border border-gray-200/80 space-y-2">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/80 space-y-2">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Assigned Branches ({selectedEmployeeDetail.user?.outlets?.length || 1})
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
@@ -1384,15 +1381,15 @@ export default function WorkforcePage() {
                       selectedEmployeeDetail.user.outlets.map((u: any) => (
                         <span
                           key={u.outlet.id}
-                          className="inline-flex items-center gap-1.5 bg-white text-gray-800 text-xs px-2.5 py-1 rounded-lg border border-gray-200 shadow-2xs font-semibold"
+                          className="inline-flex items-center gap-1.5 bg-white text-slate-800 text-xs px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs font-semibold"
                         >
                           <Building2 className="h-3.5 w-3.5 text-[#D3232A]" />
                           {u.outlet.name}
-                          <span className="text-[10px] text-gray-400 font-mono">({u.outlet.city})</span>
+                          <span className="text-[10px] text-slate-400 font-mono">({u.outlet.city})</span>
                         </span>
                       ))
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 bg-white text-gray-800 text-xs px-2.5 py-1 rounded-lg border border-gray-200 shadow-2xs font-semibold">
+                      <span className="inline-flex items-center gap-1.5 bg-white text-slate-800 text-xs px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs font-semibold">
                         <Building2 className="h-3.5 w-3.5 text-[#D3232A]" />
                         Main Outlet
                       </span>
@@ -1402,10 +1399,10 @@ export default function WorkforcePage() {
               </div>
 
               {/* Profile Footer Actions */}
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
                 <button
                   onClick={() => setSelectedEmployeeDetail(null)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
                 >
                   Close
                 </button>

@@ -27,6 +27,7 @@ import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import { useBranch } from "@/lib/BranchContext";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import SupportSkeleton from "./SupportSkeleton";
 import RaiseQueryModal from "./RaiseQueryModal";
 import TicketDetailModal from "./TicketDetailModal";
@@ -118,23 +119,17 @@ export default function SupportPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* ── Header Title & Actions ────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Support & Queries Hub
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {isOwner
+        <PageHeader
+          title="Support & Queries Hub"
+          subtitle={
+              isOwner
                 ? "Branch-wise management of staff queries, internal concerns, and customer feedback."
                 : isManager
                 ? "Manage branch staff concerns and escalate operational queries to leadership."
-                : "Submit queries, track resolution, and communicate with branch management."}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Action Button to Raise Query / Concern (Managers, Staff, Kitchen only) */}
-            {!isOwner && (
+                : "Submit queries, track resolution, and communicate with branch management."
+          }
+          // Raise Query / Concern is for Managers, Staff and Kitchen only
+          actions={!isOwner ? (
               <button
                 onClick={() => setIsRaiseModalOpen(true)}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#D3232A] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#b01e23] transition-colors cursor-pointer"
@@ -142,12 +137,11 @@ export default function SupportPage() {
                 <PlusCircle className="h-4 w-4" />
                 {isManager ? "Raise Concern to Owner" : "Raise Query / Concern"}
               </button>
-            )}
-          </div>
-        </div>
+          ) : undefined}
+        />
 
         {/* ── Navigation Tabs ─────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-4 mb-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4 mb-2">
           {!isEmployee && (
             <>
               <button
@@ -156,7 +150,7 @@ export default function SupportPage() {
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer",
                   activeTab === "staff_queries"
                     ? "bg-[#D3232A] text-white shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200"
+                    : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200"
                 )}
               >
                 <User className="h-4 w-4" />
@@ -169,7 +163,7 @@ export default function SupportPage() {
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer",
                   activeTab === "customer_tickets"
                     ? "bg-[#D3232A] text-white shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200"
+                    : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200"
                 )}
               >
                 <Star className="h-4 w-4" />
@@ -185,7 +179,7 @@ export default function SupportPage() {
                 "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer",
                 activeTab === "my_queries"
                   ? "bg-[#D3232A] text-white shadow-sm"
-                  : "bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200"
+                  : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200"
               )}
             >
               <HelpCircle className="h-4 w-4" />
@@ -201,13 +195,13 @@ export default function SupportPage() {
           <>
             {/* ── Stat Metric Cards Row ───────────────────────────── */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Total Items
                 </p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.total}</p>
               </div>
               <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
                 <MessageSquare className="h-6 w-6" />
@@ -215,10 +209,10 @@ export default function SupportPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Open / Pending
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-amber-600">{stats.open}</p>
@@ -229,10 +223,10 @@ export default function SupportPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   In Progress
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-purple-600">{stats.inProgress}</p>
@@ -243,10 +237,10 @@ export default function SupportPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Resolved
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-emerald-600">{stats.resolved}</p>
@@ -260,25 +254,25 @@ export default function SupportPage() {
 
         {/* ── Filter & Search Bar ──────────────────────────────── */}
         {activeTab !== "my_queries" && (
-          <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search ticket title, category, description or employee..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A]"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A]"
               />
             </div>
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-gray-400" />
+                <Filter className="h-4 w-4 text-slate-400" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A] bg-white text-gray-700 font-medium"
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]/20 focus:border-[#D3232A] bg-white text-slate-700 font-medium"
                 >
                   <option value="all">All Statuses</option>
                   <option value="OPEN">Open</option>
@@ -295,14 +289,14 @@ export default function SupportPage() {
           /* My Queries View */
           <div className="space-y-3">
             {isLoadingMyQueries ? (
-              <div className="flex h-40 items-center justify-center bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex h-40 items-center justify-center bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#D3232A] border-t-transparent" />
               </div>
             ) : myQueriesData && myQueriesData.length > 0 ? (
               myQueriesData.map((q: any) => (
                 <div
                   key={q.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:border-gray-300 hover:shadow-md transition-all space-y-3"
+                  className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 hover:shadow-md transition-all space-y-3"
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
@@ -311,8 +305,8 @@ export default function SupportPage() {
                       </span>
 
                       {q.outlet && (
-                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded border border-gray-200 font-medium">
-                          <Building2 className="h-3 w-3 text-gray-400" />
+                        <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded border border-slate-200 font-medium">
+                          <Building2 className="h-3 w-3 text-slate-400" />
                           {q.outlet.name}
                         </span>
                       )}
@@ -329,17 +323,17 @@ export default function SupportPage() {
                       >
                         {q.status}
                       </span>
-                      <span className="text-gray-500 font-medium">{new Date(q.createdAt).toLocaleDateString()}</span>
+                      <span className="text-slate-500 font-medium">{new Date(q.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-900 font-normal leading-relaxed">{q.description}</p>
+                  <p className="text-sm text-slate-900 font-normal leading-relaxed">{q.description}</p>
 
                   {/* Show Response Comment if Ticket History exists */}
                   {q.ticket?.histories && q.ticket.histories.length > 1 && (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3.5 text-xs space-y-1">
-                      <p className="font-semibold text-gray-900">Management Response:</p>
-                      <p className="text-gray-600 font-medium">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs space-y-1">
+                      <p className="font-semibold text-slate-900">Management Response:</p>
+                      <p className="text-slate-600 font-medium">
                         {q.ticket.histories[q.ticket.histories.length - 1].comment || "Status updated"}
                       </p>
                     </div>
@@ -347,10 +341,10 @@ export default function SupportPage() {
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
-                <HelpCircle className="h-10 w-10 text-gray-400 mb-3" />
-                <h3 className="text-sm font-semibold text-gray-900">No Queries Raised Yet</h3>
-                <p className="text-xs text-gray-500 mt-1 max-w-sm">
+              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+                <HelpCircle className="h-10 w-10 text-slate-400 mb-3" />
+                <h3 className="text-sm font-semibold text-slate-900">No Queries Raised Yet</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm">
                   Have a question or operational concern? Click "Raise Query / Concern" above to contact management.
                 </p>
               </div>
@@ -360,7 +354,7 @@ export default function SupportPage() {
           /* Tickets View (Staff Queries or Customer Feedbacks) */
           <div className="space-y-3">
             {isLoadingTickets ? (
-              <div className="flex h-40 items-center justify-center bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex h-40 items-center justify-center bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#D3232A] border-t-transparent" />
               </div>
             ) : filteredTickets.length > 0 ? (
@@ -373,7 +367,7 @@ export default function SupportPage() {
                   <div
                     key={t.id}
                     onClick={() => setSelectedTicket(t)}
-                    className="group cursor-pointer bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:border-gray-300 hover:shadow-md transition-all space-y-3"
+                    className="group cursor-pointer bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 hover:shadow-md transition-all space-y-3"
                   >
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="flex items-center gap-2.5 flex-wrap">
@@ -391,8 +385,8 @@ export default function SupportPage() {
 
                         {/* Outlet / Branch Distinction */}
                         {t.outlet && (
-                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5 rounded border border-gray-200 font-medium">
-                            <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-0.5 rounded border border-slate-200 font-medium">
+                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
                             {t.outlet.name}
                           </span>
                         )}
@@ -423,25 +417,25 @@ export default function SupportPage() {
                           {t.status}
                         </span>
 
-                        <ArrowUpRight className="h-4 w-4 text-gray-400 group-hover:text-gray-900 transition-colors" />
+                        <ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
                       </div>
                     </div>
 
                     {/* Title & Description */}
                     <div>
-                      <h3 className="text-base font-semibold text-gray-900 group-hover:text-[#D3232A] transition-colors">
+                      <h3 className="text-base font-semibold text-slate-900 group-hover:text-[#D3232A] transition-colors">
                         {t.title}
                       </h3>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">{t.description}</p>
+                      <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">{t.description}</p>
                     </div>
 
                     {/* Source Metadata */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-500">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
                       <div className="flex items-center gap-3">
                         {isStaff && sq?.employee && (
-                          <span className="flex items-center gap-1.5 font-medium text-gray-700">
-                            <User className="h-3.5 w-3.5 text-gray-400" />
-                            {sq.employee.name} <span className="text-gray-400 font-normal">({sq.employee.role})</span>
+                          <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                            <User className="h-3.5 w-3.5 text-slate-400" />
+                            {sq.employee.name} <span className="text-slate-400 font-normal">({sq.employee.role})</span>
                           </span>
                         )}
 
@@ -450,13 +444,13 @@ export default function SupportPage() {
                             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
                             Rating {fb.rating}/5
                             {fb.order?.orderNumber && (
-                              <span className="text-gray-500 font-normal"> | Order #{fb.order.orderNumber}</span>
+                              <span className="text-slate-500 font-normal"> | Order #{fb.order.orderNumber}</span>
                             )}
                           </span>
                         )}
                       </div>
 
-                      <span className="text-xs text-gray-500 font-medium">
+                      <span className="text-xs text-slate-500 font-medium">
                         {new Date(t.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </span>
                     </div>
@@ -464,10 +458,10 @@ export default function SupportPage() {
                 );
               })
             ) : (
-              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
-                <MessageSquare className="h-10 w-10 text-gray-400 mb-3" />
-                <h3 className="text-sm font-semibold text-gray-900">No Tickets Found</h3>
-                <p className="text-xs text-gray-500 mt-1 max-w-sm">
+              <div className="flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+                <MessageSquare className="h-10 w-10 text-slate-400 mb-3" />
+                <h3 className="text-sm font-semibold text-slate-900">No Tickets Found</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm">
                   No items match your active filters or branch selection.
                 </p>
               </div>

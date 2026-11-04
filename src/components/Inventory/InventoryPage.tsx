@@ -22,6 +22,7 @@ import {
 
 import Skeleton from "react-loading-skeleton";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { useBranch } from "@/lib/BranchContext";
 import {
   useGetItemsQuery,
@@ -96,14 +97,14 @@ export default function InventoryPage() {
         <InventoryNavTabs />
 
         {/* Clean Header: Inventory & Add Item */}
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight">
-            Inventory
-          </h1>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Inventory"
+          subtitle="Stock levels, low-stock alerts and stock counts"
+          actions={
+          <>
           <Link
             href="/inventory/count"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-zinc-800 hover:bg-zinc-50 transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs sm:text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs"
           >
             <ClipboardCheck className="h-4 w-4" /> Count stock
           </Link>
@@ -114,32 +115,33 @@ export default function InventoryPage() {
           >
             <Plus className="h-4 w-4" /> Add Item
           </button>
-          </div>
-        </div>
+          </>
+          }
+        />
 
         {/* Search & Simple Filters Row */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
               id="inventory-search"
               type="text"
               placeholder="Search inventory..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-3 py-2 text-xs sm:text-sm focus:border-zinc-900 focus:outline-none transition-all font-medium"
+              className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-xs sm:text-sm focus:border-slate-900 focus:outline-none transition-all font-medium"
             />
           </div>
 
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
             {/* Status Filter: All / Low Stock */}
-            <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setStatusFilter("ALL")}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  statusFilter === "ALL" ? "bg-white text-zinc-900 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
+                  statusFilter === "ALL" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 All
@@ -148,7 +150,7 @@ export default function InventoryPage() {
                 type="button"
                 onClick={() => setStatusFilter("LOW_STOCK")}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  statusFilter === "LOW_STOCK" ? "bg-amber-500 text-white shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
+                  statusFilter === "LOW_STOCK" ? "bg-amber-500 text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Low Stock ({lowStockCount})
@@ -160,7 +162,7 @@ export default function InventoryPage() {
               id="inventory-category-filter"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-xl border border-zinc-200 px-3 py-2 text-xs sm:text-sm focus:border-zinc-900 focus:outline-none bg-white font-semibold text-zinc-800 cursor-pointer"
+              className="rounded-xl border border-slate-200 px-3 py-2 text-xs sm:text-sm focus:border-slate-900 focus:outline-none bg-white font-semibold text-slate-800 cursor-pointer"
             >
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -198,7 +200,7 @@ export default function InventoryPage() {
         )}
 
         {/* Main Inventory Table */}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-2xs overflow-hidden min-w-0">
+        <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden min-w-0">
           {isPageLoading ? (
             <div className="p-5 space-y-3">
               <Skeleton height={24} width="30%" className="mb-4" />
@@ -207,7 +209,7 @@ export default function InventoryPage() {
           ) : isItemsError ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12">
               <AlertTriangle className="h-7 w-7 text-amber-500" />
-              <p className="text-sm font-bold text-zinc-700">Unable to load inventory from server</p>
+              <p className="text-sm font-bold text-slate-700">Unable to load inventory from server</p>
               <button
                 onClick={() => refetch()}
                 className="text-xs text-[#D3232A] underline font-bold hover:text-[#b01e23]"

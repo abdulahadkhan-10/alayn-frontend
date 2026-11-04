@@ -3,6 +3,7 @@
 import { TModal } from "@/components/ui/TModal";
 import React, { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { useBranch } from "@/lib/BranchContext";
 import {
   useGetWasteLogsQuery,
@@ -395,25 +396,19 @@ export default function WasteManagementPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col min-h-full gap-5 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16 font-sans text-zinc-900">
+      <div className="flex flex-col min-h-full gap-5 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pb-16 font-sans text-slate-900">
         
         {/* Header & Date Shortcuts Controls Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-zinc-200 shadow-2xs">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 tracking-tight">
-                Waste &amp; Spoilage Ledger
-              </h1>
+        <PageHeader
+          title="Waste & Spoilage Ledger"
+          subtitle="Monitor inventory loss, analyze spoilage trends, and manage stock waste records."
+          badge={
               <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-3 py-0.5 text-xs font-bold text-[#D3232A]">
                 <Trash2 className="h-3 w-3" /> {activeBranch?.name || "Main Branch"}
               </span>
-            </div>
-            <p className="text-xs text-zinc-500 font-medium mt-1">
-              Monitor inventory loss, analyze spoilage trends, and manage stock waste records.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          }
+          actions={
+          <>
             {/* Record Waste Primary Button */}
             <button
               onClick={() => setShowRecordModal(true)}
@@ -424,18 +419,19 @@ export default function WasteManagementPage() {
 
             <button
               onClick={handleExportCSV}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
             >
-              <Download className="h-3.5 w-3.5 text-zinc-500" /> Export CSV
+              <Download className="h-3.5 w-3.5 text-slate-500" /> Export CSV
             </button>
-          </div>
-        </div>
+          </>
+          }
+        />
 
         {/* Date Shortcuts Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-zinc-200 shadow-2xs text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-zinc-500 font-bold mr-1 flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5 text-zinc-400" /> Range:
+            <span className="text-slate-500 font-bold mr-1 flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 text-slate-400" /> Range:
             </span>
 
             {[
@@ -454,8 +450,8 @@ export default function WasteManagementPage() {
                 onClick={() => setSelectedPeriod(shortcut.id as PeriodFilter)}
                 className={`rounded-lg px-3 py-1.5 font-bold transition-all cursor-pointer ${
                   selectedPeriod === shortcut.id
-                    ? "bg-zinc-900 text-white shadow-2xs"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
                 }`}
               >
                 {shortcut.label}
@@ -465,11 +461,11 @@ export default function WasteManagementPage() {
 
           {/* Custom Date Inputs */}
           {selectedPeriod === "CUSTOM" && (
-            <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-xl border border-zinc-200 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 animate-in fade-in duration-150">
               <div className="w-36">
                 <CustomDatePicker value={startDate} onChange={setStartDate} />
               </div>
-              <span className="text-zinc-400 font-bold">to</span>
+              <span className="text-slate-400 font-bold">to</span>
               <div className="w-36">
                 <CustomDatePicker value={endDate} onChange={setEndDate} />
               </div>
@@ -481,10 +477,10 @@ export default function WasteManagementPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: Selected Period Waste Loss */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   {selectedPeriod === "THIS_MONTH"
                     ? "This Month Loss"
                     : selectedPeriod === "LAST_MONTH"
@@ -499,13 +495,13 @@ export default function WasteManagementPage() {
                   <IndianRupee className="h-4 w-4" />
                 </div>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 mt-2 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 tracking-tight">
                 ₹{periodTotalLossRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </h2>
             </div>
             
-            <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-xs">
-              <span className="text-zinc-500 font-medium">{periodFilteredLogs.length} Waste Incidents</span>
+            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">{periodFilteredLogs.length} Waste Incidents</span>
               <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
                 Filtered View
               </span>
@@ -513,36 +509,36 @@ export default function WasteManagementPage() {
           </div>
 
           {/* Card 2: Year-To-Date Loss */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">2026 Total Loss (YTD)</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">2026 Total Loss (YTD)</span>
                 <div className="h-8 w-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100">
                   <Calendar className="h-4 w-4" />
                 </div>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 mt-2 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 tracking-tight">
                 ₹{yearToDateLossRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </h2>
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
-              Daily Avg: <strong className="text-zinc-900 font-bold">₹{(yearToDateLossRupees / (now.getDate() || 1)).toFixed(0)}/day</strong> this month
+            <div className="mt-3 pt-2.5 border-t border-slate-100 text-xs text-slate-500 font-medium">
+              Daily Avg: <strong className="text-slate-900 font-bold">₹{(yearToDateLossRupees / (now.getDate() || 1)).toFixed(0)}/day</strong> this month
             </div>
           </div>
 
           {/* Card 3: Top Wasted Item */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Top Loss Ingredient</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Top Loss Ingredient</span>
                 <div className="h-8 w-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
               </div>
               {topWastedIngredient ? (
                 <>
-                  <h3 className="text-lg font-bold text-zinc-900 mt-2 truncate">
+                  <h3 className="text-lg font-bold text-slate-900 mt-2 truncate">
                     {topWastedIngredient.name}
                   </h3>
                   <p className="text-xs font-bold text-red-600 mt-0.5">
@@ -550,20 +546,20 @@ export default function WasteManagementPage() {
                   </p>
                 </>
               ) : (
-                <p className="text-sm font-semibold text-zinc-400 mt-3">No waste recorded</p>
+                <p className="text-sm font-semibold text-slate-400 mt-3">No waste recorded</p>
               )}
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 text-xs text-slate-500 font-medium">
               {topWastedIngredient ? `${topWastedIngredient.count} waste incidents logged` : "Clean stock operation"}
             </div>
           </div>
 
           {/* Card 4: Primary Loss Reason */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Primary Waste Cause</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Primary Waste Cause</span>
                 <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
                   <PieChart className="h-4 w-4" />
                 </div>
@@ -572,7 +568,7 @@ export default function WasteManagementPage() {
                 const topReason = [...reasonBreakdown].sort((a, b) => b.percentage - a.percentage)[0];
                 return topReason && topReason.percentage > 0 ? (
                   <>
-                    <h3 className="text-lg font-bold text-zinc-900 mt-2 truncate">
+                    <h3 className="text-lg font-bold text-slate-900 mt-2 truncate">
                       {topReason.label}
                     </h3>
                     <p className="text-xs font-bold text-indigo-600 mt-0.5">
@@ -580,12 +576,12 @@ export default function WasteManagementPage() {
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm font-semibold text-zinc-400 mt-3">No data recorded</p>
+                  <p className="text-sm font-semibold text-slate-400 mt-3">No data recorded</p>
                 );
               })()}
             </div>
 
-            <div className="mt-3 pt-2.5 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 text-xs text-slate-500 font-medium">
               Click reason bars below to filter table
             </div>
           </div>
@@ -593,25 +589,25 @@ export default function WasteManagementPage() {
         </div>
 
         {/* Dynamic Waste Trend Analytics Chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-red-50 text-[#D3232A] rounded-xl border border-red-100">
                 <LineChartIcon className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Waste &amp; Spoilage Loss Trend</h3>
-                <p className="text-xs text-zinc-500 font-medium">Daily loss accumulation (₹) for selected timeframe</p>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Waste &amp; Spoilage Loss Trend</h3>
+                <p className="text-xs text-slate-500 font-medium">Daily loss accumulation (₹) for selected timeframe</p>
               </div>
             </div>
           </div>
 
           <div className="h-[220px] w-full pt-2">
             {periodFilteredLogs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center p-6 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 w-full h-full">
-                <BarChart3 className="h-8 w-8 text-zinc-300 mb-2" />
-                <p className="text-xs font-bold text-zinc-600">No Spoilage Recorded For Selected Range</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Click "+ Record Waste" above to log stock loss.</p>
+              <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full h-full">
+                <BarChart3 className="h-8 w-8 text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-600">No Spoilage Recorded For Selected Range</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Click "+ Record Waste" above to log stock loss.</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -622,11 +618,11 @@ export default function WasteManagementPage() {
                       <stop offset="95%" stopColor="#D3232A" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 600 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 500 }} tickFormatter={(val) => `₹${val}`} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }} tickFormatter={(val) => `₹${val}`} />
                   <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e4e4e7', fontSize: '12px', fontWeight: 'bold' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
                     formatter={(val: any) => [`₹${Number(val).toFixed(2)}`, 'Loss Value']}
                   />
                   <Area type="monotone" dataKey="loss" stroke="#D3232A" strokeWidth={2.5} fillOpacity={1} fill="url(#wasteGrad)" />
@@ -637,11 +633,11 @@ export default function WasteManagementPage() {
         </div>
 
         {/* Cause Breakdown Category Cards */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-zinc-900">Waste Breakdown by Cause</h3>
-              <p className="text-xs text-zinc-500 font-medium">Rupee and percentage contribution for the selected period</p>
+              <h3 className="text-sm font-bold text-slate-900">Waste Breakdown by Cause</h3>
+              <p className="text-xs text-slate-500 font-medium">Rupee and percentage contribution for the selected period</p>
             </div>
             {filterReason !== "ALL" && (
               <button
@@ -663,23 +659,23 @@ export default function WasteManagementPage() {
                   className={`cursor-pointer rounded-xl border p-4 transition-all ${
                     isSelected
                       ? "border-[#D3232A] bg-red-50/50 ring-2 ring-red-200"
-                      : "border-zinc-200 bg-zinc-50/50 hover:bg-zinc-100/80 hover:border-zinc-300"
+                      : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-300"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className={`text-xs font-bold ${item.textCls}`}>{item.label}</span>
-                    <span className="text-xs font-black text-zinc-900">{item.percentage}%</span>
+                    <span className="text-xs font-black text-slate-900">{item.percentage}%</span>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full bg-zinc-200 rounded-full h-2 mt-2 overflow-hidden">
+                  <div className="w-full bg-slate-200 rounded-full h-2 mt-2 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${item.color}`}
                       style={{ width: `${Math.min(100, Math.max(4, item.percentage))}%` }}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between mt-2 text-[11px] text-zinc-500 font-semibold">
+                  <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500 font-semibold">
                     <span>₹{item.costRupees}</span>
                     <span>{item.count} log(s)</span>
                   </div>
@@ -706,7 +702,7 @@ export default function WasteManagementPage() {
               )}
               <p className="font-semibold">{feedback.msg}</p>
             </div>
-            <button onClick={() => setFeedback(null)} className="text-zinc-400 hover:text-zinc-700">
+            <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-700">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -715,13 +711,13 @@ export default function WasteManagementPage() {
         {/* ========================================================================= */}
         {/* FULL WIDTH LEDGER TABLE CONTAINER */}
         {/* ========================================================================= */}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white shadow-2xs overflow-hidden flex flex-col">
+        <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden flex flex-col">
           
           {/* Table Control Header */}
-          <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-zinc-50/80">
+          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/80">
             <div className="flex items-center gap-2 flex-1">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Filter waste ledger by item name or code..."
@@ -730,7 +726,7 @@ export default function WasteManagementPage() {
                     setSearchTerm(e.target.value);
                     setWastePage(1);
                   }}
-                  className="w-full rounded-xl border border-zinc-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#D3232A] focus:outline-none bg-white font-medium shadow-2xs"
+                  className="w-full rounded-xl border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-[#D3232A] focus:outline-none bg-white font-medium shadow-2xs"
                 />
               </div>
             </div>
@@ -743,7 +739,7 @@ export default function WasteManagementPage() {
                     setWasteOutletFilter(e.target.value);
                     setWastePage(1);
                   }}
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none shadow-2xs"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none shadow-2xs"
                 >
                   <option value="ALL">All Outlets</option>
                   {availableOutlets.map((o) => (
@@ -760,7 +756,7 @@ export default function WasteManagementPage() {
                   setFilterReason(e.target.value);
                   setWastePage(1);
                 }}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 focus:outline-none shadow-2xs"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none shadow-2xs"
               >
                 <option value="ALL">All Causes ({periodFilteredLogs.length})</option>
                 <option value="SPOILAGE">Spoiled / Expired</option>
@@ -777,9 +773,9 @@ export default function WasteManagementPage() {
               <Skeleton count={6} height={46} borderRadius={10} />
             </div>
           ) : processedLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-400 gap-3">
-              <Package className="h-10 w-10 text-zinc-300" />
-              <p className="text-sm font-bold text-zinc-700">No waste logs found for this filter criteria</p>
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+              <Package className="h-10 w-10 text-slate-300" />
+              <p className="text-sm font-bold text-slate-700">No waste logs found for this filter criteria</p>
               <button
                 onClick={() => setShowRecordModal(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#b01e23] transition-all cursor-pointer"
@@ -799,10 +795,10 @@ export default function WasteManagementPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-zinc-50 text-zinc-500 font-bold uppercase tracking-wider text-[11px] border-b border-zinc-200">
+                      <tr className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                         <th className="px-4 py-3.5 w-24">Ref ID</th>
                         <th
-                          className="px-4 py-3.5 cursor-pointer select-none hover:text-zinc-900"
+                          className="px-4 py-3.5 cursor-pointer select-none hover:text-slate-900"
                           onClick={() => toggleSort("createdAt")}
                         >
                           <div className="flex items-center gap-1">
@@ -812,7 +808,7 @@ export default function WasteManagementPage() {
                         <th className="px-4 py-3.5">Stock Item &amp; Code</th>
                         {showWasteOutlet && <th className="px-4 py-3.5">Outlet</th>}
                         <th
-                          className="px-4 py-3.5 text-center cursor-pointer select-none hover:text-zinc-900"
+                          className="px-4 py-3.5 text-center cursor-pointer select-none hover:text-slate-900"
                           onClick={() => toggleSort("quantity")}
                         >
                           Wasted Qty
@@ -821,7 +817,7 @@ export default function WasteManagementPage() {
                           Rate (WAC)
                         </th>
                         <th
-                          className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900"
+                          className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-slate-900"
                           onClick={() => toggleSort("costAtLoggingPaise")}
                         >
                           Loss Value (₹)
@@ -829,7 +825,7 @@ export default function WasteManagementPage() {
                         <th className="px-4 py-3.5 text-center">Waste Reason</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 font-medium">
+                    <tbody className="divide-y divide-slate-100 font-medium">
                       {paginatedLogs.map((log, idx) => {
                         const reasonColors: Record<string, string> = {
                           SPOILAGE: "bg-red-50 text-red-700 border-red-200",
@@ -842,12 +838,12 @@ export default function WasteManagementPage() {
                         const unitRatePaise = log.unitCostAtLoggingPaise ?? (log.item?.unitCostPaise || 0);
 
                         return (
-                          <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
-                            <td className="px-4 py-4 font-mono font-bold text-zinc-400 text-[11px]">
+                          <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="px-4 py-4 font-mono font-bold text-slate-400 text-[11px]">
                               {refId}
                             </td>
 
-                            <td className="px-4 py-4 text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
+                            <td className="px-4 py-4 text-slate-600 whitespace-nowrap" suppressHydrationWarning>
                               {mounted ? new Date(log.createdAt).toLocaleDateString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
@@ -858,10 +854,10 @@ export default function WasteManagementPage() {
                             </td>
 
                             <td className="px-4 py-4">
-                              <p className="font-bold text-zinc-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
-                              <span className="text-[10px] text-zinc-400 font-mono">SKU: {log.item?.sku || "N/A"}</span>
+                              <p className="font-bold text-slate-900 text-xs">{log.item?.name || "Ingredient Item"}</p>
+                              <span className="text-[10px] text-slate-400 font-mono">SKU: {log.item?.sku || "N/A"}</span>
                               {log.notes && (
-                                <p className="mt-1 text-[11px] text-zinc-600 italic bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 max-w-xs break-words">
+                                <p className="mt-1 text-[11px] text-slate-600 italic bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 max-w-xs break-words">
                                   "{log.notes}"
                                 </p>
                               )}
@@ -869,20 +865,20 @@ export default function WasteManagementPage() {
 
                             {showWasteOutlet && (
                               <td className="px-4 py-4 whitespace-nowrap">
-                                <span className="inline-flex items-center gap-1 text-xs text-zinc-700 font-semibold bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200">
+                                <span className="inline-flex items-center gap-1 text-xs text-slate-700 font-semibold bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
                                   <Building2 className="h-3 w-3 text-[#D3232A]" />
                                   {log.outlet?.name || log.item?.outlet?.name || "Main Outlet"}
                                 </span>
                               </td>
                             )}
 
-                            <td className="px-4 py-4 text-center font-bold text-zinc-800 whitespace-nowrap">
-                              {log.quantity} <span className="text-zinc-400 font-normal text-[10px]">{log.item?.unit || "units"}</span>
+                            <td className="px-4 py-4 text-center font-bold text-slate-800 whitespace-nowrap">
+                              {log.quantity} <span className="text-slate-400 font-normal text-[10px]">{log.item?.unit || "units"}</span>
                             </td>
 
-                            <td className="px-4 py-4 text-right font-medium text-zinc-600 whitespace-nowrap text-xs">
+                            <td className="px-4 py-4 text-right font-medium text-slate-600 whitespace-nowrap text-xs">
                               ₹{(unitRatePaise / 100).toFixed(2)}
-                              <span className="text-[10px] text-zinc-400 block font-normal">/{log.item?.unit || "unit"}</span>
+                              <span className="text-[10px] text-slate-400 block font-normal">/{log.item?.unit || "unit"}</span>
                             </td>
 
                             <td className="px-4 py-4 text-right font-black text-red-600 tabular-nums text-sm whitespace-nowrap">
@@ -890,7 +886,7 @@ export default function WasteManagementPage() {
                             </td>
 
                             <td className="px-4 py-4 text-center whitespace-nowrap">
-                              <span className={`inline-block rounded-full border px-3 py-0.5 text-[11px] font-bold ${reasonColors[log.reason] || "bg-zinc-100 text-zinc-600"}`}>
+                              <span className={`inline-block rounded-full border px-3 py-0.5 text-[11px] font-bold ${reasonColors[log.reason] || "bg-slate-100 text-slate-600"}`}>
                                 {log.reason.replace("_", " ")}
                               </span>
                             </td>
@@ -902,7 +898,7 @@ export default function WasteManagementPage() {
                 </div>
 
                 {/* Pagination Footer Bar */}
-                <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-50 border-t border-zinc-200 text-xs text-zinc-600">
+                <div className="flex items-center justify-between px-5 py-3.5 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
                   <div>
                     Showing <strong>{startWasteIdx + 1}</strong> to <strong>{Math.min(startWasteIdx + wastePageSize, processedLogs.length)}</strong> of <strong>{processedLogs.length}</strong> Ledger Records
                   </div>
@@ -910,17 +906,17 @@ export default function WasteManagementPage() {
                     <button
                       onClick={() => setWastePage((p) => Math.max(1, p - 1))}
                       disabled={safeWastePage === 1}
-                      className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer"
+                      className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
-                    <span className="px-2 font-bold text-zinc-800">
+                    <span className="px-2 font-bold text-slate-800">
                       Page {safeWastePage} of {totalWastePages}
                     </span>
                     <button
                       onClick={() => setWastePage((p) => Math.min(totalWastePages, p + 1))}
                       disabled={safeWastePage >= totalWastePages}
-                      className="rounded-lg border border-zinc-200 bg-white p-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer"
+                      className="rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
@@ -939,23 +935,23 @@ export default function WasteManagementPage() {
       {/* ========================================================================= */}
       <TModal open={showRecordModal} className="bg-black/50 backdrop-blur-xs p-4">
         {showRecordModal && (
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 bg-zinc-50 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-xl bg-red-50 p-2 text-[#D3232A] border border-red-100">
                   <Trash2 className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-900">Record Stock Wastage</h3>
-                  <p className="text-xs text-zinc-500 font-medium">Log item loss &amp; deduct from current stock balance</p>
+                  <h3 className="text-base font-bold text-slate-900">Record Stock Wastage</h3>
+                  <p className="text-xs text-slate-500 font-medium">Log item loss &amp; deduct from current stock balance</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowRecordModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 p-1.5 rounded-lg hover:bg-zinc-200/60 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -965,7 +961,7 @@ export default function WasteManagementPage() {
             <form onSubmit={handleLogWasteSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
                     <div>
-                      <label htmlFor="modal-waste-item-select" className="block font-bold text-zinc-800 mb-1">
+                      <label htmlFor="modal-waste-item-select" className="block font-bold text-slate-800 mb-1">
                         Ingredient / Stock Item <span className="text-red-500">*</span>
                       </label>
                       {isLoadingItems || branchLoading ? (
@@ -976,7 +972,7 @@ export default function WasteManagementPage() {
                           id="modal-waste-item-select"
                           value={selectedItemId}
                           onChange={(e) => setSelectedItemId(e.target.value)}
-                          className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-slate-900 shadow-2xs"
                         >
                           <option value="">-- Choose ingredient from inventory --</option>
                           {items.map((i) => (
@@ -987,9 +983,9 @@ export default function WasteManagementPage() {
                         </select>
                       )}
                       {selectedItem && (
-                        <div className="mt-1.5 flex items-center justify-between text-[11px] bg-zinc-50 border border-zinc-200/80 rounded-lg px-3 py-1.5 text-zinc-600">
+                        <div className="mt-1.5 flex items-center justify-between text-[11px] bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-1.5 text-slate-600">
                           <span className="font-medium">Live Moving Weighted Avg Rate:</span>
-                          <span className="font-extrabold text-zinc-900">
+                          <span className="font-extrabold text-slate-900">
                             ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
                           </span>
                         </div>
@@ -997,14 +993,14 @@ export default function WasteManagementPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="modal-waste-reason-select" className="block font-bold text-zinc-800 mb-1">
+                      <label htmlFor="modal-waste-reason-select" className="block font-bold text-slate-800 mb-1">
                         Reason for Waste <span className="text-red-500">*</span>
                       </label>
                       <select
                         id="modal-waste-reason-select"
                         value={reason}
                         onChange={(e) => setReason(e.target.value as any)}
-                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-zinc-900 shadow-2xs"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs font-semibold focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none bg-white text-slate-900 shadow-2xs"
                       >
                         <option value="SPOILAGE">Spoiled / Expired</option>
                         <option value="OVER_PREP">Over-Prepared</option>
@@ -1014,7 +1010,7 @@ export default function WasteManagementPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="modal-waste-quantity-input" className="block font-bold text-zinc-800 mb-1">
+                      <label htmlFor="modal-waste-quantity-input" className="block font-bold text-slate-800 mb-1">
                         Wasted Quantity ({selectedItem?.unit || "units"}) <span className="text-red-500">*</span>
                       </label>
                       <NumberInput
@@ -1025,13 +1021,13 @@ export default function WasteManagementPage() {
                         placeholder="Enter quantity amount..."
                         value={quantity}
                         onChange={setQuantity}
-                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs font-bold text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs"
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="modal-waste-notes-input" className="block font-bold text-zinc-800 mb-1">
-                        Incident Notes / Root Cause <span className="text-zinc-400 font-normal">(Optional)</span>
+                      <label htmlFor="modal-waste-notes-input" className="block font-bold text-slate-800 mb-1">
+                        Incident Notes / Root Cause <span className="text-slate-400 font-normal">(Optional)</span>
                       </label>
                       <textarea
                         id="modal-waste-notes-input"
@@ -1040,7 +1036,7 @@ export default function WasteManagementPage() {
                         placeholder="e.g. Fridge #2 temperature spike overnight, container dropped during prep..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs font-medium text-zinc-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs resize-none"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-medium text-slate-900 focus:border-[#D3232A] focus:ring-1 focus:ring-[#D3232A] focus:outline-none shadow-2xs resize-none"
                       />
                     </div>
 
@@ -1051,20 +1047,20 @@ export default function WasteManagementPage() {
                           <span className="font-bold">Calculated Loss (WAC):</span>
                           <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
                         </div>
-                        <p className="text-[11px] text-zinc-600 font-medium">
+                        <p className="text-[11px] text-slate-600 font-medium">
                           {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
                           <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                            <span className="block text-[10px] text-zinc-400 font-bold">CURRENT STOCK</span>
-                            <strong className="text-xs text-zinc-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
+                            <span className="block text-[10px] text-slate-400 font-bold">CURRENT STOCK</span>
+                            <strong className="text-xs text-slate-900">{selectedItem.currentStock} {selectedItem.unit}</strong>
                           </div>
                           <div className="bg-white p-1.5 rounded-lg border border-red-100">
-                            <span className="block text-[10px] text-zinc-400 font-bold">REMAINING STOCK</span>
+                            <span className="block text-[10px] text-slate-400 font-bold">REMAINING STOCK</span>
                             <strong className={`text-xs ${remainingStock < selectedItem.reorderThreshold ? "text-red-600" : "text-emerald-700"}`}>
                               {Number(remainingStock.toFixed(2))} {selectedItem.unit}
                             </strong>
-                            <span className="block text-[10px] text-zinc-500 font-medium">
+                            <span className="block text-[10px] text-slate-500 font-medium">
                               Val: ₹{((Math.max(0, remainingStock) * selectedItem.unitCostPaise) / 100).toFixed(2)}
                             </span>
                           </div>
@@ -1084,11 +1080,11 @@ export default function WasteManagementPage() {
               </div>
 
               {/* Modal Sticky Footer */}
-              <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-zinc-200 bg-zinc-50 shrink-0">
+              <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 bg-slate-50 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowRecordModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

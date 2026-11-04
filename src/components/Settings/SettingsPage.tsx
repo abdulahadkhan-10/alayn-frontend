@@ -3,6 +3,7 @@
 import { useTabsPill } from "@/lib/useTabsPill";
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../layout/DashboardLayout";
+import PageHeader from "@/components/common/PageHeader";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import {
@@ -32,7 +33,6 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  Settings as SettingsIcon,
   Store,
   ShieldCheck,
   Percent,
@@ -364,18 +364,11 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <SettingsIcon className="h-6 w-6 text-[#D3232A]" />
-              Store Settings & Configuration
-            </h1>
-            <p className="text-sm text-gray-500">
-              Manage store holidays, operating schedules, policies, and branch configuration.
-            </p>
-          </div>
-
-          <div ref={tabsBarRef} role="tablist" className="relative flex items-center gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200">
+        <PageHeader
+          title="Store Settings & Configuration"
+          subtitle="Manage store holidays, operating schedules, policies, and branch configuration."
+          actions={
+          <div ref={tabsBarRef} role="tablist" className="relative flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <span className="t-tabs-pill shadow-sm" aria-hidden="true" />
             <button
               role="tab"
@@ -383,7 +376,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab("HOLIDAYS")}
               className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "HOLIDAYS"
                   ? "text-[#D3232A]"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-slate-600 hover:text-slate-900"
                 }`}
             >
               <Palmtree className="h-4 w-4" />
@@ -395,7 +388,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab("GENERAL")}
               className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "GENERAL"
                   ? "text-[#D3232A]"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-slate-600 hover:text-slate-900"
                 }`}
             >
               <Store className="h-4 w-4" />
@@ -407,14 +400,15 @@ export default function SettingsPage() {
               onClick={() => setActiveTab("COUPONS")}
               className={`relative z-[1] inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${activeTab === "COUPONS"
                   ? "text-[#D3232A]"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-slate-600 hover:text-slate-900"
                 }`}
             >
               <Tag className="h-4 w-4" />
               Customer Coupons
             </button>
           </div>
-        </div>
+          }
+        />
 
         {/* Feedback Banner */}
         {feedbackMsg && (
@@ -430,20 +424,20 @@ export default function SettingsPage() {
           /* Outlet Holidays & Store Closures View */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Create Holiday Form Card */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm h-fit space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm h-fit space-y-4">
               <div>
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Palmtree className="h-5 w-5 text-amber-600" />
                   Add Store Holiday / Closure
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Configure festival closures, maintenance, or cafe off-days for {activeBranch?.name || "all branches"}.
                 </p>
               </div>
 
               <form onSubmit={handleCreateHoliday} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Holiday Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -452,13 +446,13 @@ export default function SettingsPage() {
                     value={holidayForm.name}
                     onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })}
                     placeholder="e.g. Diwali Festival / Store Maintenance"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Start Date <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -466,11 +460,11 @@ export default function SettingsPage() {
                       required
                       value={holidayForm.startDate}
                       onChange={(e) => setHolidayForm({ ...holidayForm, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       End Date <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -479,19 +473,19 @@ export default function SettingsPage() {
                       min={holidayForm.startDate}
                       value={holidayForm.endDate}
                       onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Closure Category
                   </label>
                   <select
                     value={holidayForm.type}
                     onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white"
                   >
                     <option value="FESTIVAL">Festival Holiday</option>
                     <option value="WEEKLY_CLOSED">Weekly Closed Day</option>
@@ -500,7 +494,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Notes / Description
                   </label>
                   <textarea
@@ -508,7 +502,7 @@ export default function SettingsPage() {
                     value={holidayForm.description}
                     onChange={(e) => setHolidayForm({ ...holidayForm, description: e.target.value })}
                     placeholder="Optional details for staff..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   />
                 </div>
 
@@ -524,24 +518,24 @@ export default function SettingsPage() {
             </div>
 
             {/* Configured Holidays List */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
               <div>
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex items-center justify-between">
+                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                       <Calendar className="h-5 w-5 text-indigo-600" />
                       Configured Outlet Holidays
                     </h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-slate-500">
                       Active holiday calendar for {activeBranch?.name || "All Branches"}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-gray-600 bg-gray-200/60 px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-slate-600 bg-slate-200/60 px-3 py-1 rounded-full">
                     {holidays.length} Total Holiday(s)
                   </span>
                 </div>
 
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-slate-200">
                   {isLoading ? (
                     <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
                       {[1, 2, 3, 4].map((idx) => (
@@ -560,10 +554,10 @@ export default function SettingsPage() {
                       ))}
                     </SkeletonTheme>
                   ) : holidays.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500 space-y-2">
+                    <div className="p-8 text-center text-slate-500 space-y-2">
                       <Palmtree className="h-10 w-10 text-amber-500 mx-auto opacity-40" />
-                      <p className="text-sm font-medium text-gray-900">No Store Holidays Configured Yet</p>
-                      <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                      <p className="text-sm font-medium text-slate-900">No Store Holidays Configured Yet</p>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
                         Use the form on the left to add festival closures, public holidays, or weekly off days for your cafe branch.
                       </p>
                     </div>
@@ -571,7 +565,7 @@ export default function SettingsPage() {
                     holidays.map((item: any) => (
                       <div
                         key={item.id}
-                        className="p-5 flex items-center justify-between hover:bg-gray-50/80 transition-colors"
+                        className="p-5 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
                       >
                         <div className="flex items-start gap-3.5">
                           <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
@@ -579,14 +573,14 @@ export default function SettingsPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-gray-900">{item.name}</h4>
+                              <h4 className="text-sm font-bold text-slate-900">{item.name}</h4>
                               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md">
                                 {item.type || "FESTIVAL"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                              <span className="flex items-center gap-1 font-medium text-gray-700">
-                                <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                              <span className="flex items-center gap-1 font-medium text-slate-700">
+                                <Calendar className="h-3.5 w-3.5 text-slate-400" />
                                 {new Date(item.date).toLocaleDateString(undefined, {
                                   weekday: "short",
                                   day: "numeric",
@@ -595,14 +589,14 @@ export default function SettingsPage() {
                                 })}
                               </span>
                               {item.outlet?.name && (
-                                <span className="flex items-center gap-1 text-gray-500">
-                                  <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
                                   {item.outlet.name}
                                 </span>
                               )}
                             </div>
                             {item.description && (
-                              <p className="text-xs text-gray-500 mt-1.5">{item.description}</p>
+                              <p className="text-xs text-slate-500 mt-1.5">{item.description}</p>
                             )}
                           </div>
                         </div>
@@ -619,7 +613,7 @@ export default function SettingsPage() {
           <SkeletonTheme baseColor="#E2E8F0" highlightColor="#F8FAFC">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[1, 2].map((idx) => (
-                <div key={idx} className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+                <div key={idx} className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-2">
                       <Skeleton width={260} height={20} borderRadius={6} />
@@ -634,7 +628,7 @@ export default function SettingsPage() {
                 </div>
               ))}
               {[3, 4].map((idx) => (
-                <div key={idx} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+                <div key={idx} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
                   <Skeleton width={200} height={20} borderRadius={6} />
                   <Skeleton width={300} height={14} borderRadius={4} />
                   <Skeleton height={180} borderRadius={12} />
@@ -650,22 +644,22 @@ export default function SettingsPage() {
             {/* Weekly / monthly report emails (owners only) */}
             {user?.role === "BUSINESS_OWNER" && <ReportEmailsCard />}
             {/* Dining & Table Ordering Operational Mode Card */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <QrCode className="h-5 w-5 text-[#D3232A]" />
                     Dining & Table Ordering Mode (Waiter Service vs. Direct Order & Pay)
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Control whether customers can order and pay directly by scanning table QR codes, or if orders are handled exclusively by your waitstaff for{" "}
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-slate-800">
                       {activeBranch?.id === "all" ? "All Outlets" : (currentOutlet?.name || activeBranch?.name || "selected branch")}
                     </span>.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-bold text-gray-500">Active Mode:</span>
+                  <span className="text-[11px] font-bold text-slate-500">Active Mode:</span>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${
                     tableOrderModeInput === "ORDER_AND_PAY"
                       ? "bg-emerald-50 text-emerald-800 border-emerald-200"
@@ -683,12 +677,12 @@ export default function SettingsPage() {
                   className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     tableOrderModeInput === "WAITER_SERVICE"
                       ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-sm ring-1 ring-[#1B2A4A]"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "WAITER_SERVICE" ? "bg-[#1B2A4A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "WAITER_SERVICE" ? "bg-[#1B2A4A] text-white" : "bg-slate-100 text-slate-700"}`}>
                         <UtensilsCrossed className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
@@ -696,12 +690,12 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     <h4 className="font-extrabold text-sm text-[#1B2A4A]">Waiter Service (Traditional Dining)</h4>
-                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                       Floor staff & waiters take orders at the table using POS or handheld tablets. When guests scan the table QR sticker, it displays a sleek <strong>View-Only digital menu</strong>. Self-checkout is disabled.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Fine Dining & Full-Service Restaurants</span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400">Fine Dining & Full-Service Restaurants</span>
                     {tableOrderModeInput === "WAITER_SERVICE" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
                   </div>
                 </div>
@@ -712,25 +706,25 @@ export default function SettingsPage() {
                   className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     tableOrderModeInput === "ORDER_AND_PAY"
                       ? "border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "ORDER_AND_PAY" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <div className={`p-2 rounded-xl ${tableOrderModeInput === "ORDER_AND_PAY" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
                         <Smartphone className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                         Zero Waiter / Fast Casual
                       </span>
                     </div>
-                    <h4 className="font-extrabold text-sm text-zinc-900">Direct Order & Pay (QR Self-Checkout)</h4>
-                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                    <h4 className="font-extrabold text-sm text-slate-900">Direct Order & Pay (QR Self-Checkout)</h4>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                       Guests scan the table QR code, browse items, add to cart, and <strong>pay directly on their phone (UPI / Online)</strong> without waiting for a server. Orders route immediately to the kitchen KOT/KDS.
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Cafes, Breweries & Quick Service</span>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400">Cafes, Breweries & Quick Service</span>
                     {tableOrderModeInput === "ORDER_AND_PAY" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                   </div>
                 </div>
@@ -754,7 +748,7 @@ export default function SettingsPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
                       allowPayAtCounterInput
                         ? "bg-emerald-600 text-white shadow-sm"
-                        : "bg-white text-gray-600 border border-gray-300"
+                        : "bg-white text-slate-600 border border-slate-300"
                     }`}
                   >
                     {allowPayAtCounterInput ? "Enabled (Cash/Counter Allowed)" : "Disabled (Online Pay Only)"}
@@ -764,22 +758,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Kitchen Operating Setup (KOT vs KDS) Card */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                     <Printer className="h-5 w-5 text-[#1B2A4A]" />
                     Kitchen Dispatch & Order Setup (KOT vs KDS)
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Select how line cooks and kitchen staff receive order tickets at{" "}
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-slate-800">
                       {activeBranch?.id === "all" ? "All Outlets" : (currentOutlet?.name || activeBranch?.name || "selected branch")}
                     </span>. Changes take effect immediately.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-bold text-gray-500">Active Mode:</span>
+                  <span className="text-[11px] font-bold text-slate-500">Active Mode:</span>
                   <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase border ${
                     kitchenModeInput === "KOT"
                       ? "bg-blue-50 text-blue-800 border-blue-200"
@@ -799,12 +793,12 @@ export default function SettingsPage() {
                   className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     kitchenModeInput === "KOT"
                       ? "border-[#1B2A4A] bg-[#1B2A4A]/5 shadow-sm ring-1 ring-[#1B2A4A]"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
-                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KOT" ? "bg-[#1B2A4A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KOT" ? "bg-[#1B2A4A] text-white" : "bg-slate-100 text-slate-700"}`}>
                         <Printer className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
@@ -812,12 +806,12 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     <h4 className="font-extrabold text-sm text-[#1B2A4A]">KOT Thermal Print</h4>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                       Orders trigger physical 80mm/58mm printed kitchen tickets. Cooks work off physical paper. Zero screen interaction needed in hot kitchens.
                     </p>
                   </div>
-                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Standard Indian Kitchens</span>
+                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400">Standard Indian Kitchens</span>
                     {kitchenModeInput === "KOT" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
                   </div>
                 </div>
@@ -828,25 +822,25 @@ export default function SettingsPage() {
                   className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     kitchenModeInput === "KDS"
                       ? "border-emerald-600 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-600"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
-                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KDS" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "KDS" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
                         <Monitor className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                         Digital Screen
                       </span>
                     </div>
-                    <h4 className="font-extrabold text-sm text-zinc-900">KDS Digital Display</h4>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    <h4 className="font-extrabold text-sm text-slate-900">KDS Digital Display</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                       Real-time interactive touchscreen Kanban board (Prep &rarr; Ready &rarr; Served) with 3-minute cancellation retention & countdown auto-dismiss.
                     </p>
                   </div>
-                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Paperless Operations</span>
+                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400">Paperless Operations</span>
                     {kitchenModeInput === "KDS" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                   </div>
                 </div>
@@ -857,25 +851,25 @@ export default function SettingsPage() {
                   className={`p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     kitchenModeInput === "HYBRID"
                       ? "border-[#D3232A] bg-red-50/40 shadow-sm ring-1 ring-[#D3232A]"
-                      : "border-gray-200 hover:border-gray-300 bg-white"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
-                      <div className={`p-2 rounded-xl ${kitchenModeInput === "HYBRID" ? "bg-[#D3232A] text-white" : "bg-gray-100 text-gray-700"}`}>
+                      <div className={`p-2 rounded-xl ${kitchenModeInput === "HYBRID" ? "bg-[#D3232A] text-white" : "bg-slate-100 text-slate-700"}`}>
                         <Layers className="w-5 h-5" />
                       </div>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">
                         Recommended
                       </span>
                     </div>
-                    <h4 className="font-extrabold text-sm text-zinc-900">Hybrid (Both KOT + KDS)</h4>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    <h4 className="font-extrabold text-sm text-slate-900">Hybrid (Both KOT + KDS)</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                       Instantly prints physical thermal slips for cooking station cooks while manager/expediter tracks ticket statuses on digital KDS screen.
                     </p>
                   </div>
-                  <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Full Dual Dispatch</span>
+                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400">Full Dual Dispatch</span>
                     {kitchenModeInput === "HYBRID" && <CheckCircle2 className="w-4 h-4 text-[#D3232A]" />}
                   </div>
                 </div>
@@ -883,28 +877,28 @@ export default function SettingsPage() {
             </div>
 
             {/* Tax & GST Configuration Card */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 h-fit">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 h-fit">
               <div>
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Percent className="h-5 w-5 text-[#D3232A]" />
                   GST & Tax Rate Configuration
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Configure CGST & SGST percentages applied to POS orders, billing receipts, and QR ordering for{" "}
-                  <span className="font-bold text-gray-800">{activeBranch?.id === "all" ? "All Outlets (Business-wide)" : (currentOutlet?.name || activeBranch?.name || "selected branch")}</span>.
+                  <span className="font-bold text-slate-800">{activeBranch?.id === "all" ? "All Outlets (Business-wide)" : (currentOutlet?.name || activeBranch?.name || "selected branch")}</span>.
                 </p>
               </div>
 
               <form onSubmit={handleSaveTaxRates} className="space-y-4">
                 {/* GST Registration Type Selection */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     GST Registration Type <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={gstRegistrationType}
                     onChange={(e) => setGstRegistrationType(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white cursor-pointer"
                   >
                     <option value="REGULAR">Regular (Standard GST — CGST + SGST charged on bills, prints "Tax Invoice")</option>
                     <option value="COMPOSITION">Composition Scheme (No GST charged to customers, prints "Bill of Supply")</option>
@@ -919,7 +913,7 @@ export default function SettingsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       CGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
@@ -931,16 +925,16 @@ export default function SettingsPage() {
                         value={cgstInput}
                         onChange={(e) => setCgstInput(e.target.value)}
                         disabled={gstRegistrationType !== "REGULAR"}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-slate-100 disabled:cursor-not-allowed"
                         placeholder="2.5"
                         required={gstRegistrationType === "REGULAR"}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                     </div>
                   </div>
 
                   <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       SGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
@@ -952,16 +946,16 @@ export default function SettingsPage() {
                         value={sgstInput}
                         onChange={(e) => setSgstInput(e.target.value)}
                         disabled={gstRegistrationType !== "REGULAR"}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-slate-100 disabled:cursor-not-allowed"
                         placeholder="2.5"
                         required={gstRegistrationType === "REGULAR"}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Service Charge (%)
                     </label>
                     <div className="relative">
@@ -972,21 +966,21 @@ export default function SettingsPage() {
                         max="50"
                         value={serviceTaxInput}
                         onChange={(e) => setServiceTaxInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         placeholder="0.0"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1 font-medium">
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium">
                       Dine-in only • customer may ask to remove • GST applies on it
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <span className="text-xs font-bold text-gray-700 block">Applied Rates Summary:</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs font-bold text-slate-700 block">Applied Rates Summary:</span>
+                    <span className="text-xs text-slate-500">
                       {gstRegistrationType === "REGULAR"
                         ? `GST: ${((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% (${cgstInput}% CGST + ${sgstInput}% SGST)`
                         : `No GST charged to customers (${gstRegistrationType})`}
@@ -1018,13 +1012,13 @@ export default function SettingsPage() {
               </form>
 
               {/* ── AlaynAI Thermal Receipt & GST Details Card ── */}
-              <div className="pt-6 border-t border-gray-100 space-y-4">
+              <div className="pt-6 border-t border-slate-100 space-y-4">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <Receipt className="h-5 w-5 text-emerald-600" />
                     AlaynAI Receipt & GST Branding
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Configure GSTIN, outlet phone number, custom header tagline, footer message, and UPI payment QR ID printed on thermal bills.
                   </p>
                 </div>
@@ -1032,67 +1026,67 @@ export default function SettingsPage() {
                 <form onSubmit={handleSaveReceiptDetails} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                         GSTIN Number
                       </label>
                       <input
                         type="text"
                         value={gstinInput}
                         onChange={(e) => setGstinInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         placeholder="27AAZFN6174F1ZL"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Outlet Contact Phone
                       </label>
                       <input
                         type="text"
                         value={outletPhoneInput}
                         onChange={(e) => setOutletPhoneInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         placeholder="8104484386"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                         UPI VPA / QR ID
                       </label>
                       <input
                         type="text"
                         value={upiIdInput}
                         onChange={(e) => setUpiIdInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         placeholder="merchant@upi"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Receipt Header Tagline
                       </label>
                       <input
                         type="text"
                         value={taglineInput}
                         onChange={(e) => setTaglineInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         placeholder="Serving joy every day."
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                       Receipt Footer Note / Greeting
                     </label>
                     <textarea
                       rows={2}
                       value={footerInput}
                       onChange={(e) => setFooterInput(e.target.value)}
-                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                       placeholder="Thanks for stopping by! We hope to see you again soon!"
                     />
                   </div>
@@ -1110,30 +1104,30 @@ export default function SettingsPage() {
             </div>
 
             {/* General Policy Parameters */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-6 h-fit">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 h-fit">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Store className="h-5 w-5 text-indigo-600" />
                   Branch Configuration & Policies
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">General store operating parameters and attendance rules.</p>
+                <p className="text-xs text-slate-500 mt-0.5">General store operating parameters and attendance rules.</p>
               </div>
 
               <div className="space-y-4 text-sm">
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-gray-900">Current Branch Context</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{activeBranch?.name || "All Branches Selected"}</div>
+                    <div className="font-semibold text-slate-900">Current Branch Context</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{activeBranch?.name || "All Branches Selected"}</div>
                   </div>
                   <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200">
                     ACTIVE
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-gray-900">Early Clock-in Window (Prior to Shift)</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
+                    <div className="font-semibold text-slate-900">Early Clock-in Window (Prior to Shift)</div>
+                    <div className="text-xs text-slate-500 mt-0.5">
                       Maximum allowed early punch-in window before scheduled shift start time.
                     </div>
                   </div>
@@ -1146,7 +1140,7 @@ export default function SettingsPage() {
                         lateGraceMinutes: lateGraceMins,
                       })
                     }
-                    className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="text-xs font-bold text-slate-800 bg-white border border-slate-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value={15}>15 Mins Prior</option>
                     <option value={20}>20 Mins Prior</option>
@@ -1157,10 +1151,10 @@ export default function SettingsPage() {
                   </select>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-gray-900">Late Arrival Grace Period</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Automatic LATE status tag if employee punches in after grace period</div>
+                    <div className="font-semibold text-slate-900">Late Arrival Grace Period</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Automatic LATE status tag if employee punches in after grace period</div>
                   </div>
                   <select
                     value={lateGraceMins}
@@ -1171,7 +1165,7 @@ export default function SettingsPage() {
                         lateGraceMinutes: Number(e.target.value),
                       })
                     }
-                    className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                    className="text-xs font-bold text-slate-800 bg-white border border-slate-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                   >
                     <option value={5}>5 Mins Grace</option>
                     <option value={10}>10 Mins Grace</option>
@@ -1182,19 +1176,19 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Geofence Configuration */}
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-gray-900 flex items-center gap-1.5">
+                      <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                         <MapPin className="h-4 w-4 text-[#D3232A]" />
                         Geofenced Clock-In Area
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">Employees can only clock in if their device is within this radius of the outlet.</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Employees can only clock in if their device is within this radius of the outlet.</div>
                     </div>
                     <select
                       value={geofenceRadius}
                       onChange={(e) => setGeofenceRadius(Number(e.target.value))}
-                      className="text-xs font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                      className="text-xs font-bold text-slate-800 bg-white border border-slate-300 px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                     >
                       <option value={50}>50 Meters</option>
                       <option value={100}>100 Meters (Standard)</option>
@@ -1220,17 +1214,17 @@ export default function SettingsPage() {
                           placeholder="Search address remotely (e.g. Veena Beena, Bandra)"
                           value={addressSearchQuery}
                           onChange={(e) => setAddressSearchQuery(e.target.value)}
-                          className="w-full text-sm bg-white border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
+                          className="w-full text-sm bg-white border border-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
                         />
                         {isSearchingAddress && (
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <div className="w-4 h-4 border-2 border-gray-300 border-t-[#D3232A] rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-slate-300 border-t-[#D3232A] rounded-full animate-spin"></div>
                           </div>
                         )}
                       </div>
                     </div>
                     {addressSearchResults.length > 0 && (
-                      <div className="bg-white border border-gray-200 rounded-lg shadow-sm max-h-48 overflow-y-auto">
+                      <div className="bg-white border border-slate-200 rounded-lg shadow-sm max-h-48 overflow-y-auto">
                         {addressSearchResults.map((result: any, idx: number) => (
                           <div
                             key={idx}
@@ -1242,31 +1236,31 @@ export default function SettingsPage() {
                               setAddressSearchQuery("");
                               setFeedbackMsg("Address selected! Coordinates updated.");
                             }}
-                            className="px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100 cursor-pointer transition-colors"
+                            className="px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 border-b last:border-b-0 border-slate-100 cursor-pointer transition-colors"
                           >
                             <div className="font-semibold">{result.name || "Location"}</div>
-                            <div className="text-gray-500 truncate" title={result.display_name}>{result.display_name}</div>
+                            <div className="text-slate-500 truncate" title={result.display_name}>{result.display_name}</div>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-                    <div className="text-xs font-medium text-gray-700 font-mono overflow-hidden">
+                  <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg p-3">
+                    <div className="text-xs font-medium text-slate-700 font-mono overflow-hidden">
                       {latitude && longitude ? (
                         <div className="flex flex-col">
                           <span>Lat: {latitude.toFixed(6)}, Lng: {longitude.toFixed(6)}</span>
-                          {locationName && <span className="text-gray-500 mt-1 truncate max-w-[300px]" title={locationName}>{locationName}</span>}
+                          {locationName && <span className="text-slate-500 mt-1 truncate max-w-[300px]" title={locationName}>{locationName}</span>}
                         </div>
                       ) : (
-                        <span className="text-gray-400">Location not captured</span>
+                        <span className="text-slate-400">Location not captured</span>
                       )}
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={handleGetLocation}
-                        className="px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                        className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
                       >
                         Capture My Location
                       </button>
@@ -1281,10 +1275,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-gray-900">Workforce Security & Role Access</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Staff & Kitchen restricted to personal shift calendars & leaves</div>
+                    <div className="font-semibold text-slate-900">Workforce Security & Role Access</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Staff & Kitchen restricted to personal shift calendars & leaves</div>
                   </div>
                   <ShieldCheck className="h-5 w-5 text-emerald-600" />
                 </div>
