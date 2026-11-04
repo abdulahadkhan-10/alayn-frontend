@@ -33,7 +33,8 @@ export default function InventoryNavTabs() {
           } else if (isPOsTab) {
             isActive = pathname === "/inventory/procurement" && activeTabParam !== "suppliers" && activeTabParam !== "marketplace";
           } else {
-            isActive = pathname === "/inventory" || pathname === "/inventory/adjust" || pathname === "/inventory/count";
+            // Count stock and Update Stock aren't tabs, so no tab is marked on them
+            isActive = pathname === "/inventory";
           }
 
           return (
