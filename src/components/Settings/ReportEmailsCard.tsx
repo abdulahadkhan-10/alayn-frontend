@@ -210,24 +210,7 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
               <label htmlFor="report-recipient" className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
                 Send to ({recipients.length}/{MAX_RECIPIENTS})
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {recipients.map((email) => (
-                  <span
-                    key={email}
-                    className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-800"
-                  >
-                    {email}
-                    <button
-                      type="button"
-                      onClick={() => removeRecipient(email)}
-                      aria-label={`Remove ${email}`}
-                      className="p-0.5 rounded-full hover:bg-gray-200 cursor-pointer"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
+             
               {recipients.length < MAX_RECIPIENTS && (
                 <div className="flex gap-2">
                   <input
@@ -253,6 +236,24 @@ function ReportEmailsForm({ initial, outlets }: { initial: FormValues; outlets: 
                   </button>
                 </div>
               )}
+               <div className="flex flex-wrap gap-1.5">
+                {recipients.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-800"
+                  >
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => removeRecipient(email)}
+                      aria-label={`Remove ${email}`}
+                      className="p-0.5 rounded-full hover:bg-gray-200 cursor-pointer"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">
