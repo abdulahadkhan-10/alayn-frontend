@@ -207,7 +207,7 @@ export default function RootLayout({
         // Crunchbase, G2/Capterra listings) — these links are how Google
         // learns "Alayn" is a distinct brand from similarly named products.
         "sameAs": [
-          "https://www.instagram.com/alayn.si/",
+          "https://www.instagram.com/alayn.ai/",
           "https://share.google/CBr807mWPl3Ekx5os"
         ]
       }

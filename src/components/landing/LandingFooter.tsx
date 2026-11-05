@@ -37,7 +37,7 @@ export default function LandingFooter() {
             </p>
             <div className="mt-7 flex items-center gap-3">
               <Link
-                href="https://www.instagram.com/alayn.si/"
+                href="https://www.instagram.com/alayn.ai/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Follow Alayn on Instagram"
