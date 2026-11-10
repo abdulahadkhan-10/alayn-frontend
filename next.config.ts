@@ -94,6 +94,13 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
         ],
       },
+      // Machine files, not pages: keep them out of Google's index (they
+      // showed up as "Crawled - currently not indexed"). Crawlers and agents
+      // can still fetch them.
+      {
+        source: "/:file(manifest.webmanifest|openapi.json)",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
       {
         source: "/:path*",
         headers: [

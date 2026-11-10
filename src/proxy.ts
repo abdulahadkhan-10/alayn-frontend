@@ -49,7 +49,12 @@ export function proxy(request: NextRequest) {
   if (pathname.endsWith(".md")) {
     const pagePath = pathname === "/index.md" ? "/" : pathname.slice(0, -3);
     if (MARKDOWN_PAGES[pagePath]) {
-      return markdownResponse(MARKDOWN_PAGES[pagePath], 200);
+      const res = markdownResponse(MARKDOWN_PAGES[pagePath], 200);
+      // The .md file is a copy of an HTML page. Without a canonical, Google
+      // crawls it as a separate thin page and reports it as "Crawled -
+      // currently not indexed". The header hands its signals to the HTML page.
+      res.headers.set("Link", `<https://alaynai.com${pagePath}>; rel="canonical"`);
+      return res;
     }
   }
 
