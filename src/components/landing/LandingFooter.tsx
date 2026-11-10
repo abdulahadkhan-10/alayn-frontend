@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { WHATSAPP_HREF, WHATSAPP_NUMBER_DISPLAY } from "@/lib/contact";
 
 export default function LandingFooter() {
   return (
@@ -102,6 +103,10 @@ export default function LandingFooter() {
             </Link>
             <a href="mailto:info@alaynai.com" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
               info@alaynai.com
+            </a>
+            <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-white/70 hover:text-white transition-colors duration-300 w-fit py-1.5">
+              <span className="block text-xs text-white/55">WhatsApp</span>
+              <span className="whitespace-nowrap">{WHATSAPP_NUMBER_DISPLAY}</span>
             </a>
           </div>
 

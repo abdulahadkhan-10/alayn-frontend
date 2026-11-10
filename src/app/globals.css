@@ -598,17 +598,168 @@ html {
   scrollbar-width: none;  /* Firefox */
 }
 
-/* ---- Hero Phone Mockup Responsive Styling ---- */
-.hero-phone-mockup {
-  width: clamp(180px, 28%, 260px);
-  left: -50px;
+/* ---- Hero devices ----
+   A tablet and a phone around real screenshots (landing/devices/DeviceFrames.tsx).
+   Each device is a preserve-3d body: the face at z = 0 and thin "edge" layers
+   behind it. Tilting the device toward the headline shows that side wall,
+   which is what makes it read as an object rather than a picture. */
+.hero-stage {
+  position: relative;
+  padding-bottom: 7%;
 }
-@media (max-width: 640px) {
-  .hero-phone-mockup {
-    width: 170px !important;
-    left: 8px !important;
-    bottom: -15px !important;
-  }
+.hero-tablet-wrap {
+  width: 88%;
+  margin-left: auto;
+  perspective: 2200px;
+}
+.hero-phone-wrap {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 23%;
+  z-index: 2;
+  perspective: 1400px;
+}
+.hero-tablet-wrap .device,
+.hero-phone-wrap .device {
+  transform: rotateY(-14deg) rotateX(5deg);
+}
+/* The hero shows the devices as baked images (app/dev/hero-devices draws
+   them). Each image is the 726px device column plus a 100px margin on every
+   side for the shadows, so negative margins put the devices back in the column. */
+.hero-devices-baked {
+  position: relative;
+  margin: calc(-100 / 726 * 100%);
+}
+
+.device {
+  position: relative;
+  transform-style: preserve-3d;
+}
+.device-face {
+  position: relative;
+  transform: translateZ(0);
+}
+/* Side wall: lit from above, so it darkens toward the bottom */
+.device-edge {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #4b4f57 0%, #2a2d32 40%, #17191c 100%);
+}
+/* Machined metal rim, lit from above: the top chamfer catches the light,
+   the bottom falls into shadow */
+.device-rim {
+  padding: 0.7%;
+  background: linear-gradient(180deg, #a3a9b2 0%, #565a62 6%, #2f3237 40%, #24272b 85%, #1b1d20 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.35),
+    0 46px 80px -30px rgba(15, 23, 42, 0.5),
+    0 16px 32px -16px rgba(15, 23, 42, 0.35);
+}
+.device-rim-phone {
+  padding: 1.5%;
+  background: linear-gradient(180deg, #9a9fa8 0%, #4a4d54 8%, #26282c 45%, #1c1e21 100%);
+}
+.device-bezel {
+  position: relative;
+  background: #060709;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.device-screen {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  container-type: inline-size;
+}
+.device-phone .device-screen {
+  /* Room for the status bar: 47pt of a 390pt-wide screen */
+  padding-top: 12%;
+}
+.device-button {
+  position: absolute;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #26292e, #6d727b 50%, #26292e);
+  transform: translateZ(-4px);
+}
+.device-camera {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 35%, #3a4766 0 22%, #0c0e13 46%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+/* Reflection on the glass: shows on the dark side menu, invisible on white */
+.device-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(116deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.07) 24%, rgba(255, 255, 255, 0) 42%);
+}
+.device-island {
+  position: absolute;
+  top: 1.3%;
+  left: 50%;
+  width: 32%;
+  height: 4.4%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #000000;
+  z-index: 2;
+}
+.device-status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12cqw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 7cqw 0 10cqw;
+  background: #ffffff;
+  color: #0f172a;
+  z-index: 1;
+}
+.device-status-time {
+  font-size: 4.2cqw;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.device-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+}
+.device-status-icons svg {
+  height: 3cqw;
+  width: auto;
+}
+.device-home-bar {
+  position: absolute;
+  bottom: 1.1%;
+  left: 50%;
+  width: 35%;
+  height: 0.6%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+/* ---- Top-bar page links ---- */
+.nav-page-link {
+  padding: 10px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--espresso);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.nav-page-link:hover {
+  background: rgba(27, 42, 74, 0.05);
 }
 
 /* ── Thermal Receipt Roll-Out Animation ──────────────────────────────────────
@@ -690,4 +841,28 @@ html {
   0% { opacity: 0; transform: translateX(-100%); }
   20% { opacity: 1; }
   100% { opacity: 0; transform: translateX(400%); }
+}
+
+/* ---- "Your kitchen, your screen": the kitchen list ----
+   The chosen kitchen opens to show its outcome; the rows animate through
+   grid-template-rows so the height follows the text. */
+.vertical-tab {
+  cursor: pointer;
+}
+.vertical-tab:focus-visible {
+  outline: 2px solid var(--espresso);
+  outline-offset: 4px;
+}
+.vertical-tab-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vertical-tab.is-selected .vertical-tab-body {
+  grid-template-rows: 1fr;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vertical-tab-body {
+    transition: none;
+  }
 }

@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { socialMetadata } from "@/lib/socialMetadata";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
-import SceneProgress from "@/components/landing/SceneProgress";
 import SmoothScroll from "@/components/landing/motion/SmoothScroll";
 import { GlobalFieldProvider } from "@/components/landing/motion/GlobalField";
 import HeroScene from "@/components/landing/scenes/HeroScene";
@@ -39,7 +38,6 @@ export default function LandingPage() {
       <GlobalFieldProvider>
         <div className="landing-root">
           <LandingNav />
-          <SceneProgress />
           <HeroScene />
           <TrustedByScene />
           <ChaosScene />

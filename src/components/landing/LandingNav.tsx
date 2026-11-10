@@ -10,6 +10,8 @@ import { formatRole } from "@/lib/utils";
 import { LayoutGrid, User, LogOut, ChevronDown, Menu, X } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import WhatsAppIcon from "./WhatsAppIcon";
+import { WHATSAPP_HREF } from "@/lib/contact";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -109,6 +111,16 @@ export default function LandingNav() {
             loading="eager"
           />
         </Link>
+
+        {/* Desktop page links */}
+        <div className="hidden md:flex items-center gap-1">
+          <Link href="/features" className="nav-page-link">
+            Features
+          </Link>
+          <Link href="/pricing" className="nav-page-link">
+            Pricing
+          </Link>
+        </div>
 
         {/* Desktop Nav Actions */}
         <div className="hidden sm:flex items-center gap-2">
@@ -293,7 +305,21 @@ export default function LandingNav() {
                   <Link href="/#scene-verticals" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Who it&apos;s for
                   </Link>
+                  <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                    Pricing
+                  </Link>
                 </div>
+
+                <a
+                  href={WHATSAPP_HREF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-4 py-3 text-xs font-bold text-zinc-900 min-h-[44px]"
+                >
+                  <WhatsAppIcon size={16} className="text-[#128C4B]" />
+                  Chat on WhatsApp
+                </a>
 
                 <Link
                   href="/login"

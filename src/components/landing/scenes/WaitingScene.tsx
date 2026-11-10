@@ -4,6 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { FieldScene } from "../motion/GlobalField";
 import { Assemble, useMagnetic, springSnappy } from "../motion/primitives";
+import WhatsAppIcon from "../WhatsAppIcon";
+import { WHATSAPP_HREF, WHATSAPP_NUMBER_DISPLAY } from "@/lib/contact";
 
 function MagneticLink({ href, className, id, children }: { href: string; className: string; id: string; children: React.ReactNode }) {
   const { ref, x, y } = useMagnetic(0.25);
@@ -28,7 +30,7 @@ export default function WaitingScene() {
       style={{ minHeight: "70vh", display: "flex", alignItems: "center" }}
       ariaLabel="Get started"
     >
-      <div className="max-w-xl mx-auto px-4 sm:px-6 text-center w-full">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center w-full">
         <Assemble
           as="h2"
           style={{
@@ -39,6 +41,8 @@ export default function WaitingScene() {
             letterSpacing: "-0.025em",
             color: "var(--cream-light)",
             marginBottom: "20px",
+            maxWidth: "576px",
+            marginInline: "auto",
           }}
         >
           The AI Operating System for{" "}
@@ -61,12 +65,20 @@ export default function WaitingScene() {
         </Assemble>
 
         <Assemble as="div" delay={0.2} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
-          <MagneticLink href="/contact#demo" id="cta-start" className="btn-primary-light w-full sm:w-auto text-center justify-center min-h-[44px]">
+          <MagneticLink href="/contact#demo" id="cta-start" className="btn-primary-light w-full sm:w-auto text-center justify-center min-h-[44px] whitespace-nowrap">
             Book a Demonstration
           </MagneticLink>
-          <Link href="/login" id="cta-login" className="btn-ghost-dark w-full sm:w-auto text-center justify-center min-h-[44px] flex items-center">
-            I have an account
-          </Link>
+          <a
+            href={WHATSAPP_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            id="cta-whatsapp"
+            className="btn-ghost-dark w-full sm:w-auto text-center justify-center min-h-[44px] flex items-center whitespace-nowrap"
+            style={{ color: "#FFFFFF", borderColor: "rgba(255, 255, 255, 0.3)", fontWeight: 600 }}
+          >
+            <WhatsAppIcon />
+            WhatsApp {WHATSAPP_NUMBER_DISPLAY}
+          </a>
         </Assemble>
       </div>
     </FieldScene>
