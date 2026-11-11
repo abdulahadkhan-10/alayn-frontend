@@ -88,23 +88,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
             {user?.role === "SUPPLIER" ? (
               <Link href="/supplier" className="inline-flex items-center">
                 <Image
-                  src="/image1.png"
-                  alt="ALAYN Logo"
-                  width={120}
-                  height={40}
-                  style={{ width: "auto", height: "auto" }}
-                  className="max-h-8 sm:max-h-10 w-auto object-contain hover:opacity-90 transition-opacity"
+                  src="/alayn-logo-tm.png"
+                  alt="Alayn AI"
+                  width={960}
+                  height={188}
+                  className="h-[22px] w-auto object-contain hover:opacity-90 transition-opacity"
                   priority
                 />
               </Link>
             ) : (
               <Image
-                src="/image1.png"
-                alt="ALAYN Logo"
-                width={120}
-                height={40}
-                style={{ width: "auto", height: "auto" }}
-                className="max-h-8 sm:max-h-10 w-auto object-contain"
+                src="/alayn-logo-tm.png"
+                alt="Alayn AI"
+                width={960}
+                height={188}
+                className="h-[22px] w-auto object-contain"
                 priority
               />
             )}

@@ -6,14 +6,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import { FieldScene } from "../motion/GlobalField";
 import { Assemble, useMagnetic, springSnappy } from "../motion/primitives";
 import { introHoldSeconds } from "../introTiming";
-import Image from "next/image";
+import { Phone, Tablet } from "../devices/DeviceFrames";
 
 /**
- * Hero: the pitch on the left; on the right the real dashboard on a tablet
- * and a phone. The devices are drawn in CSS (devices/DeviceFrames.tsx) and
- * baked into images at 4x (see app/dev/hero-devices), because a browser blurs
- * small text when it draws a screenshot at an angle. Background is a CSS-only
- * aurora (see .hero-aurora in globals.css).
+ * Hero: the pitch on the left; on the right the live vector Overview dashboard
+ * framed inside a precision-machined Space Black tablet and Black Titanium
+ * phone (devices/DeviceFrames.tsx). Drawn in pure inline SVG with zero raster
+ * bitmaps or 3D perspective skew so every glyph, hairline, and hardware bevel
+ * stays razor-sharp at any zoom level.
  */
 
 function MagneticLink({
@@ -37,9 +37,20 @@ function MagneticLink({
   );
 }
 
+/** Clears CSS transform once settled so trackpad pinch-zoom re-rasterizes SVG vectors natively */
+const clearIdentityTransform = (_: unknown, generated: string) => {
+  if (
+    !generated ||
+    generated === "none" ||
+    generated === "translateY(0px)" ||
+    generated === "translate3d(0px, 0px, 0px)"
+  ) {
+    return "none";
+  }
+  return generated;
+};
+
 export default function HeroScene() {
-  // The mockups below animate on mount rather than through Assemble, so they
-  // take the logo reveal's remaining time once, at mount.
   const [introHold] = useState(introHoldSeconds);
   const reduceMotion = useReducedMotion();
 
@@ -72,7 +83,6 @@ export default function HeroScene() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
           {/* Left — the pitch */}
           <div className="lg:col-span-5">
-
             <Assemble
               as="h1"
               delay={0.06}
@@ -95,7 +105,18 @@ export default function HeroScene() {
               </em>
             </Assemble>
 
-            <Assemble as="p" delay={0.12} visibleOnLoad style={{ fontSize: "clamp(1rem, 2vw, 1.1875rem)", lineHeight: 1.65, color: "var(--muted)", maxWidth: "520px", marginBottom: "40px" }}>
+            <Assemble
+              as="p"
+              delay={0.12}
+              visibleOnLoad
+              style={{
+                fontSize: "clamp(1rem, 2vw, 1.1875rem)",
+                lineHeight: 1.65,
+                color: "var(--muted)",
+                maxWidth: "520px",
+                marginBottom: "40px",
+              }}
+            >
               GST billing, counter &amp; table POS, instant KOTs, kitchen display, FEFO inventory, waste tracking and staff scheduling, in one platform with live visibility across every outlet.
             </Assemble>
 
@@ -141,52 +162,30 @@ export default function HeroScene() {
             </Assemble>
           </div>
 
-          {/* Right: the dashboard on a tablet, and on a phone standing in front of it.
-              Both are real screenshots at real device sizes inside drawn frames
-              (devices/DeviceFrames.tsx), tilted toward the headline. The phone
-              covers only the tablet's side menu, never a figure. */}
-          <Assemble as="div" delay={0.16} className="lg:col-span-7 w-full mt-6 lg:mt-0">
-            {/* Both images cover the same box (the device column plus room for the
-                shadows), so they stack exactly; the phone floats on its own. */}
-            <div className="hero-devices-baked">
+          {/* Right — pure-vector Tablet + Phone studio lockup */}
+          <div className="lg:col-span-7 w-full mt-6 lg:mt-0">
+            <div className="hero-stage">
               <motion.div
-                initial={{ opacity: 0, y: 24 }}
+                className="hero-tablet-wrap"
+                initial={reduceMotion ? false : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: introHold }}
+                transformTemplate={clearIdentityTransform}
+                transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.1 + introHold }}
               >
-                <Image
-                  src="/hero-tablet-3d.webp"
-                  alt="Alayn dashboard on a tablet: net sales, orders, average order value, stock wasted and action items"
-                  width={1852}
-                  height={1416}
-                  unoptimized
-                  priority
-                  style={{ width: "100%", height: "auto", display: "block" }}
-                />
+                <Tablet />
               </motion.div>
+
               <motion.div
-                className="absolute inset-0"
-                initial={{ opacity: 0, y: 36 }}
-                animate={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, -7, 0] }}
-                transition={{
-                  opacity: { duration: 0.8, delay: 0.3 + introHold },
-                  y: reduceMotion
-                    ? { duration: 0.8, delay: 0.3 + introHold }
-                    : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.1 + introHold },
-                }}
+                className="hero-phone-wrap"
+                initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transformTemplate={clearIdentityTransform}
+                transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.24 + introHold }}
               >
-                <Image
-                  src="/hero-phone-3d.webp"
-                  alt="Alayn dashboard on a phone"
-                  width={1852}
-                  height={1416}
-                  unoptimized
-                  priority
-                  style={{ width: "100%", height: "auto", display: "block" }}
-                />
+                <Phone />
               </motion.div>
             </div>
-          </Assemble>
+          </div>
 
           {/* Mobile-only paragraph below the fold */}
           <div className="sm:hidden mt-8 px-2 text-center w-full max-w-[320px] mx-auto">
