@@ -61,11 +61,11 @@ export default function HeroScene() {
       chaos={0}
       sync={0.25}
       presence={0.25}
-      className="hero-section pt-32 pb-20 sm:pt-40 sm:pb-32 px-4 sm:px-6"
+      className="hero-section pt-28 pb-16 sm:pt-36 sm:pb-24 lg:pt-32 lg:pb-20 px-4 sm:px-6 lg:px-8"
       ariaLabel="Alayn"
       style={{
         background: "#FFFFFF",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         alignItems: "center",
         position: "relative",
@@ -79,8 +79,8 @@ export default function HeroScene() {
         <div className="hero-aurora hero-aurora-c" />
       </div>
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: "1280px", margin: "0 auto", width: "100%" }}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+      <div style={{ position: "relative", zIndex: 1, maxWidth: "1400px", margin: "0 auto", width: "100%" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 xl:gap-10 items-center">
           {/* Left — the pitch */}
           <div className="lg:col-span-5">
             <Assemble
@@ -163,7 +163,7 @@ export default function HeroScene() {
           </div>
 
           {/* Right — pure-vector Tablet + Phone studio lockup */}
-          <div className="lg:col-span-7 w-full mt-6 lg:mt-0">
+          <div className="lg:col-span-7 w-full mt-6 lg:mt-0 xl:-mr-4 2xl:-mr-10">
             <div className="hero-stage">
               <motion.div
                 className="hero-tablet-wrap"
