@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck, Tag } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { Aggregator, basePriceFor, formatRupees, GST_PERCENT, MAX_MONTHS, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 /** The plan being bought: Basic, or Pro with Swiggy and/or Zomato */
@@ -25,6 +25,10 @@ interface SubscriptionMonthSelectorProps {
     discountType: string;
     discountValue: number;
   } | null;
+  /** Hide the final total row when rendered inside a modal that displays the total in a sticky footer */
+  hideTotalRow?: boolean;
+  /** Optional slot rendered below the tax line (e.g. promo code control) */
+  promoSlot?: React.ReactNode;
 }
 
 /** Monthly and yearly price of a plan choice, before GST */
@@ -39,11 +43,17 @@ export function planPrices(plan: PlanChoice) {
 export function presetOptions(plan: PlanChoice) {
   const { monthly, yearly } = planPrices(plan);
   const saving = monthly * 12 - yearly;
+  const pct = monthly > 0 ? Math.floor((saving / (monthly * 12)) * 100) : 0;
   return [
-    { months: 1, label: "1 Month", subtitle: `${formatRupees(monthly)} + GST` },
-    { months: 3, label: "3 Months", subtitle: `${formatRupees(monthly * 3)} + GST` },
-    { months: 6, label: "6 Months", subtitle: `${formatRupees(monthly * 6)} + GST` },
-    { months: 12, label: "1 Year", subtitle: `${formatRupees(yearly)} + GST`, badge: saving > 0 ? `Save ${formatRupees(saving)}` : undefined },
+    { months: 1, label: "1 Month", subtitle: formatRupees(monthly) },
+    { months: 3, label: "3 Months", subtitle: formatRupees(monthly * 3) },
+    { months: 6, label: "6 Months", subtitle: formatRupees(monthly * 6) },
+    {
+      months: 12,
+      label: "1 Year",
+      subtitle: formatRupees(yearly),
+      badge: saving > 0 ? `-${pct}%` : undefined,
+    },
   ];
 }
 
@@ -126,6 +136,8 @@ export default function SubscriptionMonthSelector({
   currentPeriodEnd,
   disabled = false,
   coupon = null,
+  hideTotalRow = false,
+  promoSlot,
 }: SubscriptionMonthSelectorProps) {
   const pricing = calculateSubscriptionPricing(months, coupon, plan, creditRupees);
   const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd, startsNow);
@@ -162,145 +174,136 @@ export default function SubscriptionMonthSelector({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5 text-[#D3232A]" />
-          Choose Subscription Duration
-        </label>
-        <span className="text-[11px] font-semibold text-zinc-500">
-          {formatRupees(prices.monthly)}/mo or {formatRupees(prices.yearly)}/yr + GST
-        </span>
-      </div>
+      {/* Duration Section */}
+      <div className="border-t border-slate-100 pt-4 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-slate-700">Billing duration</span>
+          <span className="text-xs text-slate-500 tabular-nums">
+            {isExtending ? "Extends until" : "Valid until"}{" "}
+            <strong className="font-medium text-slate-800">{formattedEndDate}</strong> ({daysDiff}d)
+          </span>
+        </div>
 
-      {/* Preset Pills */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {presets.map((preset) => {
-          const isSelected = months === preset.months;
-          return (
+        {/* Preset Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {presets.map((preset) => {
+            const isSelected = months === preset.months;
+            return (
+              <button
+                key={preset.months}
+                type="button"
+                disabled={disabled}
+                onClick={() => handlePresetSelect(preset.months)}
+                aria-pressed={isSelected}
+                className={`flex flex-col items-start justify-between rounded-xl border px-3 py-2.5 text-left transition-colors duration-150 select-none ${
+                  isSelected
+                    ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50/50"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              >
+                <div className="flex w-full items-center justify-between gap-1">
+                  <span className="text-xs font-semibold text-slate-900">{preset.label}</span>
+                  {preset.badge && (
+                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 tabular-nums">
+                      {preset.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="mt-0.5 text-[11px] text-slate-500 tabular-nums">
+                  {preset.subtitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom Month Stepper */}
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="text-xs text-slate-500">
+            Custom duration <span className="text-slate-400">({durationLabel(months)})</span>
+          </span>
+
+          <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white">
             <button
-              key={preset.months}
               type="button"
-              disabled={disabled}
-              onClick={() => handlePresetSelect(preset.months)}
-              className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-150 cursor-pointer select-none ${
-                isSelected
-                  ? "border-[#D3232A] bg-red-50/50 text-[#D3232A] shadow-xs ring-2 ring-[#D3232A]/20"
-                  : "border-slate-200 bg-white text-zinc-700 hover:border-slate-300 hover:bg-slate-50/70"
-              } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              disabled={disabled || months <= 1}
+              onClick={handleDecrement}
+              className="flex h-7 w-7 items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer rounded-l-lg"
+              aria-label="Decrease months"
             >
-              {preset.badge && (
-                <span className="absolute -top-2 rounded-full bg-[#D3232A] text-[9px] font-extrabold text-white px-2 py-0.5 shadow-2xs uppercase tracking-wider">
-                  {preset.badge}
-                </span>
-              )}
-              <span className="text-sm font-extrabold leading-tight">
-                {preset.label}
-              </span>
-              <span className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                {preset.subtitle}
-              </span>
-              {isSelected && (
-                <span className="mt-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#D3232A] text-white">
-                  <Check className="h-2.5 w-2.5" />
-                </span>
-              )}
+              <Minus className="h-3 w-3" />
             </button>
-          );
-        })}
-      </div>
-
-      {/* Custom Month Stepper */}
-      <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 border border-slate-200/80">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-zinc-800">Custom Duration:</span>
-          <span className="text-xs text-zinc-500">
-            ({months} {months === 1 ? "month" : "months"} · {daysDiff} calendar days)
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={disabled || months <= 1}
-            onClick={handleDecrement}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-zinc-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
-            aria-label="Decrease months"
-          >
-            <Minus className="h-3 w-3" />
-          </button>
-          <span className="w-8 text-center text-xs font-mono font-extrabold text-zinc-900">
-            {months}
-          </span>
-          <button
-            type="button"
-            disabled={disabled || months >= MAX_MONTHS}
-            onClick={handleIncrement}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-zinc-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
-            aria-label="Increase months"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
+            <span className="min-w-8 border-x border-slate-200 px-2 text-center text-xs font-semibold text-slate-900 tabular-nums">
+              {months}
+            </span>
+            <button
+              type="button"
+              disabled={disabled || months >= MAX_MONTHS}
+              onClick={handleIncrement}
+              className="flex h-7 w-7 items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer rounded-r-lg"
+              aria-label="Increase months"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Projected Validity Card */}
-      <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/70 p-3 text-xs flex items-center justify-between text-emerald-900">
-        <div className="flex items-center gap-2 font-medium">
-          <Sparkles className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span>
-            {isExtending ? "Extends active service until" : "Grants operational access until"}{" "}
-            <strong>{formattedEndDate}</strong>
-          </span>
-        </div>
-        <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md text-[10px]">
-          {daysDiff} Days
-        </span>
-      </div>
-
-      {/* Price Summary Breakdown */}
-      <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-red-50/20 p-4 border border-slate-200/80 space-y-2">
-        <div className="flex justify-between text-xs text-zinc-600 font-medium">
+      {/* Itemized Price Breakdown */}
+      <div className="border-t border-slate-100 pt-3.5 space-y-1.5">
+        <div className="flex justify-between text-xs text-slate-600">
           <span>
             {PLANS[plan.planCode].name}
             {plan.aggregators.length >= 2 ? " + second delivery app" : ""} ({durationLabel(months)})
           </span>
-          <span>₹{pricing.planTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+          <span className="font-medium text-slate-800 tabular-nums">
+            ₹{pricing.planTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
         </div>
+
         {pricing.credit > 0 && (
-          <div className="flex justify-between text-xs text-emerald-700 font-semibold">
-            <span>Credit for days left on your current plan</span>
-            <span>-₹{pricing.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-          </div>
-        )}
-        {pricing.discountRupees > 0 && coupon && (
-          <div className="flex justify-between items-center text-xs text-emerald-700 font-bold bg-emerald-50/90 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-            <span className="flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Coupon Discount ({coupon.code})</span>
+          <div className="flex justify-between text-xs text-emerald-700">
+            <span>Credit for unused days on current plan</span>
+            <span className="font-medium tabular-nums">
+              -₹{pricing.credit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </span>
-            <span>-₹{pricing.discountRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
           </div>
         )}
-        <div className="flex justify-between text-xs text-zinc-600 font-medium">
-          <span>GST ({GST_PERCENT}%)</span>
-          <span>₹{pricing.gstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div className="border-t border-slate-200/80 pt-2.5 flex justify-between items-baseline">
-          <div>
-            <span className="text-xs font-extrabold text-zinc-900 block">Total Payable Now</span>
-            <span className="text-[10px] text-zinc-500">Includes all applicable taxes</span>
+
+        {pricing.discountRupees > 0 && coupon && (
+          <div className="flex justify-between text-xs text-emerald-700">
+            <span>Promo discount ({coupon.code})</span>
+            <span className="font-medium tabular-nums">
+              -₹{pricing.discountRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </span>
           </div>
-          <div className="text-right">
-            <span className="text-xl font-extrabold text-zinc-900 font-mono">
+        )}
+
+        <div className="flex justify-between text-xs text-slate-500">
+          <span>GST ({GST_PERCENT}%)</span>
+          <span className="tabular-nums">
+            ₹{pricing.gstTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+
+        {promoSlot && <div className="pt-1.5">{promoSlot}</div>}
+
+        {months >= 12 && (
+          <p className="pt-1 text-[11px] text-slate-400">
+            Annual billing ({formatRupees(prices.yearly)}/yr + GST) is non-refundable.
+          </p>
+        )}
+
+        {!hideTotalRow && (
+          <div className="border-t border-slate-200/80 pt-3 mt-2 flex items-baseline justify-between">
+            <div>
+              <span className="text-sm font-semibold text-slate-900">Total payable</span>
+              <span className="ml-1.5 text-xs text-slate-500">incl. GST</span>
+            </div>
+            <span className="text-lg font-bold tracking-tight text-slate-900 tabular-nums">
               ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-zinc-500 block font-medium">INR</span>
           </div>
-        </div>
-        {months >= 12 && (
-          <p className="pt-1 text-[11px] text-zinc-500">
-            Years are charged at {formatRupees(prices.yearly)} + GST each and are non-refundable.
-          </p>
         )}
       </div>
     </div>
