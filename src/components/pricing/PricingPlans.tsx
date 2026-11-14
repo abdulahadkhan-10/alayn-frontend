@@ -4,6 +4,12 @@ import React, { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { formatRupees, PLANS, SECOND_AGGREGATOR, withGst, yearlySaving, type PlanCode } from "@/lib/pricing";
+
+/** Pro's saving when paid yearly, as a whole percentage of 12 monthly payments */
+const PRO_YEARLY_SAVING_PERCENT = Math.floor((yearlySaving("ALAYN_PRO") / ((PLANS.ALAYN_PRO.monthly ?? 0) * 12)) * 100);
+
+/** The period a plan is actually billed for: a yearly-only plan stays yearly when Monthly is picked */
+const cycleFor = (plan: PlanCode, cycle: Cycle): Cycle => (PLANS[plan].monthly === null ? "yearly" : cycle);
 import { signupHref, type Cycle } from "@/lib/planIntent";
 
 // The billing period is shared with the closing buttons further down the page, so they sign up
@@ -24,7 +30,7 @@ const useCycle = () => useSyncExternalStore(subscribeCycle, () => sharedCycle, (
 
 /** A signup link for a plan that carries whichever billing period is selected on the page */
 export function PlanSignupLink({ plan, className, children }: { plan: PlanCode; className?: string; children: React.ReactNode }) {
-  const cycle = useCycle();
+  const cycle = cycleFor(plan, useCycle());
   return (
     <Link href={signupHref(plan, cycle)} className={className}>
       {children}
@@ -52,8 +58,10 @@ const PRO_POINTS: { lead: string; text: string; soon?: boolean }[] = [
   { lead: "Swiggy or Zomato", text: "orders straight to your kitchen, included when it launches.", soon: true },
 ];
 
-function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode; cycle: Cycle; dark?: boolean; animated?: boolean }) {
-  const amount = cycle === "monthly" ? PLANS[plan].monthly : PLANS[plan].yearly;
+function Price({ plan, cycle: pickedCycle, dark = false, animated = false }: { plan: PlanCode; cycle: Cycle; dark?: boolean; animated?: boolean }) {
+  const cycle = cycleFor(plan, pickedCycle);
+  const yearlyOnly = PLANS[plan].monthly === null;
+  const amount = cycle === "monthly" ? (PLANS[plan].monthly ?? PLANS[plan].yearly) : PLANS[plan].yearly;
   const subtextTone = dark ? "text-[var(--muted-on-dark)]" : "text-[var(--muted)]";
   return (
     // The key replays the entrance whenever the user switches the billing period
@@ -68,7 +76,13 @@ function Price({ plan, cycle, dark = false, animated = false }: { plan: PlanCode
       </p>
       <p className={`mt-1.5 text-[13px] tabular-nums ${subtextTone}`}>
         {formatRupees(Math.round(withGst(amount)))} with 18% GST.
-        {cycle === "yearly" && (
+        {yearlyOnly && (
+          <>
+            <br />
+            <span className={dark ? "font-semibold text-white" : "font-semibold text-[var(--espresso)]"}>Paid yearly only.</span> Non-refundable.
+          </>
+        )}
+        {!yearlyOnly && cycle === "yearly" && (
           <>
             <br />
             <span className={dark ? "font-semibold text-white" : "font-semibold text-[var(--espresso)]"}>Save {formatRupees(yearlySaving(plan))}</span> compared
@@ -149,7 +163,7 @@ export default function PricingPlans() {
               {c === "monthly" ? "Monthly" : "Yearly"}
               {c === "yearly" && (
                 <span className={`tabular-nums ${checked ? "text-[var(--amber-on-dark)]" : "font-bold text-[var(--espresso)]"}`}>
-                  {" "}· save 16%
+                  {" "}· save {PRO_YEARLY_SAVING_PERCENT}%
                 </span>
               )}
             </button>
@@ -158,7 +172,7 @@ export default function PricingPlans() {
       </div>
       <p className="sr-only" aria-live="polite">
         {hasToggled
-          ? `${cycle === "monthly" ? "Monthly" : "Yearly"} prices: Alayn Pro ${formatRupees(cycle === "monthly" ? PLANS.ALAYN_PRO.monthly : PLANS.ALAYN_PRO.yearly)}, Alayn Basic ${formatRupees(cycle === "monthly" ? PLANS.ALAYN_BASIC.monthly : PLANS.ALAYN_BASIC.yearly)}, plus GST.`
+          ? `${cycle === "monthly" ? "Monthly" : "Yearly"} prices: Alayn Pro ${formatRupees(cycle === "monthly" ? (PLANS.ALAYN_PRO.monthly ?? PLANS.ALAYN_PRO.yearly) : PLANS.ALAYN_PRO.yearly)} a ${cycle === "monthly" ? "month" : "year"}, Alayn Basic ${formatRupees(PLANS.ALAYN_BASIC.yearly)} a year, plus GST.`
           : ""}
       </p>
       {/* Pro comes first; this gets the budget-minded owner on a phone to Basic in one tap */}
@@ -219,7 +233,7 @@ export default function PricingPlans() {
             <Price plan="ALAYN_BASIC" cycle={cycle} animated={hasToggled} />
           </div>
           <Link
-            href={signupHref("ALAYN_BASIC", cycle)}
+            href={signupHref("ALAYN_BASIC", "yearly")}
             className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--espresso)] px-6 py-3 text-sm font-semibold text-[var(--espresso)] transition-colors hover:bg-[var(--espresso)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--amber)]"
           >
             Start with Basic

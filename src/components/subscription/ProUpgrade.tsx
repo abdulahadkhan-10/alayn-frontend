@@ -53,7 +53,7 @@ export function ProLockedPanel({ title, description }: { title: string; descript
       <h1 className="mt-1 text-xl font-extrabold text-zinc-900">{title}</h1>
       <p className="mt-2 text-sm text-zinc-600">{description}</p>
       <p className="mt-3 text-xs text-zinc-500">
-        Pro is {formatRupees(PLANS.ALAYN_PRO.monthly)} a month or {formatRupees(PLANS.ALAYN_PRO.yearly)} a year + GST, with
+        Pro is {formatRupees(PLANS.ALAYN_PRO.monthly ?? 0)} a month or {formatRupees(PLANS.ALAYN_PRO.yearly)} a year + GST, with
         full Ask Alayn AI and Swiggy or Zomato (coming soon) included.
       </p>
       <div className="mt-5 flex justify-center">

@@ -24,12 +24,12 @@ import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
 import SubscriptionRenewModal from "@/components/subscription/SubscriptionRenewModal";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { AGGREGATOR_NAMES, effectivePlan, formatRupees, PLANS, SECOND_AGGREGATOR, withGst, type Aggregator } from "@/lib/pricing";
+import { AGGREGATOR_NAMES, effectivePlan, formatRupees, monthlyEquivalent, PLANS, SECOND_AGGREGATOR, withGst, type Aggregator } from "@/lib/pricing";
 
-/** An outlet's plan price per month before GST, at the monthly rate */
+/** An outlet's plan price per month before GST: the monthly rate, or a twelfth of the year for Basic */
 const monthlyPriceOf = (sub?: { planCode?: string; aggregators?: string[] }) => {
   const plan = effectivePlan(sub?.planCode);
-  return PLANS[plan].monthly + (plan === "ALAYN_PRO" && (sub?.aggregators?.length ?? 0) >= 2 ? SECOND_AGGREGATOR.monthly : 0);
+  return monthlyEquivalent(plan) + (plan === "ALAYN_PRO" && (sub?.aggregators?.length ?? 0) >= 2 ? SECOND_AGGREGATOR.monthly : 0);
 };
 
 const planLabelOf = (sub?: { planCode?: string; planName?: string; aggregators?: string[] }) => {
@@ -115,7 +115,7 @@ export default function BillingPage() {
               <p className="mt-2 text-2xl font-extrabold text-zinc-900 font-mono">
                 ₹{totalMonthlySpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400 font-medium">Basic {formatRupees(PLANS.ALAYN_BASIC.monthly)} · Pro {formatRupees(PLANS.ALAYN_PRO.monthly)} per outlet / mo + 18% GST</p>
+              <p className="mt-1 text-[11px] text-zinc-400 font-medium">Basic {formatRupees(PLANS.ALAYN_BASIC.yearly)}/yr · Pro {formatRupees(PLANS.ALAYN_PRO.monthly ?? 0)}/mo per outlet + 18% GST</p>
             </div>
 
             <div className="rounded-3xl bg-white p-6 border border-gray-100 shadow-xs">

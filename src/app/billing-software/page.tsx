@@ -7,7 +7,7 @@ import LandingFooter from "@/components/landing/LandingFooter";
 const siteUrl = "https://alaynai.com";
 const title = "Restaurant Billing Software & GST POS System in India | Alayn AI";
 const description =
-  "Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India. Counter & table billing, instant KOT, UPI/card/cash, live KDS, FEFO inventory & workforce from ₹599/month.";
+  "Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India. Counter & table billing, instant KOT, UPI/card/cash, live KDS, FEFO inventory & workforce from ₹5,999 a year.";
 
 export const metadata: Metadata = {
   title: "Restaurant Billing Software & GST POS System",
@@ -103,7 +103,7 @@ const FAQS = [
   {
     question: "What makes Alayn AI a complete billing software for restaurants and cafés?",
     answer:
-      "Alayn AI is a unified restaurant billing software and operating system built for Indian restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines GST POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling, from ₹599 per outlet per month (Alayn Basic) + 18% GST.",
+      "Alayn AI is a unified restaurant billing software and operating system built for Indian restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines GST POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling, from ₹5,999 per outlet a year (Alayn Basic) + 18% GST.",
   },
   {
     question: "Does Alayn AI billing software support GST invoicing and thermal KOT printing?",
@@ -123,7 +123,7 @@ const FAQS = [
   {
     question: "How much does Alayn AI billing software cost?",
     answer:
-      "Alayn AI has two plans per outlet, + 18% GST. Alayn Basic is ₹599 a month or ₹5,999 a year, with POS billing, KDS, FEFO inventory, waste tracking, staff logins and daily Ask Alayn AI questions on sales and menu. Alayn Pro is ₹1,999 a month or ₹19,999 a year and adds shift scheduling, attendance and leave, the full Ask Alayn AI, and Swiggy or Zomato integration (coming soon).",
+      "Alayn AI has two plans per outlet, + 18% GST. Alayn Basic is ₹5,999 a year (paid yearly only), with POS billing, KDS, FEFO inventory, waste tracking, staff logins and daily Ask Alayn AI questions on sales and menu. Alayn Pro is ₹2,999 a month or ₹19,999 a year and adds shift scheduling, attendance and leave, the full Ask Alayn AI, and Swiggy or Zomato integration (coming soon).",
   },
 ];
 
@@ -177,7 +177,7 @@ export default function BillingSoftwarePage() {
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             <strong className="font-semibold text-[var(--espresso)]">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs and cloud kitchens. It connects fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters from{" "}
             <Link href="/pricing" className="font-medium text-[var(--espresso)] underline decoration-[var(--amber)] decoration-2 underline-offset-4 hover:text-[var(--amber)]">
-              ₹599 per outlet per month
+              ₹5,999 per outlet a year
             </Link>
             .
           </p>
@@ -301,10 +301,10 @@ export default function BillingSoftwarePage() {
           className="mt-24 rounded-2xl bg-[var(--espresso)] px-7 py-12 text-center text-white selection:bg-[var(--amber-on-dark)] selection:text-[var(--espresso)] sm:px-12 sm:py-16"
         >
           <h2 id="close-heading" className="mx-auto max-w-2xl text-3xl leading-tight text-balance sm:text-[2.6rem]">
-            <span className="font-[family-name:var(--font-playfair)] font-bold">Move your billing to Alayn from ₹599 a month.</span>
+            <span className="font-[family-name:var(--font-playfair)] font-bold">Move your billing to Alayn from ₹5,999 a year.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--muted-on-dark)]">
-            Alayn Basic from ₹599 per outlet per month, or Alayn Pro from ₹1,999, + 18% GST. POS, KDS, inventory and waste on both plans from day one.
+            Alayn Basic at ₹5,999 per outlet a year, or Alayn Pro from ₹2,999 a month, + 18% GST. POS, KDS, inventory and waste on both plans from day one.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

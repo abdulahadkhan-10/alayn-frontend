@@ -2,17 +2,24 @@
  * Alayn's plans, per outlet, before 18% GST. Keep in step with src/modules/subscription/pricing.ts in the
  * backend, which decides what is charged.
  *
- * - Basic: ₹599 a month or ₹5,999 a year. Everything except shift scheduling and full Ask Alayn AI.
- * - Pro: ₹1,999 a month or ₹19,999 a year. Everything, plus one of Swiggy or Zomato.
+ * - Basic: ₹5,999 a year, sold by the year only. Everything except shift scheduling and full Ask Alayn AI.
+ * - Pro: ₹2,999 a month or ₹19,999 a year. Everything, plus one of Swiggy or Zomato.
  * - Both Swiggy and Zomato on Pro: the second one is ₹499 a month or ₹4,999 a year more.
  */
 export type PlanCode = "ALAYN_BASIC" | "ALAYN_PRO";
 export type Aggregator = "SWIGGY" | "ZOMATO";
 
-export const PLANS: Record<PlanCode, { code: PlanCode; name: string; monthly: number; yearly: number }> = {
-  ALAYN_BASIC: { code: "ALAYN_BASIC", name: "Alayn Basic", monthly: 599, yearly: 5999 },
-  ALAYN_PRO: { code: "ALAYN_PRO", name: "Alayn Pro", monthly: 1999, yearly: 19999 },
+/** `monthly` is null for a plan that is only sold by the year */
+export const PLANS: Record<PlanCode, { code: PlanCode; name: string; monthly: number | null; yearly: number }> = {
+  ALAYN_BASIC: { code: "ALAYN_BASIC", name: "Alayn Basic", monthly: null, yearly: 5999 },
+  ALAYN_PRO: { code: "ALAYN_PRO", name: "Alayn Pro", monthly: 2999, yearly: 19999 },
 };
+
+/** Whether a plan can be bought month by month */
+export const billsMonthly = (planCode: PlanCode) => PLANS[planCode].monthly !== null;
+
+/** What a plan costs per month: the monthly price, or a twelfth of the yearly one for a yearly-only plan */
+export const monthlyEquivalent = (planCode: PlanCode) => PLANS[planCode].monthly ?? Math.round((PLANS[planCode].yearly / 12) * 100) / 100;
 
 /** The second delivery app on Pro */
 export const SECOND_AGGREGATOR = { monthly: 499, yearly: 4999 };
@@ -29,18 +36,30 @@ export const MAX_MONTHS = 36;
 
 export const withGst = (amount: number) => Math.round(amount * (100 + GST_PERCENT)) / 100;
 
-const priceFor = (price: { monthly: number; yearly: number }, months: number) =>
-  Math.floor(months / 12) * price.yearly + (months % 12) * price.monthly;
+/**
+ * Months that can be bought on a plan: 1 to 36, and for a yearly-only plan whole years
+ * (rounded up, so 1 month on Basic becomes 12). The backend refuses anything else.
+ */
+export function allowedMonths(planCode: PlanCode, months: number): number {
+  const m = Math.max(1, Math.min(MAX_MONTHS, Math.floor(months) || 1));
+  return billsMonthly(planCode) ? m : Math.min(MAX_MONTHS, Math.ceil(m / 12) * 12);
+}
+
+const priceFor = (price: { monthly: number | null; yearly: number }, months: number) =>
+  Math.floor(months / 12) * price.yearly + (months % 12) * (price.monthly ?? 0);
 
 /** Price before GST for some months: each full year at the yearly price, the months left over at the monthly price */
 export function basePriceFor(planCode: PlanCode, months: number, aggregatorCount = 0): number {
-  const m = Math.max(1, Math.min(MAX_MONTHS, Math.floor(months) || 1));
+  const m = allowedMonths(planCode, months);
   const addOn = planCode === "ALAYN_PRO" && aggregatorCount >= 2 ? priceFor(SECOND_AGGREGATOR, m) : 0;
   return priceFor(PLANS[planCode], m) + addOn;
 }
 
 /** What paying yearly saves against paying month by month for 12 months */
-export const yearlySaving = (planCode: PlanCode) => PLANS[planCode].monthly * 12 - PLANS[planCode].yearly;
+export const yearlySaving = (planCode: PlanCode) => {
+  const monthly = PLANS[planCode].monthly;
+  return monthly === null ? 0 : monthly * 12 - PLANS[planCode].yearly;
+};
 
 /**
  * Which plan a subscription counts as. Outlets on the old single plan (MONTHLY_STANDARD) and

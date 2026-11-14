@@ -8,11 +8,11 @@ import PricingPlans, { PlanSignupLink, SoonTag } from "@/components/pricing/Pric
 import { BASIC_AI_QUESTIONS, PRO_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 const siteUrl = "https://alaynai.com";
-const title = "Pricing — Alayn Basic ₹599/mo, Alayn Pro ₹1,999/mo | Restaurant Billing & POS | Alayn AI";
-const description = `Alayn AI restaurant POS and billing software, per outlet + ${GST_PERCENT}% GST: Alayn Basic ₹599 a month or ₹5,999 a year with POS billing, kitchen display, inventory and reports; Alayn Pro ₹1,999 a month or ₹19,999 a year adding staff scheduling, full Ask Alayn AI and Swiggy or Zomato.`;
+const title = "Pricing — Alayn Basic ₹5,999/yr, Alayn Pro ₹2,999/mo | Restaurant Billing & POS | Alayn AI";
+const description = `Alayn AI restaurant POS and billing software, per outlet + ${GST_PERCENT}% GST: Alayn Basic ₹5,999 a year with POS billing, kitchen display, inventory and reports; Alayn Pro ₹2,999 a month or ₹19,999 a year adding staff scheduling, full Ask Alayn AI and Swiggy or Zomato.`;
 
 export const metadata: Metadata = {
-  title: "Pricing — Alayn Basic ₹599/mo, Pro ₹1,999/mo",
+  title: "Pricing — Alayn Basic ₹5,999/yr, Pro ₹2,999/mo",
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
@@ -62,7 +62,7 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How do monthly and yearly billing work?",
-    a: "Pay for 1 to 36 months at a time. Each full year is charged at the yearly price and the months left over at the monthly price. Yearly payments are non-refundable.",
+    a: "Alayn Pro: pay for 1 to 36 months at a time. Each full year is charged at the yearly price and the months left over at the monthly price. Alayn Basic is paid by the year only, for 1 to 3 years. Yearly payments are non-refundable.",
   },
   {
     q: "Can I move from Basic to Pro later?",
@@ -145,9 +145,8 @@ export default function PricingPage() {
         "about": { "@id": `${siteUrl}/#software` },
         "breadcrumb": { "@id": `${siteUrl}/pricing#breadcrumb` }
       },
-      offer("basic-monthly", "Alayn Basic — per outlet, monthly", PLANS.ALAYN_BASIC.monthly, "P1M", "per outlet per month"),
       offer("basic-yearly", "Alayn Basic — per outlet, yearly", PLANS.ALAYN_BASIC.yearly, "P1Y", "per outlet per year"),
-      offer("pro-monthly", "Alayn Pro — per outlet, monthly", PLANS.ALAYN_PRO.monthly, "P1M", "per outlet per month"),
+      offer("pro-monthly", "Alayn Pro — per outlet, monthly", PLANS.ALAYN_PRO.monthly ?? PLANS.ALAYN_PRO.yearly, "P1M", "per outlet per month"),
       offer("pro-yearly", "Alayn Pro — per outlet, yearly", PLANS.ALAYN_PRO.yearly, "P1Y", "per outlet per year"),
       {
         "@type": "BreadcrumbList",
@@ -181,7 +180,7 @@ export default function PricingPage() {
               billing
             </Link>
             , kitchen and stock. Alayn Pro adds your staff rota and the full Ask Alayn AI, with Swiggy or Zomato included when it
-            launches. Pay monthly, or pay for the year and save.
+            launches. Basic is paid by the year; Pro monthly, or for the year and save.
           </p>
         </div>
 
@@ -210,11 +209,11 @@ export default function PricingPage() {
                 <p className="px-4 pb-3 pt-4 text-[15px] font-semibold">{feature}</p>
                 <dl className="grid grid-cols-2 border-t border-[var(--border-warm)] text-center">
                   <div className="px-3 py-3">
-                    <dt className="text-xs font-medium text-[var(--muted)]">Basic · {formatRupees(PLANS.ALAYN_BASIC.monthly)}/mo</dt>
+                    <dt className="text-xs font-medium text-[var(--muted)]">Basic · {formatRupees(PLANS.ALAYN_BASIC.yearly)}/yr</dt>
                     <dd className="mt-1.5"><CompareCell value={basic} /></dd>
                   </div>
                   <div className="bg-[var(--espresso)]/[0.04] px-3 py-3">
-                    <dt className="text-xs font-semibold text-[var(--espresso)]">Pro · {formatRupees(PLANS.ALAYN_PRO.monthly)}/mo</dt>
+                    <dt className="text-xs font-semibold text-[var(--espresso)]">Pro · {formatRupees(PLANS.ALAYN_PRO.monthly ?? 0)}/mo</dt>
                     <dd className="mt-1.5"><CompareCell value={pro} pro /></dd>
                   </div>
                 </dl>
@@ -230,13 +229,13 @@ export default function PricingPage() {
                   <th scope="col" className="w-[23%] sm:w-[27%] px-2 py-4 text-center font-heading font-bold sm:px-4">
                     Basic
                     <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">
-                      {formatRupees(PLANS.ALAYN_BASIC.monthly)}/mo <span className="whitespace-nowrap">· {formatRupees(PLANS.ALAYN_BASIC.yearly)}/yr</span>
+                      {formatRupees(PLANS.ALAYN_BASIC.yearly)}/yr <span className="whitespace-nowrap">· yearly only</span>
                     </span>
                   </th>
                   <th scope="col" className="w-[23%] sm:w-[27%] bg-[var(--espresso)]/[0.03] px-2 py-4 text-center font-heading font-bold sm:px-4">
                     Pro
                     <span className="block text-[13px] font-medium text-[var(--muted)] tabular-nums">
-                      {formatRupees(PLANS.ALAYN_PRO.monthly)}/mo <span className="whitespace-nowrap">· {formatRupees(PLANS.ALAYN_PRO.yearly)}/yr</span>
+                      {formatRupees(PLANS.ALAYN_PRO.monthly ?? 0)}/mo <span className="whitespace-nowrap">· {formatRupees(PLANS.ALAYN_PRO.yearly)}/yr</span>
                     </span>
                   </th>
                 </tr>

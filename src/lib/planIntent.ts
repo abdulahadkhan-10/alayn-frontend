@@ -16,7 +16,8 @@ export const signupHref = (plan: PlanCode, cycle: Cycle) => `/signup?plan=${plan
 
 export function parsePlanIntent(plan: string | null | undefined, cycle: string | null | undefined): PlanIntent | null {
   if (plan !== "ALAYN_BASIC" && plan !== "ALAYN_PRO") return null;
-  return { plan, cycle: cycle === "monthly" ? "monthly" : "yearly" };
+  // Basic is sold by the year only
+  return { plan, cycle: cycle === "monthly" && PLANS[plan].monthly !== null ? "monthly" : "yearly" };
 }
 
 export function savePlanIntent(intent: PlanIntent) {
@@ -47,4 +48,4 @@ export function clearPlanIntent() {
 }
 
 export const planIntentLabel = ({ plan, cycle }: PlanIntent) =>
-  `${PLANS[plan].name} · ₹${(cycle === "monthly" ? PLANS[plan].monthly : PLANS[plan].yearly).toLocaleString("en-IN")}/${cycle === "monthly" ? "mo" : "yr"} + GST`;
+  `${PLANS[plan].name} · ₹${(cycle === "monthly" ? (PLANS[plan].monthly ?? PLANS[plan].yearly) : PLANS[plan].yearly).toLocaleString("en-IN")}/${cycle === "monthly" ? "mo" : "yr"} + GST`;

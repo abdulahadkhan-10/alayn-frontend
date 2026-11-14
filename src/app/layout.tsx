@@ -148,14 +148,14 @@ export default function RootLayout({
           "Multi-Outlet Restaurant Management",
           "Ask Alayn AI Natural Language Analytics"
         ],
-        // Alayn Basic and Alayn Pro, per outlet per month before GST (src/lib/pricing.ts)
+        // Alayn Basic and Alayn Pro, per outlet per year before GST (src/lib/pricing.ts). Basic is yearly only.
         "offers": {
           "@type": "AggregateOffer",
           "@id": `${siteUrl}/pricing#offer`,
           "name": "Alayn Basic and Alayn Pro, per outlet",
           "url": `${siteUrl}/pricing`,
-          "lowPrice": 599,
-          "highPrice": 1999,
+          "lowPrice": 5999,
+          "highPrice": 19999,
           "priceCurrency": "INR",
           "offerCount": 2
         },

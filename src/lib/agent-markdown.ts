@@ -19,7 +19,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
 ## Pricing
-Two plans per outlet, + 18% GST: Alayn Basic ₹599 a month or ₹5,999 a year; Alayn Pro ₹1,999 a month or ₹19,999 a year. Details: https://alaynai.com/pricing
+Two plans per outlet, + 18% GST: Alayn Basic ₹5,999 a year (yearly only); Alayn Pro ₹2,999 a month or ₹19,999 a year. Details: https://alaynai.com/pricing
 
 - Restaurant Billing Software: https://alaynai.com/billing-software
 - Full feature list: https://alaynai.com/features
@@ -53,7 +53,7 @@ Two plans per outlet, + 18% GST: Alayn Basic ₹599 a month or ₹5,999 a year; 
 6. **Multi-Outlet Billing & Ask Alayn AI**: Manage every location from one login and ask plain-language questions about daily billing, top sellers, and margins.
 
 ## Pricing
-Alayn Basic: ₹599 per outlet per month or ₹5,999 a year. Alayn Pro: ₹1,999 per outlet per month or ₹19,999 a year. All prices + 18% GST.
+Alayn Basic: ₹5,999 per outlet a year, paid yearly only. Alayn Pro: ₹2,999 per outlet per month or ₹19,999 a year. All prices + 18% GST.
 
 - Pricing details: https://alaynai.com/pricing
 - Features: https://alaynai.com/features
@@ -114,7 +114,7 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
   // Keep in step with src/app/pricing/page.tsx and the prices in src/lib/pricing.ts.
   "/pricing": `# Alayn AI Pricing
 
-> Two plans, priced per outlet, + 18% GST. Alayn Basic: ₹599 a month (₹706.82 with GST) or ₹5,999 a year (₹7,078.82 with GST). Alayn Pro: ₹1,999 a month (₹2,358.82 with GST) or ₹19,999 a year (₹23,598.82 with GST). Yearly payments are non-refundable.
+> Two plans, priced per outlet, + 18% GST. Alayn Basic: ₹5,999 a year (₹7,078.82 with GST), paid yearly only. Alayn Pro: ₹2,999 a month (₹3,538.82 with GST) or ₹19,999 a year (₹23,598.82 with GST). Yearly payments are non-refundable.
 
 ## Alayn Basic
 - POS billing on unlimited counters, with table QR menus
@@ -136,7 +136,7 @@ Everything in Basic, plus:
 - Each outlet has its own subscription.
 - Prices are before 18% GST, which is added at checkout.
 - Ask Alayn AI: Basic includes 3 questions a day on sales and menu; Pro includes 20 a day on every topic. Questions reset at midnight and are shared by the outlet.
-- Pay for 1 to 36 months at a time. Each full year is charged at the yearly price.
+- Alayn Pro: pay for 1 to 36 months at a time; each full year is charged at the yearly price. Alayn Basic is paid by the year only, for 1 to 3 years.
 - Move from Basic to Pro at any time; the days left on Basic are taken off the price. Moving from Pro to Basic happens when the Pro period ends.
 - Yearly payments are non-refundable.
 - Payments are processed by Cashfree.

@@ -64,7 +64,9 @@ export default function PlanPicker({ value, onChange, currentPlan = null, disabl
                 <div>
                   <p className="text-sm font-extrabold text-zinc-900">{plan.name}</p>
                   <p className="mt-0.5 text-xs text-zinc-500">
-                    {formatRupees(plan.monthly)}/mo or {formatRupees(plan.yearly)}/yr + GST
+                    {plan.monthly === null
+                      ? `${formatRupees(plan.yearly)}/yr + GST, yearly only`
+                      : `${formatRupees(plan.monthly)}/mo or ${formatRupees(plan.yearly)}/yr + GST`}
                   </p>
                 </div>
                 {currentPlan === code ? (

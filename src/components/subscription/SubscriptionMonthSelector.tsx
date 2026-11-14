@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Calendar, Sparkles, Plus, Minus, Check, ShieldCheck, Tag } from "lucide-react";
-import { Aggregator, basePriceFor, formatRupees, GST_PERCENT, MAX_MONTHS, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
+import { Aggregator, allowedMonths, basePriceFor, billsMonthly, formatRupees, GST_PERCENT, MAX_MONTHS, PlanCode, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
 
 /** The plan being bought: Basic, or Pro with Swiggy and/or Zomato */
 export interface PlanChoice {
@@ -27,17 +27,26 @@ interface SubscriptionMonthSelectorProps {
   } | null;
 }
 
-/** Monthly and yearly price of a plan choice, before GST */
+/** Monthly and yearly price of a plan choice, before GST. Monthly is null for a yearly-only plan. */
 export function planPrices(plan: PlanChoice) {
   const both = plan.planCode === "ALAYN_PRO" && plan.aggregators.length >= 2;
+  const monthly = PLANS[plan.planCode].monthly;
   return {
-    monthly: PLANS[plan.planCode].monthly + (both ? SECOND_AGGREGATOR.monthly : 0),
+    monthly: monthly === null ? null : monthly + (both ? SECOND_AGGREGATOR.monthly : 0),
     yearly: PLANS[plan.planCode].yearly + (both ? SECOND_AGGREGATOR.yearly : 0),
   };
 }
 
 export function presetOptions(plan: PlanChoice) {
   const { monthly, yearly } = planPrices(plan);
+  if (monthly === null) {
+    return [1, 2, 3].map((years) => ({
+      months: years * 12,
+      label: years === 1 ? "1 Year" : `${years} Years`,
+      subtitle: `${formatRupees(yearly * years)} + GST`,
+      badge: undefined as string | undefined,
+    }));
+  }
   const saving = monthly * 12 - yearly;
   return [
     { months: 1, label: "1 Month", subtitle: `${formatRupees(monthly)} + GST` },
@@ -55,7 +64,7 @@ export function calculateSubscriptionPricing(
   creditRupees = 0
 ) {
   const gstRatePercent = GST_PERCENT;
-  const safeMonths = Math.max(1, Math.min(MAX_MONTHS, months || 1));
+  const safeMonths = allowedMonths(plan.planCode, months);
   const planTotal = basePriceFor(plan.planCode, safeMonths, plan.aggregators.length);
   const credit = Math.min(planTotal, Math.max(0, creditRupees));
   const rawBaseTotal = Math.round((planTotal - credit) * 100) / 100;
@@ -127,6 +136,13 @@ export default function SubscriptionMonthSelector({
   disabled = false,
   coupon = null,
 }: SubscriptionMonthSelectorProps) {
+  // A yearly-only plan (Basic) is bought in whole years: snap a month count picked on Pro to the next year
+  const step = billsMonthly(plan.planCode) ? 1 : 12;
+  React.useEffect(() => {
+    const allowed = allowedMonths(plan.planCode, months);
+    if (allowed !== months) onChange(allowed);
+  }, [plan.planCode, months, onChange]);
+
   const pricing = calculateSubscriptionPricing(months, coupon, plan, creditRupees);
   const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd, startsNow);
   const prices = planPrices(plan);
@@ -138,13 +154,13 @@ export default function SubscriptionMonthSelector({
   };
 
   const handleIncrement = () => {
-    if (disabled || months >= MAX_MONTHS) return;
-    onChange(months + 1);
+    if (disabled || months + step > MAX_MONTHS) return;
+    onChange(months + step);
   };
 
   const handleDecrement = () => {
-    if (disabled || months <= 1) return;
-    onChange(months - 1);
+    if (disabled || months - step < step) return;
+    onChange(months - step);
   };
 
   const now = new Date();
@@ -168,12 +184,14 @@ export default function SubscriptionMonthSelector({
           Choose Subscription Duration
         </label>
         <span className="text-[11px] font-semibold text-zinc-500">
-          {formatRupees(prices.monthly)}/mo or {formatRupees(prices.yearly)}/yr + GST
+          {prices.monthly === null
+            ? `${formatRupees(prices.yearly)}/yr + GST, yearly only`
+            : `${formatRupees(prices.monthly)}/mo or ${formatRupees(prices.yearly)}/yr + GST`}
         </span>
       </div>
 
       {/* Preset Pills */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className={`grid gap-2.5 ${presets.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
         {presets.map((preset) => {
           const isSelected = months === preset.months;
           return (
@@ -221,10 +239,10 @@ export default function SubscriptionMonthSelector({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            disabled={disabled || months <= 1}
+            disabled={disabled || months - step < step}
             onClick={handleDecrement}
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-zinc-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
-            aria-label="Decrease months"
+            aria-label={step === 12 ? "One year less" : "Decrease months"}
           >
             <Minus className="h-3 w-3" />
           </button>
@@ -233,10 +251,10 @@ export default function SubscriptionMonthSelector({
           </span>
           <button
             type="button"
-            disabled={disabled || months >= MAX_MONTHS}
+            disabled={disabled || months + step > MAX_MONTHS}
             onClick={handleIncrement}
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-slate-200 text-zinc-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
-            aria-label="Increase months"
+            aria-label={step === 12 ? "One year more" : "Increase months"}
           >
             <Plus className="h-3 w-3" />
           </button>
