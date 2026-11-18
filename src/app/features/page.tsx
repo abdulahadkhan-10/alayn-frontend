@@ -3,8 +3,9 @@ import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Features — Restaurant Billing Software, POS, KDS, Inventory & Workforce | Alayn AI";
 const description = "Everything in Alayn AI: GST counter and table POS billing software, kitchen display, batch inventory with expiry tracking, waste tracking, staff rosters and attendance, multi-outlet management and analytics.";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/features`,
+    languages: regionAlternates("/features"),
     types: { "text/markdown": `${siteUrl}/features.md` },
   },
   ...socialMetadata({ title, description, path: "/features" }),

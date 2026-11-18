@@ -4,8 +4,9 @@ import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import DemoRequestForm from "@/components/landing/DemoRequestForm";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Contact & Book a Demo — Alayn AI";
 const description = "Connect with Alayn AI. Book an interactive demonstration, get enterprise sales quotes, or access operator technical support.";
 
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/contact`,
+    languages: regionAlternates("/contact"),
     types: { "text/markdown": `${siteUrl}/contact.md` },
   },
   ...socialMetadata({ title, description, path: "/contact" }),

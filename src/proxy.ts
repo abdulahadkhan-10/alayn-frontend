@@ -27,18 +27,18 @@ function markdownResponse(body: string, status: number) {
 
 const MARKDOWN_NOT_FOUND = `# 404 — Page not found
 
-There is no page at this address on alaynai.com. Alayn AI is a restaurant billing software and operating system: GST POS billing, kitchen display, FEFO inventory, waste tracking and staff scheduling for restaurants, cafés and cloud kitchens.
+There is no page at this address on alayn.in. Alayn AI is a restaurant billing software and operating system: GST POS billing, kitchen display, FEFO inventory, waste tracking and staff scheduling for restaurants, cafés and cloud kitchens.
 
 Try one of these instead:
 
-- [Home](https://alaynai.com/)
-- [Restaurant Billing Software & POS](https://alaynai.com/billing-software)
-- [Features](https://alaynai.com/features)
-- [Pricing](https://alaynai.com/pricing)
-- [Contact and demos](https://alaynai.com/contact)
-- [API reference](https://alaynai.com/api-docs)
-- [LLM index](https://alaynai.com/llms.txt)
-- [Sitemap](https://alaynai.com/sitemap.xml)
+- [Home](https://alayn.in/)
+- [Restaurant Billing Software & POS](https://alayn.in/billing-software)
+- [Features](https://alayn.in/features)
+- [Pricing](https://alayn.in/pricing)
+- [Contact and demos](https://alayn.in/contact)
+- [API reference](https://alayn.in/api-docs)
+- [LLM index](https://alayn.in/llms.txt)
+- [Sitemap](https://alayn.in/sitemap.xml)
 `;
 
 export function proxy(request: NextRequest) {
@@ -53,7 +53,7 @@ export function proxy(request: NextRequest) {
       // The .md file is a copy of an HTML page. Without a canonical, Google
       // crawls it as a separate thin page and reports it as "Crawled -
       // currently not indexed". The header hands its signals to the HTML page.
-      res.headers.set("Link", `<https://alaynai.com${pagePath}>; rel="canonical"`);
+      res.headers.set("Link", `<https://alayn.in${pagePath}>; rel="canonical"`);
       return res;
     }
   }

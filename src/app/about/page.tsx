@@ -3,8 +3,9 @@ import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "About Alayn AI — Intelligent Hospitality Operating System";
 const description = "Learn about Alayn AI, the enterprise restaurant operating platform unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling. Built and operated by BRAHM Global Holdings.";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/about`,
+    languages: regionAlternates("/about"),
     types: { "text/markdown": `${siteUrl}/about.md` },
   },
   ...socialMetadata({ title, description, path: "/about" }),

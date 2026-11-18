@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const SITE_URL = "https://alaynai.com";
+const SITE_URL = "https://alayn.in";
 const SHARE_IMAGE = { url: "/alaynlogo.png", width: 1200, height: 630, alt: "Alayn AI" };
 
 // Metadata merges shallowly, so a page that sets no openGraph/twitter of its

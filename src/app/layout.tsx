@@ -26,7 +26,7 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = "https://alayn.in";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     "KOT Billing Software",
     "Alayn",
     "Alayn AI",
-    "alaynai.com",
+    "alayn.in",
     "Restaurant Operating System",
     "Hospitality AI",
     "Cafe POS",
@@ -113,7 +113,7 @@ export default function RootLayout({
         "name": "Alayn AI",
         "alternateName": ["Alayn", "AlaynAI", "Alayn Billing Software"],
         "description": "The Official Intelligent Billing Software & Operating System for Modern Hospitality.",
-        "disambiguatingDescription": "The official Alayn AI billing software, POS, and operating system for hospitality, restaurants, and cafes at alaynai.com.",
+        "disambiguatingDescription": "The official Alayn AI billing software, POS, and operating system for hospitality, restaurants, and cafes at alayn.in.",
         "publisher": {
           "@id": `${siteUrl}/#organization`
         },
@@ -180,7 +180,7 @@ export default function RootLayout({
           "@id": `${siteUrl}/#brand`
         },
         "description": "Alayn AI is an enterprise billing software and operating system unifying POS billing, kitchen KDS, inventory, and workforce management for restaurants and cafes.",
-        "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise billing software and operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
+        "disambiguatingDescription": "Alayn AI (alayn.in) is the official enterprise billing software and operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West",

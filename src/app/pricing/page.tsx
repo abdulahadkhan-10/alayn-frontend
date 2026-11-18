@@ -6,8 +6,9 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 import PricingPlans, { PlanSignupLink, SoonTag } from "@/components/pricing/PricingPlans";
 import { BASIC_AI_QUESTIONS, PRO_AI_QUESTIONS, formatRupees, GST_PERCENT, PLANS, SECOND_AGGREGATOR } from "@/lib/pricing";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Pricing — Alayn Basic ₹5,999/yr, Alayn Pro ₹2,999/mo | Restaurant Billing & POS | Alayn AI";
 const description = `Alayn AI restaurant POS and billing software, per outlet + ${GST_PERCENT}% GST: Alayn Basic ₹5,999 a year with POS billing, kitchen display, inventory and reports; Alayn Pro ₹2,999 a month or ₹19,999 a year adding staff scheduling, full Ask Alayn AI and Swiggy or Zomato.`;
 
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
+    languages: regionAlternates("/pricing"),
     types: { "text/markdown": `${siteUrl}/pricing.md` },
   },
   ...socialMetadata({ title, description, path: "/pricing" }),

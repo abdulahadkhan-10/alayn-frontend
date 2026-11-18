@@ -14,6 +14,7 @@ import VerticalsScene from "@/components/landing/scenes/VerticalsScene";
 import CalmScene from "@/components/landing/scenes/CalmScene";
 import WaitingScene from "@/components/landing/scenes/WaitingScene";
 import IntroReveal from "@/components/landing/IntroReveal";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
 const title = "Alayn AI: Restaurant Billing Software, POS, Inventory & Workforce OS";
 const description =
@@ -25,8 +26,9 @@ export const metadata: Metadata = {
   },
   description,
   alternates: {
-    canonical: "https://alaynai.com",
-    types: { "text/markdown": "https://alaynai.com/index.md" },
+    canonical: SITE_URL,
+    languages: regionAlternates(""),
+    types: { "text/markdown": `${SITE_URL}/index.md` },
   },
   ...socialMetadata({ title, description, path: "" }),
 };

@@ -10,7 +10,7 @@ export const MARKDOWN_PAGES: Record<string, string> = {
 Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and operating system built for restaurant chains, hospitality groups, cloud kitchens, cafes, QSRs, and dining establishments. Backed by BRAHM Global Holdings.
 
 ## Core Capabilities
-1. **Counter & Table POS Billing Software**: Counter and table GST billing (CGST/SGST) with UPI, card and cash, plus printed KOTs and thermal receipts. Details: https://alaynai.com/billing-software
+1. **Counter & Table POS Billing Software**: Counter and table GST billing (CGST/SGST) with UPI, card and cash, plus printed KOTs and thermal receipts. Details: https://alayn.in/billing-software
 2. **Kitchen Display System (KDS)**: Orders appear on the kitchen board in real time; cancellations are flagged to the kitchen.
 3. **Smart Inventory**: Stock levels, minimum levels, FEFO batch expiry alerts, and one-click restock purchase orders.
 4. **Waste Management**: Waste logged per item with a reason, loss totals and trends, and high-waste alerts.
@@ -19,24 +19,24 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
 ## Pricing
-Two plans per outlet, + 18% GST: Alayn Basic ₹5,999 a year (yearly only); Alayn Pro ₹2,999 a month or ₹19,999 a year. Details: https://alaynai.com/pricing
+Two plans per outlet, + 18% GST: Alayn Basic ₹5,999 a year (yearly only); Alayn Pro ₹2,999 a month or ₹19,999 a year. Details: https://alayn.in/pricing
 
-- Restaurant Billing Software: https://alaynai.com/billing-software
-- Full feature list: https://alaynai.com/features
+- Restaurant Billing Software: https://alayn.in/billing-software
+- Full feature list: https://alayn.in/features
 
 ## Developer & API Integration
-- API Documentation: https://alaynai.com/api-docs
+- API Documentation: https://alayn.in/api-docs
 - Multi-Tenant Scoping Header: \`x-outlet-id\`
 - Authentication: log in at \`POST /api/v1/auth/login\`, then send \`Authorization: Bearer <accessToken>\`.
 
 ## Contact & Demos
-- Book a Demonstration: https://alaynai.com/contact
+- Book a Demonstration: https://alayn.in/contact
 - General inquiries, sales and demos: info@alaynai.com
 
 ## Machine-Readable Resources
-- LLM Index: https://alaynai.com/llms.txt
-- Full LLM Context: https://alaynai.com/llms-full.txt
-- Sitemap: https://alaynai.com/sitemap.xml
+- LLM Index: https://alayn.in/llms.txt
+- Full LLM Context: https://alayn.in/llms-full.txt
+- Sitemap: https://alayn.in/sitemap.xml
 `,
 
   // Keep in step with src/app/billing-software/page.tsx.
@@ -55,9 +55,9 @@ Two plans per outlet, + 18% GST: Alayn Basic ₹5,999 a year (yearly only); Alay
 ## Pricing
 Alayn Basic: ₹5,999 per outlet a year, paid yearly only. Alayn Pro: ₹2,999 per outlet per month or ₹19,999 a year. All prices + 18% GST.
 
-- Pricing details: https://alaynai.com/pricing
-- Features: https://alaynai.com/features
-- Book a Demo: https://alaynai.com/contact
+- Pricing details: https://alayn.in/pricing
+- Features: https://alayn.in/features
+- Book a Demo: https://alayn.in/contact
 `,
 
   // Keep in step with src/app/features/page.tsx.
@@ -65,14 +65,14 @@ Alayn Basic: ₹5,999 per outlet a year, paid yearly only. Alayn Pro: ₹2,999 p
 
 > Everything a restaurant, café or cloud kitchen runs on during service, in one platform.
 
-Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. The features below come in two per-outlet plans, Alayn Basic and Alayn Pro (see https://alaynai.com/pricing).
+Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. The features below come in two per-outlet plans, Alayn Basic and Alayn Pro (see https://alayn.in/pricing).
 
 ## Point of Sale & GST Billing Software
 - Counter and table GST billing with UPI, card and cash.
 - Printed KOTs and thermal receipts.
 - Table QR codes that open the menu on the guest's phone.
 - Unlimited POS terminals per outlet.
-- Details: https://alaynai.com/billing-software
+- Details: https://alayn.in/billing-software
 
 ## Kitchen Display System (KDS)
 - Orders reach the kitchen screen the moment they are placed.
@@ -103,12 +103,12 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
 - Ask plain-language questions about sales, stock, staffing and menu performance.
 
 ## REST API
-- JWT login, outlet-scoped requests and an OpenAPI 3.0 spec: https://alaynai.com/api-docs
+- JWT login, outlet-scoped requests and an OpenAPI 3.0 spec: https://alayn.in/api-docs
 
 ## Next Steps
-- Billing Software: https://alaynai.com/billing-software
-- Pricing: https://alaynai.com/pricing
-- Book a demonstration: https://alaynai.com/contact
+- Billing Software: https://alayn.in/billing-software
+- Pricing: https://alayn.in/pricing
+- Book a demonstration: https://alayn.in/contact
 `,
 
   // Keep in step with src/app/pricing/page.tsx and the prices in src/lib/pricing.ts.
@@ -140,16 +140,16 @@ Everything in Basic, plus:
 - Move from Basic to Pro at any time; the days left on Basic are taken off the price. Moving from Pro to Basic happens when the Pro period ends.
 - Yearly payments are non-refundable.
 - Payments are processed by Cashfree.
-- Refunds and cancellations: https://alaynai.com/legal/refund
+- Refunds and cancellations: https://alayn.in/legal/refund
 
 ## Multi-Outlet Groups
-Groups with many outlets can ask about volume pricing: info@alaynai.com or https://alaynai.com/contact
+Groups with many outlets can ask about volume pricing: info@alaynai.com or https://alayn.in/contact
 
 ## Next Steps
-- Billing Software: https://alaynai.com/billing-software
-- Features: https://alaynai.com/features
-- Book a demonstration: https://alaynai.com/contact
-- Sign up: https://alaynai.com/signup
+- Billing Software: https://alayn.in/billing-software
+- Features: https://alayn.in/features
+- Book a demonstration: https://alayn.in/contact
+- Sign up: https://alayn.in/signup
 `,
 
   "/about": `# About Alayn AI
@@ -168,7 +168,7 @@ Alayn AI is the dedicated hospitality technology company within **BRAHM Global H
 ## 3. Corporate Backing & Governance
 Alayn AI is built and operated by **BRAHM Global Holdings**, a sole proprietorship based in Mumbai, India.
 
-- **Website**: https://alaynai.com
+- **Website**: https://alayn.in
 - **Contact**: info@alaynai.com
 `,
 
@@ -197,7 +197,7 @@ For existing restaurant partners requiring technical or account assistance:
 ## Corporate Headquarters
 - **Entity**: Alayn AI (A BRAHM Global Holdings Company)
 - **Location**: Mumbai, India
-- **Primary Website**: https://alaynai.com
+- **Primary Website**: https://alayn.in
 `,
 
   // Summary only; the HTML page is the policy. Keep the dates and claims here
@@ -205,7 +205,7 @@ For existing restaurant partners requiring technical or account assistance:
   "/legal/privacy": `# Privacy Policy — Alayn AI
 
 > Effective and last updated: 14 August 2026
-> Full policy: https://alaynai.com/legal/privacy
+> Full policy: https://alayn.in/legal/privacy
 
 This is a short summary for agents. The full policy at the link above is the authoritative version.
 
@@ -241,7 +241,7 @@ Error: \`{ "success": false, "error": { "code": "…", "message": "…" } }\`.
 Every response carries \`RateLimit-Limit\`, \`RateLimit-Remaining\` and \`RateLimit-Reset\` headers. The API allows 1,000 requests per minute per IP, with stricter limits on login, QR menus and feedback. A 429 response includes \`Retry-After\`.
 
 ## Versioning and Deprecation
-The version is in the path (\`/api/v1\`). Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced at https://alaynai.com/api-docs#versioning.
+The version is in the path (\`/api/v1\`). Breaking changes ship as a new version. A deprecated version keeps working for at least 6 months after its deprecation is announced at https://alayn.in/api-docs#versioning.
 
 ## Main Endpoint Groups
 - \`/orders\` — Orders, status changes and payments.
@@ -255,7 +255,7 @@ The version is in the path (\`/api/v1\`). Breaking changes ship as a new version
 
 ## Reference
 - Interactive reference: https://api.alaynai.com/api/docs
-- OpenAPI: https://alaynai.com/openapi.json
+- OpenAPI: https://alayn.in/openapi.json
 - There are no webhooks, SDK or CLI yet.
 `
 };

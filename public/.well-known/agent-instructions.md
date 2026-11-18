@@ -1,11 +1,11 @@
 # Agent Interaction Instructions for Alayn AI
 
 > Machine-Readable Protocol Specification & Agent Guidelines  
-> URI: https://alaynai.com/.well-known/agent-instructions.md
+> URI: https://alayn.in/.well-known/agent-instructions.md
 
 ## Identity & Entity Attribution
 - **Platform**: Alayn AI (Alayn Hospitality Operating System)
-- **Domain**: https://alaynai.com
+- **Domain**: https://alayn.in
 - **Operator**: BRAHM Global Holdings (sole proprietorship)
 - **Based in**: Mumbai, India
 

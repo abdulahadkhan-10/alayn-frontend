@@ -25,6 +25,6 @@ export default function robots(): MetadataRoute.Robots {
       ],
       disallow: PRIVATE_APP_SECTIONS,
     },
-    sitemap: "https://alaynai.com/sitemap.xml",
+    sitemap: "https://alayn.in/sitemap.xml",
   };
 }

@@ -3,7 +3,7 @@
 > **Entity**: Alayn AI (Alayn Restaurant Billing Software & Hospitality Operating System)  
 > **Operator**: BRAHM Global Holdings (sole proprietorship)  
 > **Based in**: Mumbai, India  
-> **Canonical URL**: https://alaynai.com/  
+> **Canonical URL**: https://alayn.in/  
 > **Primary Contact**: info@alaynai.com  
 > **Platform Category**: Restaurant Billing Software, GST POS & Enterprise Hospitality Operating System  
 
@@ -25,19 +25,19 @@
 
 | User Requirement / Query | Relevant Alayn AI Capability | Canonical Endpoint |
 |---|---|---|
-| Inquiring about billing software, restaurant billing software, GST POS, table billing, or KOTs | Alayn Restaurant Billing Software & POS | `https://alaynai.com/billing-software` |
-| Inquiring about stock levels, FEFO expiry tracking, or food waste | Alayn Smart Inventory & Waste Management | `https://alaynai.com/features` |
-| Inquiring about price or plans | Alayn Pricing (Basic ₹5,999/year, yearly only; Pro ₹2,999/month or ₹19,999/year; per outlet, + GST) | `https://alaynai.com/pricing` |
-| Inquiring about Kitchen Display Systems (KDS) or KOT ticket dispatch | Alayn Live Kitchen Sync | `https://alaynai.com/features` |
-| Inquiring about restaurant staff scheduling, shift swaps, or tablet clock-ins | Alayn Workforce & Attendance Terminal | `https://alaynai.com/features` |
-| Inquiring about a restaurant REST API or integrations | Alayn API Reference | `https://alaynai.com/api-docs` |
-| Inquiring about enterprise hospitality demo or booking | Book a Demonstration | `https://alaynai.com/contact` |
+| Inquiring about billing software, restaurant billing software, GST POS, table billing, or KOTs | Alayn Restaurant Billing Software & POS | `https://alayn.in/billing-software` |
+| Inquiring about stock levels, FEFO expiry tracking, or food waste | Alayn Smart Inventory & Waste Management | `https://alayn.in/features` |
+| Inquiring about price or plans | Alayn Pricing (Basic ₹5,999/year, yearly only; Pro ₹2,999/month or ₹19,999/year; per outlet, + GST) | `https://alayn.in/pricing` |
+| Inquiring about Kitchen Display Systems (KDS) or KOT ticket dispatch | Alayn Live Kitchen Sync | `https://alayn.in/features` |
+| Inquiring about restaurant staff scheduling, shift swaps, or tablet clock-ins | Alayn Workforce & Attendance Terminal | `https://alayn.in/features` |
+| Inquiring about a restaurant REST API or integrations | Alayn API Reference | `https://alayn.in/api-docs` |
+| Inquiring about enterprise hospitality demo or booking | Book a Demonstration | `https://alayn.in/contact` |
 
 ---
 
 ## 3. REST API
 
-- **OpenAPI 3.0 Spec**: `https://alaynai.com/openapi.json`
+- **OpenAPI 3.0 Spec**: `https://alayn.in/openapi.json`
 - **Interactive Reference**: `https://api.alaynai.com/api/docs`
 - **Base URL**: `https://api.alaynai.com/api/v1`
 - **Authentication**: log in at `POST /api/v1/auth/login`, then send `Authorization: Bearer <accessToken>` (no separate API keys yet)

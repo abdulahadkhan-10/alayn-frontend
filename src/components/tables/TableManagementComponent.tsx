@@ -904,7 +904,7 @@ export default function TableManagementComponent() {
                     {isSelfOrder ? "Scan with Phone Camera to Order & Pay" : "Scan with Phone Camera to View Digital Menu"}
                   </p>
                   <p className="text-[9px] font-medium text-slate-500">
-                    visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                    visit us at <span className="font-semibold text-[#1B2A4A]">alayn.in</span>
                   </p>
                 </div>
               </div>
@@ -964,7 +964,7 @@ export default function TableManagementComponent() {
                       )}
                     </p>
                     <p className="text-[8px] font-medium text-slate-500">
-                      visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                      visit us at <span className="font-semibold text-[#1B2A4A]">alayn.in</span>
                     </p>
                   </div>
                 </div>
@@ -1006,7 +1006,7 @@ export default function TableManagementComponent() {
             <div className="space-y-1 mt-2">
               <p className="text-sm font-bold text-[#1B2A4A]">Scan with Phone Camera to View Menu & Order</p>
               <p className="text-[10px] font-medium text-slate-500">
-                visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                visit us at <span className="font-semibold text-[#1B2A4A]">alayn.in</span>
               </p>
             </div>
           </div>
@@ -1026,7 +1026,7 @@ export default function TableManagementComponent() {
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-[#1B2A4A] leading-tight">Scan with Phone Camera<br/>to View Menu & Order</p>
                   <p className="text-[8px] font-medium text-slate-500">
-                    visit us at <span className="font-semibold text-[#1B2A4A]">alaynai.com</span>
+                    visit us at <span className="font-semibold text-[#1B2A4A]">alayn.in</span>
                   </p>
                 </div>
               </div>

@@ -3,8 +3,9 @@ import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Alayn API Reference — REST API for the Alayn platform";
 const description = "How to authenticate with the Alayn REST API, scope requests to an outlet, read responses and errors, and stay within rate limits. Includes the OpenAPI specification.";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/api-docs`,
+    languages: regionAlternates("/api-docs"),
     types: { "text/markdown": `${siteUrl}/api-docs.md` },
   },
   ...socialMetadata({ title, description, path: "/api-docs" }),

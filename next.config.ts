@@ -62,6 +62,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
+        has: [{ type: "host", value: "www.alayn.in" }],
+        destination: "https://alayn.in/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
         has: [{ type: "host", value: "www.alaynai.com" }],
         destination: "https://alaynai.com/:path*",
         permanent: true,
